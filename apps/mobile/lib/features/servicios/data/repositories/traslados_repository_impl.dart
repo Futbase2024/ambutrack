@@ -1,15 +1,15 @@
 import 'package:flutter/foundation.dart';
 
-import '../../../../core/datasources/traslados/traslados_datasource.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 import '../../domain/repositories/traslados_repository.dart';
 
 /// Implementación del repositorio de traslados
 /// Patrón pass-through: delega directamente al datasource sin conversiones
 class TrasladosRepositoryImpl implements TrasladosRepository {
   TrasladosRepositoryImpl()
-      : _dataSource = TrasladosDataSourceFactory.createSupabase();
+      : _dataSource = TrasladoDataSourceFactory.createSupabase();
 
-  final TrasladosDataSource _dataSource;
+  final TrasladoDataSource _dataSource;
 
   @override
   Future<List<TrasladoEntity>> getByIdConductor(String idConductor) async {

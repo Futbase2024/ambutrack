@@ -1,418 +1,482 @@
-import 'package:json_annotation/json_annotation.dart';
-
-import '../../motivos_traslado/entities/motivo_traslado_entity.dart';
-import '../../motivos_traslado/models/motivo_traslado_supabase_model.dart';
-import '../../pacientes/entities/paciente_entity.dart';
-import '../../pacientes/models/paciente_supabase_model.dart';
+import '../entities/estado_traslado_enum.dart';
 import '../entities/traslado_entity.dart';
+import '../entities/ubicacion_entity.dart';
 
-part 'traslado_supabase_model.g.dart';
-
-/// Helper para parsear DateTime como UTC desde Supabase
-/// Supabase devuelve timestamps sin 'Z', lo que causa que DateTime.parse()
-/// los interprete como hora local. Esta función fuerza UTC.
-DateTime? _parseAsUtc(String? dateStr) {
-  if (dateStr == null) return null;
-  // Si ya tiene 'Z', parsear normalmente
-  if (dateStr.endsWith('Z')) return DateTime.parse(dateStr);
-  // Si no tiene 'Z', agregarlo para forzar UTC
-  return DateTime.parse('${dateStr}Z');
-}
-
-/// Modelo de datos para Traslados desde/hacia Supabase
-/// DTO con serialización JSON automática
-@JsonSerializable(explicitToJson: true)
+/// Modelo DTO para serialización JSON desde/hacia Supabase
 class TrasladoSupabaseModel {
   const TrasladoSupabaseModel({
     required this.id,
-    this.codigo,
+    required this.codigo,
+    required this.idPaciente,
+    required this.tipoTraslado,
+    required this.fecha,
+    required this.horaProgramada,
+    required this.estado,
+    required this.fechaCreacion,
+    required this.createdAt,
+    required this.updatedAt,
     this.idServicioRecurrente,
     this.idServicio,
-    this.idMotivoTraslado,
-    this.motivoTraslado,
-    this.idPaciente,
-    this.paciente,
-    this.tipoTraslado,
-    this.fecha,
-    this.horaProgramada,
-    this.estado,
-    this.idPersonalConductor,
-    this.idPersonalEnfermero,
-    this.idPersonalMedico,
     this.idVehiculo,
     this.matriculaVehiculo,
-    this.tipoOrigen,
-    this.origen,
-    this.tipoDestino,
-    this.destino,
-    this.kmInicio,
-    this.kmFin,
-    this.kmTotales,
-    this.observaciones,
-    this.observacionesInternas,
-    this.motivoCancelacion,
-    this.motivoNoRealizacion,
-    this.duracionEstimadaMinutos,
-    this.duracionRealMinutos,
-    this.prioridad,
+    this.idConductor,
+    this.personalAsignado,
+    this.fechaAsignacion,
+    this.usuarioAsignacion,
     this.fechaEnviado,
+    this.usuarioEnvio,
     this.fechaRecibidoConductor,
     this.fechaEnOrigen,
     this.ubicacionEnOrigen,
     this.fechaSaliendoOrigen,
     this.ubicacionSaliendoOrigen,
-    this.fechaEnTransito,
-    this.ubicacionEnTransito,
     this.fechaEnDestino,
     this.ubicacionEnDestino,
     this.fechaFinalizado,
     this.ubicacionFinalizado,
-    this.fechaCancelado,
-    this.fechaSuspendido,
+    this.fechaCancelacion,
+    this.motivoCancelacion,
+    this.observacionesCancelacion,
+    this.usuarioCancelacion,
     this.fechaNoRealizado,
-    this.idUsuarioAsignacion,
-    this.fechaAsignacion,
-    this.idUsuarioEnvio,
-    this.fechaEnvio,
-    this.idUsuarioCancelacion,
-    this.createdAt,
-    this.updatedAt,
+    this.fechaSuspendido,
+    this.pacienteConfirmado,
+    this.fechaConfirmacionPaciente,
+    this.metodoConfirmacion,
+    this.tipoAmbulancia,
+    this.requiereAcompanante,
+    this.requiereSillaRuedas,
+    this.requiereCamilla,
+    this.requiereAyuda,
+    this.observaciones,
+    this.observacionesMedicas,
+    this.tipoOrigen,
+    this.origen,
+    this.origenUbicacionCentro,
+    this.tipoDestino,
+    this.destino,
+    this.destinoUbicacionCentro,
+    this.idMotivoTraslado,
+    this.facturado,
+    this.fechaFacturacion,
+    this.importeFacturado,
+    this.tiempoEsperaOrigenMinutos,
+    this.tiempoViajeMinutos,
+    this.kilometrosRecorridos,
+    this.generadoAutomaticamente,
+    this.editadoManualmente,
+    this.prioridad,
     this.createdBy,
     this.updatedBy,
   });
 
   final String id;
-  final String? codigo; // Nullable - puede no tener código generado
-
-  @JsonKey(name: 'id_servicio_recurrente')
+  final String codigo;
+  final String idPaciente;
+  final String tipoTraslado;
+  final DateTime fecha;
+  final String horaProgramada;
+  final String estado;
+  final DateTime fechaCreacion;
   final String? idServicioRecurrente;
-
-  @JsonKey(name: 'id_servicio')
   final String? idServicio;
-
-  @JsonKey(name: 'id_motivo_traslado')
-  final String? idMotivoTraslado;
-
-  /// Motivo de traslado embebido (cargado cuando se hace JOIN con tmotivos_traslado)
-  @JsonKey(name: 'tmotivos_traslado')
-  final Map<String, dynamic>? motivoTraslado;
-
-  @JsonKey(name: 'id_paciente')
-  final String? idPaciente;
-
-  /// Paciente embebido (cargado cuando se hace JOIN con pacientes)
-  @JsonKey(name: 'pacientes')
-  final Map<String, dynamic>? paciente;
-
-  @JsonKey(name: 'tipo_traslado')
-  final String? tipoTraslado; // Nullable - puede no especificarse
-
-  final String? fecha; // Nullable - puede no tener fecha
-
-  @JsonKey(name: 'hora_programada')
-  final String? horaProgramada; // Nullable - puede no tener hora programada
-
-  final String? estado; // Nullable - puede no tener estado inicial
-
-  @JsonKey(name: 'id_conductor')
-  final String? idPersonalConductor;
-
-  @JsonKey(name: 'id_personal_enfermero')
-  final String? idPersonalEnfermero;
-
-  @JsonKey(name: 'id_personal_medico')
-  final String? idPersonalMedico;
-
-  @JsonKey(name: 'id_vehiculo')
   final String? idVehiculo;
-
-  @JsonKey(name: 'matricula_vehiculo')
   final String? matriculaVehiculo;
-
-  @JsonKey(name: 'tipo_origen')
-  final String? tipoOrigen;
-
-  final String? origen;
-
-  @JsonKey(name: 'tipo_destino')
-  final String? tipoDestino;
-
-  final String? destino;
-
-  @JsonKey(name: 'km_inicio')
-  final double? kmInicio;
-
-  @JsonKey(name: 'km_fin')
-  final double? kmFin;
-
-  @JsonKey(name: 'km_totales')
-  final double? kmTotales;
-
-  final String? observaciones;
-
-  @JsonKey(name: 'observaciones_internas')
-  final String? observacionesInternas;
-
-  @JsonKey(name: 'motivo_cancelacion')
+  final String? idConductor;
+  final List<dynamic>? personalAsignado;
+  final DateTime? fechaAsignacion;
+  final String? usuarioAsignacion;
+  final DateTime? fechaEnviado;
+  final String? usuarioEnvio;
+  final DateTime? fechaRecibidoConductor;
+  final DateTime? fechaEnOrigen;
+  final Map<String, dynamic>? ubicacionEnOrigen;
+  final DateTime? fechaSaliendoOrigen;
+  final Map<String, dynamic>? ubicacionSaliendoOrigen;
+  final DateTime? fechaEnDestino;
+  final Map<String, dynamic>? ubicacionEnDestino;
+  final DateTime? fechaFinalizado;
+  final Map<String, dynamic>? ubicacionFinalizado;
+  final DateTime? fechaCancelacion;
   final String? motivoCancelacion;
-
-  @JsonKey(name: 'motivo_no_realizacion')
-  final String? motivoNoRealizacion;
-
-  @JsonKey(name: 'duracion_estimada_minutos')
-  final int? duracionEstimadaMinutos;
-
-  @JsonKey(name: 'duracion_real_minutos')
-  final int? duracionRealMinutos;
-
+  final String? observacionesCancelacion;
+  final String? usuarioCancelacion;
+  final DateTime? fechaNoRealizado;
+  final DateTime? fechaSuspendido;
+  final bool? pacienteConfirmado;
+  final DateTime? fechaConfirmacionPaciente;
+  final String? metodoConfirmacion;
+  final String? tipoAmbulancia;
+  final bool? requiereAcompanante;
+  final bool? requiereSillaRuedas;
+  final bool? requiereCamilla;
+  final bool? requiereAyuda;
+  final String? observaciones;
+  final String? observacionesMedicas;
+  final String? tipoOrigen;
+  final String? origen;
+  final String? origenUbicacionCentro;
+  final String? tipoDestino;
+  final String? destino;
+  final String? destinoUbicacionCentro;
+  final String? idMotivoTraslado;
+  final bool? facturado;
+  final DateTime? fechaFacturacion;
+  final double? importeFacturado;
+  final int? tiempoEsperaOrigenMinutos;
+  final int? tiempoViajeMinutos;
+  final double? kilometrosRecorridos;
+  final bool? generadoAutomaticamente;
+  final bool? editadoManualmente;
   final int? prioridad;
-
-  // CRONAS (timestamps)
-  @JsonKey(name: 'fecha_enviado')
-  final String? fechaEnviado;
-
-  @JsonKey(name: 'fecha_recibido_conductor')
-  final String? fechaRecibidoConductor;
-
-  @JsonKey(name: 'fecha_en_origen')
-  final String? fechaEnOrigen;
-
-  @JsonKey(name: 'ubicacion_en_origen')
-  final Map<String, dynamic>? ubicacionEnOrigen; // JSONB
-
-  @JsonKey(name: 'fecha_saliendo_origen')
-  final String? fechaSaliendoOrigen;
-
-  @JsonKey(name: 'ubicacion_saliendo_origen')
-  final Map<String, dynamic>? ubicacionSaliendoOrigen; // JSONB
-
-  @JsonKey(name: 'fecha_en_transito')
-  final String? fechaEnTransito;
-
-  @JsonKey(name: 'ubicacion_en_transito')
-  final Map<String, dynamic>? ubicacionEnTransito; // JSONB
-
-  @JsonKey(name: 'fecha_en_destino')
-  final String? fechaEnDestino;
-
-  @JsonKey(name: 'ubicacion_en_destino')
-  final Map<String, dynamic>? ubicacionEnDestino; // JSONB
-
-  @JsonKey(name: 'fecha_finalizado')
-  final String? fechaFinalizado;
-
-  @JsonKey(name: 'ubicacion_finalizado')
-  final Map<String, dynamic>? ubicacionFinalizado; // JSONB
-
-  @JsonKey(name: 'fecha_cancelacion')
-  final String? fechaCancelado;
-
-  @JsonKey(name: 'fecha_suspendido')
-  final String? fechaSuspendido;
-
-  @JsonKey(name: 'fecha_no_realizado')
-  final String? fechaNoRealizado;
-
-  // AUDITORÍA DE ASIGNACIÓN
-  @JsonKey(name: 'id_usuario_asignacion')
-  final String? idUsuarioAsignacion;
-
-  @JsonKey(name: 'fecha_asignacion')
-  final String? fechaAsignacion;
-
-  @JsonKey(name: 'id_usuario_envio')
-  final String? idUsuarioEnvio;
-
-  @JsonKey(name: 'fecha_envio')
-  final String? fechaEnvio;
-
-  @JsonKey(name: 'id_usuario_cancelacion')
-  final String? idUsuarioCancelacion;
-
-  @JsonKey(name: 'created_at')
-  final String? createdAt;
-
-  @JsonKey(name: 'updated_at')
-  final String? updatedAt;
-
-  @JsonKey(name: 'created_by')
+  final DateTime createdAt;
+  final DateTime updatedAt;
   final String? createdBy;
-
-  @JsonKey(name: 'updated_by')
   final String? updatedBy;
 
-  /// Deserialización desde JSON (Supabase → Model)
-  factory TrasladoSupabaseModel.fromJson(Map<String, dynamic> json) =>
-      _$TrasladoSupabaseModelFromJson(json);
-
-  /// Serialización a JSON (Model → Supabase)
-  Map<String, dynamic> toJson() => _$TrasladoSupabaseModelToJson(this);
-
-  /// Conversión desde Entity (Domain → Model)
-  factory TrasladoSupabaseModel.fromEntity(TrasladoEntity entity) {
+  /// Convierte desde JSON de Supabase
+  factory TrasladoSupabaseModel.fromJson(Map<String, dynamic> json) {
     return TrasladoSupabaseModel(
-      id: entity.id,
-      codigo: entity.codigo,
-      idServicioRecurrente: entity.idServicioRecurrente,
-      idServicio: entity.idServicio,
-      idMotivoTraslado: entity.idMotivoTraslado,
-      // No se envía motivoTraslado embebido a Supabase (solo se lee)
-      motivoTraslado: null,
-      idPaciente: entity.idPaciente,
-      // No se envía paciente embebido a Supabase (solo se lee)
-      paciente: null,
-      tipoTraslado: entity.tipoTraslado,
-      fecha: entity.fecha?.toIso8601String().split('T').first,
-      horaProgramada: entity.horaProgramada != null ? _formatTime(entity.horaProgramada!) : null,
-      estado: entity.estado,
-      idPersonalConductor: entity.idPersonalConductor,
-      idPersonalEnfermero: entity.idPersonalEnfermero,
-      idPersonalMedico: entity.idPersonalMedico,
-      idVehiculo: entity.idVehiculo,
-      matriculaVehiculo: entity.matriculaVehiculo,
-      tipoOrigen: entity.tipoOrigen,
-      origen: entity.origen,
-      tipoDestino: entity.tipoDestino,
-      destino: entity.destino,
-      kmInicio: entity.kmInicio,
-      kmFin: entity.kmFin,
-      kmTotales: entity.kmTotales,
-      observaciones: entity.observaciones,
-      observacionesInternas: entity.observacionesInternas,
-      motivoCancelacion: entity.motivoCancelacion,
-      motivoNoRealizacion: entity.motivoNoRealizacion,
-      duracionEstimadaMinutos: entity.duracionEstimadaMinutos,
-      duracionRealMinutos: entity.duracionRealMinutos,
-      prioridad: entity.prioridad,
-      fechaEnviado: entity.fechaEnviado?.toIso8601String(),
-      fechaRecibidoConductor: entity.fechaRecibidoConductor?.toIso8601String(),
-      fechaEnOrigen: entity.fechaEnOrigen?.toIso8601String(),
-      ubicacionEnOrigen: entity.ubicacionEnOrigen,
-      fechaSaliendoOrigen: entity.fechaSaliendoOrigen?.toIso8601String(),
-      ubicacionSaliendoOrigen: entity.ubicacionSaliendoOrigen,
-      fechaEnTransito: entity.fechaEnTransito?.toIso8601String(),
-      ubicacionEnTransito: entity.ubicacionEnTransito,
-      fechaEnDestino: entity.fechaEnDestino?.toIso8601String(),
-      ubicacionEnDestino: entity.ubicacionEnDestino,
-      fechaFinalizado: entity.fechaFinalizado?.toIso8601String(),
-      ubicacionFinalizado: entity.ubicacionFinalizado,
-      fechaCancelado: entity.fechaCancelado?.toIso8601String(),
-      fechaSuspendido: entity.fechaSuspendido?.toIso8601String(),
-      fechaNoRealizado: entity.fechaNoRealizado?.toIso8601String(),
-      idUsuarioAsignacion: entity.idUsuarioAsignacion,
-      fechaAsignacion: entity.fechaAsignacion?.toIso8601String(),
-      idUsuarioEnvio: entity.idUsuarioEnvio,
-      fechaEnvio: entity.fechaEnvio?.toIso8601String(),
-      idUsuarioCancelacion: entity.idUsuarioCancelacion,
-      createdAt: entity.createdAt?.toIso8601String(),
-      updatedAt: entity.updatedAt?.toIso8601String(),
-      createdBy: entity.createdBy,
-      updatedBy: entity.updatedBy,
+      id: json['id'] as String,
+      codigo: json['codigo'] as String,
+      idPaciente: json['id_paciente'] as String,
+      tipoTraslado: json['tipo_traslado'] as String,
+      fecha: DateTime.parse(json['fecha'] as String),
+      horaProgramada: json['hora_programada'] as String,
+      estado: json['estado'] as String,
+      fechaCreacion: DateTime.parse(json['fecha_creacion'] as String),
+      idServicioRecurrente: json['id_servicio_recurrente'] as String?,
+      idServicio: json['id_servicio'] as String?,
+      idVehiculo: json['id_vehiculo'] as String?,
+      matriculaVehiculo: json['matricula_vehiculo'] as String?,
+      idConductor: json['id_conductor'] as String?,
+      personalAsignado: json['personal_asignado'] as List<dynamic>?,
+      fechaAsignacion: json['fecha_asignacion'] != null
+          ? DateTime.parse(json['fecha_asignacion'] as String)
+          : null,
+      usuarioAsignacion: json['usuario_asignacion'] as String?,
+      fechaEnviado: json['fecha_enviado'] != null
+          ? DateTime.parse(json['fecha_enviado'] as String)
+          : null,
+      usuarioEnvio: json['usuario_envio'] as String?,
+      fechaRecibidoConductor: json['fecha_recibido_conductor'] != null
+          ? DateTime.parse(json['fecha_recibido_conductor'] as String)
+          : null,
+      fechaEnOrigen: json['fecha_en_origen'] != null
+          ? DateTime.parse(json['fecha_en_origen'] as String)
+          : null,
+      ubicacionEnOrigen:
+          json['ubicacion_en_origen'] as Map<String, dynamic>?,
+      fechaSaliendoOrigen: json['fecha_saliendo_origen'] != null
+          ? DateTime.parse(json['fecha_saliendo_origen'] as String)
+          : null,
+      ubicacionSaliendoOrigen:
+          json['ubicacion_saliendo_origen'] as Map<String, dynamic>?,
+      fechaEnDestino: json['fecha_en_destino'] != null
+          ? DateTime.parse(json['fecha_en_destino'] as String)
+          : null,
+      ubicacionEnDestino:
+          json['ubicacion_en_destino'] as Map<String, dynamic>?,
+      fechaFinalizado: json['fecha_finalizado'] != null
+          ? DateTime.parse(json['fecha_finalizado'] as String)
+          : null,
+      ubicacionFinalizado:
+          json['ubicacion_finalizado'] as Map<String, dynamic>?,
+      fechaCancelacion: json['fecha_cancelacion'] != null
+          ? DateTime.parse(json['fecha_cancelacion'] as String)
+          : null,
+      motivoCancelacion: json['motivo_cancelacion'] as String?,
+      observacionesCancelacion: json['observaciones_cancelacion'] as String?,
+      usuarioCancelacion: json['usuario_cancelacion'] as String?,
+      fechaNoRealizado: json['fecha_no_realizado'] != null
+          ? DateTime.parse(json['fecha_no_realizado'] as String)
+          : null,
+      fechaSuspendido: json['fecha_suspendido'] != null
+          ? DateTime.parse(json['fecha_suspendido'] as String)
+          : null,
+      pacienteConfirmado: json['paciente_confirmado'] as bool?,
+      fechaConfirmacionPaciente: json['fecha_confirmacion_paciente'] != null
+          ? DateTime.parse(json['fecha_confirmacion_paciente'] as String)
+          : null,
+      metodoConfirmacion: json['metodo_confirmacion'] as String?,
+      tipoAmbulancia: json['tipo_ambulancia'] as String?,
+      requiereAcompanante: json['requiere_acompanante'] as bool?,
+      requiereSillaRuedas: json['requiere_silla_ruedas'] as bool?,
+      requiereCamilla: json['requiere_camilla'] as bool?,
+      requiereAyuda: json['requiere_ayuda'] as bool?,
+      observaciones: json['observaciones'] as String?,
+      observacionesMedicas: json['observaciones_medicas'] as String?,
+      tipoOrigen: json['tipo_origen'] as String?,
+      origen: json['origen'] as String?,
+      origenUbicacionCentro: json['origen_ubicacion_centro'] as String?,
+      tipoDestino: json['tipo_destino'] as String?,
+      destino: json['destino'] as String?,
+      destinoUbicacionCentro: json['destino_ubicacion_centro'] as String?,
+      idMotivoTraslado: json['id_motivo_traslado'] as String?,
+      facturado: json['facturado'] as bool?,
+      fechaFacturacion: json['fecha_facturacion'] != null
+          ? DateTime.parse(json['fecha_facturacion'] as String)
+          : null,
+      importeFacturado: json['importe_facturado'] != null
+          ? (json['importe_facturado'] as num).toDouble()
+          : null,
+      tiempoEsperaOrigenMinutos:
+          json['tiempo_espera_origen_minutos'] as int?,
+      tiempoViajeMinutos: json['tiempo_viaje_minutos'] as int?,
+      kilometrosRecorridos: json['kilometros_recorridos'] != null
+          ? (json['kilometros_recorridos'] as num).toDouble()
+          : null,
+      generadoAutomaticamente: json['generado_automaticamente'] as bool?,
+      editadoManualmente: json['editado_manualmente'] as bool?,
+      prioridad: json['prioridad'] as int?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdBy: json['created_by'] as String?,
+      updatedBy: json['updated_by'] as String?,
     );
   }
 
-  /// Conversión a Entity (Model → Domain)
+  /// Convierte a JSON para Supabase
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'codigo': codigo,
+      'id_paciente': idPaciente,
+      'tipo_traslado': tipoTraslado,
+      'fecha': fecha.toIso8601String().split('T')[0],
+      'hora_programada': horaProgramada,
+      'estado': estado,
+      'fecha_creacion': fechaCreacion.toIso8601String(),
+      if (idServicioRecurrente != null)
+        'id_servicio_recurrente': idServicioRecurrente,
+      if (idServicio != null) 'id_servicio': idServicio,
+      if (idVehiculo != null) 'id_vehiculo': idVehiculo,
+      if (matriculaVehiculo != null) 'matricula_vehiculo': matriculaVehiculo,
+      if (idConductor != null) 'id_conductor': idConductor,
+      if (personalAsignado != null) 'personal_asignado': personalAsignado,
+      if (fechaAsignacion != null)
+        'fecha_asignacion': fechaAsignacion!.toIso8601String(),
+      if (usuarioAsignacion != null) 'usuario_asignacion': usuarioAsignacion,
+      if (fechaEnviado != null)
+        'fecha_enviado': fechaEnviado!.toIso8601String(),
+      if (usuarioEnvio != null) 'usuario_envio': usuarioEnvio,
+      if (fechaRecibidoConductor != null)
+        'fecha_recibido_conductor': fechaRecibidoConductor!.toIso8601String(),
+      if (fechaEnOrigen != null)
+        'fecha_en_origen': fechaEnOrigen!.toIso8601String(),
+      if (ubicacionEnOrigen != null) 'ubicacion_en_origen': ubicacionEnOrigen,
+      if (fechaSaliendoOrigen != null)
+        'fecha_saliendo_origen': fechaSaliendoOrigen!.toIso8601String(),
+      if (ubicacionSaliendoOrigen != null)
+        'ubicacion_saliendo_origen': ubicacionSaliendoOrigen,
+      if (fechaEnDestino != null)
+        'fecha_en_destino': fechaEnDestino!.toIso8601String(),
+      if (ubicacionEnDestino != null)
+        'ubicacion_en_destino': ubicacionEnDestino,
+      if (fechaFinalizado != null)
+        'fecha_finalizado': fechaFinalizado!.toIso8601String(),
+      if (ubicacionFinalizado != null)
+        'ubicacion_finalizado': ubicacionFinalizado,
+      if (fechaCancelacion != null)
+        'fecha_cancelacion': fechaCancelacion!.toIso8601String(),
+      if (motivoCancelacion != null) 'motivo_cancelacion': motivoCancelacion,
+      if (observacionesCancelacion != null)
+        'observaciones_cancelacion': observacionesCancelacion,
+      if (usuarioCancelacion != null)
+        'usuario_cancelacion': usuarioCancelacion,
+      if (fechaNoRealizado != null)
+        'fecha_no_realizado': fechaNoRealizado!.toIso8601String(),
+      if (fechaSuspendido != null)
+        'fecha_suspendido': fechaSuspendido!.toIso8601String(),
+      if (pacienteConfirmado != null)
+        'paciente_confirmado': pacienteConfirmado,
+      if (fechaConfirmacionPaciente != null)
+        'fecha_confirmacion_paciente':
+            fechaConfirmacionPaciente!.toIso8601String(),
+      if (metodoConfirmacion != null)
+        'metodo_confirmacion': metodoConfirmacion,
+      if (tipoAmbulancia != null) 'tipo_ambulancia': tipoAmbulancia,
+      if (requiereAcompanante != null)
+        'requiere_acompanante': requiereAcompanante,
+      if (requiereSillaRuedas != null)
+        'requiere_silla_ruedas': requiereSillaRuedas,
+      if (requiereCamilla != null) 'requiere_camilla': requiereCamilla,
+      if (requiereAyuda != null) 'requiere_ayuda': requiereAyuda,
+      if (observaciones != null) 'observaciones': observaciones,
+      if (observacionesMedicas != null)
+        'observaciones_medicas': observacionesMedicas,
+      if (tipoOrigen != null) 'tipo_origen': tipoOrigen,
+      if (origen != null) 'origen': origen,
+      if (origenUbicacionCentro != null)
+        'origen_ubicacion_centro': origenUbicacionCentro,
+      if (tipoDestino != null) 'tipo_destino': tipoDestino,
+      if (destino != null) 'destino': destino,
+      if (destinoUbicacionCentro != null)
+        'destino_ubicacion_centro': destinoUbicacionCentro,
+      if (idMotivoTraslado != null) 'id_motivo_traslado': idMotivoTraslado,
+      if (facturado != null) 'facturado': facturado,
+      if (fechaFacturacion != null)
+        'fecha_facturacion': fechaFacturacion!.toIso8601String(),
+      if (importeFacturado != null) 'importe_facturado': importeFacturado,
+      if (tiempoEsperaOrigenMinutos != null)
+        'tiempo_espera_origen_minutos': tiempoEsperaOrigenMinutos,
+      if (tiempoViajeMinutos != null) 'tiempo_viaje_minutos': tiempoViajeMinutos,
+      if (kilometrosRecorridos != null)
+        'kilometros_recorridos': kilometrosRecorridos,
+      if (generadoAutomaticamente != null)
+        'generado_automaticamente': generadoAutomaticamente,
+      if (editadoManualmente != null) 'editado_manualmente': editadoManualmente,
+      if (prioridad != null) 'prioridad': prioridad,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      if (createdBy != null) 'created_by': createdBy,
+      if (updatedBy != null) 'updated_by': updatedBy,
+    };
+  }
+
+  /// Convierte a Entity de dominio
   TrasladoEntity toEntity() {
-    // Convertir paciente embebido si existe
-    PacienteEntity? pacienteEntity;
-    if (paciente != null) {
-      try {
-        pacienteEntity = PacienteSupabaseModel.fromJson(paciente!).toEntity();
-      } catch (_) {
-        // Si falla la conversión, dejarlo como null
-        pacienteEntity = null;
-      }
-    }
-
-    // Convertir motivo de traslado embebido si existe
-    MotivoTrasladoEntity? motivoTrasladoEntity;
-    if (motivoTraslado != null) {
-      try {
-        motivoTrasladoEntity = MotivoTrasladoSupabaseModel.fromJson(motivoTraslado!).toEntity();
-      } catch (_) {
-        // Si falla la conversión, dejarlo como null
-        motivoTrasladoEntity = null;
-      }
-    }
-
     return TrasladoEntity(
       id: id,
       codigo: codigo,
+      idPaciente: idPaciente,
+      tipoTraslado: tipoTraslado,
+      fecha: fecha,
+      horaProgramada: horaProgramada,
+      estado: EstadoTraslado.fromString(estado),
+      fechaCreacion: fechaCreacion,
       idServicioRecurrente: idServicioRecurrente,
       idServicio: idServicio,
-      idMotivoTraslado: idMotivoTraslado,
-      motivoTraslado: motivoTrasladoEntity,
-      idPaciente: idPaciente,
-      paciente: pacienteEntity,
-      tipoTraslado: tipoTraslado,
-      fecha: fecha != null ? DateTime.parse(fecha!) : null,
-      horaProgramada: horaProgramada != null ? _parseTime(horaProgramada!) : null,
-      estado: estado,
-      idPersonalConductor: idPersonalConductor,
-      idPersonalEnfermero: idPersonalEnfermero,
-      idPersonalMedico: idPersonalMedico,
       idVehiculo: idVehiculo,
       matriculaVehiculo: matriculaVehiculo,
+      idConductor: idConductor,
+      personalAsignado: personalAsignado?.cast<String>(),
+      fechaAsignacion: fechaAsignacion,
+      usuarioAsignacion: usuarioAsignacion,
+      fechaEnviado: fechaEnviado,
+      usuarioEnvio: usuarioEnvio,
+      fechaRecibidoConductor: fechaRecibidoConductor,
+      fechaEnOrigen: fechaEnOrigen,
+      ubicacionEnOrigen: ubicacionEnOrigen != null
+          ? UbicacionEntity.fromJson(ubicacionEnOrigen!)
+          : null,
+      fechaSaliendoOrigen: fechaSaliendoOrigen,
+      ubicacionSaliendoOrigen: ubicacionSaliendoOrigen != null
+          ? UbicacionEntity.fromJson(ubicacionSaliendoOrigen!)
+          : null,
+      fechaEnDestino: fechaEnDestino,
+      ubicacionEnDestino: ubicacionEnDestino != null
+          ? UbicacionEntity.fromJson(ubicacionEnDestino!)
+          : null,
+      fechaFinalizado: fechaFinalizado,
+      ubicacionFinalizado: ubicacionFinalizado != null
+          ? UbicacionEntity.fromJson(ubicacionFinalizado!)
+          : null,
+      fechaCancelacion: fechaCancelacion,
+      motivoCancelacion: motivoCancelacion,
+      observacionesCancelacion: observacionesCancelacion,
+      usuarioCancelacion: usuarioCancelacion,
+      fechaNoRealizado: fechaNoRealizado,
+      fechaSuspendido: fechaSuspendido,
+      pacienteConfirmado: pacienteConfirmado ?? false,
+      fechaConfirmacionPaciente: fechaConfirmacionPaciente,
+      metodoConfirmacion: metodoConfirmacion,
+      tipoAmbulancia: tipoAmbulancia,
+      requiereAcompanante: requiereAcompanante ?? false,
+      requiereSillaRuedas: requiereSillaRuedas ?? false,
+      requiereCamilla: requiereCamilla ?? false,
+      requiereAyuda: requiereAyuda ?? false,
+      observaciones: observaciones,
+      observacionesMedicas: observacionesMedicas,
       tipoOrigen: tipoOrigen,
       origen: origen,
+      origenUbicacionCentro: origenUbicacionCentro,
       tipoDestino: tipoDestino,
       destino: destino,
-      kmInicio: kmInicio,
-      kmFin: kmFin,
-      kmTotales: kmTotales,
-      observaciones: observaciones,
-      observacionesInternas: observacionesInternas,
-      motivoCancelacion: motivoCancelacion,
-      motivoNoRealizacion: motivoNoRealizacion,
-      duracionEstimadaMinutos: duracionEstimadaMinutos,
-      duracionRealMinutos: duracionRealMinutos,
+      destinoUbicacionCentro: destinoUbicacionCentro,
+      idMotivoTraslado: idMotivoTraslado,
+      facturado: facturado ?? false,
+      fechaFacturacion: fechaFacturacion,
+      importeFacturado: importeFacturado,
+      tiempoEsperaOrigenMinutos: tiempoEsperaOrigenMinutos,
+      tiempoViajeMinutos: tiempoViajeMinutos,
+      kilometrosRecorridos: kilometrosRecorridos,
+      generadoAutomaticamente: generadoAutomaticamente ?? true,
+      editadoManualmente: editadoManualmente ?? false,
       prioridad: prioridad ?? 5,
-      fechaEnviado: _parseAsUtc(fechaEnviado),
-      fechaRecibidoConductor: _parseAsUtc(fechaRecibidoConductor),
-      fechaEnOrigen: _parseAsUtc(fechaEnOrigen),
-      ubicacionEnOrigen: ubicacionEnOrigen,
-      fechaSaliendoOrigen: _parseAsUtc(fechaSaliendoOrigen),
-      ubicacionSaliendoOrigen: ubicacionSaliendoOrigen,
-      fechaEnTransito: _parseAsUtc(fechaEnTransito),
-      ubicacionEnTransito: ubicacionEnTransito,
-      fechaEnDestino: _parseAsUtc(fechaEnDestino),
-      ubicacionEnDestino: ubicacionEnDestino,
-      fechaFinalizado: _parseAsUtc(fechaFinalizado),
-      ubicacionFinalizado: ubicacionFinalizado,
-      fechaCancelado: _parseAsUtc(fechaCancelado),
-      fechaSuspendido: _parseAsUtc(fechaSuspendido),
-      fechaNoRealizado: _parseAsUtc(fechaNoRealizado),
-      idUsuarioAsignacion: idUsuarioAsignacion,
-      fechaAsignacion: _parseAsUtc(fechaAsignacion),
-      idUsuarioEnvio: idUsuarioEnvio,
-      fechaEnvio: _parseAsUtc(fechaEnvio),
-      idUsuarioCancelacion: idUsuarioCancelacion,
-      createdAt: _parseAsUtc(createdAt),
-      updatedAt: _parseAsUtc(updatedAt),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
       createdBy: createdBy,
       updatedBy: updatedBy,
     );
   }
 
-  /// Helper para formatear TIME desde DateTime
-  static String _formatTime(DateTime dt) {
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
-    final second = dt.second.toString().padLeft(2, '0');
-    return '$hour:$minute:$second';
-  }
-
-  /// Helper para parsear TIME string a DateTime (solo hora)
-  static DateTime _parseTime(String timeStr) {
-    final parts = timeStr.split(':');
-    final now = DateTime.now();
-    return DateTime(
-      now.year,
-      now.month,
-      now.day,
-      int.parse(parts[0]),
-      int.parse(parts[1]),
-      parts.length > 2 ? int.parse(parts[2].split('.').first) : 0,
+  /// Crea desde Entity de dominio
+  factory TrasladoSupabaseModel.fromEntity(TrasladoEntity entity) {
+    return TrasladoSupabaseModel(
+      id: entity.id,
+      codigo: entity.codigo,
+      idPaciente: entity.idPaciente,
+      tipoTraslado: entity.tipoTraslado,
+      fecha: entity.fecha,
+      horaProgramada: entity.horaProgramada,
+      estado: entity.estado.value,
+      fechaCreacion: entity.fechaCreacion,
+      idServicioRecurrente: entity.idServicioRecurrente,
+      idServicio: entity.idServicio,
+      idVehiculo: entity.idVehiculo,
+      matriculaVehiculo: entity.matriculaVehiculo,
+      idConductor: entity.idConductor,
+      personalAsignado: entity.personalAsignado,
+      fechaAsignacion: entity.fechaAsignacion,
+      usuarioAsignacion: entity.usuarioAsignacion,
+      fechaEnviado: entity.fechaEnviado,
+      usuarioEnvio: entity.usuarioEnvio,
+      fechaRecibidoConductor: entity.fechaRecibidoConductor,
+      fechaEnOrigen: entity.fechaEnOrigen,
+      ubicacionEnOrigen: entity.ubicacionEnOrigen?.toJson(),
+      fechaSaliendoOrigen: entity.fechaSaliendoOrigen,
+      ubicacionSaliendoOrigen: entity.ubicacionSaliendoOrigen?.toJson(),
+      fechaEnDestino: entity.fechaEnDestino,
+      ubicacionEnDestino: entity.ubicacionEnDestino?.toJson(),
+      fechaFinalizado: entity.fechaFinalizado,
+      ubicacionFinalizado: entity.ubicacionFinalizado?.toJson(),
+      fechaCancelacion: entity.fechaCancelacion,
+      motivoCancelacion: entity.motivoCancelacion,
+      observacionesCancelacion: entity.observacionesCancelacion,
+      usuarioCancelacion: entity.usuarioCancelacion,
+      fechaNoRealizado: entity.fechaNoRealizado,
+      fechaSuspendido: entity.fechaSuspendido,
+      pacienteConfirmado: entity.pacienteConfirmado,
+      fechaConfirmacionPaciente: entity.fechaConfirmacionPaciente,
+      metodoConfirmacion: entity.metodoConfirmacion,
+      tipoAmbulancia: entity.tipoAmbulancia,
+      requiereAcompanante: entity.requiereAcompanante,
+      requiereSillaRuedas: entity.requiereSillaRuedas,
+      requiereCamilla: entity.requiereCamilla,
+      requiereAyuda: entity.requiereAyuda,
+      observaciones: entity.observaciones,
+      observacionesMedicas: entity.observacionesMedicas,
+      tipoOrigen: entity.tipoOrigen,
+      origen: entity.origen,
+      origenUbicacionCentro: entity.origenUbicacionCentro,
+      tipoDestino: entity.tipoDestino,
+      destino: entity.destino,
+      destinoUbicacionCentro: entity.destinoUbicacionCentro,
+      idMotivoTraslado: entity.idMotivoTraslado,
+      facturado: entity.facturado,
+      fechaFacturacion: entity.fechaFacturacion,
+      importeFacturado: entity.importeFacturado,
+      tiempoEsperaOrigenMinutos: entity.tiempoEsperaOrigenMinutos,
+      tiempoViajeMinutos: entity.tiempoViajeMinutos,
+      kilometrosRecorridos: entity.kilometrosRecorridos,
+      generadoAutomaticamente: entity.generadoAutomaticamente,
+      editadoManualmente: entity.editadoManualmente,
+      prioridad: entity.prioridad,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      createdBy: entity.createdBy,
+      updatedBy: entity.updatedBy,
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/datasources/traslados/traslados_datasource.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'estado_traslado_badge.dart';
 

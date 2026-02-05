@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/datasources/traslados/traslados_datasource.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 import '../../domain/repositories/traslados_repository.dart';
 import 'traslados_event.dart';
 import 'traslados_state.dart';

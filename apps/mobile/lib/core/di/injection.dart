@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../datasources/personal/personal_datasource.dart';
 import '../datasources/registros_horarios/registros_horarios_datasource.dart';
-import '../datasources/traslados/traslados_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
@@ -69,12 +68,7 @@ Future<void> configureDependencies() async {
 
   // ===== SERVICIOS/TRASLADOS =====
 
-  // DataSource
-  getIt.registerLazySingleton<TrasladosDataSource>(
-    () => TrasladosDataSourceFactory.createSupabase(),
-  );
-
-  // Repository
+  // Repository (el datasource se crea internamente usando el factory del core package)
   getIt.registerLazySingleton<TrasladosRepository>(
     () => TrasladosRepositoryImpl(),
   );

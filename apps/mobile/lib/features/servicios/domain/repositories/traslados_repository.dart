@@ -1,4 +1,4 @@
-import '../../../../core/datasources/traslados/traslados_datasource.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 
 /// Contrato del repositorio de traslados
 /// Siguiendo el patrón pass-through, este repositorio simplemente delega al datasource

@@ -1,414 +1,380 @@
 import 'package:equatable/equatable.dart';
+import 'estado_traslado_enum.dart';
+import 'ubicacion_entity.dart';
 
-import '../../motivos_traslado/entities/motivo_traslado_entity.dart';
-import '../../pacientes/entities/paciente_entity.dart';
-
-/// Entidad de dominio para Traslados
-/// Representa una instancia concreta de transporte generada desde un servicio recurrente
+/// Entidad de dominio que representa un traslado
 class TrasladoEntity extends Equatable {
   const TrasladoEntity({
     required this.id,
-    this.codigo,
+    required this.codigo,
+    required this.idPaciente,
+    required this.tipoTraslado,
+    required this.fecha,
+    required this.horaProgramada,
+    required this.estado,
+    required this.fechaCreacion,
     this.idServicioRecurrente,
     this.idServicio,
-    this.idMotivoTraslado,
-    this.motivoTraslado,
-    this.idPaciente,
-    this.paciente,
-    this.tipoTraslado,
-    this.fecha,
-    this.horaProgramada,
-    this.estado,
-    this.idPersonalConductor,
-    this.idPersonalEnfermero,
-    this.idPersonalMedico,
     this.idVehiculo,
     this.matriculaVehiculo,
-    this.tipoOrigen,
-    this.origen,
-    this.tipoDestino,
-    this.destino,
-    this.kmInicio,
-    this.kmFin,
-    this.kmTotales,
-    this.observaciones,
-    this.observacionesInternas,
-    this.motivoCancelacion,
-    this.motivoNoRealizacion,
-    this.duracionEstimadaMinutos,
-    this.duracionRealMinutos,
-    this.prioridad = 5,
+    this.idConductor,
+    this.personalAsignado,
+    this.fechaAsignacion,
+    this.usuarioAsignacion,
     this.fechaEnviado,
+    this.usuarioEnvio,
     this.fechaRecibidoConductor,
     this.fechaEnOrigen,
     this.ubicacionEnOrigen,
     this.fechaSaliendoOrigen,
     this.ubicacionSaliendoOrigen,
-    this.fechaEnTransito,
-    this.ubicacionEnTransito,
     this.fechaEnDestino,
     this.ubicacionEnDestino,
     this.fechaFinalizado,
     this.ubicacionFinalizado,
-    this.fechaCancelado,
-    this.fechaSuspendido,
+    this.fechaCancelacion,
+    this.motivoCancelacion,
+    this.observacionesCancelacion,
+    this.usuarioCancelacion,
     this.fechaNoRealizado,
-    this.idUsuarioAsignacion,
-    this.fechaAsignacion,
-    this.idUsuarioEnvio,
-    this.fechaEnvio,
-    this.idUsuarioCancelacion,
-    this.createdAt,
-    this.updatedAt,
+    this.fechaSuspendido,
+    this.pacienteConfirmado = false,
+    this.fechaConfirmacionPaciente,
+    this.metodoConfirmacion,
+    this.tipoAmbulancia,
+    this.requiereAcompanante = false,
+    this.requiereSillaRuedas = false,
+    this.requiereCamilla = false,
+    this.requiereAyuda = false,
+    this.observaciones,
+    this.observacionesMedicas,
+    this.tipoOrigen,
+    this.origen,
+    this.origenUbicacionCentro,
+    this.tipoDestino,
+    this.destino,
+    this.destinoUbicacionCentro,
+    this.idMotivoTraslado,
+    this.facturado = false,
+    this.fechaFacturacion,
+    this.importeFacturado,
+    this.tiempoEsperaOrigenMinutos,
+    this.tiempoViajeMinutos,
+    this.kilometrosRecorridos,
+    this.generadoAutomaticamente = true,
+    this.editadoManualmente = false,
+    this.prioridad = 5,
+    required this.createdAt,
+    required this.updatedAt,
     this.createdBy,
     this.updatedBy,
+    // Datos desnormalizados para mostrar sin joins
+    this.pacienteNombre,
+    this.conductorNombre,
+    this.vehiculoMatricula,
   });
 
-  // IDENTIFICACIÓN ÚNICA
   final String id;
-  final String? codigo; // Nullable - puede no tener código generado
+  final String codigo;
+  final String idPaciente;
+  final String tipoTraslado;
+  final DateTime fecha;
+  final String horaProgramada; // Formato HH:mm:ss
+  final EstadoTraslado estado;
+  final DateTime fechaCreacion;
 
-  // RELACIÓN CON SERVICIO
-  final String? idServicioRecurrente; // FK hacia servicios_recurrentes (nullable para servicios únicos)
-  final String? idServicio; // FK hacia servicios (cabecera del servicio)
+  // Referencias opcionales
+  final String? idServicioRecurrente;
+  final String? idServicio;
+  final String? idVehiculo;
+  final String? matriculaVehiculo;
+  final String? idConductor;
+  final List<String>? personalAsignado; // Array de IDs de personal
 
-  // MOTIVO DE TRASLADO
-  final String? idMotivoTraslado; // FK hacia tmotivos_traslado
-  final MotivoTrasladoEntity? motivoTraslado; // Motivo embebido (cargado opcionalmente)
-
-  // RELACIÓN CON PACIENTE
-  final String? idPaciente; // FK hacia pacientes
-  final PacienteEntity? paciente; // Paciente embebido (cargado opcionalmente)
-
-  // TIPO Y FECHA
-  final String? tipoTraslado; // 'ida' o 'vuelta' (nullable)
-  final DateTime? fecha; // Fecha programada del traslado (nullable)
-  final DateTime? horaProgramada; // Hora programada de inicio (nullable)
-
-  // ESTADO DEL TRASLADO
-  final String? estado; // 'pendiente', 'asignado', 'enviado', etc. (nullable)
-
-  // ASIGNACIÓN DE RECURSOS
-  final String? idPersonalConductor; // FK hacia personal
-  final String? idPersonalEnfermero; // FK hacia personal
-  final String? idPersonalMedico; // FK hacia personal
-  final String? idVehiculo; // FK hacia vehiculos
-  final String? matriculaVehiculo; // Matrícula del vehículo (desnormalizada para historial)
-
-  // ORIGEN Y DESTINO (Normalizados)
-  final String? tipoOrigen; // 'domicilio_paciente', 'otro_domicilio', 'centro_hospitalario'
-  final String? origen; // Dirección o ID del centro hospitalario de origen
-  final String? tipoDestino; // 'domicilio_paciente', 'otro_domicilio', 'centro_hospitalario'
-  final String? destino; // Dirección o ID del centro hospitalario de destino
-
-  // KILOMETRAJE
-  final double? kmInicio;
-  final double? kmFin;
-  final double? kmTotales;
-
-  // OBSERVACIONES
-  final String? observaciones;
-  final String? observacionesInternas;
-
-  // MOTIVOS DE FINALIZACIÓN ANORMAL
-  final String? motivoCancelacion;
-  final String? motivoNoRealizacion;
-
-  // DURACIÓN
-  final int? duracionEstimadaMinutos;
-  final int? duracionRealMinutos;
-
-  // PRIORIDAD
-  final int prioridad; // 1-10 (1 = máxima urgencia)
-
-  // ========== CRONAS (Timestamps cronológicos) ==========
-
-  // 1. ENVIADO (desde sistema a conductor)
+  // Fechas de transiciones de estado
+  final DateTime? fechaAsignacion;
+  final String? usuarioAsignacion;
   final DateTime? fechaEnviado;
-
-  // 2. RECIBIDO POR CONDUCTOR (conductor acepta)
+  final String? usuarioEnvio;
   final DateTime? fechaRecibidoConductor;
-
-  // 3. EN ORIGEN (conductor llega al punto de recogida)
   final DateTime? fechaEnOrigen;
-  final Map<String, dynamic>? ubicacionEnOrigen; // {lat, lng, timestamp}
-
-  // 4. SALIENDO DE ORIGEN (conductor inicia traslado con paciente)
+  final UbicacionEntity? ubicacionEnOrigen;
   final DateTime? fechaSaliendoOrigen;
-  final Map<String, dynamic>? ubicacionSaliendoOrigen; // {lat, lng, timestamp}
-
-  // 5. EN TRÁNSITO (actualizaciones de GPS durante el viaje)
-  final DateTime? fechaEnTransito;
-  final Map<String, dynamic>? ubicacionEnTransito; // {lat, lng, timestamp}
-
-  // 6. EN DESTINO (conductor llega al destino)
+  final UbicacionEntity? ubicacionSaliendoOrigen;
   final DateTime? fechaEnDestino;
-  final Map<String, dynamic>? ubicacionEnDestino; // {lat, lng, timestamp}
-
-  // 7. FINALIZADO (conductor completa el traslado)
+  final UbicacionEntity? ubicacionEnDestino;
   final DateTime? fechaFinalizado;
-  final Map<String, dynamic>? ubicacionFinalizado; // {lat, lng, timestamp}
+  final UbicacionEntity? ubicacionFinalizado;
 
-  // 8. CANCELADO (traslado cancelado antes de completar)
-  final DateTime? fechaCancelado;
-
-  // 9. SUSPENDIDO (traslado suspendido temporalmente)
+  // Cancelación y otros estados finales
+  final DateTime? fechaCancelacion;
+  final String? motivoCancelacion;
+  final String? observacionesCancelacion;
+  final String? usuarioCancelacion;
+  final DateTime? fechaNoRealizado;
   final DateTime? fechaSuspendido;
 
-  // 10. NO REALIZADO (traslado no se pudo realizar)
-  final DateTime? fechaNoRealizado;
+  // Confirmación paciente
+  final bool pacienteConfirmado;
+  final DateTime? fechaConfirmacionPaciente;
+  final String? metodoConfirmacion;
 
-  // ========== AUDITORÍA DE ASIGNACIÓN ==========
-  final String? idUsuarioAsignacion;
-  final DateTime? fechaAsignacion;
-  final String? idUsuarioEnvio;
-  final DateTime? fechaEnvio;
-  final String? idUsuarioCancelacion;
+  // Requisitos del traslado
+  final String? tipoAmbulancia;
+  final bool requiereAcompanante;
+  final bool requiereSillaRuedas;
+  final bool requiereCamilla;
+  final bool requiereAyuda;
 
-  // AUDITORÍA GENERAL
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+  // Observaciones
+  final String? observaciones;
+  final String? observacionesMedicas;
+
+  // Origen y destino
+  final String? tipoOrigen; // 'domicilio', 'hospital', etc.
+  final String? origen; // Dirección completa
+  final String? origenUbicacionCentro; // Ej: "Urgencias", "Hab-202"
+  final String? tipoDestino;
+  final String? destino;
+  final String? destinoUbicacionCentro;
+  final String? idMotivoTraslado;
+
+  // Facturación
+  final bool facturado;
+  final DateTime? fechaFacturacion;
+  final double? importeFacturado;
+
+  // Métricas
+  final int? tiempoEsperaOrigenMinutos;
+  final int? tiempoViajeMinutos;
+  final double? kilometrosRecorridos;
+
+  // Metadata
+  final bool generadoAutomaticamente;
+  final bool editadoManualmente;
+  final int prioridad; // 1-10 (1=máxima prioridad)
+
+  // Auditoría
+  final DateTime createdAt;
+  final DateTime updatedAt;
   final String? createdBy;
   final String? updatedBy;
 
-  /// Getter para verificar si el traslado está en curso
-  bool get estaEnCurso {
-    if (estado == null) return false;
-    return estado != 'finalizado' &&
-           estado != 'cancelado' &&
-           estado != 'anulado' &&
-           estado != 'suspendido' &&
-           estado != 'no_realizado';
-  }
-
-  /// Getter para verificar si requiere asignación
-  bool get requiereAsignacion {
-    if (estado == null) return false;
-    return estado == 'pendiente' &&
-           (idPersonalConductor == null || idVehiculo == null);
-  }
-
-  /// Getter para calcular tiempo transcurrido (si está en curso)
-  Duration? get tiempoTranscurrido {
-    if (!estaEnCurso || fechaRecibidoConductor == null) {
-      return null;
-    }
-
-    return DateTime.now().difference(fechaRecibidoConductor!);
-  }
-
-  /// Getter para nombre formateado del tipo
-  String get tipoTrasladoFormateado {
-    if (tipoTraslado == null) return 'Sin tipo';
-    return tipoTraslado == 'ida' ? 'Ida' : 'Vuelta';
-  }
-
-  /// Getter para estado formateado
-  String get estadoFormateado {
-    if (estado == null) return 'Sin estado';
-    switch (estado) {
-      case 'pendiente':
-        return 'Pendiente';
-      case 'asignado':
-        return 'Asignado';
-      case 'enviado':
-        return 'Enviado';
-      case 'recibido_conductor':
-        return 'Recibido por Conductor';
-      case 'en_origen':
-        return 'En Origen';
-      case 'saliendo_origen':
-        return 'Saliendo de Origen';
-      case 'en_transito':
-        return 'En Tránsito';
-      case 'en_destino':
-        return 'En Destino';
-      case 'finalizado':
-        return 'Finalizado';
-      case 'cancelado':
-        return 'Cancelado';
-      case 'anulado':
-        return 'Anulado';
-      case 'no_realizado':
-        return 'No Realizado';
-      default:
-        return estado!;
-    }
-  }
-
-  /// Método copyWith para crear copias inmutables
-  TrasladoEntity copyWith({
-    String? id,
-    String? codigo,
-    String? idServicioRecurrente,
-    String? idServicio,
-    String? idMotivoTraslado,
-    MotivoTrasladoEntity? motivoTraslado,
-    String? idPaciente,
-    PacienteEntity? paciente,
-    String? tipoTraslado,
-    DateTime? fecha,
-    DateTime? horaProgramada,
-    String? estado,
-    String? idPersonalConductor,
-    String? idPersonalEnfermero,
-    String? idPersonalMedico,
-    String? idVehiculo,
-    String? matriculaVehiculo,
-    String? tipoOrigen,
-    String? origen,
-    String? tipoDestino,
-    String? destino,
-    double? kmInicio,
-    double? kmFin,
-    double? kmTotales,
-    String? observaciones,
-    String? observacionesInternas,
-    String? motivoCancelacion,
-    String? motivoNoRealizacion,
-    int? duracionEstimadaMinutos,
-    int? duracionRealMinutos,
-    int? prioridad,
-    DateTime? fechaEnviado,
-    DateTime? fechaRecibidoConductor,
-    DateTime? fechaEnOrigen,
-    Map<String, dynamic>? ubicacionEnOrigen,
-    DateTime? fechaSaliendoOrigen,
-    Map<String, dynamic>? ubicacionSaliendoOrigen,
-    DateTime? fechaEnTransito,
-    Map<String, dynamic>? ubicacionEnTransito,
-    DateTime? fechaEnDestino,
-    Map<String, dynamic>? ubicacionEnDestino,
-    DateTime? fechaFinalizado,
-    Map<String, dynamic>? ubicacionFinalizado,
-    DateTime? fechaCancelado,
-    DateTime? fechaSuspendido,
-    DateTime? fechaNoRealizado,
-    String? idUsuarioAsignacion,
-    DateTime? fechaAsignacion,
-    String? idUsuarioEnvio,
-    DateTime? fechaEnvio,
-    String? idUsuarioCancelacion,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    String? createdBy,
-    String? updatedBy,
-  }) {
-    return TrasladoEntity(
-      id: id ?? this.id,
-      codigo: codigo ?? this.codigo,
-      idServicioRecurrente: idServicioRecurrente ?? this.idServicioRecurrente,
-      idServicio: idServicio ?? this.idServicio,
-      idMotivoTraslado: idMotivoTraslado ?? this.idMotivoTraslado,
-      motivoTraslado: motivoTraslado ?? this.motivoTraslado,
-      idPaciente: idPaciente ?? this.idPaciente,
-      paciente: paciente ?? this.paciente,
-      tipoTraslado: tipoTraslado ?? this.tipoTraslado,
-      fecha: fecha ?? this.fecha,
-      horaProgramada: horaProgramada ?? this.horaProgramada,
-      estado: estado ?? this.estado,
-      idPersonalConductor: idPersonalConductor ?? this.idPersonalConductor,
-      idPersonalEnfermero: idPersonalEnfermero ?? this.idPersonalEnfermero,
-      idPersonalMedico: idPersonalMedico ?? this.idPersonalMedico,
-      idVehiculo: idVehiculo ?? this.idVehiculo,
-      matriculaVehiculo: matriculaVehiculo ?? this.matriculaVehiculo,
-      tipoOrigen: tipoOrigen ?? this.tipoOrigen,
-      origen: origen ?? this.origen,
-      tipoDestino: tipoDestino ?? this.tipoDestino,
-      destino: destino ?? this.destino,
-      kmInicio: kmInicio ?? this.kmInicio,
-      kmFin: kmFin ?? this.kmFin,
-      kmTotales: kmTotales ?? this.kmTotales,
-      observaciones: observaciones ?? this.observaciones,
-      observacionesInternas: observacionesInternas ?? this.observacionesInternas,
-      motivoCancelacion: motivoCancelacion ?? this.motivoCancelacion,
-      motivoNoRealizacion: motivoNoRealizacion ?? this.motivoNoRealizacion,
-      duracionEstimadaMinutos: duracionEstimadaMinutos ?? this.duracionEstimadaMinutos,
-      duracionRealMinutos: duracionRealMinutos ?? this.duracionRealMinutos,
-      prioridad: prioridad ?? this.prioridad,
-      fechaEnviado: fechaEnviado ?? this.fechaEnviado,
-      fechaRecibidoConductor: fechaRecibidoConductor ?? this.fechaRecibidoConductor,
-      fechaEnOrigen: fechaEnOrigen ?? this.fechaEnOrigen,
-      ubicacionEnOrigen: ubicacionEnOrigen ?? this.ubicacionEnOrigen,
-      fechaSaliendoOrigen: fechaSaliendoOrigen ?? this.fechaSaliendoOrigen,
-      ubicacionSaliendoOrigen: ubicacionSaliendoOrigen ?? this.ubicacionSaliendoOrigen,
-      fechaEnTransito: fechaEnTransito ?? this.fechaEnTransito,
-      ubicacionEnTransito: ubicacionEnTransito ?? this.ubicacionEnTransito,
-      fechaEnDestino: fechaEnDestino ?? this.fechaEnDestino,
-      ubicacionEnDestino: ubicacionEnDestino ?? this.ubicacionEnDestino,
-      fechaFinalizado: fechaFinalizado ?? this.fechaFinalizado,
-      ubicacionFinalizado: ubicacionFinalizado ?? this.ubicacionFinalizado,
-      fechaCancelado: fechaCancelado ?? this.fechaCancelado,
-      fechaSuspendido: fechaSuspendido ?? this.fechaSuspendido,
-      fechaNoRealizado: fechaNoRealizado ?? this.fechaNoRealizado,
-      idUsuarioAsignacion: idUsuarioAsignacion ?? this.idUsuarioAsignacion,
-      fechaAsignacion: fechaAsignacion ?? this.fechaAsignacion,
-      idUsuarioEnvio: idUsuarioEnvio ?? this.idUsuarioEnvio,
-      fechaEnvio: fechaEnvio ?? this.fechaEnvio,
-      idUsuarioCancelacion: idUsuarioCancelacion ?? this.idUsuarioCancelacion,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      createdBy: createdBy ?? this.createdBy,
-      updatedBy: updatedBy ?? this.updatedBy,
-    );
-  }
+  // Datos desnormalizados (para mostrar en UI sin joins)
+  final String? pacienteNombre;
+  final String? conductorNombre;
+  final String? vehiculoMatricula;
 
   @override
   List<Object?> get props => [
         id,
         codigo,
-        idServicioRecurrente,
-        idServicio,
-        idMotivoTraslado,
-        motivoTraslado,
-        idPaciente,
-        paciente,
-        tipoTraslado,
+        estado,
         fecha,
         horaProgramada,
-        estado,
-        idPersonalConductor,
-        idPersonalEnfermero,
-        idPersonalMedico,
+        idPaciente,
+        idConductor,
         idVehiculo,
-        matriculaVehiculo,
-        tipoOrigen,
-        origen,
-        tipoDestino,
-        destino,
-        kmInicio,
-        kmFin,
-        kmTotales,
-        observaciones,
-        observacionesInternas,
-        motivoCancelacion,
-        motivoNoRealizacion,
-        duracionEstimadaMinutos,
-        duracionRealMinutos,
-        prioridad,
-        fechaEnviado,
         fechaRecibidoConductor,
         fechaEnOrigen,
-        ubicacionEnOrigen,
         fechaSaliendoOrigen,
-        ubicacionSaliendoOrigen,
-        fechaEnTransito,
-        ubicacionEnTransito,
         fechaEnDestino,
-        ubicacionEnDestino,
         fechaFinalizado,
-        ubicacionFinalizado,
-        fechaCancelado,
-        fechaSuspendido,
-        fechaNoRealizado,
-        idUsuarioAsignacion,
-        fechaAsignacion,
-        idUsuarioEnvio,
-        fechaEnvio,
-        idUsuarioCancelacion,
-        createdAt,
         updatedAt,
-        createdBy,
-        updatedBy,
       ];
+
+  TrasladoEntity copyWith({
+    String? id,
+    String? codigo,
+    String? idPaciente,
+    String? tipoTraslado,
+    DateTime? fecha,
+    String? horaProgramada,
+    EstadoTraslado? estado,
+    DateTime? fechaCreacion,
+    String? idServicioRecurrente,
+    String? idServicio,
+    String? idVehiculo,
+    String? matriculaVehiculo,
+    String? idConductor,
+    List<String>? personalAsignado,
+    DateTime? fechaAsignacion,
+    String? usuarioAsignacion,
+    DateTime? fechaEnviado,
+    String? usuarioEnvio,
+    DateTime? fechaRecibidoConductor,
+    DateTime? fechaEnOrigen,
+    UbicacionEntity? ubicacionEnOrigen,
+    DateTime? fechaSaliendoOrigen,
+    UbicacionEntity? ubicacionSaliendoOrigen,
+    DateTime? fechaEnDestino,
+    UbicacionEntity? ubicacionEnDestino,
+    DateTime? fechaFinalizado,
+    UbicacionEntity? ubicacionFinalizado,
+    DateTime? fechaCancelacion,
+    String? motivoCancelacion,
+    String? observacionesCancelacion,
+    String? usuarioCancelacion,
+    DateTime? fechaNoRealizado,
+    DateTime? fechaSuspendido,
+    bool? pacienteConfirmado,
+    DateTime? fechaConfirmacionPaciente,
+    String? metodoConfirmacion,
+    String? tipoAmbulancia,
+    bool? requiereAcompanante,
+    bool? requiereSillaRuedas,
+    bool? requiereCamilla,
+    bool? requiereAyuda,
+    String? observaciones,
+    String? observacionesMedicas,
+    String? tipoOrigen,
+    String? origen,
+    String? origenUbicacionCentro,
+    String? tipoDestino,
+    String? destino,
+    String? destinoUbicacionCentro,
+    String? idMotivoTraslado,
+    bool? facturado,
+    DateTime? fechaFacturacion,
+    double? importeFacturado,
+    int? tiempoEsperaOrigenMinutos,
+    int? tiempoViajeMinutos,
+    double? kilometrosRecorridos,
+    bool? generadoAutomaticamente,
+    bool? editadoManualmente,
+    int? prioridad,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? createdBy,
+    String? updatedBy,
+    String? pacienteNombre,
+    String? conductorNombre,
+    String? vehiculoMatricula,
+  }) {
+    return TrasladoEntity(
+      id: id ?? this.id,
+      codigo: codigo ?? this.codigo,
+      idPaciente: idPaciente ?? this.idPaciente,
+      tipoTraslado: tipoTraslado ?? this.tipoTraslado,
+      fecha: fecha ?? this.fecha,
+      horaProgramada: horaProgramada ?? this.horaProgramada,
+      estado: estado ?? this.estado,
+      fechaCreacion: fechaCreacion ?? this.fechaCreacion,
+      idServicioRecurrente: idServicioRecurrente ?? this.idServicioRecurrente,
+      idServicio: idServicio ?? this.idServicio,
+      idVehiculo: idVehiculo ?? this.idVehiculo,
+      matriculaVehiculo: matriculaVehiculo ?? this.matriculaVehiculo,
+      idConductor: idConductor ?? this.idConductor,
+      personalAsignado: personalAsignado ?? this.personalAsignado,
+      fechaAsignacion: fechaAsignacion ?? this.fechaAsignacion,
+      usuarioAsignacion: usuarioAsignacion ?? this.usuarioAsignacion,
+      fechaEnviado: fechaEnviado ?? this.fechaEnviado,
+      usuarioEnvio: usuarioEnvio ?? this.usuarioEnvio,
+      fechaRecibidoConductor:
+          fechaRecibidoConductor ?? this.fechaRecibidoConductor,
+      fechaEnOrigen: fechaEnOrigen ?? this.fechaEnOrigen,
+      ubicacionEnOrigen: ubicacionEnOrigen ?? this.ubicacionEnOrigen,
+      fechaSaliendoOrigen: fechaSaliendoOrigen ?? this.fechaSaliendoOrigen,
+      ubicacionSaliendoOrigen:
+          ubicacionSaliendoOrigen ?? this.ubicacionSaliendoOrigen,
+      fechaEnDestino: fechaEnDestino ?? this.fechaEnDestino,
+      ubicacionEnDestino: ubicacionEnDestino ?? this.ubicacionEnDestino,
+      fechaFinalizado: fechaFinalizado ?? this.fechaFinalizado,
+      ubicacionFinalizado: ubicacionFinalizado ?? this.ubicacionFinalizado,
+      fechaCancelacion: fechaCancelacion ?? this.fechaCancelacion,
+      motivoCancelacion: motivoCancelacion ?? this.motivoCancelacion,
+      observacionesCancelacion:
+          observacionesCancelacion ?? this.observacionesCancelacion,
+      usuarioCancelacion: usuarioCancelacion ?? this.usuarioCancelacion,
+      fechaNoRealizado: fechaNoRealizado ?? this.fechaNoRealizado,
+      fechaSuspendido: fechaSuspendido ?? this.fechaSuspendido,
+      pacienteConfirmado: pacienteConfirmado ?? this.pacienteConfirmado,
+      fechaConfirmacionPaciente:
+          fechaConfirmacionPaciente ?? this.fechaConfirmacionPaciente,
+      metodoConfirmacion: metodoConfirmacion ?? this.metodoConfirmacion,
+      tipoAmbulancia: tipoAmbulancia ?? this.tipoAmbulancia,
+      requiereAcompanante: requiereAcompanante ?? this.requiereAcompanante,
+      requiereSillaRuedas: requiereSillaRuedas ?? this.requiereSillaRuedas,
+      requiereCamilla: requiereCamilla ?? this.requiereCamilla,
+      requiereAyuda: requiereAyuda ?? this.requiereAyuda,
+      observaciones: observaciones ?? this.observaciones,
+      observacionesMedicas: observacionesMedicas ?? this.observacionesMedicas,
+      tipoOrigen: tipoOrigen ?? this.tipoOrigen,
+      origen: origen ?? this.origen,
+      origenUbicacionCentro:
+          origenUbicacionCentro ?? this.origenUbicacionCentro,
+      tipoDestino: tipoDestino ?? this.tipoDestino,
+      destino: destino ?? this.destino,
+      destinoUbicacionCentro:
+          destinoUbicacionCentro ?? this.destinoUbicacionCentro,
+      idMotivoTraslado: idMotivoTraslado ?? this.idMotivoTraslado,
+      facturado: facturado ?? this.facturado,
+      fechaFacturacion: fechaFacturacion ?? this.fechaFacturacion,
+      importeFacturado: importeFacturado ?? this.importeFacturado,
+      tiempoEsperaOrigenMinutos:
+          tiempoEsperaOrigenMinutos ?? this.tiempoEsperaOrigenMinutos,
+      tiempoViajeMinutos: tiempoViajeMinutos ?? this.tiempoViajeMinutos,
+      kilometrosRecorridos: kilometrosRecorridos ?? this.kilometrosRecorridos,
+      generadoAutomaticamente:
+          generadoAutomaticamente ?? this.generadoAutomaticamente,
+      editadoManualmente: editadoManualmente ?? this.editadoManualmente,
+      prioridad: prioridad ?? this.prioridad,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdBy: createdBy ?? this.createdBy,
+      updatedBy: updatedBy ?? this.updatedBy,
+      pacienteNombre: pacienteNombre ?? this.pacienteNombre,
+      conductorNombre: conductorNombre ?? this.conductorNombre,
+      vehiculoMatricula: vehiculoMatricula ?? this.vehiculoMatricula,
+    );
+  }
+
+  /// Obtiene la fecha/hora del último cambio de estado
+  DateTime? get ultimaActualizacionEstado {
+    switch (estado) {
+      case EstadoTraslado.recibido:
+        return fechaRecibidoConductor;
+      case EstadoTraslado.enOrigen:
+        return fechaEnOrigen;
+      case EstadoTraslado.saliendoOrigen:
+        return fechaSaliendoOrigen;
+      case EstadoTraslado.enDestino:
+        return fechaEnDestino;
+      case EstadoTraslado.finalizado:
+        return fechaFinalizado;
+      case EstadoTraslado.cancelado:
+        return fechaCancelacion;
+      case EstadoTraslado.noRealizado:
+        return fechaNoRealizado;
+      case EstadoTraslado.suspendido:
+        return fechaSuspendido;
+      case EstadoTraslado.asignado:
+        return fechaAsignacion;
+      case EstadoTraslado.pendiente:
+        return fechaCreacion;
+    }
+  }
+
+  /// Verifica si el traslado requiere equipamiento especial
+  bool get requiereEquipamientoEspecial {
+    return requiereSillaRuedas || requiereCamilla || requiereAyuda;
+  }
+
+  /// Texto descriptivo del origen
+  String get origenCompleto {
+    if (origen == null) return 'Sin especificar';
+    if (origenUbicacionCentro != null) {
+      return '$origen - $origenUbicacionCentro';
+    }
+    return origen!;
+  }
+
+  /// Texto descriptivo del destino
+  String get destinoCompleto {
+    if (destino == null) return 'Sin especificar';
+    if (destinoUbicacionCentro != null) {
+      return '$destino - $destinoUbicacionCentro';
+    }
+    return destino!;
+  }
 }

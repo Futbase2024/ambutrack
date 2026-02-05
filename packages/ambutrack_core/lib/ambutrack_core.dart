@@ -301,7 +301,14 @@ export 'src/datasources/servicios_recurrentes/implementations/supabase/supabase_
 
 // Traslados
 export 'src/datasources/traslados/entities/traslado_entity.dart';
+export 'src/datasources/traslados/entities/estado_traslado_enum.dart';
+export 'src/datasources/traslados/entities/evento_traslado_type_enum.dart';
+export 'src/datasources/traslados/entities/historial_estado_entity.dart';
+export 'src/datasources/traslados/entities/traslado_evento_entity.dart';
+export 'src/datasources/traslados/entities/ubicacion_entity.dart';
 export 'src/datasources/traslados/models/traslado_supabase_model.dart';
+export 'src/datasources/traslados/models/historial_estado_supabase_model.dart';
+export 'src/datasources/traslados/models/traslado_evento_supabase_model.dart';
 export 'src/datasources/traslados/traslado_contract.dart';
 export 'src/datasources/traslados/traslado_factory.dart' show TrasladoDataSourceFactory;
 export 'src/datasources/traslados/implementations/supabase/supabase_traslado_datasource.dart';
