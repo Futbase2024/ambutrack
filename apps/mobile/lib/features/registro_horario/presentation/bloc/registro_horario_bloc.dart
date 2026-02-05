@@ -2,7 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../../core/datasources/registros_horarios/registros_horarios_datasource.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../domain/repositories/registro_horario_repository.dart';
@@ -102,12 +102,12 @@ class RegistroHorarioBloc
       final registro = RegistroHorarioEntity(
         id: _uuid.v4(),
         personalId: personalId,
-        tipoFichaje: TipoFichaje.entrada,
+        tipo: 'entrada',
         fechaHora: DateTime.now(),
         latitud: event.latitud,
         longitud: event.longitud,
         precisionGps: event.precisionGps,
-        observaciones: event.observaciones,
+        notas: event.observaciones,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -147,12 +147,12 @@ class RegistroHorarioBloc
       final registro = RegistroHorarioEntity(
         id: _uuid.v4(),
         personalId: personalId,
-        tipoFichaje: TipoFichaje.salida,
+        tipo: 'salida',
         fechaHora: DateTime.now(),
         latitud: event.latitud,
         longitud: event.longitud,
         precisionGps: event.precisionGps,
-        observaciones: event.observaciones,
+        notas: event.observaciones,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -187,7 +187,7 @@ class RegistroHorarioBloc
       return EstadoFichaje.fuera;
     }
 
-    return ultimoRegistro.tipoFichaje == TipoFichaje.entrada
+    return ultimoRegistro.tipo.toLowerCase() == 'entrada'
         ? EstadoFichaje.dentro
         : EstadoFichaje.fuera;
   }

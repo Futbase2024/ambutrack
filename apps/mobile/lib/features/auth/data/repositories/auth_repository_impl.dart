@@ -1,8 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 
-import '../../../../core/datasources/auth/auth_datasource_contract.dart';
-import '../../../../core/datasources/auth/auth_datasource_factory.dart';
-import '../../../../core/datasources/auth/entities/auth_user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 /// Implementación del repositorio de autenticación

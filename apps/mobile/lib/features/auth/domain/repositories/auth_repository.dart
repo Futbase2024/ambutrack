@@ -1,4 +1,4 @@
-import '../../../../core/datasources/auth/entities/auth_user_entity.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 
 /// Interfaz del repositorio de autenticación
 ///

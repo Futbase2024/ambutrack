@@ -1,11 +1,13 @@
-import 'package:equatable/equatable.dart';
+import '../../../core/base_entity.dart';
 
 /// Entity de dominio pura para el personal de AmbuTrack
 ///
 /// Representa la información completa del personal sin acoplamientos a Supabase.
-class PersonalEntity extends Equatable {
+class PersonalEntity extends BaseEntity {
   const PersonalEntity({
-    required this.id,
+    required super.id,
+    required super.createdAt,
+    required super.updatedAt,
     required this.nombre,
     required this.apellidos,
     required this.activo,
@@ -22,7 +24,6 @@ class PersonalEntity extends Equatable {
     this.tesSiNo,
     this.usuario,
     this.fechaAlta,
-    this.createdAt,
     this.poblacionId,
     this.provinciaId,
     this.puestoTrabajoId,
@@ -31,15 +32,11 @@ class PersonalEntity extends Equatable {
     this.categoriaId,
     this.usuarioId,
     this.createdBy,
-    this.updatedAt,
     this.updatedBy,
     this.categoriaServicio,
     this.configuracionValidaciones,
     this.categoria,
   });
-
-  /// ID único del personal (UUID)
-  final String id;
 
   /// Nombre del personal
   final String nombre;
@@ -86,8 +83,6 @@ class PersonalEntity extends Equatable {
   /// Fecha de alta en el sistema
   final DateTime? fechaAlta;
 
-  /// Fecha de creación del registro
-  final DateTime? createdAt;
 
   /// ID de la población
   final String? poblacionId;
@@ -113,8 +108,6 @@ class PersonalEntity extends Equatable {
   /// ID del usuario que creó el registro
   final String? createdBy;
 
-  /// Fecha de última actualización
-  final DateTime? updatedAt;
 
   /// ID del usuario que actualizó el registro
   final String? updatedBy;
@@ -136,7 +129,7 @@ class PersonalEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
+        ...super.props,
         nombre,
         apellidos,
         dni,
@@ -152,7 +145,6 @@ class PersonalEntity extends Equatable {
         tesSiNo,
         usuario,
         fechaAlta,
-        createdAt,
         poblacionId,
         provinciaId,
         puestoTrabajoId,
@@ -161,7 +153,6 @@ class PersonalEntity extends Equatable {
         categoriaId,
         usuarioId,
         createdBy,
-        updatedAt,
         updatedBy,
         activo,
         categoriaServicio,
@@ -237,6 +228,43 @@ class PersonalEntity extends Equatable {
           configuracionValidaciones ?? this.configuracionValidaciones,
       categoria: categoria ?? this.categoria,
     );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nombre': nombre,
+      'apellidos': apellidos,
+      'dni': dni,
+      'nass': nass,
+      'direccion': direccion,
+      'codigo_postal': codigoPostal,
+      'telefono': telefono,
+      'movil': movil,
+      'fecha_inicio': fechaInicio?.toIso8601String(),
+      'fecha_nacimiento': fechaNacimiento?.toIso8601String(),
+      'email': email,
+      'data_anti': dataAnti?.toIso8601String(),
+      'tes_si_no': tesSiNo,
+      'usuario': usuario,
+      'fecha_alta': fechaAlta?.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'poblacion_id': poblacionId,
+      'provincia_id': provinciaId,
+      'puesto_trabajo_id': puestoTrabajoId,
+      'contrato_id': contratoId,
+      'empresa_id': empresaId,
+      'categoria_id': categoriaId,
+      'usuario_id': usuarioId,
+      'created_by': createdBy,
+      'updated_at': updatedAt.toIso8601String(),
+      'updated_by': updatedBy,
+      'activo': activo,
+      'categoria_servicio': categoriaServicio,
+      'configuracion_validaciones': configuracionValidaciones,
+      'categoria': categoria,
+    };
   }
 
   @override

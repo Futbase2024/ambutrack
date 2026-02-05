@@ -26,6 +26,9 @@ class RegistroHorarioEntity extends BaseEntity {
   /// Longitud GPS del fichaje
   final double? longitud;
 
+  /// Precisión del GPS en metros (opcional)
+  final double? precisionGps;
+
   /// Notas adicionales del fichaje
   final String? notas;
 
@@ -62,6 +65,7 @@ class RegistroHorarioEntity extends BaseEntity {
     this.ubicacion,
     this.latitud,
     this.longitud,
+    this.precisionGps,
     this.notas,
     this.estado = 'normal',
     this.esManual = false,
@@ -83,6 +87,7 @@ class RegistroHorarioEntity extends BaseEntity {
       'ubicacion': ubicacion,
       'latitud': latitud,
       'longitud': longitud,
+      'precisionGps': precisionGps,
       'notas': notas,
       'estado': estado,
       'esManual': esManual,
@@ -110,6 +115,9 @@ class RegistroHorarioEntity extends BaseEntity {
           : null,
       longitud: json['longitud'] != null
           ? (json['longitud'] as num).toDouble()
+          : null,
+      precisionGps: json['precisionGps'] != null
+          ? (json['precisionGps'] as num).toDouble()
           : null,
       notas: json['notas'] as String?,
       estado: json['estado'] as String? ?? 'normal',
@@ -197,6 +205,7 @@ class RegistroHorarioEntity extends BaseEntity {
         ubicacion,
         latitud,
         longitud,
+        precisionGps,
         notas,
         estado,
         esManual,
@@ -206,6 +215,11 @@ class RegistroHorarioEntity extends BaseEntity {
         horasTrabajadas,
         activo,
       ];
+
+  // ========== Getters de Compatibilidad (Mobile) ==========
+
+  /// Alias de 'notas' para compatibilidad con mobile
+  String? get observaciones => notas;
 
   @override
   String toString() {

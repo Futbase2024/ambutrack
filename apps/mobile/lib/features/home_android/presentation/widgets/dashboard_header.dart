@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/datasources/auth/entities/auth_user_entity.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 import '../../../../core/theme/app_colors.dart';
 
 /// Header del dashboard con información del usuario

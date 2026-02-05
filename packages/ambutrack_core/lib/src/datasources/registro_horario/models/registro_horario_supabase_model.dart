@@ -12,6 +12,7 @@ class RegistroHorarioSupabaseModel {
   final String? ubicacion;
   final double? latitud;
   final double? longitud;
+  final double? precisionGps;
   final String? notas;
   final String estado;
   final bool esManual;
@@ -32,6 +33,7 @@ class RegistroHorarioSupabaseModel {
     this.ubicacion,
     this.latitud,
     this.longitud,
+    this.precisionGps,
     this.notas,
     this.estado = 'normal',
     this.esManual = false,
@@ -55,6 +57,7 @@ class RegistroHorarioSupabaseModel {
       ubicacion: json['ubicacion'] as String?,
       latitud: json['latitud'] != null ? (json['latitud'] as num).toDouble() : null,
       longitud: json['longitud'] != null ? (json['longitud'] as num).toDouble() : null,
+      precisionGps: json['precision_gps'] != null ? (json['precision_gps'] as num).toDouble() : null,
       notas: json['notas'] as String?,
       estado: json['estado'] as String? ?? 'normal',
       esManual: json['es_manual'] as bool? ?? false,
@@ -81,6 +84,7 @@ class RegistroHorarioSupabaseModel {
       'ubicacion': ubicacion,
       'latitud': latitud,
       'longitud': longitud,
+      'precision_gps': precisionGps,
       'notas': notas,
       'estado': estado,
       'es_manual': esManual,
@@ -105,6 +109,7 @@ class RegistroHorarioSupabaseModel {
       ubicacion: ubicacion,
       latitud: latitud,
       longitud: longitud,
+      precisionGps: precisionGps,
       notas: notas,
       estado: estado,
       esManual: esManual,
@@ -129,6 +134,7 @@ class RegistroHorarioSupabaseModel {
       ubicacion: entity.ubicacion,
       latitud: entity.latitud,
       longitud: entity.longitud,
+      precisionGps: entity.precisionGps,
       notas: entity.notas,
       estado: entity.estado,
       esManual: entity.esManual,

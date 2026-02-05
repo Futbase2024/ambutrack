@@ -1,7 +1,5 @@
 import 'package:equatable/equatable.dart';
-
-import '../../../../core/datasources/auth/entities/auth_user_entity.dart';
-import '../../../../core/datasources/personal/entities/personal_entity.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 
 /// Estados del AuthBloc
 sealed class AuthState extends Equatable {

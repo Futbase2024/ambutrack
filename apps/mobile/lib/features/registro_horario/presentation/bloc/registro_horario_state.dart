@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
-
-import '../../../../core/datasources/registros_horarios/registros_horarios_datasource.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 
 /// Estados del RegistroHorarioBloc
 sealed class RegistroHorarioState extends Equatable {

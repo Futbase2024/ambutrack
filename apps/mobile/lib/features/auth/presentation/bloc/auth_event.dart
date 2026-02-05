@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../../core/datasources/auth/entities/auth_user_entity.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 
 /// Eventos del AuthBloc
 sealed class AuthEvent extends Equatable {

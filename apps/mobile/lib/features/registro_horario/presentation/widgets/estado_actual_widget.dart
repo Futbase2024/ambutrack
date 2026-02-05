@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/datasources/registros_horarios/registros_horarios_datasource.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
 import '../bloc/registro_horario_state.dart';
@@ -116,7 +116,7 @@ class EstadoActualWidget extends StatelessWidget {
   Widget _buildUltimoFichajeInfo(BuildContext context) {
     if (ultimoRegistro == null) return const SizedBox.shrink();
 
-    final tipo = ultimoRegistro!.tipoFichaje == TipoFichaje.entrada
+    final tipo = ultimoRegistro!.tipo.toLowerCase() == 'entrada'
         ? 'Entrada'
         : 'Salida';
     final fecha = DateFormat('dd/MM/yyyy').format(ultimoRegistro!.fechaHora);
@@ -158,7 +158,7 @@ class EstadoActualWidget extends StatelessWidget {
                     tipo,
                     style: TextStyle(
                       fontSize: 11,
-                      color: ultimoRegistro!.tipoFichaje == TipoFichaje.entrada
+                      color: ultimoRegistro!.tipo.toLowerCase() == 'entrada'
                           ? AppColors.success
                           : AppColors.error,
                       fontWeight: FontWeight.bold,

@@ -1,18 +1,40 @@
-import '../../../../core/datasources/registros_horarios/registros_horarios_datasource.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:flutter/foundation.dart';
 import '../../domain/repositories/registro_horario_repository.dart';
 
 /// Implementación del RegistroHorarioRepository
 ///
-/// Pass-through directo al datasource (sin conversiones Entity ↔ Entity).
+/// Adapta los métodos en español del contrato a los métodos en inglés del datasource del core.
 class RegistroHorarioRepositoryImpl implements RegistroHorarioRepository {
   RegistroHorarioRepositoryImpl()
-      : _dataSource = RegistrosHorariosDataSourceFactory.createSupabase();
+      : _dataSource = RegistroHorarioDataSourceFactory.createSupabase();
 
-  final RegistrosHorariosDataSource _dataSource;
+  final RegistroHorarioDataSource _dataSource;
 
   @override
   Future<RegistroHorarioEntity> crear(RegistroHorarioEntity registro) async {
-    return await _dataSource.crear(registro);
+    debugPrint('📦 [RegistroHorarioRepository] Creando fichaje: ${registro.tipo}');
+
+    // Adaptar al datasource del core según el tipo
+    if (registro.tipo.toLowerCase() == 'entrada') {
+      return await _dataSource.registrarEntrada(
+        personalId: registro.personalId,
+        nombrePersonal: registro.nombrePersonal,
+        ubicacion: registro.ubicacion,
+        latitud: registro.latitud,
+        longitud: registro.longitud,
+        notas: registro.notas,
+      );
+    } else {
+      return await _dataSource.registrarSalida(
+        personalId: registro.personalId,
+        nombrePersonal: registro.nombrePersonal,
+        ubicacion: registro.ubicacion,
+        latitud: registro.latitud,
+        longitud: registro.longitud,
+        notas: registro.notas,
+      );
+    }
   }
 
   @override
@@ -20,12 +42,16 @@ class RegistroHorarioRepositoryImpl implements RegistroHorarioRepository {
     String personalId, {
     int limit = 10,
   }) async {
-    return await _dataSource.obtenerPorPersonal(personalId, limit: limit);
+    debugPrint('📦 [RegistroHorarioRepository] Obteniendo registros de: $personalId');
+    final registros = await _dataSource.getByPersonalId(personalId);
+    // Limitar los resultados si es necesario
+    return registros.take(limit).toList();
   }
 
   @override
   Future<RegistroHorarioEntity?> obtenerUltimo(String personalId) async {
-    return await _dataSource.obtenerUltimo(personalId);
+    debugPrint('📦 [RegistroHorarioRepository] Obteniendo último registro');
+    return await _dataSource.getUltimoRegistro(personalId);
   }
 
   @override
@@ -34,11 +60,13 @@ class RegistroHorarioRepositoryImpl implements RegistroHorarioRepository {
     DateTime inicio,
     DateTime fin,
   ) async {
-    return await _dataSource.obtenerPorRangoFechas(personalId, inicio, fin);
+    debugPrint('📦 [RegistroHorarioRepository] Obteniendo registros por rango');
+    return await _dataSource.getByPersonalIdAndDateRange(personalId, inicio, fin);
   }
 
   @override
   Future<List<RegistroHorarioEntity>> obtenerTodos(String personalId) async {
-    return await _dataSource.obtenerTodos(personalId);
+    debugPrint('📦 [RegistroHorarioRepository] Obteniendo TODOS los registros');
+    return await _dataSource.getByPersonalId(personalId);
   }
 }

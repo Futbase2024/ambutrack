@@ -55,6 +55,18 @@ export 'src/datasources/registro_horario/registro_horario_factory.dart' show Reg
 export 'src/datasources/registro_horario/implementations/supabase/supabase_registro_horario_datasource.dart';
 export 'src/datasources/registro_horario/models/registro_horario_supabase_model.dart';
 
+export 'src/datasources/personal/entities/personal_entity.dart';
+export 'src/datasources/personal/personal_datasource_contract.dart';
+export 'src/datasources/personal/personal_datasource_factory.dart' show PersonalDataSourceFactory;
+export 'src/datasources/personal/implementations/supabase_personal_datasource.dart';
+export 'src/datasources/personal/models/personal_supabase_model.dart';
+
+export 'src/datasources/auth/entities/auth_user_entity.dart';
+export 'src/datasources/auth/auth_datasource_contract.dart';
+export 'src/datasources/auth/auth_datasource_factory.dart' show AuthDataSourceFactory;
+export 'src/datasources/auth/implementations/supabase_auth_datasource.dart';
+export 'src/datasources/auth/models/auth_user_supabase_model.dart';
+
 export 'src/datasources/bases/entities/base_entity.dart';
 export 'src/datasources/bases/bases_contract.dart';
 export 'src/datasources/bases/bases_factory.dart' show BasesDataSourceFactory;

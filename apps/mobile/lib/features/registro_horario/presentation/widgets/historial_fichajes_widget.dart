@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/datasources/registros_horarios/registros_horarios_datasource.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
 
@@ -124,7 +124,7 @@ class HistorialFichajesWidget extends StatelessWidget {
   }
 
   Widget _buildFichajeCard(BuildContext context, RegistroHorarioEntity registro) {
-    final esEntrada = registro.tipoFichaje == TipoFichaje.entrada;
+    final esEntrada = registro.tipo.toLowerCase() == 'entrada';
     final color = esEntrada ? AppColors.success : AppColors.error;
     final backgroundColor = color.withValues(alpha: 0.08);
     final icono = esEntrada ? Icons.login_rounded : Icons.logout_rounded;
