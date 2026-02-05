@@ -1,0 +1,86 @@
+import 'package:get_it/get_it.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../datasources/personal/personal_datasource.dart';
+import '../datasources/registros_horarios/registros_horarios_datasource.dart';
+import '../datasources/traslados/traslados_datasource.dart';
+import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/registro_horario/data/repositories/registro_horario_repository_impl.dart';
+import '../../features/registro_horario/domain/repositories/registro_horario_repository.dart';
+import '../../features/registro_horario/presentation/bloc/registro_horario_bloc.dart';
+import '../../features/servicios/data/repositories/traslados_repository_impl.dart';
+import '../../features/servicios/domain/repositories/traslados_repository.dart';
+import '../../features/servicios/presentation/bloc/traslados_bloc.dart';
+
+/// Localizador de servicios global usando GetIt
+final GetIt getIt = GetIt.instance;
+
+/// Configuración de la inyección de dependencias
+///
+/// Registra todas las dependencias manualmente.
+Future<void> configureDependencies() async {
+  // ===== CORE =====
+
+  // Registro de SupabaseClient
+  getIt.registerLazySingleton<SupabaseClient>(
+    () => Supabase.instance.client,
+  );
+
+  // DataSources
+  getIt.registerLazySingleton<PersonalDataSource>(
+    () => PersonalDataSourceFactory.createSupabase(),
+  );
+
+  getIt.registerLazySingleton<RegistrosHorariosDataSource>(
+    () => RegistrosHorariosDataSourceFactory.createSupabase(),
+  );
+
+  // ===== AUTH =====
+
+  // Repository
+  getIt.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(),
+  );
+
+  // BLoC (Singleton para mantener el estado global de autenticación)
+  getIt.registerLazySingleton<AuthBloc>(
+    () => AuthBloc(
+      authRepository: getIt<AuthRepository>(),
+      personalDataSource: getIt<PersonalDataSource>(),
+    ),
+  );
+
+  // ===== REGISTRO HORARIO =====
+
+  // Repository
+  getIt.registerLazySingleton<RegistroHorarioRepository>(
+    () => RegistroHorarioRepositoryImpl(),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<RegistroHorarioBloc>(
+    () => RegistroHorarioBloc(
+      registroHorarioRepository: getIt<RegistroHorarioRepository>(),
+      authBloc: getIt<AuthBloc>(),
+    ),
+  );
+
+  // ===== SERVICIOS/TRASLADOS =====
+
+  // DataSource
+  getIt.registerLazySingleton<TrasladosDataSource>(
+    () => TrasladosDataSourceFactory.createSupabase(),
+  );
+
+  // Repository
+  getIt.registerLazySingleton<TrasladosRepository>(
+    () => TrasladosRepositoryImpl(),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<TrasladosBloc>(
+    () => TrasladosBloc(getIt<TrasladosRepository>()),
+  );
+}

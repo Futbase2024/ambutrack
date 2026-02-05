@@ -1,0 +1,70 @@
+name: ambutrack
+repository: https://github.com/tu-org/ambutrack
+
+packages:
+  - apps/**
+  - packages/**
+
+command:
+  version:
+    # Generate commit links in package changelogs.
+    linkToCommits: true
+    # Only allow versioning to happen on main branch.
+    branch: main
+    # Additionally build a changelog at the root of the workspace.
+    workspaceChangelog: true
+
+  bootstrap:
+    # It seems so that running "pub get" in parallel has some issues (like
+    # https://github.com/dart-lang/pub/issues/3404). Disabling this feature
+    # makes the CI much more stable.
+    runPubGetInParallel: false
+
+scripts:
+  analyze:
+    run: |
+      melos exec -c 1 -- \
+        dart analyze . --fatal-infos
+    description: |
+      Run `dart analyze` in all packages.
+       - Note: you can also rely on your IDEs Dart Analysis / Issues window.
+
+  test:
+    run: melos exec -c 1 --fail-fast -- "flutter test --no-pub"
+    description: Run `flutter test` for all packages.
+
+  test:mobile:
+    run: melos exec -c 1 --fail-fast --scope="ambutrack_mobile" -- "flutter test --no-pub"
+    description: Run `flutter test` for mobile app.
+
+  test:web:
+    run: melos exec -c 1 --fail-fast --scope="ambutrack_web" -- "flutter test --no-pub"
+    description: Run `flutter test` for web app.
+
+  test:core:
+    run: melos exec -c 1 --fail-fast --scope="ambutrack_core" -- "flutter test --no-pub"
+    description: Run `flutter test` for core package.
+
+  format:
+    run: melos exec -c 1 -- "dart format ."
+    description: Run `dart format` in all packages.
+
+  format:check:
+    run: melos exec -c 1 -- "dart format --set-exit-if-changed ."
+    description: Check formatting in all packages.
+
+  build:runner:
+    run: melos exec -c 1 --depends-on="build_runner" -- "dart run build_runner build --delete-conflicting-outputs"
+    description: Run `build_runner build` in all packages that depend on build_runner.
+
+  clean:deep:
+    run: |
+      melos clean && \
+      find . -name "*.g.dart" -type f -delete && \
+      find . -name "*.freezed.dart" -type f -delete && \
+      find . -name "*.mocks.dart" -type f -delete && \
+      find . -name ".flutter-plugins" -type f -delete && \
+      find . -name ".flutter-plugins-dependencies" -type f -delete && \
+      find . -name ".dart_tool" -type d -exec rm -rf {} + && \
+      find . -name "build" -type d -exec rm -rf {} +
+    description: Deep clean - removes all generated files and build artifacts.

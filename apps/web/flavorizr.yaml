@@ -1,0 +1,7 @@
+flavors:
+  dev:
+    app:
+      name: "ambutrack-web Dev"
+  prod:
+    app:
+      name: "ambutrack-web"

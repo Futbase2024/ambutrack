@@ -1,0 +1,669 @@
+import 'dart:async';
+
+import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
+import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
+import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
+import 'package:ambutrack_web/core/widgets/tables/modern_data_table_v2.dart';
+import 'package:ambutrack_web/features/tablas/facultativos/domain/entities/facultativo_entity.dart';
+import 'package:ambutrack_web/features/tablas/facultativos/presentation/bloc/facultativo_bloc.dart';
+import 'package:ambutrack_web/features/tablas/facultativos/presentation/bloc/facultativo_event.dart';
+import 'package:ambutrack_web/features/tablas/facultativos/presentation/bloc/facultativo_state.dart';
+import 'package:ambutrack_web/features/tablas/facultativos/presentation/widgets/facultativo_form_dialog.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+/// Tabla de facultativos moderna
+class FacultativoTable extends StatefulWidget {
+  const FacultativoTable({super.key});
+
+  @override
+  State<FacultativoTable> createState() => _FacultativoTableState();
+}
+
+class _FacultativoTableState extends State<FacultativoTable> {
+  String _searchQuery = '';
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
+  bool _isDeleting = false;
+  BuildContext? _loadingDialogContext;
+  DateTime? _deleteStartTime;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<FacultativoBloc, FacultativoState>(
+      listener: (BuildContext context, FacultativoState state) {
+        debugPrint('🔔 BlocListener: Estado recibido: ${state.runtimeType}');
+        debugPrint('🔔 BlocListener: _isDeleting=$_isDeleting, _loadingDialogContext=${_loadingDialogContext != null ? "✅" : "❌"}');
+
+        // Solo procesar si estamos eliminando
+        if (_isDeleting && _loadingDialogContext != null) {
+          debugPrint('✅ BlocListener: Condiciones cumplidas para cerrar diálogo');
+
+          if (state is FacultativoLoaded || state is FacultativoError) {
+            debugPrint('✅ BlocListener: Estado es FacultativoLoaded o FacultativoError, cerrando diálogo...');
+
+            // Calcular tiempo transcurrido
+            final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
+            debugPrint('⏱️ Tiempo de eliminación: ${elapsed.inMilliseconds}ms');
+
+            // Cerrar el diálogo de loading usando el contexto guardado
+            Navigator.of(_loadingDialogContext!).pop();
+            debugPrint('✅ BlocListener: Diálogo cerrado');
+
+            // Resetear variables
+            setState(() {
+              _isDeleting = false;
+              _loadingDialogContext = null;
+              _deleteStartTime = null;
+            });
+
+            // Si es error, mostrar snackbar
+            if (state is FacultativoError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error al eliminar: ${state.message}'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            } else if (state is FacultativoLoaded) {
+              // Mostrar mensaje de éxito con tiempo
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ Facultativo eliminado exitosamente (${elapsed.inMilliseconds}ms)'),
+                  backgroundColor: AppColors.success,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          }
+        } else {
+          debugPrint('❌ BlocListener: No se cumplen las condiciones para cerrar el diálogo');
+        }
+      },
+      child: BlocBuilder<FacultativoBloc, FacultativoState>(
+        builder: (BuildContext context, FacultativoState state) {
+          if (state is FacultativoLoading) {
+            return const _LoadingView();
+          }
+
+          if (state is FacultativoError) {
+            return _ErrorView(message: state.message);
+          }
+
+          if (state is FacultativoLoaded) {
+            List<FacultativoEntity> facultativosFiltrados = _filterFacultativos(state.facultativos);
+            facultativosFiltrados = _sortFacultativos(facultativosFiltrados);
+
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  // Header: Título + Búsqueda
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          'Listado de Facultativos',
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimaryLight,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 300,
+                        child: _SearchField(
+                          searchQuery: _searchQuery,
+                          onSearchChanged: (String query) {
+                            setState(() => _searchQuery = query);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.spacing),
+
+                  // Info de resultados
+                  if (state.facultativos.length != facultativosFiltrados.length)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSizes.spacing),
+                      child: Text(
+                        'Mostrando ${facultativosFiltrados.length} de ${state.facultativos.length} facultativos',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ),
+
+                  // Tabla
+                  ModernDataTableV2<FacultativoEntity>(
+                    onRowTap: (FacultativoEntity facultativo) => _viewFacultativo(context, facultativo),
+                    onEdit: (FacultativoEntity facultativo) => _editFacultativo(context, facultativo),
+                    onDelete: (FacultativoEntity facultativo) => _confirmDelete(context, facultativo),
+                    sortColumnIndex: _sortColumnIndex,
+                    sortAscending: _sortAscending,
+                    onSort: (int columnIndex, bool ascending) {
+                      setState(() {
+                        _sortColumnIndex = columnIndex;
+                        _sortAscending = ascending;
+                      });
+                    },
+                    columns: const <ModernDataColumnV2>[
+                      ModernDataColumnV2(label: 'NOMBRE COMPLETO', flex: 2, sortable: true),
+                      ModernDataColumnV2(label: 'NÚM. COLEGIADO', sortable: true),
+                      ModernDataColumnV2(label: 'ESPECIALIDAD', flex: 2, sortable: true),
+                      ModernDataColumnV2(label: 'TELÉFONO'),
+                      ModernDataColumnV2(label: 'EMAIL', flex: 2),
+                      ModernDataColumnV2(label: 'ESTADO', sortable: true, flex: 0),
+                    ],
+                    rows: facultativosFiltrados.map((FacultativoEntity facultativo) {
+                      return ModernDataRowV2<FacultativoEntity>(
+                        data: facultativo,
+                        cells: <Widget>[
+                          _buildNombreCell(facultativo),
+                          _buildNumColegiadoCell(facultativo),
+                          _buildEspecialidadCell(facultativo),
+                          _buildTelefonoCell(facultativo),
+                          _buildEmailCell(facultativo),
+                          _buildEstadoCell(facultativo),
+                        ],
+                      );
+                    }).toList(),
+                    emptyMessage: _searchQuery.isNotEmpty
+                        ? 'No se encontraron facultativos con los filtros aplicados'
+                        : 'No hay facultativos registrados',
+                    emptyIcon: Icons.medical_services_outlined,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+  }
+
+  List<FacultativoEntity> _filterFacultativos(List<FacultativoEntity> facultativos) {
+    if (_searchQuery.isEmpty) {
+      return facultativos;
+    }
+
+    final String query = _searchQuery.toLowerCase();
+    return facultativos.where((FacultativoEntity facultativo) {
+      return facultativo.nombreCompleto.toLowerCase().contains(query) ||
+          (facultativo.numColegiado?.toLowerCase().contains(query) ?? false) ||
+          (facultativo.especialidadNombre?.toLowerCase().contains(query) ?? false) ||
+          (facultativo.email?.toLowerCase().contains(query) ?? false);
+    }).toList();
+  }
+
+  List<FacultativoEntity> _sortFacultativos(List<FacultativoEntity> facultativos) {
+    if (_sortColumnIndex == null) {
+      return facultativos;
+    }
+
+    final List<FacultativoEntity> sorted = List<FacultativoEntity>.from(facultativos)
+      ..sort((FacultativoEntity a, FacultativoEntity b) {
+        int comparison = 0;
+
+        switch (_sortColumnIndex) {
+          case 0: // Nombre completo
+            comparison = a.nombreCompleto.compareTo(b.nombreCompleto);
+          case 1: // Núm. Colegiado
+            comparison = (a.numColegiado ?? '').compareTo(b.numColegiado ?? '');
+          case 2: // Especialidad
+            comparison = (a.especialidadNombre ?? '').compareTo(b.especialidadNombre ?? '');
+          case 5: // Estado
+            comparison = a.activo == b.activo ? 0 : (a.activo ? -1 : 1);
+        }
+
+        return _sortAscending ? comparison : -comparison;
+      });
+
+    return sorted;
+  }
+
+  Widget _buildNombreCell(FacultativoEntity facultativo) {
+    return Text(
+      facultativo.nombreCompleto,
+      style: GoogleFonts.inter(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimaryLight,
+      ),
+    );
+  }
+
+  Widget _buildNumColegiadoCell(FacultativoEntity facultativo) {
+    return Text(
+      facultativo.numColegiado ?? '-',
+      style: GoogleFonts.inter(
+        fontSize: 13,
+        color: facultativo.numColegiado != null
+            ? AppColors.textSecondaryLight
+            : AppColors.textSecondaryLight.withValues(alpha: 0.5),
+        fontStyle: facultativo.numColegiado != null ? FontStyle.normal : FontStyle.italic,
+      ),
+    );
+  }
+
+  Widget _buildEspecialidadCell(FacultativoEntity facultativo) {
+    return Text(
+      facultativo.especialidadNombre ?? 'Sin especialidad',
+      style: GoogleFonts.inter(
+        fontSize: 13,
+        color: facultativo.especialidadNombre != null
+            ? AppColors.textSecondaryLight
+            : AppColors.textSecondaryLight.withValues(alpha: 0.5),
+        fontStyle: facultativo.especialidadNombre != null ? FontStyle.normal : FontStyle.italic,
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _buildTelefonoCell(FacultativoEntity facultativo) {
+    return Text(
+      facultativo.telefono ?? '-',
+      style: GoogleFonts.inter(
+        fontSize: 13,
+        color: AppColors.textSecondaryLight,
+      ),
+    );
+  }
+
+  Widget _buildEmailCell(FacultativoEntity facultativo) {
+    return Text(
+      facultativo.email ?? '-',
+      style: GoogleFonts.inter(
+        fontSize: 13,
+        color: AppColors.textSecondaryLight,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _buildEstadoCell(FacultativoEntity facultativo) {
+    return Center(
+      child: Tooltip(
+        message: facultativo.activo ? 'Activo' : 'Inactivo',
+        child: Icon(
+          facultativo.activo ? Icons.check_circle : Icons.cancel,
+          size: 24,
+          color: facultativo.activo ? AppColors.success : AppColors.textSecondaryLight,
+        ),
+      ),
+    );
+  }
+
+  void _viewFacultativo(BuildContext context, FacultativoEntity facultativo) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) => BlocProvider<FacultativoBloc>.value(
+        value: context.read<FacultativoBloc>(),
+        child: _FacultativoViewDialog(facultativo: facultativo),
+      ),
+    );
+  }
+
+  void _editFacultativo(BuildContext context, FacultativoEntity facultativo) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) => BlocProvider<FacultativoBloc>.value(
+        value: context.read<FacultativoBloc>(),
+        child: FacultativoFormDialog(facultativo: facultativo),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, FacultativoEntity facultativo) async {
+    final bool? confirmed = await showConfirmationDialog(
+      context: context,
+      title: 'Confirmar Eliminación',
+      message: '¿Estás seguro de que deseas eliminar este facultativo? Esta acción no se puede deshacer.',
+      itemDetails: <String, String>{
+        'Nombre': facultativo.nombre,
+        'Apellidos': facultativo.apellidos,
+        if (facultativo.numColegiado != null && facultativo.numColegiado!.isNotEmpty)
+          'Nº Colegiado': facultativo.numColegiado!,
+        if (facultativo.especialidadNombre != null && facultativo.especialidadNombre!.isNotEmpty)
+          'Especialidad': facultativo.especialidadNombre!,
+        if (facultativo.telefono != null && facultativo.telefono!.isNotEmpty)
+          'Teléfono': facultativo.telefono!,
+        if (facultativo.email != null && facultativo.email!.isNotEmpty)
+          'Email': facultativo.email!,
+        'Estado': facultativo.activo ? 'Activo' : 'Inactivo',
+      },
+    );
+
+    if (confirmed == true && context.mounted) {
+      debugPrint('🗑️ Eliminando facultativo: ${facultativo.nombreCompleto} (${facultativo.id})');
+
+      // Variable para guardar el contexto del diálogo
+      BuildContext? loadingContext;
+
+      // Mostrar overlay de loading
+      unawaited(
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            debugPrint('💬 showDialog builder: Guardando contexto localmente');
+            // Guardar contexto localmente primero
+            loadingContext = dialogContext;
+
+            // Programar setState para después del build
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              debugPrint('⏰ addPostFrameCallback: Ejecutándose... mounted=$mounted, loadingContext=${loadingContext != null ? "✅" : "❌"}');
+              if (mounted && loadingContext != null) {
+                debugPrint('✅ addPostFrameCallback: Guardando contexto en estado');
+                setState(() {
+                  _isDeleting = true;
+                  _loadingDialogContext = loadingContext;
+                  _deleteStartTime = DateTime.now();
+                });
+                debugPrint('✅ addPostFrameCallback: Contexto guardado');
+              } else {
+                debugPrint('❌ addPostFrameCallback: NO se puede guardar contexto (mounted=$mounted, loadingContext=${loadingContext != null})');
+              }
+            });
+
+            return const AppLoadingOverlay(
+              message: 'Eliminando facultativo...',
+              color: AppColors.emergency,
+              icon: Icons.delete_forever,
+            );
+          },
+        ),
+      );
+
+      // Disparar evento de eliminación
+      if (context.mounted) {
+        context.read<FacultativoBloc>().add(FacultativoDeleteRequested(facultativo.id));
+      }
+
+      // El BlocListener cerrará el diálogo cuando se complete
+    }
+  }
+}
+
+/// Vista de carga
+class _LoadingView extends StatelessWidget {
+  const _LoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.spacingMassive),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      constraints: const BoxConstraints(minHeight: 400),
+      child: const Center(
+        child: AppLoadingIndicator(
+          message: 'Cargando facultativos...',
+        ),
+      ),
+    );
+  }
+}
+
+/// Vista de error
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingXl),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+        border: Border.all(color: AppColors.error),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+          const SizedBox(height: AppSizes.spacing),
+          Text(
+            'Error al cargar facultativos',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.error,
+            ),
+          ),
+          const SizedBox(height: AppSizes.spacingSmall),
+          Text(
+            message,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: AppColors.textSecondaryLight,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Campo de búsqueda
+class _SearchField extends StatefulWidget {
+  const _SearchField({
+    required this.searchQuery,
+    required this.onSearchChanged,
+  });
+
+  final String searchQuery;
+  final void Function(String) onSearchChanged;
+
+  @override
+  State<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<_SearchField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.searchQuery);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      onChanged: widget.onSearchChanged,
+      decoration: InputDecoration(
+        hintText: 'Buscar facultativo...',
+        prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondaryLight),
+        suffixIcon: _controller.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear, size: 18, color: AppColors.textSecondaryLight),
+                onPressed: () {
+                  _controller.clear();
+                  widget.onSearchChanged('');
+                },
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.gray300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.gray300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.paddingMedium,
+          vertical: AppSizes.paddingSmall,
+        ),
+        isDense: true,
+      ),
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        color: AppColors.textPrimaryLight,
+      ),
+    );
+  }
+}
+
+/// Diálogo de visualización de facultativo (solo lectura)
+class _FacultativoViewDialog extends StatelessWidget {
+  const _FacultativoViewDialog({required this.facultativo});
+
+  final FacultativoEntity facultativo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+      ),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 700),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // Header azul
+            Container(
+              padding: const EdgeInsets.all(AppSizes.paddingLarge),
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(AppSizes.radius),
+                  topRight: Radius.circular(AppSizes.radius),
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  const Icon(Icons.medical_services_outlined, color: Colors.white, size: 32),
+                  const SizedBox(width: AppSizes.spacing),
+                  Expanded(
+                    child: Text(
+                      'Detalles del Facultativo',
+                      style: GoogleFonts.inter(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+
+            // Contenido
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingXl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  _buildDetailRow('Nombre', facultativo.nombre),
+                  _buildDetailRow('Apellidos', facultativo.apellidos),
+                  if (facultativo.numColegiado != null && facultativo.numColegiado!.isNotEmpty)
+                    _buildDetailRow('Nº Colegiado', facultativo.numColegiado!),
+                  if (facultativo.especialidadNombre != null && facultativo.especialidadNombre!.isNotEmpty)
+                    _buildDetailRow('Especialidad', facultativo.especialidadNombre!),
+                  if (facultativo.telefono != null && facultativo.telefono!.isNotEmpty)
+                    _buildDetailRow('Teléfono', facultativo.telefono!),
+                  if (facultativo.email != null && facultativo.email!.isNotEmpty)
+                    _buildDetailRow('Email', facultativo.email!),
+                  _buildDetailRow('Estado', facultativo.activo ? 'Activo' : 'Inactivo'),
+                ],
+              ),
+            ),
+
+            // Separador
+            const Divider(height: 1),
+
+            // Footer con botones
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingLarge),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  AppButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    label: 'Cerrar',
+                    variant: AppButtonVariant.text,
+                  ),
+                  const SizedBox(width: AppSizes.spacingSmall),
+                  AppButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      // Editar se maneja desde el widget padre
+                    },
+                    label: 'Editar',
+                    icon: Icons.edit,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSizes.spacingMedium),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: 180,
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: AppSizes.fontSmall,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondaryLight,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.inter(
+                fontSize: AppSizes.fontSmall,
+                color: AppColors.textPrimaryLight,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

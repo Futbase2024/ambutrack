@@ -1,0 +1,697 @@
+import 'dart:async';
+
+import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
+import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
+import 'package:ambutrack_web/core/widgets/tables/modern_data_table_v2.dart';
+import 'package:ambutrack_web/features/tablas/especialidades_medicas/domain/entities/especialidad_entity.dart';
+import 'package:ambutrack_web/features/tablas/especialidades_medicas/presentation/bloc/especialidad_bloc.dart';
+import 'package:ambutrack_web/features/tablas/especialidades_medicas/presentation/bloc/especialidad_event.dart';
+import 'package:ambutrack_web/features/tablas/especialidades_medicas/presentation/bloc/especialidad_state.dart';
+import 'package:ambutrack_web/features/tablas/especialidades_medicas/presentation/widgets/especialidad_form_dialog.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+/// Tabla de especialidades médicas
+class EspecialidadTable extends StatefulWidget {
+  const EspecialidadTable({super.key});
+
+  @override
+  State<EspecialidadTable> createState() => _EspecialidadTableState();
+}
+
+class _EspecialidadTableState extends State<EspecialidadTable> {
+  String _searchQuery = '';
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
+  bool _isDeleting = false;
+  BuildContext? _loadingDialogContext;
+  DateTime? _deleteStartTime;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<EspecialidadBloc, EspecialidadState>(
+      listener: (BuildContext context, EspecialidadState state) {
+        if (_isDeleting && _loadingDialogContext != null) {
+          if (state is EspecialidadLoaded || state is EspecialidadError) {
+            final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
+            Navigator.of(_loadingDialogContext!).pop();
+
+            setState(() {
+              _isDeleting = false;
+              _loadingDialogContext = null;
+              _deleteStartTime = null;
+            });
+
+            if (state is EspecialidadError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error al eliminar: ${state.message}'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            } else if (state is EspecialidadLoaded) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ Especialidad eliminada exitosamente (${elapsed.inMilliseconds}ms)'),
+                  backgroundColor: AppColors.success,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          }
+        }
+      },
+      child: BlocBuilder<EspecialidadBloc, EspecialidadState>(
+        builder: (BuildContext context, EspecialidadState state) {
+          if (state is EspecialidadLoading) {
+            return const _LoadingView();
+          }
+
+          if (state is EspecialidadError) {
+            return _ErrorView(message: state.message);
+          }
+
+          if (state is EspecialidadLoaded) {
+            List<EspecialidadEntity> filtradas = _filterEspecialidades(state.especialidades);
+            filtradas = _sortEspecialidades(filtradas);
+
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  // Header: Título + Búsqueda
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          'Listado de Especialidades Médicas',
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimaryLight,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 300,
+                        child: _SearchField(
+                          searchQuery: _searchQuery,
+                          onSearchChanged: (String query) {
+                            setState(() => _searchQuery = query);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.spacing),
+
+                  // Info de resultados
+                  if (state.especialidades.length != filtradas.length)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSizes.spacing),
+                      child: Text(
+                        'Mostrando ${filtradas.length} de ${state.especialidades.length} especialidades',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ),
+
+                  // Tabla
+                  ModernDataTableV2<EspecialidadEntity>(
+                    onRowTap: (EspecialidadEntity especialidad) => _viewEspecialidad(context, especialidad),
+                    onEdit: (EspecialidadEntity especialidad) => _editEspecialidad(context, especialidad),
+                    onDelete: (EspecialidadEntity especialidad) => _confirmDelete(context, especialidad),
+                    sortColumnIndex: _sortColumnIndex,
+                    sortAscending: _sortAscending,
+                    onSort: (int columnIndex, bool ascending) {
+                      setState(() {
+                        _sortColumnIndex = columnIndex;
+                        _sortAscending = ascending;
+                      });
+                    },
+                    columns: const <ModernDataColumnV2>[
+                      ModernDataColumnV2(label: 'NOMBRE', flex: 3, sortable: true),
+                      ModernDataColumnV2(label: 'TIPO', flex: 2, sortable: true),
+                      ModernDataColumnV2(label: 'CERTIFICACIÓN', flex: 2, sortable: true),
+                      ModernDataColumnV2(label: 'ESTADO', flex: 0, sortable: true),
+                    ],
+                    rows: filtradas.map((EspecialidadEntity especialidad) {
+                      return ModernDataRowV2<EspecialidadEntity>(
+                        data: especialidad,
+                        cells: <Widget>[
+                          _buildNombreCell(especialidad),
+                          _buildTipoCell(especialidad),
+                          _buildCertificacionCell(especialidad),
+                          _buildEstadoCell(especialidad),
+                        ],
+                      );
+                    }).toList(),
+                    emptyMessage: _searchQuery.isNotEmpty
+                        ? 'No se encontraron especialidades con los filtros aplicados'
+                        : 'No hay especialidades registradas',
+                    emptyIcon: Icons.medical_services_outlined,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+  }
+
+  List<EspecialidadEntity> _filterEspecialidades(List<EspecialidadEntity> especialidades) {
+    if (_searchQuery.isEmpty) {
+      return especialidades;
+    }
+
+    final String query = _searchQuery.toLowerCase();
+    return especialidades.where((EspecialidadEntity especialidad) {
+      return especialidad.nombre.toLowerCase().contains(query) ||
+          (especialidad.descripcion?.toLowerCase().contains(query) ?? false) ||
+          especialidad.tipoEspecialidad.toLowerCase().contains(query);
+    }).toList();
+  }
+
+  List<EspecialidadEntity> _sortEspecialidades(List<EspecialidadEntity> especialidades) {
+    if (_sortColumnIndex == null) {
+      return especialidades;
+    }
+
+    final List<EspecialidadEntity> sorted = List<EspecialidadEntity>.from(especialidades)
+      ..sort((EspecialidadEntity a, EspecialidadEntity b) {
+      int comparison = 0;
+
+      switch (_sortColumnIndex) {
+        case 0: // Nombre
+          comparison = a.nombre.compareTo(b.nombre);
+          break;
+        case 1: // Tipo
+          comparison = a.tipoEspecialidad.compareTo(b.tipoEspecialidad);
+          break;
+        case 2: // Certificación
+          comparison = a.requiereCertificacion == b.requiereCertificacion ? 0 : (a.requiereCertificacion ? -1 : 1);
+          break;
+        case 3: // Estado
+          comparison = a.activo == b.activo ? 0 : (a.activo ? -1 : 1);
+          break;
+      }
+
+      return _sortAscending ? comparison : -comparison;
+    });
+
+    return sorted;
+  }
+
+  Widget _buildNombreCell(EspecialidadEntity especialidad) {
+    return Text(
+      especialidad.nombre,
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textPrimaryLight,
+      ),
+    );
+  }
+
+  Widget _buildTipoCell(EspecialidadEntity especialidad) {
+    String label;
+    Color color;
+
+    switch (especialidad.tipoEspecialidad) {
+      case 'medica':
+        label = 'Médica';
+        color = AppColors.primary;
+        break;
+      case 'quirurgica':
+        label = 'Quirúrgica';
+        color = AppColors.error;
+        break;
+      case 'diagnostica':
+        label = 'Diagnóstica';
+        color = AppColors.warning;
+        break;
+      case 'apoyo':
+        label = 'Apoyo';
+        color = AppColors.info;
+        break;
+      case 'enfermeria':
+        label = 'Enfermería';
+        color = AppColors.secondary;
+        break;
+      case 'tecnica':
+        label = 'Técnica';
+        color = AppColors.textSecondaryLight;
+        break;
+      default:
+        label = especialidad.tipoEspecialidad;
+        color = AppColors.textSecondaryLight;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCertificacionCell(EspecialidadEntity especialidad) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(
+          especialidad.requiereCertificacion ? Icons.check_circle : Icons.cancel,
+          size: 18,
+          color: especialidad.requiereCertificacion ? AppColors.success : AppColors.textSecondaryLight,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          especialidad.requiereCertificacion ? 'Sí' : 'No',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: especialidad.requiereCertificacion ? AppColors.success : AppColors.textSecondaryLight,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEstadoCell(EspecialidadEntity especialidad) {
+    return Center(
+      child: Tooltip(
+        message: especialidad.activo ? 'Activo' : 'Inactivo',
+        child: Icon(
+          especialidad.activo ? Icons.check_circle : Icons.cancel,
+          size: 24,
+          color: especialidad.activo ? AppColors.success : AppColors.textSecondaryLight,
+        ),
+      ),
+    );
+  }
+
+  void _viewEspecialidad(BuildContext context, EspecialidadEntity especialidad) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) => BlocProvider<EspecialidadBloc>.value(
+        value: context.read<EspecialidadBloc>(),
+        child: _EspecialidadViewDialog(especialidad: especialidad),
+      ),
+    );
+  }
+
+  void _editEspecialidad(BuildContext context, EspecialidadEntity especialidad) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => EspecialidadFormDialog(especialidad: especialidad),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, EspecialidadEntity especialidad) async {
+    String tipoLabel;
+    switch (especialidad.tipoEspecialidad) {
+      case 'medica':
+        tipoLabel = 'Médica';
+        break;
+      case 'quirurgica':
+        tipoLabel = 'Quirúrgica';
+        break;
+      case 'diagnostica':
+        tipoLabel = 'Diagnóstica';
+        break;
+      case 'apoyo':
+        tipoLabel = 'Apoyo';
+        break;
+      case 'enfermeria':
+        tipoLabel = 'Enfermería';
+        break;
+      case 'tecnica':
+        tipoLabel = 'Técnica';
+        break;
+      default:
+        tipoLabel = especialidad.tipoEspecialidad;
+    }
+
+    final bool? confirmed = await showConfirmationDialog(
+      context: context,
+      title: 'Confirmar Eliminación',
+      message: '¿Estás seguro de que deseas eliminar esta especialidad? Esta acción no se puede deshacer.',
+      itemDetails: <String, String>{
+        'Nombre': especialidad.nombre,
+        'Tipo': tipoLabel,
+        'Certificación': especialidad.requiereCertificacion ? 'Requerida' : 'No requerida',
+        if (especialidad.descripcion != null && especialidad.descripcion!.isNotEmpty)
+          'Descripción': especialidad.descripcion!,
+        'Estado': especialidad.activo ? 'Activa' : 'Inactiva',
+      },
+    );
+
+    if (confirmed == true && context.mounted) {
+      debugPrint('🗑️ Eliminando especialidad: ${especialidad.nombre} (${especialidad.id})');
+
+      BuildContext? loadingContext;
+
+      unawaited(
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            loadingContext = dialogContext;
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && loadingContext != null) {
+                setState(() {
+                  _isDeleting = true;
+                  _loadingDialogContext = loadingContext;
+                  _deleteStartTime = DateTime.now();
+                });
+              }
+            });
+
+            return const AppLoadingOverlay(
+              message: 'Eliminando especialidad...',
+              color: AppColors.emergency,
+              icon: Icons.delete_forever,
+            );
+          },
+        ),
+      );
+
+      if (context.mounted) {
+        context.read<EspecialidadBloc>().add(EspecialidadDeleteRequested(especialidad.id));
+      }
+    }
+  }
+}
+
+/// Widget de búsqueda
+class _SearchField extends StatefulWidget {
+  const _SearchField({
+    required this.searchQuery,
+    required this.onSearchChanged,
+  });
+
+  final String searchQuery;
+  final void Function(String) onSearchChanged;
+
+  @override
+  State<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<_SearchField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.searchQuery);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      onChanged: widget.onSearchChanged,
+      decoration: InputDecoration(
+        hintText: 'Buscar especialidad...',
+        prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondaryLight),
+        suffixIcon: _controller.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear, size: 18, color: AppColors.textSecondaryLight),
+                onPressed: () {
+                  _controller.clear();
+                  widget.onSearchChanged('');
+                },
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.gray300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.gray300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.paddingMedium,
+          vertical: AppSizes.paddingSmall,
+        ),
+        isDense: true,
+      ),
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        color: AppColors.textPrimaryLight,
+      ),
+    );
+  }
+}
+
+/// Vista de carga
+class _LoadingView extends StatelessWidget {
+  const _LoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.spacingMassive),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      constraints: const BoxConstraints(minHeight: 400),
+      child: const Center(
+        child: AppLoadingIndicator(
+          message: 'Cargando especialidades...',
+        ),
+      ),
+    );
+  }
+}
+
+/// Vista de error
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingXl),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+        border: Border.all(color: AppColors.error),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+          const SizedBox(height: AppSizes.spacing),
+          Text(
+            'Error al cargar especialidades',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.error,
+            ),
+          ),
+          const SizedBox(height: AppSizes.spacingSmall),
+          Text(
+            message,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: AppColors.textSecondaryLight,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Diálogo de visualización de especialidad (solo lectura)
+class _EspecialidadViewDialog extends StatelessWidget {
+  const _EspecialidadViewDialog({required this.especialidad});
+
+  final EspecialidadEntity especialidad;
+
+  @override
+  Widget build(BuildContext context) {
+    String tipoLabel;
+    switch (especialidad.tipoEspecialidad) {
+      case 'medica':
+        tipoLabel = 'Médica';
+        break;
+      case 'quirurgica':
+        tipoLabel = 'Quirúrgica';
+        break;
+      case 'diagnostica':
+        tipoLabel = 'Diagnóstica';
+        break;
+      case 'apoyo':
+        tipoLabel = 'Apoyo';
+        break;
+      case 'enfermeria':
+        tipoLabel = 'Enfermería';
+        break;
+      case 'tecnica':
+        tipoLabel = 'Técnica';
+        break;
+      default:
+        tipoLabel = especialidad.tipoEspecialidad;
+    }
+
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+      ),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 700),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // Header
+            Container(
+              padding: const EdgeInsets.all(AppSizes.paddingLarge),
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(AppSizes.radius),
+                  topRight: Radius.circular(AppSizes.radius),
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  const Icon(
+                    Icons.medical_services_outlined,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                  const SizedBox(width: AppSizes.spacing),
+                  Expanded(
+                    child: Text(
+                      'Detalles de la Especialidad',
+                      style: GoogleFonts.inter(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+
+            // Contenido
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingXl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  _buildDetailRow('Nombre', especialidad.nombre),
+                  _buildDetailRow('Tipo', tipoLabel),
+                  _buildDetailRow('Certificación', especialidad.requiereCertificacion ? 'Requerida' : 'No requerida'),
+                  _buildDetailRow('Descripción', especialidad.descripcion ?? 'No especificada'),
+                  _buildDetailRow('Estado', especialidad.activo ? 'Activa' : 'Inactiva'),
+                ],
+              ),
+            ),
+
+            // Separador
+            const Divider(height: 1),
+
+            // Footer
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingLarge),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cerrar'),
+                  ),
+                  const SizedBox(width: AppSizes.spacingSmall),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      // Editar se maneja desde el widget padre
+                    },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Editar'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSizes.spacingMedium),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: 180,
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: AppSizes.fontSmall,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondaryLight,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.inter(
+                fontSize: AppSizes.fontSmall,
+                color: AppColors.textPrimaryLight,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

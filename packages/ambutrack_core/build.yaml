@@ -1,0 +1,10 @@
+targets:
+  $default:
+    sources:
+      - lib/**
+      - $lib$
+    builders:
+      json_serializable:
+        enabled: true
+        generate_for:
+          - lib/src/datasources/**/*.dart

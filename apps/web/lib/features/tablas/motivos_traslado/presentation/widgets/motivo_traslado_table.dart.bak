@@ -1,0 +1,604 @@
+import 'dart:async';
+
+import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
+import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
+import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
+import 'package:ambutrack_web/core/widgets/tables/modern_data_table_v2.dart';
+import 'package:ambutrack_web/features/tablas/motivos_traslado/domain/entities/motivo_traslado_entity.dart';
+import 'package:ambutrack_web/features/tablas/motivos_traslado/presentation/bloc/motivo_traslado_bloc.dart';
+import 'package:ambutrack_web/features/tablas/motivos_traslado/presentation/bloc/motivo_traslado_event.dart';
+import 'package:ambutrack_web/features/tablas/motivos_traslado/presentation/bloc/motivo_traslado_state.dart';
+import 'package:ambutrack_web/features/tablas/motivos_traslado/presentation/widgets/motivo_traslado_form_dialog.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+/// Tabla de motivos de traslado moderna
+class MotivoTrasladoTable extends StatefulWidget {
+  /// Constructor
+  const MotivoTrasladoTable({super.key});
+
+  @override
+  State<MotivoTrasladoTable> createState() => _MotivoTrasladoTableState();
+}
+
+class _MotivoTrasladoTableState extends State<MotivoTrasladoTable> {
+  String _searchQuery = '';
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
+  bool _isDeleting = false;
+  BuildContext? _loadingDialogContext;
+  DateTime? _deleteStartTime;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<MotivoTrasladoBloc, MotivoTrasladoState>(
+      listener: (BuildContext context, MotivoTrasladoState state) {
+        debugPrint('🔔 BlocListener: Estado recibido: ${state.runtimeType}');
+        debugPrint('🔔 BlocListener: _isDeleting=$_isDeleting, _loadingDialogContext=${_loadingDialogContext != null ? "✅" : "❌"}');
+
+        // Solo procesar si estamos eliminando
+        if (_isDeleting && _loadingDialogContext != null) {
+          debugPrint('✅ BlocListener: Condiciones cumplidas para cerrar diálogo');
+
+          if (state is MotivoTrasladoLoaded || state is MotivoTrasladoError) {
+            debugPrint('✅ BlocListener: Estado es MotivoTrasladoLoaded o MotivoTrasladoError, cerrando diálogo...');
+
+            // Calcular tiempo transcurrido
+            final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
+            debugPrint('⏱️ Tiempo de eliminación: ${elapsed.inMilliseconds}ms');
+
+            // Cerrar el diálogo de loading usando el contexto guardado
+            Navigator.of(_loadingDialogContext!).pop();
+            debugPrint('✅ BlocListener: Diálogo cerrado');
+
+            // Resetear variables
+            setState(() {
+              _isDeleting = false;
+              _loadingDialogContext = null;
+              _deleteStartTime = null;
+            });
+
+            // Si es error, mostrar snackbar
+            if (state is MotivoTrasladoError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error al eliminar: ${state.message}'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            } else if (state is MotivoTrasladoLoaded) {
+              // Mostrar mensaje de éxito con tiempo
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ Motivo de traslado eliminado exitosamente (${elapsed.inMilliseconds}ms)'),
+                  backgroundColor: AppColors.success,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          }
+        } else {
+          debugPrint('❌ BlocListener: No se cumplen las condiciones para cerrar el diálogo');
+        }
+      },
+      child: BlocBuilder<MotivoTrasladoBloc, MotivoTrasladoState>(
+        builder: (BuildContext context, MotivoTrasladoState state) {
+        if (state is MotivoTrasladoLoading) {
+          return const _LoadingView();
+        }
+
+        if (state is MotivoTrasladoError) {
+          return _ErrorView(message: state.message);
+        }
+
+        if (state is MotivoTrasladoLoaded) {
+          List<MotivoTrasladoEntity> motivosFiltrados = _filterMotivos(state.motivos);
+          motivosFiltrados = _sortMotivos(motivosFiltrados);
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              // Header: Título + Búsqueda
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      'Listado de Motivos de Traslado',
+                      style: GoogleFonts.inter(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimaryLight,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 300,
+                    child: _SearchField(
+                      searchQuery: _searchQuery,
+                      onSearchChanged: (String query) {
+                        setState(() => _searchQuery = query);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizes.spacing),
+
+              // Info de resultados
+              if (state.motivos.length != motivosFiltrados.length)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSizes.spacing),
+                  child: Text(
+                    'Mostrando ${motivosFiltrados.length} de ${state.motivos.length} motivos',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+
+              // Tabla
+              ModernDataTableV2<MotivoTrasladoEntity>(
+                onRowTap: (MotivoTrasladoEntity motivo) => _viewMotivo(context, motivo),
+                onEdit: (MotivoTrasladoEntity motivo) => _editMotivo(context, motivo),
+                onDelete: (MotivoTrasladoEntity motivo) => _confirmDelete(context, motivo),
+                sortColumnIndex: _sortColumnIndex,
+                sortAscending: _sortAscending,
+                onSort: (int columnIndex, bool ascending) {
+                  setState(() {
+                    _sortColumnIndex = columnIndex;
+                    _sortAscending = ascending;
+                  });
+                },
+                columns: const <ModernDataColumnV2>[
+                  ModernDataColumnV2(label: 'NOMBRE', flex: 3, sortable: true),
+                  ModernDataColumnV2(label: 'DESCRIPCIÓN', flex: 5, sortable: true),
+                  ModernDataColumnV2(label: 'ESTADO', flex: 0, sortable: true),
+                ],
+                rows: motivosFiltrados.map((MotivoTrasladoEntity motivo) {
+                  return ModernDataRowV2<MotivoTrasladoEntity>(
+                    data: motivo,
+                    cells: <Widget>[
+                      _buildNombreCell(motivo),
+                      _buildDescripcionCell(motivo),
+                      _buildEstadoCell(motivo),
+                    ],
+                  );
+                }).toList(),
+                emptyMessage: _searchQuery.isNotEmpty
+                    ? 'No se encontraron motivos con los filtros aplicados'
+                    : 'No hay motivos de traslado registrados',
+                emptyIcon: Icons.local_shipping_outlined,
+              ),
+            ],
+          );
+        }
+
+        return const SizedBox.shrink();
+        },
+      ),
+    );
+  }
+
+  List<MotivoTrasladoEntity> _filterMotivos(List<MotivoTrasladoEntity> motivos) {
+    if (_searchQuery.isEmpty) {
+      return motivos;
+    }
+
+    final String query = _searchQuery.toLowerCase();
+    return motivos.where((MotivoTrasladoEntity motivo) {
+      return motivo.nombre.toLowerCase().contains(query) ||
+          motivo.descripcion.toLowerCase().contains(query);
+    }).toList();
+  }
+
+  List<MotivoTrasladoEntity> _sortMotivos(List<MotivoTrasladoEntity> motivos) {
+    if (_sortColumnIndex == null) {
+      return motivos;
+    }
+
+    final List<MotivoTrasladoEntity> sorted = List<MotivoTrasladoEntity>.from(motivos)
+      ..sort((MotivoTrasladoEntity a, MotivoTrasladoEntity b) {
+      int comparison = 0;
+
+      switch (_sortColumnIndex) {
+        case 0: // Nombre
+          comparison = a.nombre.compareTo(b.nombre);
+        case 1: // Descripción
+          comparison = a.descripcion.compareTo(b.descripcion);
+        case 2: // Estado
+          comparison = a.activo == b.activo ? 0 : (a.activo ? -1 : 1);
+      }
+
+        return _sortAscending ? comparison : -comparison;
+      });
+
+    return sorted;
+  }
+
+  Widget _buildNombreCell(MotivoTrasladoEntity motivo) {
+    return Text(
+      motivo.nombre,
+      style: GoogleFonts.inter(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimaryLight,
+      ),
+    );
+  }
+
+  Widget _buildDescripcionCell(MotivoTrasladoEntity motivo) {
+    return Text(
+      motivo.descripcion,
+      style: GoogleFonts.inter(
+        fontSize: 13,
+        color: AppColors.textSecondaryLight,
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _buildEstadoCell(MotivoTrasladoEntity motivo) {
+    return Center(
+      child: Tooltip(
+        message: motivo.activo ? 'Activo' : 'Inactivo',
+        child: Icon(
+          motivo.activo ? Icons.check_circle : Icons.cancel,
+          size: 24,
+          color: motivo.activo ? AppColors.success : AppColors.textSecondaryLight,
+        ),
+      ),
+    );
+  }
+
+  void _viewMotivo(BuildContext context, MotivoTrasladoEntity motivo) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) => BlocProvider<MotivoTrasladoBloc>.value(
+        value: context.read<MotivoTrasladoBloc>(),
+        child: _MotivoTrasladoViewDialog(motivo: motivo),
+      ),
+    );
+  }
+
+  void _editMotivo(BuildContext context, MotivoTrasladoEntity motivo) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) => BlocProvider<MotivoTrasladoBloc>.value(
+        value: context.read<MotivoTrasladoBloc>(),
+        child: MotivoTrasladoFormDialog(motivo: motivo),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, MotivoTrasladoEntity motivo) async {
+    final bool? confirmed = await showConfirmationDialog(
+      context: context,
+      title: 'Confirmar Eliminación',
+      message: '¿Estás seguro de que deseas eliminar este motivo de traslado? Esta acción no se puede deshacer.',
+      itemDetails: <String, String>{
+        'Nombre': motivo.nombre,
+        'Descripción': motivo.descripcion,
+        'Estado': motivo.activo ? 'Activo' : 'Inactivo',
+      },
+    );
+
+    if (confirmed == true && context.mounted) {
+      debugPrint('🗑️ Eliminando motivo: ${motivo.nombre} (${motivo.id})');
+
+      // Variable para guardar el contexto del diálogo
+      BuildContext? loadingContext;
+
+      // Mostrar overlay de loading
+      unawaited(
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            debugPrint('💬 showDialog builder: Guardando contexto localmente');
+            // Guardar contexto localmente primero
+            loadingContext = dialogContext;
+
+            // Programar setState para después del build
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              debugPrint('⏰ addPostFrameCallback: Ejecutándose... mounted=$mounted, loadingContext=${loadingContext != null ? "✅" : "❌"}');
+              if (mounted && loadingContext != null) {
+                debugPrint('✅ addPostFrameCallback: Guardando contexto en estado');
+                setState(() {
+                  _isDeleting = true;
+                  _loadingDialogContext = loadingContext;
+                  _deleteStartTime = DateTime.now();
+                });
+                debugPrint('✅ addPostFrameCallback: Contexto guardado');
+              } else {
+                debugPrint('❌ addPostFrameCallback: NO se puede guardar contexto (mounted=$mounted, loadingContext=${loadingContext != null})');
+              }
+            });
+
+            return const AppLoadingOverlay(
+              message: 'Eliminando motivo de traslado...',
+              color: AppColors.emergency,
+              icon: Icons.delete_forever,
+            );
+          },
+        ),
+      );
+
+      // Disparar evento de eliminación
+      if (context.mounted) {
+        context.read<MotivoTrasladoBloc>().add(MotivoTrasladoDeleteRequested(motivo.id!));
+      }
+
+      // El BlocListener cerrará el diálogo cuando se complete
+    }
+  }
+}
+
+/// Vista de carga
+class _LoadingView extends StatelessWidget {
+  const _LoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.spacingMassive),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      constraints: const BoxConstraints(minHeight: 400),
+      child: const Center(
+        child: AppLoadingIndicator(
+          message: 'Cargando motivos de traslado...',
+        ),
+      ),
+    );
+  }
+}
+
+/// Vista de error
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingXl),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+        border: Border.all(color: AppColors.error),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+          const SizedBox(height: AppSizes.spacing),
+          Text(
+            'Error al cargar motivos de traslado',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.error,
+            ),
+          ),
+          const SizedBox(height: AppSizes.spacingSmall),
+          Text(
+            message,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: AppColors.textSecondaryLight,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Campo de búsqueda
+class _SearchField extends StatefulWidget {
+  const _SearchField({
+    required this.searchQuery,
+    required this.onSearchChanged,
+  });
+
+  final String searchQuery;
+  final void Function(String) onSearchChanged;
+
+  @override
+  State<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<_SearchField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.searchQuery);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      onChanged: widget.onSearchChanged,
+      decoration: InputDecoration(
+        hintText: 'Buscar motivo...',
+        prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondaryLight),
+        suffixIcon: _controller.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear, size: 18, color: AppColors.textSecondaryLight),
+                onPressed: () {
+                  _controller.clear();
+                  widget.onSearchChanged('');
+                },
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.gray300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.gray300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.paddingMedium,
+          vertical: AppSizes.paddingSmall,
+        ),
+        isDense: true,
+      ),
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        color: AppColors.textPrimaryLight,
+      ),
+    );
+  }
+}
+
+/// Diálogo de visualización de motivo de traslado (solo lectura)
+class _MotivoTrasladoViewDialog extends StatelessWidget {
+  const _MotivoTrasladoViewDialog({required this.motivo});
+
+  final MotivoTrasladoEntity motivo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+      ),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 700),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // Header azul
+            Container(
+              padding: const EdgeInsets.all(AppSizes.paddingLarge),
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(AppSizes.radius),
+                  topRight: Radius.circular(AppSizes.radius),
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  const Icon(Icons.local_shipping_outlined, color: Colors.white, size: 32),
+                  const SizedBox(width: AppSizes.spacing),
+                  Expanded(
+                    child: Text(
+                      'Detalles del Motivo de Traslado',
+                      style: GoogleFonts.inter(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+
+            // Contenido
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingXl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  _buildDetailRow('Nombre', motivo.nombre),
+                  _buildDetailRow('Descripción', motivo.descripcion),
+                  _buildDetailRow('Estado', motivo.activo ? 'Activo' : 'Inactivo'),
+                ],
+              ),
+            ),
+
+            // Separador
+            const Divider(height: 1),
+
+            // Footer con botones
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingLarge),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  AppButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    label: 'Cerrar',
+                    variant: AppButtonVariant.text,
+                  ),
+                  const SizedBox(width: AppSizes.spacingSmall),
+                  AppButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      // Editar se maneja desde el widget padre
+                    },
+                    label: 'Editar',
+                    icon: Icons.edit,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSizes.spacingMedium),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: 180,
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: AppSizes.fontSmall,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondaryLight,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.inter(
+                fontSize: AppSizes.fontSmall,
+                color: AppColors.textPrimaryLight,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

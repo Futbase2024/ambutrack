@@ -1,0 +1,577 @@
+import 'dart:async';
+
+import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
+import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
+import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
+import 'package:ambutrack_web/core/widgets/tables/modern_data_table_v2.dart';
+import 'package:ambutrack_web/features/tablas/tipos_paciente/domain/entities/tipo_paciente_entity.dart';
+import 'package:ambutrack_web/features/tablas/tipos_paciente/presentation/bloc/tipo_paciente_bloc.dart';
+import 'package:ambutrack_web/features/tablas/tipos_paciente/presentation/bloc/tipo_paciente_event.dart';
+import 'package:ambutrack_web/features/tablas/tipos_paciente/presentation/bloc/tipo_paciente_state.dart';
+import 'package:ambutrack_web/features/tablas/tipos_paciente/presentation/widgets/tipo_paciente_form_dialog.dart';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+/// Tabla de tipos de paciente
+class TipoPacienteTable extends StatefulWidget {
+  const TipoPacienteTable({super.key});
+
+  @override
+  State<TipoPacienteTable> createState() => _TipoPacienteTableState();
+}
+
+class _TipoPacienteTableState extends State<TipoPacienteTable> {
+  String _searchQuery = '';
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
+  bool _isDeleting = false;
+  BuildContext? _loadingDialogContext;
+  DateTime? _deleteStartTime;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<TipoPacienteBloc, TipoPacienteState>(
+      listener: (BuildContext context, TipoPacienteState state) {
+        if (_isDeleting && _loadingDialogContext != null) {
+          if (state is TipoPacienteLoaded || state is TipoPacienteError) {
+            final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
+            Navigator.of(_loadingDialogContext!).pop();
+
+            setState(() {
+              _isDeleting = false;
+              _loadingDialogContext = null;
+              _deleteStartTime = null;
+            });
+
+            if (state is TipoPacienteError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error al eliminar: ${state.message}'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            } else if (state is TipoPacienteLoaded) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ Tipo de paciente eliminado exitosamente (${elapsed.inMilliseconds}ms)'),
+                  backgroundColor: AppColors.success,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          }
+        }
+      },
+      child: BlocBuilder<TipoPacienteBloc, TipoPacienteState>(
+        builder: (BuildContext context, TipoPacienteState state) {
+          if (state is TipoPacienteLoading) {
+            return const _LoadingView();
+          }
+
+          if (state is TipoPacienteError) {
+            return _ErrorView(message: state.message);
+          }
+
+          if (state is TipoPacienteLoaded) {
+            List<TipoPacienteEntity> filtrados = _filterTipos(state.tiposPaciente);
+            filtrados = _sortTipos(filtrados);
+
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          'Listado de Tipos de Paciente',
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimaryLight,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 300,
+                        child: _SearchField(
+                          searchQuery: _searchQuery,
+                          onSearchChanged: (String query) {
+                            setState(() => _searchQuery = query);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.spacing),
+
+                  if (state.tiposPaciente.length != filtrados.length)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSizes.spacing),
+                      child: Text(
+                        'Mostrando ${filtrados.length} de ${state.tiposPaciente.length} tipos',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ),
+
+                  ModernDataTableV2<TipoPacienteEntity>(
+                    onRowTap: (TipoPacienteEntity tipo) => _viewTipo(context, tipo),
+                    onEdit: (TipoPacienteEntity tipo) => _editTipo(context, tipo),
+                    onDelete: (TipoPacienteEntity tipo) => _confirmDelete(context, tipo),
+                    sortColumnIndex: _sortColumnIndex,
+                    sortAscending: _sortAscending,
+                    onSort: (int columnIndex, bool ascending) {
+                      setState(() {
+                        _sortColumnIndex = columnIndex;
+                        _sortAscending = ascending;
+                      });
+                    },
+                    columns: const <ModernDataColumnV2>[
+                      ModernDataColumnV2(label: 'NOMBRE', sortable: true, flex: 3),
+                      ModernDataColumnV2(label: 'DESCRIPCIÓN', sortable: true, flex: 5),
+                      ModernDataColumnV2(label: 'ESTADO', sortable: true, flex: 0),
+                    ],
+                    rows: filtrados.map((TipoPacienteEntity tipo) {
+                      return ModernDataRowV2<TipoPacienteEntity>(
+                        data: tipo,
+                        cells: <Widget>[
+                          _buildNombreCell(tipo),
+                          _buildDescripcionCell(tipo),
+                          _buildEstadoCell(tipo),
+                        ],
+                      );
+                    }).toList(),
+                    emptyMessage: _searchQuery.isNotEmpty
+                        ? 'No se encontraron tipos con los filtros aplicados'
+                        : 'No hay tipos de paciente registrados',
+                    emptyIcon: Icons.personal_injury_outlined,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+  }
+
+  List<TipoPacienteEntity> _filterTipos(List<TipoPacienteEntity> tipos) {
+    if (_searchQuery.isEmpty) {
+      return tipos;
+    }
+
+    final String query = _searchQuery.toLowerCase();
+    return tipos.where((TipoPacienteEntity tipo) {
+      return tipo.nombre.toLowerCase().contains(query) ||
+          (tipo.descripcion?.toLowerCase().contains(query) ?? false);
+    }).toList();
+  }
+
+  List<TipoPacienteEntity> _sortTipos(List<TipoPacienteEntity> tipos) {
+    if (_sortColumnIndex == null) {
+      return tipos;
+    }
+
+    final List<TipoPacienteEntity> sorted = List<TipoPacienteEntity>.from(tipos)
+      ..sort((TipoPacienteEntity a, TipoPacienteEntity b) {
+        int comparison = 0;
+
+        switch (_sortColumnIndex) {
+          case 0: // Nombre
+            comparison = a.nombre.compareTo(b.nombre);
+            break;
+          case 1: // Descripción
+            comparison = (a.descripcion ?? '').compareTo(b.descripcion ?? '');
+            break;
+          case 2: // Estado
+            comparison = a.activo == b.activo ? 0 : (a.activo ? -1 : 1);
+            break;
+        }
+
+        return _sortAscending ? comparison : -comparison;
+      });
+
+    return sorted;
+  }
+
+  Widget _buildNombreCell(TipoPacienteEntity tipo) {
+    return Text(
+      tipo.nombre,
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textPrimaryLight,
+      ),
+    );
+  }
+
+  Widget _buildDescripcionCell(TipoPacienteEntity tipo) {
+    return Text(
+      tipo.descripcion ?? '-',
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        color: AppColors.textSecondaryLight,
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _buildEstadoCell(TipoPacienteEntity tipo) {
+    return Center(
+      child: Tooltip(
+        message: tipo.activo ? 'Activo' : 'Inactivo',
+        child: Icon(
+          tipo.activo ? Icons.check_circle : Icons.cancel,
+          size: 24,
+          color: tipo.activo ? AppColors.success : AppColors.textSecondaryLight,
+        ),
+      ),
+    );
+  }
+
+  void _viewTipo(BuildContext context, TipoPacienteEntity tipo) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) => BlocProvider<TipoPacienteBloc>.value(
+        value: context.read<TipoPacienteBloc>(),
+        child: _TipoPacienteViewDialog(tipoPaciente: tipo),
+      ),
+    );
+  }
+
+  void _editTipo(BuildContext context, TipoPacienteEntity tipo) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => TipoPacienteFormDialog(tipoPaciente: tipo),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, TipoPacienteEntity tipo) async {
+    final bool? confirmed = await showConfirmationDialog(
+      context: context,
+      title: 'Confirmar Eliminación',
+      message: '¿Estás seguro de que deseas eliminar este tipo de paciente? Esta acción no se puede deshacer.',
+      itemDetails: <String, String>{
+        'Nombre': tipo.nombre,
+        if (tipo.descripcion != null && tipo.descripcion!.isNotEmpty)
+          'Descripción': tipo.descripcion!,
+        'Estado': tipo.activo ? 'Activo' : 'Inactivo',
+      },
+    );
+
+    if (confirmed == true && context.mounted) {
+      debugPrint('🗑️ Eliminando tipo: ${tipo.nombre} (${tipo.id})');
+
+      BuildContext? loadingContext;
+
+      unawaited(
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            loadingContext = dialogContext;
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && loadingContext != null) {
+                setState(() {
+                  _isDeleting = true;
+                  _loadingDialogContext = loadingContext;
+                  _deleteStartTime = DateTime.now();
+                });
+              }
+            });
+
+            return const AppLoadingOverlay(
+              message: 'Eliminando tipo de paciente...',
+              color: AppColors.emergency,
+              icon: Icons.delete_forever,
+            );
+          },
+        ),
+      );
+
+      if (context.mounted) {
+        context.read<TipoPacienteBloc>().add(TipoPacienteDeleteRequested(tipo.id!));
+      }
+    }
+  }
+}
+
+/// Widget de búsqueda
+class _SearchField extends StatefulWidget {
+  const _SearchField({
+    required this.searchQuery,
+    required this.onSearchChanged,
+  });
+
+  final String searchQuery;
+  final void Function(String) onSearchChanged;
+
+  @override
+  State<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<_SearchField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.searchQuery);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      onChanged: widget.onSearchChanged,
+      decoration: InputDecoration(
+        hintText: 'Buscar tipo de paciente...',
+        prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondaryLight),
+        suffixIcon: _controller.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear, size: 18, color: AppColors.textSecondaryLight),
+                onPressed: () {
+                  _controller.clear();
+                  widget.onSearchChanged('');
+                },
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.gray300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.gray300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.paddingMedium,
+          vertical: AppSizes.paddingSmall,
+        ),
+        isDense: true,
+      ),
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        color: AppColors.textPrimaryLight,
+      ),
+    );
+  }
+}
+
+/// Vista de carga
+class _LoadingView extends StatelessWidget {
+  const _LoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.spacingMassive),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      constraints: const BoxConstraints(minHeight: 400),
+      child: const Center(
+        child: AppLoadingIndicator(
+          message: 'Cargando tipos de paciente...',
+        ),
+      ),
+    );
+  }
+}
+
+/// Vista de error
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingXl),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+        border: Border.all(color: AppColors.error),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+          const SizedBox(height: AppSizes.spacing),
+          Text(
+            'Error al cargar tipos',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.error,
+            ),
+          ),
+          const SizedBox(height: AppSizes.spacingSmall),
+          Text(
+            message,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: AppColors.textSecondaryLight,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Diálogo de visualización de tipo de paciente (solo lectura)
+class _TipoPacienteViewDialog extends StatelessWidget {
+  const _TipoPacienteViewDialog({required this.tipoPaciente});
+
+  final TipoPacienteEntity tipoPaciente;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+      ),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 700),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // Header azul
+            Container(
+              padding: const EdgeInsets.all(AppSizes.paddingLarge),
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(AppSizes.radius),
+                  topRight: Radius.circular(AppSizes.radius),
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  const Icon(
+                    Icons.people_outline,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                  const SizedBox(width: AppSizes.spacing),
+                  Expanded(
+                    child: Text(
+                      'Detalles del Tipo de Paciente',
+                      style: GoogleFonts.inter(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+
+            // Contenido
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingXl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  _buildDetailRow('Nombre', tipoPaciente.nombre),
+                  _buildDetailRow('Descripción', tipoPaciente.descripcion ?? 'No especificado'),
+                  _buildDetailRow('Estado', tipoPaciente.activo ? 'Activo' : 'Inactivo'),
+                ],
+              ),
+            ),
+
+            // Separador
+            const Divider(height: 1),
+
+            // Footer con botones
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingLarge),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  AppButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    label: 'Cerrar',
+                    variant: AppButtonVariant.text,
+                  ),
+                  const SizedBox(width: AppSizes.spacingSmall),
+                  AppButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      // Editar se maneja desde el widget padre
+                    },
+                    label: 'Editar',
+                    icon: Icons.edit,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSizes.spacingMedium),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: 180,
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: AppSizes.fontSmall,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondaryLight,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.inter(
+                fontSize: AppSizes.fontSmall,
+                color: AppColors.textPrimaryLight,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

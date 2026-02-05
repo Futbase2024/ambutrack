@@ -1,0 +1,665 @@
+import 'dart:async';
+
+import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
+import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
+import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
+import 'package:ambutrack_web/core/widgets/tables/modern_data_table_v2.dart';
+import 'package:ambutrack_web/features/tablas/centros_hospitalarios/domain/entities/centro_hospitalario_entity.dart';
+import 'package:ambutrack_web/features/tablas/centros_hospitalarios/presentation/bloc/centro_hospitalario_bloc.dart';
+import 'package:ambutrack_web/features/tablas/centros_hospitalarios/presentation/bloc/centro_hospitalario_event.dart';
+import 'package:ambutrack_web/features/tablas/centros_hospitalarios/presentation/bloc/centro_hospitalario_state.dart';
+import 'package:ambutrack_web/features/tablas/centros_hospitalarios/presentation/widgets/centro_hospitalario_form_dialog.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+/// Tabla de centros hospitalarios moderna
+class CentroHospitalarioTable extends StatefulWidget {
+  const CentroHospitalarioTable({super.key});
+
+  @override
+  State<CentroHospitalarioTable> createState() => _CentroHospitalarioTableState();
+}
+
+class _CentroHospitalarioTableState extends State<CentroHospitalarioTable> {
+  String _searchQuery = '';
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
+  bool _isDeleting = false;
+  BuildContext? _loadingDialogContext;
+  DateTime? _deleteStartTime;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<CentroHospitalarioBloc, CentroHospitalarioState>(
+      listener: (BuildContext context, CentroHospitalarioState state) {
+        // Solo procesar si estamos eliminando
+        if (_isDeleting && _loadingDialogContext != null) {
+          if (state is CentroHospitalarioLoaded || state is CentroHospitalarioError) {
+            // Calcular tiempo transcurrido
+            final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
+
+            // Cerrar el diálogo de loading usando el contexto guardado
+            Navigator.of(_loadingDialogContext!).pop();
+
+            // Resetear variables
+            setState(() {
+              _isDeleting = false;
+              _loadingDialogContext = null;
+              _deleteStartTime = null;
+            });
+
+            // Si es error, mostrar snackbar
+            if (state is CentroHospitalarioError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error al eliminar: ${state.message}'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            } else if (state is CentroHospitalarioLoaded) {
+              // Mostrar mensaje de éxito con tiempo
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ Centro hospitalario eliminado exitosamente (${elapsed.inMilliseconds}ms)'),
+                  backgroundColor: AppColors.success,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          }
+        }
+      },
+      child: BlocBuilder<CentroHospitalarioBloc, CentroHospitalarioState>(
+      builder: (BuildContext context, CentroHospitalarioState state) {
+        if (state is CentroHospitalarioLoading) {
+          return const _LoadingView();
+        }
+
+        if (state is CentroHospitalarioError) {
+          return _ErrorView(message: state.message);
+        }
+
+        if (state is CentroHospitalarioLoaded) {
+          List<CentroHospitalarioEntity> centrosFiltrados = _filterCentros(state.centros);
+          centrosFiltrados = _sortCentros(centrosFiltrados);
+
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                // Header: Título + Búsqueda
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        'Listado de Centros Hospitalarios',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimaryLight,
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 300,
+                      child: _SearchField(
+                        searchQuery: _searchQuery,
+                        onSearchChanged: (String query) {
+                          setState(() => _searchQuery = query);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSizes.spacing),
+
+                // Info de resultados
+                if (state.centros.length != centrosFiltrados.length)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSizes.spacing),
+                    child: Text(
+                      'Mostrando ${centrosFiltrados.length} de ${state.centros.length} centros',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ),
+
+                // Tabla
+                ModernDataTableV2<CentroHospitalarioEntity>(
+                  onRowTap: (CentroHospitalarioEntity centro) => _viewCentro(context, centro),
+                  onEdit: (CentroHospitalarioEntity centro) => _editCentro(context, centro),
+                  onDelete: (CentroHospitalarioEntity centro) => _confirmDelete(context, centro),
+                  sortColumnIndex: _sortColumnIndex,
+                  sortAscending: _sortAscending,
+                  onSort: (int columnIndex, bool ascending) {
+                    setState(() {
+                      _sortColumnIndex = columnIndex;
+                      _sortAscending = ascending;
+                    });
+                  },
+                  columns: const <ModernDataColumnV2>[
+                    ModernDataColumnV2(label: 'NOMBRE', flex: 3, sortable: true),
+                    ModernDataColumnV2(label: 'TIPO', flex: 2, sortable: true),
+                    ModernDataColumnV2(label: 'LOCALIDAD', flex: 3, sortable: true),
+                    ModernDataColumnV2(label: 'TELÉFONO', flex: 2, sortable: true),
+                    ModernDataColumnV2(label: 'ESTADO', sortable: true, flex: 0),
+                  ],
+                  rows: centrosFiltrados.map((CentroHospitalarioEntity centro) {
+                    return ModernDataRowV2<CentroHospitalarioEntity>(
+                      data: centro,
+                      cells: <Widget>[
+                        _buildNombreCell(centro),
+                        _buildTipoCell(centro),
+                        _buildLocalidadCell(centro),
+                        _buildTelefonoCell(centro),
+                        _buildEstadoCell(centro),
+                      ],
+                    );
+                  }).toList(),
+                  emptyMessage: _searchQuery.isNotEmpty
+                      ? 'No se encontraron centros con los filtros aplicados'
+                      : 'No hay centros hospitalarios registrados',
+                ),
+              ],
+            ),
+          );
+        }
+
+        return const SizedBox.shrink();
+      },
+      ),
+    );
+  }
+
+  List<CentroHospitalarioEntity> _filterCentros(List<CentroHospitalarioEntity> centros) {
+    if (_searchQuery.isEmpty) {
+      return centros;
+    }
+
+    final String query = _searchQuery.toLowerCase();
+    return centros.where((CentroHospitalarioEntity centro) {
+      return centro.nombre.toLowerCase().contains(query) ||
+          (centro.localidadNombre?.toLowerCase().contains(query) ?? false) ||
+          (centro.provinciaNombre?.toLowerCase().contains(query) ?? false) ||
+          (centro.tipoCentro?.toLowerCase().contains(query) ?? false);
+    }).toList();
+  }
+
+  List<CentroHospitalarioEntity> _sortCentros(List<CentroHospitalarioEntity> centros) {
+    if (_sortColumnIndex == null) {
+      return centros;
+    }
+
+    final List<CentroHospitalarioEntity> sorted = List<CentroHospitalarioEntity>.from(centros);
+
+    // ignore: cascade_invocations
+    sorted.sort((CentroHospitalarioEntity a, CentroHospitalarioEntity b) {
+      int comparison = 0;
+
+      switch (_sortColumnIndex) {
+        case 0: // Nombre
+          comparison = a.nombre.compareTo(b.nombre);
+        case 1: // Tipo
+          comparison = (a.tipoCentro ?? '').compareTo(b.tipoCentro ?? '');
+        case 2: // Localidad
+          comparison = (a.localidadNombre ?? '').compareTo(b.localidadNombre ?? '');
+        case 3: // Teléfono
+          comparison = (a.telefono ?? '').compareTo(b.telefono ?? '');
+        case 4: // Estado
+          comparison = a.activo == b.activo ? 0 : (a.activo ? -1 : 1);
+      }
+
+      return _sortAscending ? comparison : -comparison;
+    });
+
+    return sorted;
+  }
+
+  Widget _buildNombreCell(CentroHospitalarioEntity centro) {
+    return Text(
+      centro.nombre,
+      style: GoogleFonts.inter(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimaryLight,
+      ),
+    );
+  }
+
+  Widget _buildTipoCell(CentroHospitalarioEntity centro) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.paddingSmall,
+        vertical: 4,
+      ),
+      decoration: BoxDecoration(
+        color: _getTipoColor(centro.tipoCentro).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+      ),
+      child: Text(
+        centro.tipoCentro ?? 'N/A',
+        style: GoogleFonts.inter(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: _getTipoColor(centro.tipoCentro),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocalidadCell(CentroHospitalarioEntity centro) {
+    return Text(
+      centro.localidadNombre != null
+          ? '${centro.localidadNombre} (${centro.provinciaNombre ?? ''})'
+          : 'N/A',
+      style: GoogleFonts.inter(
+        fontSize: 13,
+        color: AppColors.textSecondaryLight,
+      ),
+    );
+  }
+
+  Widget _buildTelefonoCell(CentroHospitalarioEntity centro) {
+    return Text(
+      centro.telefono ?? 'N/A',
+      style: GoogleFonts.inter(
+        fontSize: 13,
+        color: AppColors.textPrimaryLight,
+      ),
+    );
+  }
+
+  Widget _buildEstadoCell(CentroHospitalarioEntity centro) {
+    return Center(
+      child: Tooltip(
+        message: centro.activo ? 'Activo' : 'Inactivo',
+        child: Icon(
+          centro.activo ? Icons.check_circle : Icons.cancel,
+          size: 24,
+          color: centro.activo ? AppColors.success : AppColors.textSecondaryLight,
+        ),
+      ),
+    );
+  }
+
+  Color _getTipoColor(String? tipo) {
+    switch (tipo?.toLowerCase()) {
+      case 'hospital':
+        return AppColors.primary;
+      case 'centro salud':
+        return AppColors.secondary;
+      case 'clínica':
+      case 'clinica':
+        return AppColors.info;
+      default:
+        return AppColors.textSecondaryLight;
+    }
+  }
+
+  void _viewCentro(BuildContext context, CentroHospitalarioEntity centro) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) => BlocProvider<CentroHospitalarioBloc>.value(
+        value: context.read<CentroHospitalarioBloc>(),
+        child: _CentroHospitalarioViewDialog(centro: centro),
+      ),
+    );
+  }
+
+  void _editCentro(BuildContext context, CentroHospitalarioEntity centro) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) => BlocProvider<CentroHospitalarioBloc>.value(
+        value: context.read<CentroHospitalarioBloc>(),
+        child: CentroHospitalarioFormDialog(centro: centro),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, CentroHospitalarioEntity centro) async {
+    final bool? confirmed = await showConfirmationDialog(
+      context: context,
+      title: 'Confirmar Eliminación',
+      message: '¿Estás seguro de que deseas eliminar este centro hospitalario? Esta acción no se puede deshacer.',
+      itemDetails: <String, String>{
+        'Nombre': centro.nombre,
+        if (centro.tipoCentro != null && centro.tipoCentro!.isNotEmpty)
+          'Tipo': centro.tipoCentro!,
+        if (centro.direccion != null && centro.direccion!.isNotEmpty)
+          'Dirección': centro.direccion!,
+        if (centro.localidadNombre != null && centro.localidadNombre!.isNotEmpty)
+          'Localidad': centro.localidadNombre!,
+        if (centro.provinciaNombre != null && centro.provinciaNombre!.isNotEmpty)
+          'Provincia': centro.provinciaNombre!,
+        if (centro.telefono != null && centro.telefono!.isNotEmpty)
+          'Teléfono': centro.telefono!,
+        if (centro.email != null && centro.email!.isNotEmpty)
+          'Email': centro.email!,
+        'Estado': centro.activo ? 'Activo' : 'Inactivo',
+      },
+    );
+
+    if (confirmed == true && context.mounted) {
+      debugPrint('🗑️ Eliminando centro: ${centro.nombre} (${centro.id})');
+
+      // Variable para guardar el contexto del diálogo
+      BuildContext? loadingContext;
+
+      // Mostrar overlay de loading
+      unawaited(
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            debugPrint('💬 showDialog builder: Guardando contexto localmente');
+            loadingContext = dialogContext;
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              debugPrint('⏰ addPostFrameCallback: Ejecutándose... mounted=$mounted, loadingContext=${loadingContext != null ? "✅" : "❌"}');
+              if (mounted && loadingContext != null) {
+                debugPrint('✅ addPostFrameCallback: Guardando contexto en estado');
+                setState(() {
+                  _isDeleting = true;
+                  _loadingDialogContext = loadingContext;
+                  _deleteStartTime = DateTime.now();
+                });
+                debugPrint('✅ addPostFrameCallback: Contexto guardado');
+              } else {
+                debugPrint('❌ addPostFrameCallback: NO se puede guardar contexto (mounted=$mounted, loadingContext=${loadingContext != null})');
+              }
+            });
+
+            return const AppLoadingOverlay(
+              message: 'Eliminando centro hospitalario...',
+              color: AppColors.emergency,
+              icon: Icons.delete_forever,
+            );
+          },
+        ),
+      );
+
+      // Disparar evento de eliminación
+      if (context.mounted) {
+        context.read<CentroHospitalarioBloc>().add(CentroHospitalarioDeleteRequested(centro.id));
+      }
+
+      // El BlocListener cerrará el diálogo cuando se complete
+    }
+  }
+}
+
+/// Vista de carga
+class _LoadingView extends StatelessWidget {
+  const _LoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.spacingMassive),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      constraints: const BoxConstraints(minHeight: 400),
+      child: const Center(
+        child: AppLoadingIndicator(
+          message: 'Cargando centros hospitalarios...',
+        ),
+      ),
+    );
+  }
+}
+
+/// Vista de error
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingXl),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+        border: Border.all(color: AppColors.error),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+          const SizedBox(height: AppSizes.spacing),
+          Text(
+            'Error al cargar centros hospitalarios',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.error,
+            ),
+          ),
+          const SizedBox(height: AppSizes.spacingSmall),
+          Text(
+            message,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: AppColors.textSecondaryLight,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Campo de búsqueda
+class _SearchField extends StatefulWidget {
+  const _SearchField({
+    required this.searchQuery,
+    required this.onSearchChanged,
+  });
+
+  final String searchQuery;
+  final void Function(String) onSearchChanged;
+
+  @override
+  State<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<_SearchField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.searchQuery);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      onChanged: widget.onSearchChanged,
+      decoration: InputDecoration(
+        hintText: 'Buscar centro...',
+        prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondaryLight),
+        suffixIcon: _controller.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear, size: 18, color: AppColors.textSecondaryLight),
+                onPressed: () {
+                  _controller.clear();
+                  widget.onSearchChanged('');
+                },
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.gray300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.gray300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.paddingMedium,
+          vertical: AppSizes.paddingSmall,
+        ),
+        isDense: true,
+      ),
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        color: AppColors.textPrimaryLight,
+      ),
+    );
+  }
+}
+
+/// Diálogo de visualización de centro hospitalario (solo lectura)
+class _CentroHospitalarioViewDialog extends StatelessWidget {
+  const _CentroHospitalarioViewDialog({required this.centro});
+
+  final CentroHospitalarioEntity centro;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+      ),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 700),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // Header azul
+            Container(
+              padding: const EdgeInsets.all(AppSizes.paddingLarge),
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(AppSizes.radius),
+                  topRight: Radius.circular(AppSizes.radius),
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  const Icon(Icons.local_hospital_outlined, color: Colors.white, size: 32),
+                  const SizedBox(width: AppSizes.spacing),
+                  Expanded(
+                    child: Text(
+                      'Detalles del Centro Hospitalario',
+                      style: GoogleFonts.inter(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+
+            // Contenido
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingXl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  _buildDetailRow('Nombre', centro.nombre),
+                  _buildDetailRow('Dirección', centro.direccion ?? 'No especificado'),
+                  _buildDetailRow('Teléfono', centro.telefono ?? 'No especificado'),
+                  _buildDetailRow('Email', centro.email ?? 'No especificado'),
+                  if (centro.localidadNombre != null && centro.localidadNombre!.isNotEmpty)
+                    _buildDetailRow('Localidad', centro.localidadNombre!),
+                  if (centro.provinciaNombre != null && centro.provinciaNombre!.isNotEmpty)
+                    _buildDetailRow('Provincia', centro.provinciaNombre!),
+                  _buildDetailRow('Estado', centro.activo ? 'Activo' : 'Inactivo'),
+                ],
+              ),
+            ),
+
+            // Separador
+            const Divider(height: 1),
+
+            // Footer con botones
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingLarge),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  AppButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    label: 'Cerrar',
+                    variant: AppButtonVariant.text,
+                  ),
+                  const SizedBox(width: AppSizes.spacingSmall),
+                  AppButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      // Editar se maneja desde el widget padre
+                    },
+                    label: 'Editar',
+                    icon: Icons.edit,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSizes.spacingMedium),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: 180,
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: AppSizes.fontSmall,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondaryLight,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.inter(
+                fontSize: AppSizes.fontSmall,
+                color: AppColors.textPrimaryLight,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
