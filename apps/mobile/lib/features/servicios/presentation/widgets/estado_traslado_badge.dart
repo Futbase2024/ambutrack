@@ -17,15 +17,20 @@ class EstadoTrasladoBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _getColorFromHex(estado.colorHex);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isNarrow = screenWidth < 600;
 
     return Align(
       alignment: Alignment.centerLeft,
       child: IntrinsicWidth(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: EdgeInsets.symmetric(
+            horizontal: isNarrow ? 8 : 12,
+            vertical: isNarrow ? 4 : 6,
+          ),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(color: color.withValues(alpha: 0.3)),
           ),
           child: Row(
@@ -34,18 +39,22 @@ class EstadoTrasladoBadge extends StatelessWidget {
               if (showIcon) ...[
                 Icon(
                   _getIcon(),
-                  size: 18,
+                  size: isNarrow ? 14 : 18,
                   color: color,
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: isNarrow ? 4 : 6),
               ],
-              Text(
-                estado.label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
+              Flexible(
+                child: Text(
+                  estado.label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: isNarrow ? 11 : 14,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
