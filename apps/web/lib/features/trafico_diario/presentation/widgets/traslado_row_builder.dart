@@ -268,7 +268,9 @@ class TrasladoRowBuilder {
     final bool tieneServicio = servicio != null;
     final bool tieneHoraProgramada = traslado.horaProgramada.isNotEmpty;
     final bool estaPendiente = traslado.estado == EstadoTraslado.pendiente;
-    final bool estaAsignado = traslado.estado == EstadoTraslado.asignado;
+    // Un traslado tiene conductor asignado si idConductor no es null
+    // Esto cubre estados: asignado, enviado, recibido_conductor, en_origen, etc.
+    final bool tieneConductorAsignado = traslado.idConductor != null;
 
     return <ContextMenuOption>[
       ContextMenuOption(
@@ -290,12 +292,12 @@ class TrasladoRowBuilder {
             }
           },
         ),
-      // Si está ASIGNADO → Desasignar, cualquier otro estado → Asignar
+      // Si tiene conductor asignado → Desasignar, si no → Asignar
       ContextMenuOption(
-        label: estaAsignado ? 'Desasignar conductor' : 'Asignar conductor',
-        emoji: estaAsignado ? '🚫' : '🚗',
+        label: tieneConductorAsignado ? 'Desasignar conductor' : 'Asignar conductor',
+        emoji: tieneConductorAsignado ? '🚫' : '🚗',
         onTap: () {
-          if (estaAsignado) {
+          if (tieneConductorAsignado) {
             // Verificar si hay múltiples traslados seleccionados
             // Si el traslado actual está en la selección y hay más de 1, usar desasignación masiva
             final bool usarDesasignacionMasiva = trasladosSeleccionados.length > 1 &&
@@ -1368,6 +1370,14 @@ class TrasladoRowBuilder {
       DataTableCell(
         child: _buildCellText(
           traslado.fechaEnviado != null ? DateFormat('HH:mm').format(traslado.fechaEnviado!) : '',
+          false,
+          11,
+        ),
+        alignment: Alignment.center,
+      ),
+      DataTableCell(
+        child: _buildCellText(
+          traslado.fechaRecibidoConductor != null ? DateFormat('HH:mm').format(traslado.fechaRecibidoConductor!) : '',
           false,
           11,
         ),

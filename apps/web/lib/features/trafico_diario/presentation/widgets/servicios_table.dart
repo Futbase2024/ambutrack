@@ -237,6 +237,7 @@ class _ServiciosTableState extends State<ServiciosTable> {
         120, // Conductor
         100, // Matrícula
         61.94140625, // H. Env
+        65, // H. Rec
         72.9765625, // H. Org
         73.16796875, // H. Sal
         69.61328125, // H. Dst
@@ -281,6 +282,7 @@ class _ServiciosTableState extends State<ServiciosTable> {
         DataTableColumn(label: 'Conductor', alignment: Alignment.center),
         DataTableColumn(label: 'Matrícula', alignment: Alignment.center),
         DataTableColumn(label: 'H. Env', alignment: Alignment.center),
+        DataTableColumn(label: 'H. Rec', alignment: Alignment.center),
         DataTableColumn(label: 'H. Org', alignment: Alignment.center),
         DataTableColumn(label: 'H. Sal', alignment: Alignment.center),
         DataTableColumn(label: 'H. Dst', alignment: Alignment.center),

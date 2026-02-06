@@ -25,25 +25,31 @@ class TrasladosLoaded extends TrasladosState {
   const TrasladosLoaded({
     required this.traslados,
     this.trasladoSeleccionado,
+    this.pacienteSeleccionado,
     this.historialEstados,
   });
 
   final List<TrasladoEntity> traslados;
   final TrasladoEntity? trasladoSeleccionado;
+  final PacienteEntity? pacienteSeleccionado;
   final List<HistorialEstadoEntity>? historialEstados;
 
   @override
-  List<Object?> get props => [traslados, trasladoSeleccionado, historialEstados];
+  List<Object?> get props => [traslados, trasladoSeleccionado, pacienteSeleccionado, historialEstados];
 
   TrasladosLoaded copyWith({
     List<TrasladoEntity>? traslados,
     TrasladoEntity? trasladoSeleccionado,
+    PacienteEntity? pacienteSeleccionado,
     List<HistorialEstadoEntity>? historialEstados,
     bool clearHistorial = false,
+    bool clearPaciente = false,
+    bool clearTrasladoSeleccionado = false,
   }) {
     return TrasladosLoaded(
       traslados: traslados ?? this.traslados,
-      trasladoSeleccionado: trasladoSeleccionado ?? this.trasladoSeleccionado,
+      trasladoSeleccionado: clearTrasladoSeleccionado ? null : (trasladoSeleccionado ?? this.trasladoSeleccionado),
+      pacienteSeleccionado: clearPaciente ? null : (pacienteSeleccionado ?? this.pacienteSeleccionado),
       historialEstados: clearHistorial ? null : (historialEstados ?? this.historialEstados),
     );
   }

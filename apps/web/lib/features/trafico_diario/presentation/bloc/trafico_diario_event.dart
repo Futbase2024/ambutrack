@@ -1,3 +1,4 @@
+import 'package:ambutrack_core/ambutrack_core.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'trafico_diario_event.freezed.dart';
@@ -71,4 +72,10 @@ class TraficoDiarioEvent with _$TraficoDiarioEvent {
     required String idTraslado,
     String? motivoCancelacion,
   }) = _CancelarTrasladoRequested;
+
+  /// Actualiza un traslado específico desde el stream Realtime
+  /// Usado cuando llega una actualización de estado/horas desde mobile
+  const factory TraficoDiarioEvent.trasladoActualizadoFromRealtime({
+    required TrasladoEntity traslado,
+  }) = _TrasladoActualizadoFromRealtime;
 }

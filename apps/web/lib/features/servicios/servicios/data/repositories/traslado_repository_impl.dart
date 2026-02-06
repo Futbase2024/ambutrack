@@ -265,4 +265,10 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
   Stream<List<TrasladoEntity>> watchEnCurso() {
     return _dataSource.watchEnCurso();
   }
+
+  @override
+  Stream<TrasladoEntity> watchByIds(List<String> ids) {
+    debugPrint('📦 TrasladoRepository: Iniciando watch de ${ids.length} traslados');
+    return _dataSource.watchByIds(ids);
+  }
 }

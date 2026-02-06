@@ -9,8 +9,7 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'package:ambutrack_core/ambutrack_core.dart'
-    as _i1033;
+import 'package:ambutrack_core/ambutrack_core.dart' as _i40;
 import 'package:ambutrack_web/core/auth/services/role_service.dart' as _i750;
 import 'package:ambutrack_web/core/di/locator.dart' as _i962;
 import 'package:ambutrack_web/core/network/network_info.dart' as _i321;
@@ -307,16 +306,16 @@ extension GetItInjectableX on _i174.GetIt {
     final registerModule = _$RegisterModule();
     final networkModule = _$NetworkModule();
     gh.lazySingleton<_i454.SupabaseClient>(() => registerModule.supabaseClient);
-    gh.lazySingleton<_i1033.ContratoDataSource>(
+    gh.lazySingleton<_i40.ContratoDataSource>(
       () => registerModule.contratoDataSource,
     );
-    gh.lazySingleton<_i1033.ProvinciaDataSource>(
+    gh.lazySingleton<_i40.ProvinciaDataSource>(
       () => registerModule.provinciaDataSource,
     );
-    gh.lazySingleton<_i1033.ComunidadAutonomaDataSource>(
+    gh.lazySingleton<_i40.ComunidadAutonomaDataSource>(
       () => registerModule.comunidadAutonomaDataSource,
     );
-    gh.lazySingleton<_i1033.LocalidadDataSource>(
+    gh.lazySingleton<_i40.LocalidadDataSource>(
       () => registerModule.localidadDataSource,
     );
     gh.lazySingleton<_i973.InternetConnectionChecker>(
@@ -463,6 +462,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i645.HistorialMedicoRepository>(
       () => _i711.HistorialMedicoRepositoryImpl(),
     );
+    gh.lazySingleton<_i922.ContratoRepository>(
+      () => _i552.ContratoRepositoryImpl(gh<_i40.ContratoDataSource>()),
+    );
     gh.lazySingleton<_i229.PacienteRepository>(
       () => _i1045.PacienteRepositoryImpl(),
     );
@@ -520,9 +522,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i699.ItvRevisionBloc>(
       () => _i699.ItvRevisionBloc(gh<_i836.ItvRevisionRepository>()),
-    );
-    gh.lazySingleton<_i922.ContratoRepository>(
-      () => _i552.ContratoRepositoryImpl(gh<_i1033.ContratoDataSource>()),
     );
     gh.factory<_i91.PacientesBloc>(
       () => _i91.PacientesBloc(gh<_i229.PacienteRepository>()),

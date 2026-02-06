@@ -822,10 +822,14 @@ class SupabaseTrasladosDataSource implements TrasladoDataSource {
       // Construir el mapa de actualización solo con campos no nulos
       // Al asignar recursos también se envía automáticamente al conductor
       final DateTime ahora = DateTime.now().toUtc();
+      final String? usuarioId = _client.auth.currentUser?.id;
+
       final Map<String, dynamic> updateData = <String, dynamic>{
         'estado': 'enviado', // Asignar = Enviar al conductor
         'fecha_asignacion': ahora.toIso8601String(),
-        'fecha_enviado': ahora.toIso8601String(), // Se envía automáticamente
+        'usuario_asignacion': usuarioId,
+        'fecha_enviado': ahora.toIso8601String(), // Se envía automáticamente (igual que asignación)
+        'usuario_envio': usuarioId, // Mismo usuario que asignó
         'updated_at': ahora.toIso8601String(),
       };
 
@@ -866,16 +870,32 @@ class SupabaseTrasladosDataSource implements TrasladoDataSource {
     try {
       debugPrint('🚫 [TrasladosDataSource] Desasignando recursos del traslado: $id');
 
-      // Actualizar el traslado: poner recursos en null y estado a pendiente
+      // Actualizar el traslado: poner recursos y todos los horarios/ubicaciones en null
+      // Al desasignar se pierde todo el tracking que haya hecho el conductor
       await _client
           .from(_tableName)
           .update({
+            // Recursos asignados
             'id_conductor': null,
             'id_vehiculo': null,
             'matricula_vehiculo': null,
             'personal_asignado': null,
+            // Fechas de asignación y envío
             'fecha_asignacion': null,
             'usuario_asignacion': null,
+            'fecha_enviado': null,
+            'usuario_envio': null,
+            // Tracking del conductor (todas las cronas)
+            'fecha_recibido_conductor': null,
+            'fecha_en_origen': null,
+            'ubicacion_en_origen': null,
+            'fecha_saliendo_origen': null,
+            'ubicacion_saliendo_origen': null,
+            'fecha_en_destino': null,
+            'ubicacion_en_destino': null,
+            'fecha_finalizado': null,
+            'ubicacion_finalizado': null,
+            // Estado vuelve a pendiente
             'estado': 'pendiente',
             'updated_at': DateTime.now().toUtc().toIso8601String(),
           })
@@ -934,5 +954,80 @@ class SupabaseTrasladosDataSource implements TrasladoDataSource {
   @override
   Stream<List<TrasladoEntity>> watchEnCurso() {
     throw UnimplementedError('watchEnCurso() no implementado aún para mobile');
+  }
+
+  @override
+  Stream<TrasladoEntity> watchByIds(List<String> ids) {
+    if (ids.isEmpty) {
+      debugPrint('⚠️ [TrasladosDataSource] watchByIds: Lista de IDs vacía');
+      return const Stream<TrasladoEntity>.empty();
+    }
+
+    debugPrint('📡 [TrasladosDataSource] Iniciando stream Realtime para ${ids.length} traslados');
+
+    final controller = StreamController<TrasladoEntity>.broadcast();
+    RealtimeChannel? channel;
+
+    // Crear nombre único para el canal
+    final channelName = 'traslados_web_${DateTime.now().millisecondsSinceEpoch}';
+    channel = _client.channel(channelName);
+
+    // Suscribirse a cambios UPDATE en la tabla traslados
+    // Solo escuchamos UPDATE porque los estados/horas cambian, no se crean ni eliminan
+    channel.onPostgresChanges(
+      event: PostgresChangeEvent.update,
+      schema: 'public',
+      table: _tableName,
+      callback: (payload) {
+        try {
+          final newRecord = payload.newRecord;
+          final trasladoId = newRecord['id'] as String?;
+
+          // Verificar si el traslado está en nuestra lista de IDs
+          if (trasladoId != null && ids.contains(trasladoId)) {
+            debugPrint('📡 [TrasladosDataSource] UPDATE recibido para traslado: $trasladoId');
+
+            // Obtener el traslado completo desde la vista (con datos desnormalizados)
+            _client
+                .from(_viewName)
+                .select(_selectQuery)
+                .eq('id', trasladoId)
+                .single()
+                .then((json) {
+                  if (!controller.isClosed) {
+                    final entity = _mapToEntity(json);
+                    debugPrint('📡 [TrasladosDataSource] Emitiendo traslado actualizado: ${entity.id} - Estado: ${entity.estado.label}');
+                    controller.add(entity);
+                  }
+                })
+                .catchError((error) {
+                  debugPrint('❌ [TrasladosDataSource] Error obteniendo traslado actualizado: $error');
+                });
+          }
+        } catch (e) {
+          debugPrint('❌ [TrasladosDataSource] Error procesando UPDATE: $e');
+        }
+      },
+    );
+
+    // Suscribir canal
+    channel.subscribe((status, error) {
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        debugPrint('✅ [TrasladosDataSource] Canal Realtime suscrito: $channelName');
+      } else if (status == RealtimeSubscribeStatus.channelError) {
+        debugPrint('❌ [TrasladosDataSource] Error en canal Realtime: $error');
+        if (!controller.isClosed) {
+          controller.addError(error ?? Exception('Error en canal Realtime'));
+        }
+      }
+    });
+
+    // Limpiar recursos cuando se cancela el stream
+    controller.onCancel = () async {
+      debugPrint('🔌 [TrasladosDataSource] Cerrando stream watchByIds');
+      await channel?.unsubscribe();
+    };
+
+    return controller.stream;
   }
 }

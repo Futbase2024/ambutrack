@@ -30,6 +30,7 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
 
   final TrasladosRepository _repository;
   final _connectionManager = RealtimeConnectionManager();
+  final _pacienteDataSource = PacienteDataSourceFactory.createSupabase();
 
   StreamSubscription? _trasladosStreamSubscription;
   StreamSubscription? _eventosStreamSubscription;
@@ -71,7 +72,7 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
     }
   }
 
-  /// Carga un traslado específico
+  /// Carga un traslado específico y su paciente asociado
   Future<void> _onCargarTraslado(
     CargarTraslado event,
     Emitter<TrasladosState> emit,
@@ -81,17 +82,32 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
 
       final traslado = await _repository.getById(event.id);
 
+      // Cargar paciente completo
+      PacienteEntity? paciente;
+      try {
+        debugPrint('👤 [TrasladosBloc] Cargando paciente: ${traslado.idPaciente}');
+        paciente = await _pacienteDataSource.getById(traslado.idPaciente);
+        debugPrint('✅ [TrasladosBloc] Paciente cargado: ${paciente.nombreCompleto}');
+      } catch (e) {
+        debugPrint('⚠️  [TrasladosBloc] No se pudo cargar paciente: $e');
+        // Continuamos sin el paciente completo
+      }
+
       if (state is TrasladosLoaded) {
         final currentState = state as TrasladosLoaded;
-        emit(currentState.copyWith(trasladoSeleccionado: traslado));
+        emit(currentState.copyWith(
+          trasladoSeleccionado: traslado,
+          pacienteSeleccionado: paciente,
+        ));
       } else {
         emit(TrasladosLoaded(
           traslados: [traslado],
           trasladoSeleccionado: traslado,
+          pacienteSeleccionado: paciente,
         ));
       }
 
-      debugPrint('✅ [TrasladosBloc] Traslado cargado');
+      debugPrint('✅ [TrasladosBloc] Traslado y paciente cargados');
     } catch (e, stackTrace) {
       debugPrint('❌ [TrasladosBloc] Error al cargar traslado: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -106,6 +122,9 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
   ) async {
     try {
       debugPrint('🎯 [TrasladosBloc] Cambiando estado del traslado ${event.idTraslado} a ${event.nuevoEstado.value}');
+
+      // Guardar estado anterior para poder restaurarlo
+      final estadoAnteriorBloc = state;
 
       // Obtener traslado actual para guardar el estado anterior
       final trasladoActual = await _repository.getById(event.idTraslado);
@@ -129,24 +148,31 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
 
       debugPrint('✅ [TrasladosBloc] Estado cambiado exitosamente');
 
-      // Emitir estado de éxito
+      // Emitir estado de éxito (transitorio para el listener)
       emit(EstadoCambiadoSuccess(
         traslado: trasladoActualizado,
         estadoAnterior: estadoAnterior,
       ));
 
-      // Recargar traslados si estaban cargados
-      if (state is TrasladosLoaded) {
-        final currentState = state as TrasladosLoaded;
-        final trasladosActualizados = currentState.traslados.map((t) {
+      // Recargar traslados y volver a TrasladosLoaded
+      if (estadoAnteriorBloc is TrasladosLoaded) {
+        final trasladosActualizados = estadoAnteriorBloc.traslados.map((t) {
           return t.id == trasladoActualizado.id ? trasladoActualizado : t;
         }).toList();
 
-        emit(currentState.copyWith(
+        emit(estadoAnteriorBloc.copyWith(
           traslados: trasladosActualizados,
           trasladoSeleccionado: trasladoActualizado,
         ));
+      } else {
+        // Si no había estado previo, crear uno nuevo
+        emit(TrasladosLoaded(
+          traslados: [trasladoActualizado],
+          trasladoSeleccionado: trasladoActualizado,
+        ));
       }
+
+      debugPrint('✅ [TrasladosBloc] Estado actualizado a TrasladosLoaded con traslado actualizado');
     } catch (e, stackTrace) {
       debugPrint('❌ [TrasladosBloc] Error al cambiar estado: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -338,6 +364,16 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
     final evento = event.evento;
     final miId = event.idConductor;
 
+    debugPrint('');
+    debugPrint('🔔 ============ EVENTO RECIBIDO ============');
+    debugPrint('🔔 Tipo: ${evento.eventType.label} (${evento.eventType.value})');
+    debugPrint('🔔 Traslado ID: ${evento.trasladoId}');
+    debugPrint('🔔 Old Conductor: ${evento.oldConductorId}');
+    debugPrint('🔔 New Conductor: ${evento.newConductorId}');
+    debugPrint('🔔 Mi ID: $miId');
+    debugPrint('🔔 =========================================');
+    debugPrint('');
+
     try {
       switch (evento.eventType) {
         // ====================================================================
@@ -352,25 +388,42 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
             // Fetch traslado completo desde la BD
             final traslado = await _repository.getById(evento.trasladoId);
 
-            // Reemplazar si existe, añadir si no
+            // ✅ Crear nueva lista con el traslado actualizado/añadido
+            final List<TrasladoEntity> nuevosTraslados;
             final index = traslados.indexWhere((t) => t.id == traslado.id);
             if (index != -1) {
-              traslados[index] = traslado;
+              // Reemplazar traslado existente
+              nuevosTraslados = List<TrasladoEntity>.from(traslados);
+              nuevosTraslados[index] = traslado;
               debugPrint('📝 [TrasladosBloc] Traslado actualizado en lista');
             } else {
-              traslados.add(traslado);
+              // Añadir nuevo traslado
+              nuevosTraslados = [...traslados, traslado];
               debugPrint('➕ [TrasladosBloc] Traslado añadido a lista');
             }
 
-            emit(currentState.copyWith(traslados: traslados));
+            emit(currentState.copyWith(traslados: nuevosTraslados));
           }
 
           // ME QUITARON (en caso de reassigned de mí a otro)
           if (evento.oldConductorId == miId && evento.newConductorId != miId) {
             debugPrint('🗑️ [TrasladosBloc] Traslado ${evento.trasladoId} reasignado a otro conductor');
-            traslados.removeWhere((t) => t.id == evento.trasladoId);
-            debugPrint('➖ [TrasladosBloc] Traslado eliminado de lista');
-            emit(currentState.copyWith(traslados: traslados));
+
+            // ✅ Crear nueva lista sin el traslado
+            final nuevosTraslados = traslados.where((t) => t.id != evento.trasladoId).toList();
+            debugPrint('➖ [TrasladosBloc] Traslado eliminado de lista. Restantes: ${nuevosTraslados.length}');
+
+            // Si el traslado reasignado es el que está seleccionado, limpiarlo
+            final esElSeleccionado = currentState.trasladoSeleccionado?.id == evento.trasladoId;
+            if (esElSeleccionado) {
+              debugPrint('🧹 [TrasladosBloc] Limpiando trasladoSeleccionado');
+            }
+
+            emit(currentState.copyWith(
+              traslados: nuevosTraslados,
+              clearTrasladoSeleccionado: esElSeleccionado,
+              clearPaciente: esElSeleccionado,
+            ));
           }
           break;
 
@@ -378,11 +431,37 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
         // CASO 2: Me desasignaron
         // ====================================================================
         case EventoTrasladoType.unassigned:
+          debugPrint('🔄 [TrasladosBloc] Procesando evento UNASSIGNED');
+          debugPrint('   - oldConductorId: ${evento.oldConductorId}');
+          debugPrint('   - miId: $miId');
+          debugPrint('   - ¿Son iguales?: ${evento.oldConductorId == miId}');
+
           if (evento.oldConductorId == miId) {
-            debugPrint('🗑️ [TrasladosBloc] Traslado ${evento.trasladoId} desasignado');
-            traslados.removeWhere((t) => t.id == evento.trasladoId);
-            debugPrint('➖ [TrasladosBloc] Traslado eliminado de lista');
-            emit(currentState.copyWith(traslados: traslados));
+            debugPrint('🗑️ [TrasladosBloc] ✅ Traslado ${evento.trasladoId} desasignado DE MÍ');
+            final existeEnLista = traslados.any((t) => t.id == evento.trasladoId);
+            debugPrint('   - ¿Existe en lista?: $existeEnLista');
+
+            if (existeEnLista) {
+              // ✅ Crear nueva lista sin el traslado (para que Equatable detecte el cambio)
+              final nuevosTraslados = traslados.where((t) => t.id != evento.trasladoId).toList();
+              debugPrint('➖ [TrasladosBloc] Traslado eliminado de lista. Traslados restantes: ${nuevosTraslados.length}');
+
+              // Si el traslado desasignado es el que está seleccionado, limpiarlo
+              final esElSeleccionado = currentState.trasladoSeleccionado?.id == evento.trasladoId;
+              if (esElSeleccionado) {
+                debugPrint('🧹 [TrasladosBloc] Limpiando trasladoSeleccionado');
+              }
+
+              emit(currentState.copyWith(
+                traslados: nuevosTraslados,
+                clearTrasladoSeleccionado: esElSeleccionado,
+                clearPaciente: esElSeleccionado,
+              ));
+            } else {
+              debugPrint('⚠️ [TrasladosBloc] Traslado no estaba en la lista');
+            }
+          } else {
+            debugPrint('ℹ️ [TrasladosBloc] Traslado desasignado pero no era mío');
           }
           break;
 
@@ -396,10 +475,13 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
 
             // Refrescar traslado desde la BD
             final traslado = await _repository.getById(evento.trasladoId);
-            traslados[index] = traslado;
+
+            // ✅ Crear nueva lista con el traslado actualizado
+            final nuevosTraslados = List<TrasladoEntity>.from(traslados);
+            nuevosTraslados[index] = traslado;
             debugPrint('📝 [TrasladosBloc] Traslado actualizado en lista');
 
-            emit(currentState.copyWith(traslados: traslados));
+            emit(currentState.copyWith(traslados: nuevosTraslados));
           }
           break;
       }

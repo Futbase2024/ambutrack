@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ambutrack_core/ambutrack_core.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/repositories/traslado_repository.dart';
 import 'package:flutter/foundation.dart';
@@ -13,6 +15,9 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
   TraficoDiarioBloc(this._trasladoRepository) : super(const TraficoDiarioState.initial()) {
     on<TraficoDiarioEvent>(_onEvent);
   }
+
+  /// Suscripción al stream Realtime de traslados
+  StreamSubscription<TrasladoEntity>? _realtimeSubscription;
 
   Future<void> _onEvent(TraficoDiarioEvent event, Emitter<TraficoDiarioState> emit) async {
     await event.map(
@@ -40,7 +45,16 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
       modificarHoraRequested: (e) => _onModificarHoraRequested(emit, idTraslado: e.idTraslado, nuevaHora: e.nuevaHora),
       // ignore: always_specify_types
       cancelarTrasladoRequested: (e) => _onCancelarTrasladoRequested(emit, idTraslado: e.idTraslado, motivoCancelacion: e.motivoCancelacion),
+      // ignore: always_specify_types
+      trasladoActualizadoFromRealtime: (e) => _onTrasladoActualizadoFromRealtime(emit, traslado: e.traslado),
     );
+  }
+
+  @override
+  Future<void> close() {
+    debugPrint('🔌 TraficoDiarioBloc: Cerrando BLoC y cancelando suscripción Realtime');
+    _realtimeSubscription?.cancel();
+    return super.close();
   }
 
   final TrasladoRepository _trasladoRepository;
@@ -55,6 +69,9 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
     required DateTime fecha,
   }) async {
     debugPrint('📅 TraficoDiarioBloc: Cargando traslados de ${idsServiciosRecurrentes.length} servicios para fecha ${fecha.toIso8601String().split('T')[0]}');
+
+    // Cancelar suscripción Realtime anterior al cambiar de fecha/servicios
+    unawaited(_realtimeSubscription?.cancel());
 
     emit(const TraficoDiarioState.loading());
 
@@ -72,7 +89,21 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
 
       debugPrint('📅 TraficoDiarioBloc: ✅ ${trasladosCargados.length} traslados cargados para fecha ${fecha.toIso8601String().split('T')[0]}');
 
+      // Debug: Mostrar fechas de los primeros 3 traslados para verificar si llegan
+      for (int i = 0; i < trasladosCargados.length && i < 3; i++) {
+        final TrasladoEntity t = trasladosCargados[i];
+        debugPrint('   📊 Traslado ${i + 1} [${t.codigo}] estado=${t.estado.name}:');
+        debugPrint('      - fechaEnviado: ${t.fechaEnviado}');
+        debugPrint('      - fechaEnOrigen: ${t.fechaEnOrigen}');
+        debugPrint('      - fechaSaliendoOrigen: ${t.fechaSaliendoOrigen}');
+        debugPrint('      - fechaEnDestino: ${t.fechaEnDestino}');
+        debugPrint('      - fechaFinalizado: ${t.fechaFinalizado}');
+      }
+
       emit(TraficoDiarioState.loaded(traslados: trasladosCargados));
+
+      // Iniciar suscripción Realtime para recibir actualizaciones de estado/horas desde mobile
+      _iniciarSuscripcionRealtime(trasladosCargados);
     } catch (e) {
       debugPrint('📅 TraficoDiarioBloc: ❌ Error al cargar traslados: $e');
       emit(TraficoDiarioState.error(message: e.toString()));
@@ -583,5 +614,80 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
       debugPrint('❌ TraficoDiarioBloc: Error al cancelar traslado: $e');
       emit(TraficoDiarioState.error(message: 'Error al cancelar traslado: $e'));
     }
+  }
+
+  /// Maneja actualizaciones de traslados desde el stream Realtime
+  /// Actualiza solo el traslado que cambió en el estado
+  Future<void> _onTrasladoActualizadoFromRealtime(
+    Emitter<TraficoDiarioState> emit, {
+    required TrasladoEntity traslado,
+  }) async {
+    debugPrint('📡 TraficoDiarioBloc: Actualización Realtime recibida para traslado ${traslado.id}');
+    debugPrint('   - Estado: ${traslado.estado.label}');
+    debugPrint('   - fechaEnviado: ${traslado.fechaEnviado}');
+    debugPrint('   - fechaEnOrigen: ${traslado.fechaEnOrigen}');
+    debugPrint('   - fechaSaliendoOrigen: ${traslado.fechaSaliendoOrigen}');
+    debugPrint('   - fechaEnDestino: ${traslado.fechaEnDestino}');
+    debugPrint('   - fechaFinalizado: ${traslado.fechaFinalizado}');
+
+    state.whenOrNull(
+      loaded: (
+        List<TrasladoEntity> traslados,
+        String searchQuery,
+        String? estadoFilter,
+        String? centroFilter,
+        bool isRefreshing,
+      ) {
+        // Verificar si el traslado existe en la lista actual
+        final int index = traslados.indexWhere((TrasladoEntity t) => t.id == traslado.id);
+
+        if (index == -1) {
+          debugPrint('⚠️ TraficoDiarioBloc: Traslado ${traslado.id} no encontrado en la lista actual');
+          return;
+        }
+
+        // Crear lista actualizada con el traslado modificado
+        final List<TrasladoEntity> trasladosActualizados = List<TrasladoEntity>.from(traslados);
+        trasladosActualizados[index] = traslado;
+
+        debugPrint('✅ TraficoDiarioBloc: Traslado ${traslado.id} actualizado en posición $index');
+
+        emit(
+          TraficoDiarioState.loaded(
+            traslados: trasladosActualizados,
+            searchQuery: searchQuery,
+            estadoFilter: estadoFilter,
+            centroFilter: centroFilter,
+          ),
+        );
+      },
+    );
+  }
+
+  /// Inicia la suscripción Realtime para los traslados cargados
+  void _iniciarSuscripcionRealtime(List<TrasladoEntity> traslados) {
+    // Cancelar suscripción anterior si existe
+    _realtimeSubscription?.cancel();
+
+    if (traslados.isEmpty) {
+      debugPrint('📡 TraficoDiarioBloc: No hay traslados para suscribirse a Realtime');
+      return;
+    }
+
+    // Obtener IDs de los traslados cargados
+    final List<String> ids = traslados.map((TrasladoEntity t) => t.id).toList();
+
+    debugPrint('📡 TraficoDiarioBloc: Iniciando suscripción Realtime para ${ids.length} traslados');
+
+    // Suscribirse al stream
+    _realtimeSubscription = _trasladoRepository.watchByIds(ids).listen(
+      (TrasladoEntity trasladoActualizado) {
+        // Emitir evento para actualizar el estado
+        add(TraficoDiarioEvent.trasladoActualizadoFromRealtime(traslado: trasladoActualizado));
+      },
+      onError: (Object error) {
+        debugPrint('❌ TraficoDiarioBloc: Error en stream Realtime: $error');
+      },
+    );
   }
 }

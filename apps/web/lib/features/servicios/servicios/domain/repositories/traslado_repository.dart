@@ -143,4 +143,8 @@ abstract class TrasladoRepository {
 
   /// Observar cambios en traslados en curso
   Stream<List<TrasladoEntity>> watchEnCurso();
+
+  /// Observar cambios en traslados específicos por lista de IDs
+  /// Usado para recibir actualizaciones realtime de estados/horas desde mobile
+  Stream<TrasladoEntity> watchByIds(List<String> ids);
 }

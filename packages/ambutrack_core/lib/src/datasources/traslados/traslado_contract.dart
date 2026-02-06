@@ -142,6 +142,11 @@ abstract class TrasladoDataSource {
   /// Stream que emite cambios de traslados en curso (activos)
   Stream<List<TrasladoEntity>> watchEnCurso();
 
+  /// Stream que emite cambios de traslados específicos por lista de IDs
+  /// Usado por web para observar cambios en los traslados cargados en la tabla
+  /// Solo emite cuando hay UPDATE en campos de estado/horas (cambios de mobile)
+  Stream<TrasladoEntity> watchByIds(List<String> ids);
+
   // ========== MÉTODOS ESPECÍFICOS PARA MOBILE (Conductores) ==========
 
   /// Obtiene los traslados activos del conductor (no finalizados/cancelados)
