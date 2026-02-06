@@ -22,7 +22,7 @@ class EstadoTrasladoBadge extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: IntrinsicWidth(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
@@ -34,16 +34,16 @@ class EstadoTrasladoBadge extends StatelessWidget {
               if (showIcon) ...[
                 Icon(
                   _getIcon(),
-                  size: 14,
+                  size: 18,
                   color: color,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
               ],
               Text(
                 estado.label,
                 style: TextStyle(
                   color: color,
-                  fontSize: 11,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
                 ),
@@ -68,12 +68,16 @@ class EstadoTrasladoBadge extends StatelessWidget {
         return Icons.schedule;
       case EstadoTraslado.asignado:
         return Icons.assignment_ind;
+      case EstadoTraslado.enviado:
+        return Icons.send_outlined;
       case EstadoTraslado.recibido:
         return Icons.check_circle_outline;
       case EstadoTraslado.enOrigen:
         return Icons.location_on;
       case EstadoTraslado.saliendoOrigen:
         return Icons.drive_eta;
+      case EstadoTraslado.enTransito:
+        return Icons.local_shipping_outlined;
       case EstadoTraslado.enDestino:
         return Icons.place;
       case EstadoTraslado.finalizado:
@@ -82,8 +86,6 @@ class EstadoTrasladoBadge extends StatelessWidget {
         return Icons.cancel;
       case EstadoTraslado.noRealizado:
         return Icons.block;
-      case EstadoTraslado.suspendido:
-        return Icons.pause_circle;
     }
   }
 }

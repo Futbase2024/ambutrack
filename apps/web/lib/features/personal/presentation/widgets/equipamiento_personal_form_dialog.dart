@@ -1,5 +1,5 @@
 // Formulario compacto para equipamiento personal - Ver historial_medico_form_dialog.dart para referencia completa
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';

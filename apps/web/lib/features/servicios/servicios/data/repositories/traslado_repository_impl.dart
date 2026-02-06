@@ -86,7 +86,12 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
 
   @override
   Future<List<TrasladoEntity>> getByEstado(String estado) async {
-    return _dataSource.getByEstado(estado);
+    // Convertir String a EstadoTraslado enum
+    final EstadoTraslado estadoEnum = EstadoTraslado.values.firstWhere(
+      (EstadoTraslado e) => e.name == estado,
+      orElse: () => EstadoTraslado.pendiente,
+    );
+    return _dataSource.getByEstado(estado: estadoEnum);
   }
 
   @override
@@ -96,7 +101,7 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
 
   @override
   Future<List<TrasladoEntity>> getByConductor(String idConductor) async {
-    return _dataSource.getByConductor(idConductor);
+    return _dataSource.getByIdConductor(idConductor);
   }
 
   @override
@@ -104,7 +109,7 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
     required DateTime desde,
     required DateTime hasta,
   }) async {
-    return _dataSource.getByRangoFechas(desde: desde, hasta: hasta);
+    return _dataSource.getByRangoFechas(fechaInicio: desde, fechaFin: hasta);
   }
 
   @override
@@ -132,7 +137,28 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
 
   @override
   Future<TrasladoEntity> update(TrasladoEntity traslado) async {
-    return _dataSource.update(traslado);
+    // Convertir TrasladoEntity a Map para el datasource
+    return _dataSource.update(
+      id: traslado.id,
+      updates: <String, dynamic>{
+        'codigo': traslado.codigo,
+        'id_servicio': traslado.idServicio,
+        'id_servicio_recurrente': traslado.idServicioRecurrente,
+        'id_paciente': traslado.idPaciente,
+        'id_motivo_traslado': traslado.idMotivoTraslado,
+        'id_conductor': traslado.idConductor,
+        'id_vehiculo': traslado.idVehiculo,
+        'matricula_vehiculo': traslado.matriculaVehiculo,
+        'fecha': traslado.fecha.toIso8601String(),
+        'hora_programada': traslado.horaProgramada,
+        'estado': traslado.estado.name,
+        'tipo_traslado': traslado.tipoTraslado,
+        'prioridad': traslado.prioridad,
+        'observaciones': traslado.observaciones,
+        'origen': traslado.origen,
+        'destino': traslado.destino,
+      },
+    );
   }
 
   @override

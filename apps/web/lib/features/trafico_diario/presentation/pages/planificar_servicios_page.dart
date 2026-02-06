@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
@@ -248,13 +248,10 @@ class _PlanificarServiciosViewState extends State<_PlanificarServiciosView> {
                 );
 
                 trasladosPendientes = traslados.where((TrasladoEntity traslado) {
-                  if (traslado.fecha == null) {
-                    return false;
-                  }
                   final DateTime trasladoKey = DateTime(
-                    traslado.fecha!.year,
-                    traslado.fecha!.month,
-                    traslado.fecha!.day,
+                    traslado.fecha.year,
+                    traslado.fecha.month,
+                    traslado.fecha.day,
                   );
                   return trasladoKey == selectedDayKey;
                 }).toList();
@@ -274,16 +271,18 @@ class _PlanificarServiciosViewState extends State<_PlanificarServiciosView> {
                   ) {
                     _serviciosPorTraslado.clear();
                     for (final TrasladoEntity traslado in traslados) {
-                      // ✅ FIX: No usar fallback a servicios.first
-                      // Ahora el paciente viene embebido en traslado.paciente
+                      // ✅ FIX: Usar idServicio (tabla servicios), NO idServicioRecurrente (otra tabla)
+                      // El ServicioEntity.id corresponde a la tabla 'servicios'
+                      // traslado.idServicio apunta a 'servicios', no a 'servicios_recurrentes'
                       final Iterable<ServicioEntity> matches = servicios.where(
-                        (ServicioEntity s) => s.id == traslado.idServicioRecurrente,
+                        (ServicioEntity s) => s.id == traslado.idServicio,
                       );
                       if (matches.isNotEmpty) {
                         _serviciosPorTraslado[traslado.id] = matches.first;
+                        debugPrint('✅ Match encontrado: traslado ${traslado.id.substring(0, 8)} → servicio ${matches.first.id?.substring(0, 8)}');
+                      } else {
+                        debugPrint('⚠️ Sin match para traslado ${traslado.id.substring(0, 8)}: idServicio=${traslado.idServicio}, idServicioRecurrente=${traslado.idServicioRecurrente}');
                       }
-                      // Si no hay match, no agregamos al mapa
-                      // El TrasladoRowBuilder usará traslado.paciente directamente
                     }
                   },
                 );
@@ -342,7 +341,7 @@ class _PlanificarServiciosViewState extends State<_PlanificarServiciosView> {
                       child: ServiciosTable(
                         // ✅ Key único basado en el contenido de traslados
                         // Esto fuerza la reconstrucción cuando cambian los datos
-                        key: ValueKey<String>('servicios_table_${trasladosPendientes.length}_${trasladosPendientes.map((TrasladoEntity t) => '${t.id}_${t.idPersonalConductor ?? 'null'}').join('_')}'),
+                        key: ValueKey<String>('servicios_table_${trasladosPendientes.length}_${trasladosPendientes.map((TrasladoEntity t) => '${t.id}_${t.idConductor ?? 'null'}').join('_')}'),
                         traslados: trasladosPendientes,
                         trasladosSeleccionados: _trasladosSeleccionados,
                         serviciosPorTraslado: _serviciosPorTraslado,

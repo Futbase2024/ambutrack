@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
 import 'package:ambutrack_web/features/turnos/domain/entities/configuracion_generacion_entity.dart';
 import 'package:ambutrack_web/features/turnos/domain/entities/preferencia_personal_entity.dart';

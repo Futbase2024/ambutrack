@@ -12,6 +12,7 @@ import '../../features/incidencias/presentation/pages/incidencias_page.dart';
 import '../../features/partes_diarios/presentation/pages/partes_diarios_page.dart';
 import '../../features/perfil/presentation/pages/perfil_page.dart';
 import '../../features/registro_horario/presentation/pages/registro_horario_page.dart';
+import '../../features/servicios/presentation/pages/servicios_historico_page.dart';
 import '../../features/servicios/presentation/pages/servicios_page.dart';
 import '../../features/servicios/presentation/pages/traslado_detalle_page.dart';
 import '../widgets/layouts/main_layout.dart';
@@ -50,9 +51,10 @@ class _RouterMemory {
 /// 4. /checklist-ambulancia - Revisión pre-servicio (protegida)
 /// 5. /partes-diarios - Informes de servicio (protegida)
 /// 6. /incidencias - Reportar problemas (protegida)
-/// 7. /servicios - Mis servicios/traslados (protegida)
-/// 8. /servicios/:id - Detalle de traslado (protegida)
-/// 9. /perfil - Mi perfil (protegida)
+/// 7. /servicios - Mis servicios/traslados del día (protegida)
+/// 8. /servicios/historico - Histórico de servicios (protegida)
+/// 9. /servicios/:id - Detalle de traslado (protegida)
+/// 10. /perfil - Mi perfil (protegida)
 GoRouter createAppRouter(AuthBloc authBloc) {
   return GoRouter(
     initialLocation: _RouterMemory.initialLocation,
@@ -79,9 +81,9 @@ GoRouter createAppRouter(AuthBloc authBloc) {
             context: context,
             state: state,
             child: MainLayout(
-              child: const HomeAndroidPage(),
               isHomePage: true,
               currentLocation: '/',
+              child: const HomeAndroidPage(),
             ),
           );
         },
@@ -164,6 +166,18 @@ GoRouter createAppRouter(AuthBloc authBloc) {
           );
         },
         routes: [
+          // Histórico de servicios
+          GoRoute(
+            path: 'historico',
+            name: 'servicios-historico',
+            pageBuilder: (BuildContext context, GoRouterState state) {
+              return _buildPageWithTransition(
+                context: context,
+                state: state,
+                child: const ServiciosHistoricoPage(),
+              );
+            },
+          ),
           // Detalle de traslado
           GoRoute(
             path: ':id',

@@ -1,6 +1,6 @@
-import 'package:ambutrack_core_datasource/src/datasources/vacaciones/entities/vacaciones_entity.dart';
-import 'package:ambutrack_core_datasource/src/datasources/vacaciones/models/vacaciones_supabase_model.dart';
-import 'package:ambutrack_core_datasource/src/datasources/vacaciones/vacaciones_contract.dart';
+import 'package:ambutrack_core/src/datasources/vacaciones/entities/vacaciones_entity.dart';
+import 'package:ambutrack_core/src/datasources/vacaciones/models/vacaciones_supabase_model.dart';
+import 'package:ambutrack_core/src/datasources/vacaciones/vacaciones_contract.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Implementación del datasource de Vacaciones usando Supabase

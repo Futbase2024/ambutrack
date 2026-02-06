@@ -1,6 +1,6 @@
-import 'package:ambutrack_core_datasource/src/datasources/excepciones_festivos/entities/excepcion_festivo_entity.dart';
-import 'package:ambutrack_core_datasource/src/datasources/excepciones_festivos/excepciones_festivos_contract.dart';
-import 'package:ambutrack_core_datasource/src/datasources/excepciones_festivos/models/excepcion_festivo_supabase_model.dart';
+import 'package:ambutrack_core/src/datasources/excepciones_festivos/entities/excepcion_festivo_entity.dart';
+import 'package:ambutrack_core/src/datasources/excepciones_festivos/excepciones_festivos_contract.dart';
+import 'package:ambutrack_core/src/datasources/excepciones_festivos/models/excepcion_festivo_supabase_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

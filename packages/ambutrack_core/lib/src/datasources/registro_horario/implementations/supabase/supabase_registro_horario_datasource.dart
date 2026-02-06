@@ -16,7 +16,7 @@ class SupabaseRegistroHorarioDataSource
 
   SupabaseRegistroHorarioDataSource({
     SupabaseClient? supabase,
-    String tableName = 'registro_horarios',
+    String tableName = 'registros_horarios',
   })  : _supabase = supabase ?? Supabase.instance.client,
         _tableName = tableName;
 

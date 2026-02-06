@@ -1,4 +1,4 @@
-import 'package:ambutrack_core_datasource/src/datasources/stock_vestuario/entities/stock_vestuario_entity.dart';
+import 'package:ambutrack_core/src/datasources/stock_vestuario/entities/stock_vestuario_entity.dart';
 
 /// Contrato para el DataSource de Stock de Vestuario
 abstract class StockVestuarioDataSource {

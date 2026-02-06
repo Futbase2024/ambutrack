@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:iautomat_design_system/iautomat_design_system.dart';
 
 /// Colores centralizados de la aplicación AmbuTrack
 ///
-/// Utiliza el sistema de diseño IAutomat como base pero define
-/// colores específicos para el sector de ambulancias y emergencias médicas.
+/// Define colores específicos para el sector de ambulancias y emergencias médicas.
 class AppColors {
   AppColors._();
 
@@ -38,19 +36,19 @@ class AppColors {
   /// Superficie con tinte secundario
   static const Color secondarySurface = Color(0xFFF0FDF4);
 
-  // === COLORES DE ESTADO (Del Design System) ===
+  // === COLORES DE ESTADO ===
 
   /// Color de éxito - Verde
-  static const Color success = DSColors.success;
+  static const Color success = Color(0xFF10B981);
 
   /// Color de advertencia - Amarillo/Naranja
-  static const Color warning = DSColors.warning;
+  static const Color warning = Color(0xFFF59E0B);
 
   /// Color de error - Rojo
-  static const Color error = DSColors.error;
+  static const Color error = Color(0xFFEF4444);
 
   /// Color informativo - Azul
-  static const Color info = DSColors.info;
+  static const Color info = Color(0xFF3B82F6);
 
   // === COLORES ESPECÍFICOS DE AMBULANCIAS ===
 
@@ -69,18 +67,18 @@ class AppColors {
   /// Gris neutral para estados inactivos
   static const Color inactive = Color(0xFF6B7280);
 
-  // === ESCALA DE GRISES (Del Design System) ===
+  // === ESCALA DE GRISES ===
 
-  static const Color gray50 = DSColors.gray50;
-  static const Color gray100 = DSColors.gray100;
-  static const Color gray200 = DSColors.gray200;
-  static const Color gray300 = DSColors.gray300;
-  static const Color gray400 = DSColors.gray400;
-  static const Color gray500 = DSColors.gray500;
-  static const Color gray600 = DSColors.gray600;
-  static const Color gray700 = DSColors.gray700;
-  static const Color gray800 = DSColors.gray800;
-  static const Color gray900 = DSColors.gray900;
+  static const Color gray50 = Color(0xFFF9FAFB);
+  static const Color gray100 = Color(0xFFF3F4F6);
+  static const Color gray200 = Color(0xFFE5E7EB);
+  static const Color gray300 = Color(0xFFD1D5DB);
+  static const Color gray400 = Color(0xFF9CA3AF);
+  static const Color gray500 = Color(0xFF6B7280);
+  static const Color gray600 = Color(0xFF4B5563);
+  static const Color gray700 = Color(0xFF374151);
+  static const Color gray800 = Color(0xFF1F2937);
+  static const Color gray900 = Color(0xFF111827);
 
   // === COLORES DE SUPERFICIE ===
 

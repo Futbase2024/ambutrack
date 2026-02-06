@@ -1,4 +1,4 @@
-import 'package:ambutrack_core_datasource/src/core/base_entity.dart';
+import 'package:ambutrack_core/src/core/base_entity.dart';
 
 /// Entidad de dominio para Proveedor
 ///

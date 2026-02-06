@@ -2,7 +2,7 @@ import '../entities/registro_horario_entity.dart';
 
 /// Modelo de Supabase para Registro Horario
 ///
-/// Mapea directamente desde/hacia la tabla PostgreSQL 'registro_horarios'
+/// Mapea directamente desde/hacia la tabla PostgreSQL 'registros_horarios'
 class RegistroHorarioSupabaseModel {
   final String id;
   final String personalId;
@@ -48,12 +48,15 @@ class RegistroHorarioSupabaseModel {
 
   /// Convierte desde JSON de Supabase
   factory RegistroHorarioSupabaseModel.fromJson(Map<String, dynamic> json) {
+    final now = DateTime.now();
     return RegistroHorarioSupabaseModel(
-      id: json['id'] as String,
-      personalId: json['personal_id'] as String,
+      id: json['id'] as String? ?? '',
+      personalId: json['personal_id'] as String? ?? '',
       nombrePersonal: json['nombre_personal'] as String?,
-      tipo: json['tipo'] as String,
-      fechaHora: DateTime.parse(json['fecha_hora'] as String),
+      tipo: json['tipo'] as String? ?? 'entrada',
+      fechaHora: json['fecha_hora'] != null
+          ? DateTime.parse(json['fecha_hora'] as String)
+          : now,
       ubicacion: json['ubicacion'] as String?,
       latitud: json['latitud'] != null ? (json['latitud'] as num).toDouble() : null,
       longitud: json['longitud'] != null ? (json['longitud'] as num).toDouble() : null,
@@ -68,8 +71,12 @@ class RegistroHorarioSupabaseModel {
           ? (json['horas_trabajadas'] as num).toDouble()
           : null,
       activo: json['activo'] as bool? ?? true,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : now,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : now,
     );
   }
 

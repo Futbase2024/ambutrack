@@ -1,6 +1,6 @@
-import 'package:ambutrack_core_datasource/src/datasources/stock_vestuario/entities/stock_vestuario_entity.dart';
-import 'package:ambutrack_core_datasource/src/datasources/stock_vestuario/models/stock_vestuario_supabase_model.dart';
-import 'package:ambutrack_core_datasource/src/datasources/stock_vestuario/stock_vestuario_contract.dart';
+import 'package:ambutrack_core/src/datasources/stock_vestuario/entities/stock_vestuario_entity.dart';
+import 'package:ambutrack_core/src/datasources/stock_vestuario/models/stock_vestuario_supabase_model.dart';
+import 'package:ambutrack_core/src/datasources/stock_vestuario/stock_vestuario_contract.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

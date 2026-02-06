@@ -137,7 +137,7 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
 
       debugPrint('✅ TraficoDiarioBloc: Conductor, vehículo y matrícula asignados exitosamente');
       debugPrint('   - Nuevo estado: ${trasladoActualizado.estado}');
-      debugPrint('   - Conductor asignado: ${trasladoActualizado.idPersonalConductor}');
+      debugPrint('   - Conductor asignado: ${trasladoActualizado.idConductor}');
 
       // Actualizar la lista de traslados en el estado con la entidad actualizada
       state.whenOrNull(
@@ -489,9 +489,11 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
       // Obtener el traslado actual
       final TrasladoEntity trasladoActual = await _trasladoRepository.getById(idTraslado);
 
-      // Crear entidad actualizada con la nueva hora programada
+      // Crear entidad actualizada con la nueva hora programada (formato HH:mm:ss)
+      final String nuevaHoraStr =
+          '${nuevaHora.hour.toString().padLeft(2, '0')}:${nuevaHora.minute.toString().padLeft(2, '0')}:00';
       final TrasladoEntity trasladoConNuevaHora = trasladoActual.copyWith(
-        horaProgramada: nuevaHora,
+        horaProgramada: nuevaHoraStr,
         updatedAt: DateTime.now(),
       );
 

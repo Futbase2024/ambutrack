@@ -1,5 +1,5 @@
-import 'package:ambutrack_core_datasource/src/datasources/cuadrante_asignaciones/cuadrante_asignacion_contract.dart';
-import 'package:ambutrack_core_datasource/src/datasources/cuadrante_asignaciones/implementations/supabase/supabase_cuadrante_asignacion_datasource.dart';
+import 'package:ambutrack_core/src/datasources/cuadrante_asignaciones/cuadrante_asignacion_contract.dart';
+import 'package:ambutrack_core/src/datasources/cuadrante_asignaciones/implementations/supabase/supabase_cuadrante_asignacion_datasource.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Factory para crear instancias de CuadranteAsignacionDataSource

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:ambutrack_core/ambutrack_core.dart';
+import '../../../../core/realtime/connection_status_indicator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart' show AuthAuthenticated;
@@ -60,6 +61,25 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
+        actions: [
+          // Botón de histórico
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              context.push('/servicios/historico');
+            },
+            tooltip: 'Histórico de servicios',
+          ),
+          // Indicador de estado de conexión Realtime
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: ConnectionStatusIndicator(
+                connectionManager: context.read<TrasladosBloc>().connectionManager,
+              ),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -174,12 +194,25 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
           Expanded(
             child: BlocBuilder<TrasladosBloc, TrasladosState>(
               builder: (context, state) {
-                int total = 0;
-                int activos = 0;
+                int totalHoy = 0;
+                int activosHoy = 0;
 
                 if (state is TrasladosLoaded) {
-                  total = state.traslados.length;
-                  activos = state.traslados
+                  // Filtrar solo los del día actual
+                  final ahora = DateTime.now();
+                  final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+
+                  final trasladosHoy = state.traslados.where((t) {
+                    final fechaTraslado = DateTime(
+                      t.fecha.year,
+                      t.fecha.month,
+                      t.fecha.day,
+                    );
+                    return fechaTraslado.isAtSameMomentAs(hoy);
+                  }).toList();
+
+                  totalHoy = trasladosHoy.length;
+                  activosHoy = trasladosHoy
                       .where((t) => t.estado.isActivo)
                       .length;
                 }
@@ -197,7 +230,7 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '$activos activos de $total totales',
+                      'Hoy: $activosHoy activos de $totalHoy totales',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -329,8 +362,8 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
           const SizedBox(height: 8),
           Text(
             _filtroEstado == null
-                ? 'Todos tus traslados aparecerán aquí'
-                : 'No hay traslados con estado: ${_filtroEstado!.label}',
+                ? 'No tienes traslados asignados para hoy'
+                : 'No hay traslados hoy con estado: ${_filtroEstado!.label}',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
@@ -343,10 +376,28 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
   }
 
   List<TrasladoEntity> _filtrarTraslados(List<TrasladoEntity> traslados) {
-    if (_filtroEstado == null) {
-      return traslados;
+    // 1. Filtrar solo traslados del día actual
+    final ahora = DateTime.now();
+    final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+
+    var trasladosFiltrados = traslados.where((t) {
+      final fechaTraslado = DateTime(t.fecha.year, t.fecha.month, t.fecha.day);
+      return fechaTraslado.isAtSameMomentAs(hoy);
+    }).toList();
+
+    // 2. Aplicar filtro por estado si está seleccionado
+    if (_filtroEstado != null) {
+      trasladosFiltrados = trasladosFiltrados
+          .where((t) => t.estado == _filtroEstado)
+          .toList();
     }
-    return traslados.where((t) => t.estado == _filtroEstado).toList();
+
+    // 3. Ordenar por hora programada (ascendente)
+    trasladosFiltrados.sort((a, b) {
+      return a.horaProgramada.compareTo(b.horaProgramada);
+    });
+
+    return trasladosFiltrados;
   }
 
   Color _getColorFromHex(String hexColor) {

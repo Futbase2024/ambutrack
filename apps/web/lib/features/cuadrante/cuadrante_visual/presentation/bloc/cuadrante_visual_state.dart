@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
 import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/domain/entities/cuadrante_slot_entity.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
 import 'package:equatable/equatable.dart';

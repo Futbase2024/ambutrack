@@ -1,4 +1,4 @@
-import 'package:ambutrack_core_datasource/src/datasources/vacaciones/entities/vacaciones_entity.dart';
+import 'package:ambutrack_core/src/datasources/vacaciones/entities/vacaciones_entity.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'vacaciones_supabase_model.g.dart';

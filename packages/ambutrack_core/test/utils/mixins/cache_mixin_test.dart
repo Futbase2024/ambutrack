@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ambutrack_core_datasource/src/utils/mixins/cache_mixin.dart';
+import 'package:ambutrack_core/src/utils/mixins/cache_mixin.dart';
 
 /// Test class that uses CacheMixin
 class TestCacheService with CacheMixin<String> {

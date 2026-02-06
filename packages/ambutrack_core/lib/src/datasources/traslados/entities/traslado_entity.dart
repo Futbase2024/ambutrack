@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'estado_traslado_enum.dart';
 import 'ubicacion_entity.dart';
 
@@ -72,6 +73,9 @@ class TrasladoEntity extends Equatable {
     this.pacienteNombre,
     this.conductorNombre,
     this.vehiculoMatricula,
+    this.poblacionPaciente,
+    this.poblacionCentroOrigen,
+    this.poblacionCentroDestino,
   });
 
   final String id;
@@ -164,6 +168,9 @@ class TrasladoEntity extends Equatable {
   final String? pacienteNombre;
   final String? conductorNombre;
   final String? vehiculoMatricula;
+  final String? poblacionPaciente; // Población del domicilio del paciente
+  final String? poblacionCentroOrigen; // Población del centro hospitalario de origen
+  final String? poblacionCentroDestino; // Población del centro hospitalario de destino
 
   @override
   List<Object?> get props => [
@@ -250,6 +257,9 @@ class TrasladoEntity extends Equatable {
     String? pacienteNombre,
     String? conductorNombre,
     String? vehiculoMatricula,
+    String? poblacionPaciente,
+    String? poblacionCentroOrigen,
+    String? poblacionCentroDestino,
   }) {
     return TrasladoEntity(
       id: id ?? this.id,
@@ -326,18 +336,29 @@ class TrasladoEntity extends Equatable {
       pacienteNombre: pacienteNombre ?? this.pacienteNombre,
       conductorNombre: conductorNombre ?? this.conductorNombre,
       vehiculoMatricula: vehiculoMatricula ?? this.vehiculoMatricula,
+      poblacionPaciente: poblacionPaciente ?? this.poblacionPaciente,
+      poblacionCentroOrigen: poblacionCentroOrigen ?? this.poblacionCentroOrigen,
+      poblacionCentroDestino: poblacionCentroDestino ?? this.poblacionCentroDestino,
     );
   }
 
   /// Obtiene la fecha/hora del último cambio de estado
   DateTime? get ultimaActualizacionEstado {
     switch (estado) {
+      case EstadoTraslado.pendiente:
+        return fechaCreacion;
+      case EstadoTraslado.asignado:
+        return fechaAsignacion;
+      case EstadoTraslado.enviado:
+        return fechaAsignacion; // Usa fecha de asignación como referencia
       case EstadoTraslado.recibido:
         return fechaRecibidoConductor;
       case EstadoTraslado.enOrigen:
         return fechaEnOrigen;
       case EstadoTraslado.saliendoOrigen:
         return fechaSaliendoOrigen;
+      case EstadoTraslado.enTransito:
+        return fechaSaliendoOrigen; // Usa fecha de saliendo origen como referencia
       case EstadoTraslado.enDestino:
         return fechaEnDestino;
       case EstadoTraslado.finalizado:
@@ -346,12 +367,6 @@ class TrasladoEntity extends Equatable {
         return fechaCancelacion;
       case EstadoTraslado.noRealizado:
         return fechaNoRealizado;
-      case EstadoTraslado.suspendido:
-        return fechaSuspendido;
-      case EstadoTraslado.asignado:
-        return fechaAsignacion;
-      case EstadoTraslado.pendiente:
-        return fechaCreacion;
     }
   }
 
@@ -376,5 +391,37 @@ class TrasladoEntity extends Equatable {
       return '$destino - $destinoUbicacionCentro';
     }
     return destino!;
+  }
+
+  /// Obtiene la población del origen del traslado
+  /// Devuelve la población del centro hospitalario o del domicilio del paciente
+  String? get poblacionOrigen {
+    // Si el origen es un centro hospitalario, usar su población
+    if (tipoOrigen == 'centro_hospitalario') {
+      return poblacionCentroOrigen;
+    }
+
+    // Si el origen es el domicilio del paciente, usar la población del paciente
+    if (tipoOrigen == 'domicilio' || tipoOrigen == 'domicilio_paciente') {
+      return poblacionPaciente;
+    }
+
+    return null;
+  }
+
+  /// Obtiene la población del destino del traslado
+  /// Devuelve la población del centro hospitalario o del domicilio del paciente
+  String? get poblacionDestino {
+    // Si el destino es un centro hospitalario, usar su población
+    if (tipoDestino == 'centro_hospitalario') {
+      return poblacionCentroDestino;
+    }
+
+    // Si el destino es el domicilio del paciente, usar la población del paciente
+    if (tipoDestino == 'domicilio' || tipoDestino == 'domicilio_paciente') {
+      return poblacionPaciente;
+    }
+
+    return null;
   }
 }

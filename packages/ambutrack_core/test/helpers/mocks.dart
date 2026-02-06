@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 
-import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 
 /// Mock implementation of UsersDataSource for testing
 class MockUsersDataSource implements UsersDataSource {

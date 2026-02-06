@@ -18,7 +18,7 @@ class RegistroHorarioDataSourceFactory {
   /// ```dart
   /// {
   ///   'supabase': SupabaseClient.instance.client, // Opcional
-  ///   'tableName': 'registro_horarios', // Opcional
+  ///   'tableName': 'registros_horarios', // Opcional
   /// }
   /// ```
   ///
@@ -26,7 +26,7 @@ class RegistroHorarioDataSourceFactory {
   /// ```dart
   /// {
   ///   'firestore': FirebaseFirestore.instance, // Opcional
-  ///   'collection': 'registro_horarios', // Opcional
+  ///   'collection': 'registros_horarios', // Opcional
   /// }
   /// ```
   static RegistroHorarioDataSource create({
@@ -52,7 +52,7 @@ class RegistroHorarioDataSourceFactory {
     DataSourceConfig config,
   ) {
     final supabase = config['supabase'] as SupabaseClient?;
-    final tableName = config['tableName'] as String? ?? 'registro_horarios';
+    final tableName = config['tableName'] as String? ?? 'registros_horarios';
 
     return SupabaseRegistroHorarioDataSource(
       supabase: supabase,
@@ -70,7 +70,7 @@ class RegistroHorarioDataSourceFactory {
   /// Crea un datasource de Supabase con configuración por defecto
   static RegistroHorarioDataSource createSupabase({
     SupabaseClient? supabase,
-    String tableName = 'registro_horarios',
+    String tableName = 'registros_horarios',
   }) {
     return create(
       type: 'supabase',
@@ -100,7 +100,7 @@ class RegistroHorarioDataSourceFactory {
 
     if (useSupabase) {
       return createSupabase(
-        tableName: env['SUPABASE_REGISTRO_HORARIOS_TABLE'] ?? 'registro_horarios',
+        tableName: env['SUPABASE_REGISTRO_HORARIOS_TABLE'] ?? 'registros_horarios',
       );
     }
 
@@ -148,7 +148,7 @@ class RegistroHorarioDataSourceFactory {
   /// Devuelve la configuración por defecto para Supabase
   static DataSourceConfig getDefaultConfig() {
     return {
-      'tableName': 'registro_horarios',
+      'tableName': 'registros_horarios',
     };
   }
 }

@@ -4,40 +4,36 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-import '../entities/estado_traslado_enum.dart';
-import '../entities/historial_estado_entity.dart';
-import '../entities/traslado_entity.dart';
-import '../entities/traslado_evento_entity.dart';
-import '../entities/ubicacion_entity.dart';
-import '../models/historial_estado_supabase_model.dart';
-import '../models/traslado_evento_supabase_model.dart';
-import '../models/traslado_supabase_model.dart';
-import '../traslados_datasource_contract.dart';
+import '../../entities/estado_traslado_enum.dart';
+import '../../entities/historial_estado_entity.dart';
+import '../../entities/traslado_entity.dart';
+import '../../entities/traslado_evento_entity.dart';
+import '../../entities/ubicacion_entity.dart';
+import '../../models/historial_estado_supabase_model.dart';
+import '../../models/traslado_evento_supabase_model.dart';
+import '../../models/traslado_supabase_model.dart';
+import '../../traslado_contract.dart';
 
 /// Implementación del datasource de traslados usando Supabase
-class SupabaseTrasladosDataSource implements TrasladosDataSource {
+class SupabaseTrasladosDataSource implements TrasladoDataSource {
   SupabaseTrasladosDataSource(this._client);
 
   final SupabaseClient _client;
   final _uuid = const Uuid();
 
   static const String _tableName = 'traslados';
+  static const String _viewName = 'v_traslados_completos'; // Vista con todos los datos desnormalizados
   static const String _historialTableName = 'historial_estados_traslado';
 
-  /// Query base con joins para datos del paciente
-  String get _selectQuery => '''
-    *,
-    pacientes:id_paciente(nombre, primer_apellido, segundo_apellido),
-    tpersonal:id_conductor(nombre, apellidos)
-  ''';
-
+  /// Query simple - la vista ya incluye todos los JOINs necesarios
+  String get _selectQuery => '*';
   @override
   Future<List<TrasladoEntity>> getByIdConductor(String idConductor) async {
     try {
       debugPrint('📦 [TrasladosDataSource] Obteniendo traslados del conductor: $idConductor');
 
       final response = await _client
-          .from(_tableName)
+          .from(_viewName) // Usar vista en lugar de tabla
           .select(_selectQuery)
           .eq('id_conductor', idConductor)
           .order('fecha', ascending: false)
@@ -61,13 +57,12 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
       debugPrint('📦 [TrasladosDataSource] Obteniendo traslados activos del conductor: $idConductor');
 
       final response = await _client
-          .from(_tableName)
+          .from(_viewName) // Usar vista en lugar de tabla
           .select(_selectQuery)
           .eq('id_conductor', idConductor)
           .neq('estado', 'finalizado')
           .neq('estado', 'cancelado')
           .neq('estado', 'no_realizado')
-          .neq('estado', 'suspendido')
           .order('fecha', ascending: true)
           .order('hora_programada', ascending: true);
 
@@ -89,7 +84,7 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
       debugPrint('📦 [TrasladosDataSource] Obteniendo traslado: $id');
 
       final response = await _client
-          .from(_tableName)
+          .from(_viewName) // Usar vista en lugar de tabla
           .select(_selectQuery)
           .eq('id', id)
           .single();
@@ -114,7 +109,7 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
       debugPrint('📦 [TrasladosDataSource] Obteniendo traslados entre $fechaInicio y $fechaFin');
 
       var query = _client
-          .from(_tableName)
+          .from(_viewName) // Usar vista para tener datos desnormalizados
           .select(_selectQuery)
           .gte('fecha', fechaInicio.toIso8601String().split('T')[0])
           .lte('fecha', fechaFin.toIso8601String().split('T')[0]);
@@ -148,7 +143,7 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
       debugPrint('📦 [TrasladosDataSource] Obteniendo traslados con estado: ${estado.value}');
 
       var query = _client
-          .from(_tableName)
+          .from(_viewName) // Usar vista para tener datos desnormalizados
           .select(_selectQuery)
           .eq('estado', estado.value);
 
@@ -236,20 +231,16 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
         case EstadoTraslado.noRealizado:
           updates['fecha_no_realizado'] = DateTime.now().toIso8601String();
           break;
-        case EstadoTraslado.suspendido:
-          updates['fecha_suspendido'] = DateTime.now().toIso8601String();
-          break;
         default:
+          // Estados sin campos específicos de fecha: enviado, enTransito
           break;
       }
 
       // 3. Actualizar traslado
-      final response = await _client
+      await _client
           .from(_tableName)
           .update(updates)
-          .eq('id', idTraslado)
-          .select(_selectQuery)
-          .single();
+          .eq('id', idTraslado);
 
       // 4. Registrar en historial
       await _registrarCambioEstado(
@@ -263,7 +254,8 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
 
       debugPrint('✅ [TrasladosDataSource] Estado cambiado exitosamente');
 
-      return _mapToEntity(response);
+      // 5. Obtener traslado actualizado desde la vista con datos completos
+      return getById(idTraslado);
     } catch (e, stackTrace) {
       debugPrint('❌ [TrasladosDataSource] Error al cambiar estado: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -308,16 +300,15 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
         'updated_at': DateTime.now().toIso8601String(),
       };
 
-      final response = await _client
+      await _client
           .from(_tableName)
           .update(updatesWithAudit)
-          .eq('id', id)
-          .select(_selectQuery)
-          .single();
+          .eq('id', id);
 
       debugPrint('✅ [TrasladosDataSource] Traslado actualizado');
 
-      return _mapToEntity(response);
+      // Obtener traslado actualizado desde la vista con datos completos
+      return getById(id);
     } catch (e, stackTrace) {
       debugPrint('❌ [TrasladosDataSource] Error al actualizar traslado: $e');
       debugPrint('Stack trace: $stackTrace');
@@ -349,8 +340,7 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
           .where((traslado) {
             final esActivo = traslado.estado != EstadoTraslado.finalizado &&
                 traslado.estado != EstadoTraslado.cancelado &&
-                traslado.estado != EstadoTraslado.noRealizado &&
-                traslado.estado != EstadoTraslado.suspendido;
+                traslado.estado != EstadoTraslado.noRealizado;
             return esActivo;
           })
           .toList();
@@ -465,31 +455,65 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
   /// Mapea JSON a Entity con datos desnormalizados
   TrasladoEntity _mapToEntity(Map<String, dynamic> json) {
     final model = TrasladoSupabaseModel.fromJson(json);
-    final entity = model.toEntity();
+    var entity = model.toEntity();
 
-    // Agregar datos desnormalizados si existen
-    String? pacienteNombre;
-    String? conductorNombre;
+    // Leer datos desnormalizados directamente de la vista
+    // La vista v_traslados_completos ya incluye todos estos campos
 
-    if (json['pacientes'] != null) {
-      final paciente = json['pacientes'] as Map<String, dynamic>;
-      final nombre = paciente['nombre'] ?? '';
-      final apellido1 = paciente['primer_apellido'] ?? '';
-      final apellido2 = paciente['segundo_apellido'] ?? '';
-      pacienteNombre = '$nombre $apellido1 $apellido2'.trim();
+    // Nombre del paciente (concatenado desde la vista)
+    final pacienteNombre = _buildNombreCompleto(
+      json['paciente_nombre'] as String?,
+      json['paciente_primer_apellido'] as String?,
+      json['paciente_segundo_apellido'] as String?,
+    );
+
+    // Nombre del conductor (concatenado desde la vista)
+    final conductorNombre = _buildNombreCompleto(
+      json['conductor_nombre'] as String?,
+      json['conductor_apellidos'] as String?,
+    );
+
+    // Poblaciones desde la vista
+    final poblacionPaciente = json['poblacion_paciente'] as String?;
+    final poblacionCentroOrigen = json['poblacion_centro_origen'] as String?;
+    final poblacionCentroDestino = json['poblacion_centro_destino'] as String?;
+
+    // Matrícula del vehículo
+    final vehiculoMatricula = json['vehiculo_matricula'] as String?;
+
+    // Heredar datos del servicio recurrente si el traslado no los tiene
+    if (entity.tipoOrigen == null || entity.tipoOrigen!.isEmpty) {
+      entity = entity.copyWith(
+        tipoOrigen: json['sr_tipo_origen'] as String?,
+        origen: json['sr_origen'] as String?,
+        origenUbicacionCentro: json['sr_origen_ubicacion_centro'] as String?,
+      );
     }
 
-    if (json['tpersonal'] != null) {
-      final personal = json['tpersonal'] as Map<String, dynamic>;
-      final nombre = personal['nombre'] ?? '';
-      final apellidos = personal['apellidos'] ?? '';
-      conductorNombre = '$nombre $apellidos'.trim();
+    if (entity.tipoDestino == null || entity.tipoDestino!.isEmpty) {
+      entity = entity.copyWith(
+        tipoDestino: json['sr_tipo_destino'] as String?,
+        destino: json['sr_destino'] as String?,
+        destinoUbicacionCentro: json['sr_destino_ubicacion_centro'] as String?,
+      );
     }
 
     return entity.copyWith(
       pacienteNombre: pacienteNombre,
       conductorNombre: conductorNombre,
+      vehiculoMatricula: vehiculoMatricula,
+      poblacionPaciente: poblacionPaciente,
+      poblacionCentroOrigen: poblacionCentroOrigen,
+      poblacionCentroDestino: poblacionCentroDestino,
     );
+  }
+
+  /// Construye un nombre completo a partir de sus componentes
+  String? _buildNombreCompleto(String? nombre, [String? apellido1, String? apellido2]) {
+    final partes = [nombre, apellido1, apellido2]
+        .where((p) => p != null && p.isNotEmpty)
+        .toList();
+    return partes.isEmpty ? null : partes.join(' ').trim();
   }
 
   // --------------------------------------------------------------------------
@@ -509,16 +533,62 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
   /// - Cambia el estado de un traslado mío (status_changed)
   @override
   Stream<TrasladoEventoEntity> streamEventosConductor() {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) {
-      debugPrint('❌ [TrasladosDataSource] Usuario no autenticado, no se puede suscribir a eventos');
-      return Stream.empty();
-    }
-
-    debugPrint('🔔 [TrasladosDataSource] Suscribiéndose a eventos de traslados para conductor: $userId');
-
     final controller = StreamController<TrasladoEventoEntity>.broadcast();
     final eventosRecibidos = <String>{};  // Deduplicación
+
+    // Inicialización asíncrona
+    _initializeEventStream(controller, eventosRecibidos);
+
+    return controller.stream;
+  }
+
+  /// Inicializa el stream de eventos de forma asíncrona
+  Future<void> _initializeEventStream(
+    StreamController<TrasladoEventoEntity> controller,
+    Set<String> eventosRecibidos,
+  ) async {
+    final authUserId = _client.auth.currentUser?.id;
+    if (authUserId == null) {
+      debugPrint('❌ [TrasladosDataSource] Usuario no autenticado, no se puede suscribir a eventos');
+      if (!controller.isClosed) {
+        controller.addError(Exception('Usuario no autenticado'));
+        await controller.close();
+      }
+      return;
+    }
+
+    debugPrint('🔔 [TrasladosDataSource] Usuario autenticado (auth.uid): $authUserId');
+
+    // LOOKUP: Obtener el ID de tpersonal a partir de auth.uid
+    String? personalId;
+    try {
+      final response = await _client
+          .from('tpersonal')
+          .select('id')
+          .eq('usuario_id', authUserId)
+          .maybeSingle();
+
+      if (response == null) {
+        debugPrint('❌ [TrasladosDataSource] No se encontró conductor para usuario: $authUserId');
+        if (!controller.isClosed) {
+          controller.addError(Exception('Conductor no encontrado'));
+          await controller.close();
+        }
+        return;
+      }
+
+      personalId = response['id'] as String;
+      debugPrint('✅ [TrasladosDataSource] ID de conductor (tpersonal.id): $personalId');
+    } catch (e) {
+      debugPrint('❌ [TrasladosDataSource] Error obteniendo ID de conductor: $e');
+      if (!controller.isClosed) {
+        controller.addError(e);
+        await controller.close();
+      }
+      return;
+    }
+
+    debugPrint('🔔 [TrasladosDataSource] Suscribiéndose a eventos de traslados para conductor: $personalId');
 
     RealtimeChannel? channel;
 
@@ -552,7 +622,7 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
     }
 
     // Crear canal Realtime único con ID para evitar colisiones
-    final channelName = 'traslados_eventos_$userId';
+    final channelName = 'traslados_eventos_$personalId';
     channel = _client.channel(channelName);
 
     // SUSCRIPCIÓN 1: Eventos donde SOY el new_conductor_id (me asignaron)
@@ -563,10 +633,10 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
       filter: PostgresChangeFilter(
         type: PostgresChangeFilterType.eq,
         column: 'new_conductor_id',
-        value: userId,
+        value: personalId,
       ),
       callback: (payload) {
-        debugPrint('📥 [TrasladosDataSource] INSERT (new_conductor): $userId');
+        debugPrint('📥 [TrasladosDataSource] INSERT (new_conductor): $personalId');
         procesarEvento(payload);
       },
     );
@@ -579,10 +649,10 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
       filter: PostgresChangeFilter(
         type: PostgresChangeFilterType.eq,
         column: 'old_conductor_id',
-        value: userId,
+        value: personalId,
       ),
       callback: (payload) {
-        debugPrint('📥 [TrasladosDataSource] INSERT (old_conductor): $userId');
+        debugPrint('📥 [TrasladosDataSource] INSERT (old_conductor): $personalId');
         procesarEvento(payload);
       },
     );
@@ -605,8 +675,6 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
       await channel?.unsubscribe();
       eventosRecibidos.clear();
     };
-
-    return controller.stream;
   }
 
   /// Cierra todos los canales Realtime activos
@@ -615,5 +683,256 @@ class SupabaseTrasladosDataSource implements TrasladosDataSource {
   Future<void> disposeRealtimeChannels() async {
     debugPrint('🔌 [TrasladosDataSource] Cerrando todos los canales Realtime');
     await _client.removeAllChannels();
+  }
+
+  // ========== MÉTODOS PENDIENTES DE IMPLEMENTAR (WEB) ==========
+
+  @override
+  Future<List<TrasladoEntity>> getAll() {
+    throw UnimplementedError('getAll() no implementado aún para mobile');
+  }
+
+  @override
+  Future<List<TrasladoEntity>> getByServicioRecurrente(String idServicioRecurrente) {
+    throw UnimplementedError('getByServicioRecurrente() no implementado aún para mobile');
+  }
+
+  @override
+  Future<List<TrasladoEntity>> getByServiciosRecurrentes(List<String> idsServiciosRecurrentes) {
+    throw UnimplementedError('getByServiciosRecurrentes() no implementado aún para mobile');
+  }
+
+  @override
+  Future<List<TrasladoEntity>> getByServiciosYFecha({
+    required List<String> idsServiciosRecurrentes,
+    required DateTime fecha,
+  }) async {
+    try {
+      if (idsServiciosRecurrentes.isEmpty) {
+        return [];
+      }
+
+      final fechaStr = fecha.toIso8601String().split('T')[0];
+      debugPrint('📦 [TrasladosDataSource] Obteniendo traslados para fecha: $fechaStr');
+      debugPrint('📦 [TrasladosDataSource] IDs de servicios recurrentes: $idsServiciosRecurrentes');
+
+      final response = await _client
+          .from(_viewName) // Usar vista para tener datos desnormalizados
+          .select(_selectQuery)
+          .inFilter('id_servicio_recurrente', idsServiciosRecurrentes)
+          .eq('fecha', fechaStr)
+          .order('hora_programada', ascending: true);
+
+      debugPrint('✅ [TrasladosDataSource] Encontrados ${response.length} traslados con id_servicio_recurrente');
+
+      // Si no hay resultados, intentar buscar por id_servicio también
+      if ((response as List).isEmpty) {
+        debugPrint('🔍 [TrasladosDataSource] No hay traslados con id_servicio_recurrente, buscando por id_servicio...');
+
+        final responseByServicio = await _client
+            .from(_viewName) // Usar vista para tener datos desnormalizados
+            .select(_selectQuery)
+            .inFilter('id_servicio', idsServiciosRecurrentes)
+            .eq('fecha', fechaStr)
+            .order('hora_programada', ascending: true);
+
+        debugPrint('✅ [TrasladosDataSource] Encontrados ${responseByServicio.length} traslados con id_servicio');
+
+        if ((responseByServicio as List).isNotEmpty) {
+          return responseByServicio
+              .map((json) => _mapToEntity(json))
+              .toList();
+        }
+      }
+
+      return response
+          .map((json) => _mapToEntity(json))
+          .toList();
+    } catch (e, stackTrace) {
+      debugPrint('❌ [TrasladosDataSource] Error al obtener traslados por servicios y fecha: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<TrasladoEntity>> getTrasladosByServicioId(String servicioId) {
+    throw UnimplementedError('getTrasladosByServicioId() no implementado aún para mobile');
+  }
+
+  @override
+  Future<List<TrasladoEntity>> getByPaciente(String idPaciente) {
+    throw UnimplementedError('getByPaciente() no implementado aún para mobile');
+  }
+
+  @override
+  Future<List<TrasladoEntity>> getByVehiculo(String idVehiculo) {
+    throw UnimplementedError('getByVehiculo() no implementado aún para mobile');
+  }
+
+  @override
+  Future<List<TrasladoEntity>> getByFecha(DateTime fecha) {
+    throw UnimplementedError('getByFecha() no implementado aún para mobile');
+  }
+
+  @override
+  Future<List<TrasladoEntity>> getEnCurso() {
+    throw UnimplementedError('getEnCurso() no implementado aún para mobile');
+  }
+
+  @override
+  Future<List<TrasladoEntity>> getRequierenAsignacion() {
+    throw UnimplementedError('getRequierenAsignacion() no implementado aún para mobile');
+  }
+
+  @override
+  Future<List<TrasladoEntity>> searchByCodigo(String query) {
+    throw UnimplementedError('searchByCodigo() no implementado aún para mobile');
+  }
+
+  @override
+  Future<TrasladoEntity> create(TrasladoEntity traslado) {
+    throw UnimplementedError('create() no implementado aún para mobile');
+  }
+
+  @override
+  Future<TrasladoEntity> updateEstado({
+    required String id,
+    required String nuevoEstado,
+    Map<String, dynamic>? ubicacion,
+  }) {
+    throw UnimplementedError('updateEstado() no implementado aún para mobile');
+  }
+
+  @override
+  Future<TrasladoEntity> asignarRecursos({
+    required String id,
+    String? idConductor,
+    String? idVehiculo,
+    String? matriculaVehiculo,
+    String? idTecnico,
+  }) async {
+    try {
+      debugPrint('🚗 [TrasladosDataSource] Asignando recursos al traslado: $id');
+      debugPrint('   - Conductor: $idConductor');
+      debugPrint('   - Vehículo: $idVehiculo');
+      debugPrint('   - Matrícula: $matriculaVehiculo');
+      debugPrint('   - Técnico: $idTecnico');
+
+      // Construir el mapa de actualización solo con campos no nulos
+      // Al asignar recursos también se envía automáticamente al conductor
+      final DateTime ahora = DateTime.now().toUtc();
+      final Map<String, dynamic> updateData = <String, dynamic>{
+        'estado': 'enviado', // Asignar = Enviar al conductor
+        'fecha_asignacion': ahora.toIso8601String(),
+        'fecha_enviado': ahora.toIso8601String(), // Se envía automáticamente
+        'updated_at': ahora.toIso8601String(),
+      };
+
+      if (idConductor != null) {
+        updateData['id_conductor'] = idConductor;
+      }
+      if (idVehiculo != null) {
+        updateData['id_vehiculo'] = idVehiculo;
+      }
+      if (matriculaVehiculo != null) {
+        updateData['matricula_vehiculo'] = matriculaVehiculo;
+      }
+      if (idTecnico != null) {
+        // Si hay técnico, agregarlo al array de personal_asignado
+        updateData['personal_asignado'] = <String>[idTecnico];
+      }
+
+      await _client
+          .from(_tableName)
+          .update(updateData)
+          .eq('id', id);
+
+      debugPrint('✅ [TrasladosDataSource] Recursos asignados correctamente');
+
+      // Obtener traslado actualizado desde la vista con datos completos
+      return getById(id);
+    } catch (e, stackTrace) {
+      debugPrint('❌ [TrasladosDataSource] Error al asignar recursos: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<TrasladoEntity> desasignarRecursos({
+    required String id,
+  }) async {
+    try {
+      debugPrint('🚫 [TrasladosDataSource] Desasignando recursos del traslado: $id');
+
+      // Actualizar el traslado: poner recursos en null y estado a pendiente
+      await _client
+          .from(_tableName)
+          .update({
+            'id_conductor': null,
+            'id_vehiculo': null,
+            'matricula_vehiculo': null,
+            'personal_asignado': null,
+            'fecha_asignacion': null,
+            'usuario_asignacion': null,
+            'estado': 'pendiente',
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', id);
+
+      debugPrint('✅ [TrasladosDataSource] Recursos desasignados correctamente');
+
+      // Obtener traslado actualizado desde la vista con datos completos
+      return getById(id);
+    } catch (e, stackTrace) {
+      debugPrint('❌ [TrasladosDataSource] Error al desasignar recursos: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<TrasladoEntity> registrarUbicacion({
+    required String id,
+    required Map<String, dynamic> ubicacion,
+    required String estado,
+  }) {
+    throw UnimplementedError('registrarUbicacion() no implementado aún para mobile');
+  }
+
+  @override
+  Future<void> delete(String id) {
+    throw UnimplementedError('delete() no implementado aún para mobile');
+  }
+
+  @override
+  Future<void> hardDelete(String id) {
+    throw UnimplementedError('hardDelete() no implementado aún para mobile');
+  }
+
+  @override
+  Future<void> hardDeleteMultiple(List<String> ids) {
+    throw UnimplementedError('hardDeleteMultiple() no implementado aún para mobile');
+  }
+
+  @override
+  Stream<List<TrasladoEntity>> watchAll() {
+    throw UnimplementedError('watchAll() no implementado aún para mobile');
+  }
+
+  @override
+  Stream<List<TrasladoEntity>> watchByServicioRecurrente(String idServicioRecurrente) {
+    throw UnimplementedError('watchByServicioRecurrente() no implementado aún para mobile');
+  }
+
+  @override
+  Stream<List<TrasladoEntity>> watchByConductor(String idConductor) {
+    throw UnimplementedError('watchByConductor() no implementado aún para mobile');
+  }
+
+  @override
+  Stream<List<TrasladoEntity>> watchEnCurso() {
+    throw UnimplementedError('watchEnCurso() no implementado aún para mobile');
   }
 }

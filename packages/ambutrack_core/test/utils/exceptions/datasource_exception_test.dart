@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 
 void main() {
   group('DataSourceException', () {

@@ -54,13 +54,13 @@ class _TrayectoFormDialogState extends State<TrayectoFormDialog> {
   void initState() {
     super.initState();
     _observacionesController = TextEditingController(text: widget.trayecto.observaciones ?? '');
-    _fecha = widget.trayecto.fecha ?? DateTime.now();
-    _horaProgramada = widget.trayecto.horaProgramada != null
-        ? TimeOfDay(
-            hour: widget.trayecto.horaProgramada!.hour,
-            minute: widget.trayecto.horaProgramada!.minute,
-          )
-        : TimeOfDay.now();
+    _fecha = widget.trayecto.fecha;
+    // Parsear horaProgramada desde String "HH:mm" o "HH:mm:ss" a TimeOfDay
+    final List<String> horaParts = widget.trayecto.horaProgramada.split(':');
+    _horaProgramada = TimeOfDay(
+            hour: int.tryParse(horaParts.isNotEmpty ? horaParts[0] : '0') ?? 0,
+            minute: int.tryParse(horaParts.length > 1 ? horaParts[1] : '0') ?? 0,
+          );
 
     // Inicializar origen - SIEMPRE con los valores del trayecto
     _tipoOrigen = widget.trayecto.tipoOrigen;
@@ -249,14 +249,9 @@ class _TrayectoFormDialogState extends State<TrayectoFormDialog> {
     });
 
     try {
-      // Crear nueva hora programada combinando fecha y hora
-      final DateTime nuevaHoraProgramada = DateTime(
-        _fecha.year,
-        _fecha.month,
-        _fecha.day,
-        _horaProgramada.hour,
-        _horaProgramada.minute,
-      );
+      // Crear hora programada como String "HH:mm:ss"
+      final String nuevaHoraProgramada =
+          '${_horaProgramada.hour.toString().padLeft(2, '0')}:${_horaProgramada.minute.toString().padLeft(2, '0')}:00';
 
       // Crear trayecto actualizado
       final TrasladoEntity trayectoActualizado = widget.trayecto.copyWith(
@@ -272,8 +267,22 @@ class _TrayectoFormDialogState extends State<TrayectoFormDialog> {
         updatedAt: DateTime.now(),
       );
 
-      // Guardar en Supabase
-      await _trasladoDataSource.update(trayectoActualizado);
+      // Guardar en Supabase usando update con id y updates Map
+      await _trasladoDataSource.update(
+        id: widget.trayecto.id,
+        updates: <String, dynamic>{
+          'fecha': _fecha.toIso8601String(),
+          'hora_programada': nuevaHoraProgramada,
+          'tipo_origen': _tipoOrigen,
+          'origen': _origenValue,
+          'tipo_destino': _tipoDestino,
+          'destino': _destinoValue,
+          'observaciones': _observacionesController.text.trim().isNotEmpty
+              ? _observacionesController.text.trim()
+              : null,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+      );
 
       if (mounted) {
         // Llamar callback onSave

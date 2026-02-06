@@ -7,12 +7,12 @@ import 'package:ambutrack_core/ambutrack_core.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart' show AuthAuthenticated;
+import '../../data/repositories/traslados_repository_impl.dart';
 import '../bloc/traslados_bloc.dart';
 import '../bloc/traslados_event.dart';
 import '../bloc/traslados_state.dart';
-import '../widgets/estado_traslado_badge.dart';
 
-/// Página de detalle de un traslado con opciones para cambiar estado
+/// Página de gestión de un traslado con acciones para cambiar estado
 class TrasladoDetallePage extends StatelessWidget {
   const TrasladoDetallePage({
     required this.idTraslado,
@@ -23,13 +23,34 @@ class TrasladoDetallePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Cargar el traslado cuando se abre la página
-    context.read<TrasladosBloc>().add(CargarTraslado(idTraslado));
+    return BlocProvider(
+      create: (context) {
+        final repository = TrasladosRepositoryImpl();
+        final bloc = TrasladosBloc(repository);
 
+        // Cargar el traslado específico
+        bloc.add(CargarTraslado(idTraslado));
+
+        return bloc;
+      },
+      child: _TrasladoDetallePageContent(idTraslado: idTraslado),
+    );
+  }
+}
+
+class _TrasladoDetallePageContent extends StatelessWidget {
+  const _TrasladoDetallePageContent({
+    required this.idTraslado,
+  });
+
+  final String idTraslado;
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.gray50,
       appBar: AppBar(
-        title: const Text('Detalle del Traslado'),
+        title: const Text('Gestionar Traslado'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
@@ -71,7 +92,7 @@ class TrasladoDetallePage extends StatelessWidget {
 
           if (state is TrasladosLoaded && state.trasladoSeleccionado != null) {
             final traslado = state.trasladoSeleccionado!;
-            return _TrasladoDetalleContent(traslado: traslado);
+            return _TrasladoGestionContent(traslado: traslado);
           }
 
           return const Center(
@@ -83,208 +104,277 @@ class TrasladoDetallePage extends StatelessWidget {
   }
 }
 
-class _TrasladoDetalleContent extends StatelessWidget {
-  const _TrasladoDetalleContent({required this.traslado});
+class _TrasladoGestionContent extends StatelessWidget {
+  const _TrasladoGestionContent({required this.traslado});
 
   final TrasladoEntity traslado;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header minimalista
+            _buildMinimalistHeader(context),
+
+            // INFORMACIÓN ESENCIAL
+            _buildInfoEsencial(),
+
+            // ACCIONES PRINCIPALES
+            if (traslado.estado.isActivo) ...[
+              const SizedBox(height: 16),
+              _buildAccionesPrincipales(context),
+            ] else ...[
+              const SizedBox(height: 16),
+              _buildTrasladoFinalizado(),
+            ],
+
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMinimalistHeader(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      decoration: const BoxDecoration(
+        color: AppColors.primary,
+      ),
+      child: Row(
         children: [
-          // Header con código y estado
-          _buildHeader(context),
-
-          // Información del paciente
-          _buildSection(
-            title: 'Paciente',
-            icon: Icons.person,
-            children: [
-              _buildInfoTile(
-                label: 'Nombre',
-                value: traslado.pacienteNombre ?? 'No especificado',
-              ),
-              if (traslado.observacionesMedicas != null)
-                _buildInfoTile(
-                  label: 'Observaciones médicas',
-                  value: traslado.observacionesMedicas!,
-                  isMultiline: true,
-                ),
-            ],
-          ),
-
-          // Información del traslado
-          _buildSection(
-            title: 'Detalles del Traslado',
-            icon: Icons.info_outline,
-            children: [
-              _buildInfoTile(
-                label: 'Fecha',
-                value: DateFormat('dd/MM/yyyy').format(traslado.fecha),
-              ),
-              _buildInfoTile(
-                label: 'Hora programada',
-                value: traslado.horaProgramada.substring(0, 5),
-              ),
-              _buildInfoTile(
-                label: 'Tipo',
-                value: traslado.tipoTraslado.toUpperCase(),
-              ),
-              if (traslado.prioridad <= 3)
-                _buildInfoTile(
-                  label: 'Prioridad',
-                  value: 'ALTA',
-                  valueColor: AppColors.highPriority,
-                ),
-            ],
-          ),
-
-          // Origen y destino
-          _buildSection(
-            title: 'Recorrido',
-            icon: Icons.route,
-            children: [
-              _buildInfoTile(
-                label: 'Origen',
-                value: traslado.origenCompleto,
-                isMultiline: true,
-                leadingIcon: Icons.location_on,
-                leadingIconColor: AppColors.success,
-              ),
-              _buildInfoTile(
-                label: 'Destino',
-                value: traslado.destinoCompleto,
-                isMultiline: true,
-                leadingIcon: Icons.place,
-                leadingIconColor: AppColors.emergency,
-              ),
-            ],
-          ),
-
-          // Requisitos especiales
-          if (traslado.requiereEquipamientoEspecial)
-            _buildSection(
-              title: 'Requisitos Especiales',
-              icon: Icons.medical_services,
-              children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (traslado.requiereCamilla)
-                      _buildRequisito(icon: Icons.bed, label: 'Camilla'),
-                    if (traslado.requiereSillaRuedas)
-                      _buildRequisito(icon: Icons.accessible, label: 'Silla de ruedas'),
-                    if (traslado.requiereAyuda)
-                      _buildRequisito(icon: Icons.people, label: 'Ayuda adicional'),
-                    if (traslado.requiereAcompanante)
-                      _buildRequisito(icon: Icons.person_add, label: 'Acompañante'),
-                  ],
-                ),
-              ],
+          // Estado actual
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
             ),
-
-          // Observaciones
-          if (traslado.observaciones != null)
-            _buildSection(
-              title: 'Observaciones',
-              icon: Icons.note,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    traslado.observaciones!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.gray700,
-                    ),
+                Icon(
+                  _getIconForEstado(traslado.estado),
+                  size: 18,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  traslado.estado.label,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
                 ),
               ],
             ),
+          ),
+          const Spacer(),
 
-          // Botones de cambio de estado (solo si el traslado está activo)
-          if (traslado.estado.isActivo) ...[
-            const SizedBox(height: 24),
-            _buildEstadoActions(context),
-          ],
-
-          const SizedBox(height: 32),
+          // Última actualización
+          if (traslado.ultimaActualizacionEstado != null)
+            Text(
+              DateFormat('dd/MM/yyyy HH:mm').format(traslado.ultimaActualizacionEstado!),
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.white.withValues(alpha: 0.8),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildInfoEsencial() {
     return Container(
-      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gray300, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Paciente
+          _buildInfoRow(
+            icon: Icons.person_outline,
+            label: 'Paciente',
+            value: traslado.pacienteNombre ?? 'No especificado',
+          ),
+          const SizedBox(height: 20),
+
+          // Fecha y hora
           Row(
             children: [
+              Expanded(
+                child: _buildInfoRow(
+                  icon: Icons.calendar_today_outlined,
+                  label: 'Fecha',
+                  value: DateFormat('dd/MM/yyyy').format(traslado.fecha),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildInfoRow(
+                  icon: Icons.access_time_outlined,
+                  label: 'Hora',
+                  value: traslado.horaProgramada.substring(0, 5),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Línea visual para ruta
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Línea conectora
+              Column(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: AppColors.success,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Container(
+                    width: 2,
+                    height: 40,
+                    color: AppColors.gray300,
+                  ),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
+
+              // Información de ubicaciones
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Código',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[600],
-                      ),
+                    // Origen
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ORIGEN',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.gray600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          traslado.origenCompleto,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.gray900,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      traslado.codigo,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                      ),
+                    const SizedBox(height: 24),
+
+                    // Destino
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'DESTINO',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.gray600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          traslado.destinoCompleto,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.gray900,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const Text(
-                'Estado actual:',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.gray600,
-                ),
+
+          // Prioridad alta
+          if (traslado.prioridad <= 3) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.highPriority.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
               ),
-              const SizedBox(width: 12),
-              EstadoTrasladoBadge(estado: traslado.estado, showIcon: true),
-            ],
-          ),
-          if (traslado.ultimaActualizacionEstado != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Actualizado: ${DateFormat('dd/MM/yyyy HH:mm').format(traslado.ultimaActualizacionEstado!)}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.priority_high,
+                    size: 16,
+                    color: AppColors.highPriority,
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'PRIORIDAD ALTA',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.highPriority,
+                    ),
+                  ),
+                ],
               ),
+            ),
+          ],
+
+          // Requisitos especiales
+          if (traslado.requiereEquipamientoEspecial) ...[
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (traslado.requiereCamilla)
+                  _buildRequisitoChip(icon: Icons.bed_outlined, label: 'Camilla'),
+                if (traslado.requiereSillaRuedas)
+                  _buildRequisitoChip(icon: Icons.accessible, label: 'Silla'),
+                if (traslado.requiereAyuda)
+                  _buildRequisitoChip(icon: Icons.people_outline, label: 'Ayuda'),
+                if (traslado.requiereAcompanante)
+                  _buildRequisitoChip(icon: Icons.person_add_outlined, label: 'Acompañante'),
+              ],
             ),
           ],
         ],
@@ -292,140 +382,7 @@ class _TrasladoDetalleContent extends StatelessWidget {
     );
   }
 
-  Widget _buildSection({
-    required String title,
-    required IconData icon,
-    required List<Widget> children,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(icon, size: 20, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.gray900,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: children,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoTile({
-    required String label,
-    required String value,
-    bool isMultiline = false,
-    IconData? leadingIcon,
-    Color? leadingIconColor,
-    Color? valueColor,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (leadingIcon != null) ...[
-            Icon(
-              leadingIcon,
-              size: 20,
-              color: leadingIconColor ?? AppColors.gray600,
-            ),
-            const SizedBox(width: 8),
-          ],
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: valueColor ?? AppColors.gray900,
-                  ),
-                  maxLines: isMultiline ? null : 2,
-                  overflow: isMultiline ? null : TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRequisito({
-    required IconData icon,
-    required String label,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.info.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.info.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: AppColors.info),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.info,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEstadoActions(BuildContext context) {
+  Widget _buildAccionesPrincipales(BuildContext context) {
     final estadosSiguientes = _obtenerEstadosSiguientes(traslado.estado);
 
     if (estadosSiguientes.isEmpty) {
@@ -433,35 +390,144 @@ class _TrasladoDetalleContent extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gray300, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Cambiar estado a:',
+          Text(
+            'Cambiar Estado',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: AppColors.gray700,
+              color: AppColors.gray900,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           ...estadosSiguientes.map((estado) {
             return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: 10),
               child: _buildEstadoButton(context, estado),
             );
           }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrasladoFinalizado() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.gray300, width: 1),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.success.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.check_circle_outline,
+              size: 40,
+              color: AppColors.success,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Traslado Finalizado',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.gray900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Este traslado ha sido completado',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.gray600,
+              fontWeight: FontWeight.w400,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: AppColors.gray500),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.gray600,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.gray900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRequisitoChip({
+    required IconData icon,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.gray100,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: AppColors.gray700),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: AppColors.gray700,
+            ),
+          ),
         ],
       ),
     );
@@ -472,24 +538,34 @@ class _TrasladoDetalleContent extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton.icon(
+      child: ElevatedButton(
         onPressed: () => _cambiarEstado(context, nuevoEstado),
-        icon: Icon(_getIconForEstado(nuevoEstado)),
-        label: Text(
-          nuevoEstado.label,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
-          elevation: 2,
+          elevation: 0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _getIconForEstado(nuevoEstado),
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              nuevoEstado.label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -499,12 +575,15 @@ class _TrasladoDetalleContent extends StatelessWidget {
     switch (estadoActual) {
       case EstadoTraslado.asignado:
       case EstadoTraslado.pendiente:
+      case EstadoTraslado.enviado:
         return [EstadoTraslado.recibido];
       case EstadoTraslado.recibido:
         return [EstadoTraslado.enOrigen];
       case EstadoTraslado.enOrigen:
         return [EstadoTraslado.saliendoOrigen];
       case EstadoTraslado.saliendoOrigen:
+        return [EstadoTraslado.enTransito, EstadoTraslado.enDestino];
+      case EstadoTraslado.enTransito:
         return [EstadoTraslado.enDestino];
       case EstadoTraslado.enDestino:
         return [EstadoTraslado.finalizado];
@@ -515,6 +594,14 @@ class _TrasladoDetalleContent extends StatelessWidget {
 
   Future<void> _cambiarEstado(BuildContext context, EstadoTraslado nuevoEstado) async {
     try {
+      // Obtener ID de usuario desde AuthBloc (antes de operaciones async)
+      final authState = context.read<AuthBloc>().state;
+      if (authState is! AuthAuthenticated || authState.personal == null) {
+        throw Exception('Usuario no autenticado');
+      }
+
+      final idUsuario = authState.personal!.id;
+
       // Obtener ubicación actual
       UbicacionEntity? ubicacion;
       try {
@@ -530,14 +617,6 @@ class _TrasladoDetalleContent extends StatelessWidget {
       } catch (e) {
         debugPrint('⚠️  No se pudo obtener ubicación: $e');
       }
-
-      // Obtener ID de usuario desde AuthBloc
-      final authState = context.read<AuthBloc>().state;
-      if (authState is! AuthAuthenticated || authState.personal == null) {
-        throw Exception('Usuario no autenticado');
-      }
-
-      final idUsuario = authState.personal!.id;
 
       // Cambiar estado
       if (context.mounted) {
@@ -569,12 +648,16 @@ class _TrasladoDetalleContent extends StatelessWidget {
 
   IconData _getIconForEstado(EstadoTraslado estado) {
     switch (estado) {
+      case EstadoTraslado.enviado:
+        return Icons.send_outlined;
       case EstadoTraslado.recibido:
         return Icons.check_circle_outline;
       case EstadoTraslado.enOrigen:
         return Icons.location_on;
       case EstadoTraslado.saliendoOrigen:
         return Icons.drive_eta;
+      case EstadoTraslado.enTransito:
+        return Icons.local_shipping_outlined;
       case EstadoTraslado.enDestino:
         return Icons.place;
       case EstadoTraslado.finalizado:

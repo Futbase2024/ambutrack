@@ -6,14 +6,20 @@ enum EstadoTraslado {
   /// Traslado asignado a conductor/vehículo
   asignado('asignado'),
 
-  /// Conductor ha recibido el traslado en su móvil
-  recibido('recibido'),
+  /// Enviado al conductor (notificación)
+  enviado('enviado'),
+
+  /// Conductor confirmó recepción (visto)
+  recibido('recibido_conductor'),
 
   /// Conductor ha llegado al origen
   enOrigen('en_origen'),
 
   /// Conductor está saliendo del origen con el paciente
   saliendoOrigen('saliendo_origen'),
+
+  /// Conductor en camino al destino
+  enTransito('en_transito'),
 
   /// Conductor ha llegado al destino
   enDestino('en_destino'),
@@ -25,10 +31,7 @@ enum EstadoTraslado {
   cancelado('cancelado'),
 
   /// Traslado no realizado
-  noRealizado('no_realizado'),
-
-  /// Traslado suspendido
-  suspendido('suspendido');
+  noRealizado('no_realizado');
 
   const EstadoTraslado(this.value);
 
@@ -49,12 +52,16 @@ enum EstadoTraslado {
         return '#F59E0B'; // Naranja
       case EstadoTraslado.asignado:
         return '#3B82F6'; // Azul
+      case EstadoTraslado.enviado:
+        return '#7C3AED'; // Violeta
       case EstadoTraslado.recibido:
         return '#8B5CF6'; // Púrpura
       case EstadoTraslado.enOrigen:
         return '#10B981'; // Verde claro
       case EstadoTraslado.saliendoOrigen:
         return '#06B6D4'; // Cyan
+      case EstadoTraslado.enTransito:
+        return '#0EA5E9'; // Azul claro
       case EstadoTraslado.enDestino:
         return '#14B8A6'; // Teal
       case EstadoTraslado.finalizado:
@@ -63,8 +70,6 @@ enum EstadoTraslado {
         return '#EF4444'; // Rojo
       case EstadoTraslado.noRealizado:
         return '#DC2626'; // Rojo oscuro
-      case EstadoTraslado.suspendido:
-        return '#9CA3AF'; // Gris
     }
   }
 
@@ -75,12 +80,16 @@ enum EstadoTraslado {
         return 'PENDIENTE';
       case EstadoTraslado.asignado:
         return 'ASIGNADO';
+      case EstadoTraslado.enviado:
+        return 'ENVIADO';
       case EstadoTraslado.recibido:
         return 'RECIBIDO';
       case EstadoTraslado.enOrigen:
         return 'EN ORIGEN';
       case EstadoTraslado.saliendoOrigen:
         return 'SALIENDO';
+      case EstadoTraslado.enTransito:
+        return 'EN TRÁNSITO';
       case EstadoTraslado.enDestino:
         return 'EN DESTINO';
       case EstadoTraslado.finalizado:
@@ -89,8 +98,6 @@ enum EstadoTraslado {
         return 'CANCELADO';
       case EstadoTraslado.noRealizado:
         return 'NO REALIZADO';
-      case EstadoTraslado.suspendido:
-        return 'SUSPENDIDO';
     }
   }
 
@@ -98,8 +105,7 @@ enum EstadoTraslado {
   bool get isActivo {
     return this != EstadoTraslado.finalizado &&
         this != EstadoTraslado.cancelado &&
-        this != EstadoTraslado.noRealizado &&
-        this != EstadoTraslado.suspendido;
+        this != EstadoTraslado.noRealizado;
   }
 
   /// Indica si el conductor puede cambiar a este estado desde la app
@@ -107,6 +113,7 @@ enum EstadoTraslado {
     return this == EstadoTraslado.recibido ||
         this == EstadoTraslado.enOrigen ||
         this == EstadoTraslado.saliendoOrigen ||
+        this == EstadoTraslado.enTransito ||
         this == EstadoTraslado.enDestino ||
         this == EstadoTraslado.finalizado;
   }

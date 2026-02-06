@@ -97,10 +97,19 @@ class _TrayectosExcepcionesPanelState
 
                 // Datos cargados
                 final List<TrasladoEntity> todosTrayectos = snapshot.data!;
+                // Estados considerados "en curso"
+                const Set<EstadoTraslado> estadosEnCurso = <EstadoTraslado>{
+                  EstadoTraslado.pendiente,
+                  EstadoTraslado.asignado,
+                  EstadoTraslado.recibido,
+                  EstadoTraslado.enOrigen,
+                  EstadoTraslado.saliendoOrigen,
+                  EstadoTraslado.enDestino,
+                };
                 final List<TrasladoEntity> trayectosActivos =
-                    todosTrayectos.where((TrasladoEntity t) => t.estaEnCurso).toList();
+                    todosTrayectos.where((TrasladoEntity t) => estadosEnCurso.contains(t.estado)).toList();
                 final List<TrasladoEntity> trayectosHistorico =
-                    todosTrayectos.where((TrasladoEntity t) => !t.estaEnCurso).toList();
+                    todosTrayectos.where((TrasladoEntity t) => !estadosEnCurso.contains(t.estado)).toList();
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -245,29 +254,25 @@ class _TrayectosExcepcionesPanelState
 
   Widget _buildTrayectoCard(TrasladoEntity trayecto) {
     final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
-    final DateFormat timeFormat = DateFormat('HH:mm');
 
     // Color según estado
     Color estadoColor;
     switch (trayecto.estado) {
-      case 'pendiente':
+      case EstadoTraslado.pendiente:
         estadoColor = AppColors.textSecondaryLight; // Gris
-      case 'cancelado':
-      case 'anulado':
+      case EstadoTraslado.cancelado:
         estadoColor = AppColors.error; // Rojo
-      case 'asignado':
-      case 'enviado':
-      case 'recibido_conductor':
-      case 'en_origen':
-      case 'saliendo_origen':
-      case 'en_transito':
-      case 'en_destino':
-      case 'finalizado':
+      case EstadoTraslado.asignado:
+      case EstadoTraslado.enviado:
+      case EstadoTraslado.recibido:
+      case EstadoTraslado.enOrigen:
+      case EstadoTraslado.saliendoOrigen:
+      case EstadoTraslado.enTransito:
+      case EstadoTraslado.enDestino:
+      case EstadoTraslado.finalizado:
         estadoColor = AppColors.success; // Verde
-      case 'no_realizado':
+      case EstadoTraslado.noRealizado:
         estadoColor = AppColors.warning; // Amarillo/naranja
-      default:
-        estadoColor = AppColors.textSecondaryLight;
     }
 
     return Container(
@@ -286,7 +291,7 @@ class _TrayectosExcepcionesPanelState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               Text(
-                '${trayecto.fecha != null ? dateFormat.format(trayecto.fecha!) : 'Sin fecha'} - ${trayecto.horaProgramada != null ? timeFormat.format(trayecto.horaProgramada!) : 'Sin hora'}',
+                '${dateFormat.format(trayecto.fecha)} - ${trayecto.horaProgramada}',
                 style: const TextStyle(
                   fontSize: AppSizes.fontSmall,
                   fontWeight: FontWeight.w600,
@@ -301,7 +306,7 @@ class _TrayectosExcepcionesPanelState
                   border: Border.all(color: estadoColor.withValues(alpha: 0.3)),
                 ),
                 child: Text(
-                  trayecto.estadoFormateado,
+                  trayecto.estado.name,
                   style: TextStyle(
                     fontSize: AppSizes.fontSmall,
                     color: estadoColor,
@@ -359,12 +364,12 @@ class _TrayectosExcepcionesPanelState
           // Conductor y vehículo
           Row(
             children: <Widget>[
-              if (trayecto.idPersonalConductor != null) ...<Widget>[
+              if (trayecto.idConductor != null) ...<Widget>[
                 const Icon(Icons.person,
                     size: 16, color: AppColors.textSecondaryLight),
                 const SizedBox(width: 4),
                 Text(
-                  'Conductor: ${trayecto.idPersonalConductor}',
+                  'Conductor: ${trayecto.conductorNombre ?? trayecto.idConductor}',
                   style: const TextStyle(
                     fontSize: AppSizes.fontSmall,
                     color: AppColors.textSecondaryLight,

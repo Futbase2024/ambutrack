@@ -875,8 +875,17 @@ class _TrayectosExcepcionesTabState extends State<_TrayectosExcepcionesTab>
         }
       }
 
-      final List<TrasladoEntity> activos = trayectos.where((TrasladoEntity t) => t.estaEnCurso).toList();
-      final List<TrasladoEntity> historico = trayectos.where((TrasladoEntity t) => !t.estaEnCurso).toList();
+      // Estados considerados "en curso" (activos)
+      const Set<EstadoTraslado> estadosEnCurso = <EstadoTraslado>{
+        EstadoTraslado.pendiente,
+        EstadoTraslado.asignado,
+        EstadoTraslado.recibido,
+        EstadoTraslado.enOrigen,
+        EstadoTraslado.saliendoOrigen,
+        EstadoTraslado.enDestino,
+      };
+      final List<TrasladoEntity> activos = trayectos.where((TrasladoEntity t) => estadosEnCurso.contains(t.estado)).toList();
+      final List<TrasladoEntity> historico = trayectos.where((TrasladoEntity t) => !estadosEnCurso.contains(t.estado)).toList();
 
       setState(() {
         _trayectosActivos = activos;
@@ -1134,15 +1143,15 @@ class _TrayectosExcepcionesTabState extends State<_TrayectosExcepcionesTab>
             title: 'Confirmar Eliminación',
             message: '¿Estás seguro de que deseas eliminar este trayecto? Esta acción no se puede deshacer.',
             itemDetails: <String, String>{
-              if (trayecto.codigo != null) 'Código': trayecto.codigo!,
-              if (trayecto.tipoTraslado != null) 'Tipo': trayecto.tipoTraslado!,
-              if (trayecto.fecha != null) 'Fecha': DateFormat('dd/MM/yyyy').format(trayecto.fecha!),
-              if (trayecto.horaProgramada != null) 'Hora': DateFormat('HH:mm').format(trayecto.horaProgramada!),
+              'Código': trayecto.codigo,
+              'Tipo': trayecto.tipoTraslado,
+              'Fecha': DateFormat('dd/MM/yyyy').format(trayecto.fecha),
+              'Hora': trayecto.horaProgramada,
               if (trayecto.origen != null && trayecto.origen!.isNotEmpty)
                 'Origen': trayecto.origen!,
               if (trayecto.destino != null && trayecto.destino!.isNotEmpty)
                 'Destino': trayecto.destino!,
-              if (trayecto.estado != null) 'Estado': trayecto.estado!.toUpperCase(),
+              'Estado': trayecto.estado.name.toUpperCase(),
             },
             warningMessage: '⚠️ El trayecto será eliminado permanentemente de la base de datos.',
           );
@@ -1300,34 +1309,12 @@ class _TrayectosExcepcionesTabState extends State<_TrayectosExcepcionesTab>
     // Ordenar trayectos por fecha y hora programada
     final List<TrasladoEntity> trayectosOrdenados = List<TrasladoEntity>.from(trayectos)
       ..sort((TrasladoEntity a, TrasladoEntity b) {
-        // Manejar null values en fecha
-        if (a.fecha == null && b.fecha == null) {
-          return 0;
-        }
-        if (a.fecha == null) {
-          return 1;
-        }
-        if (b.fecha == null) {
-          return -1;
-        }
-
         // Primero ordenar por fecha
-        final int fechaComparison = a.fecha!.compareTo(b.fecha!);
+        final int fechaComparison = a.fecha.compareTo(b.fecha);
 
         // Si las fechas son iguales, ordenar por hora programada
         if (fechaComparison == 0) {
-          // Manejar null values en horaProgramada
-          if (a.horaProgramada == null && b.horaProgramada == null) {
-            return 0;
-          }
-          if (a.horaProgramada == null) {
-            return 1;
-          }
-          if (b.horaProgramada == null) {
-            return -1;
-          }
-
-          final int horaComparison = a.horaProgramada!.compareTo(b.horaProgramada!);
+          final int horaComparison = a.horaProgramada.compareTo(b.horaProgramada);
           return _sortAscending ? horaComparison : -horaComparison;
         }
 
@@ -1479,28 +1466,24 @@ class _TrayectosExcepcionesTabState extends State<_TrayectosExcepcionesTab>
           Expanded(
             flex: 2,
             child: _TrayectoDataCell(
-              trayecto.fecha != null
-                ? DateFormat('dd/MM/yyyy').format(trayecto.fecha!)
-                : '-',
+              DateFormat('dd/MM/yyyy').format(trayecto.fecha),
             ),
           ),
           // Estado
           Expanded(
             flex: 2,
-            child: _TrayectoStatusCell(trayecto.estadoFormateado),
+            child: _TrayectoStatusCell(trayecto.estado.name),
           ),
           // Ida/Vuelta
           Expanded(
             child: _TrayectoIdaVueltaCell(
-              trayecto.tipoTraslado ?? '-',
+              trayecto.tipoTraslado,
             ),
           ),
           // Hora Programada
           Expanded(
             child: _TrayectoDataCell(
-              trayecto.horaProgramada != null
-                ? DateFormat('HH:mm').format(trayecto.horaProgramada!)
-                : '-',
+              trayecto.horaProgramada,
               textAlign: TextAlign.center,
             ),
           ),
@@ -1528,7 +1511,7 @@ class _TrayectosExcepcionesTabState extends State<_TrayectosExcepcionesTab>
           ),
           // Conductor
           Expanded(
-            child: _TrayectoDataCell(trayecto.idPersonalConductor ?? '-'),
+            child: _TrayectoDataCell(trayecto.conductorNombre ?? trayecto.idConductor ?? '-'),
           ),
           // Acciones
           Expanded(
@@ -1702,10 +1685,9 @@ class _TrayectoAccionesCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Determinar estado del trayecto
-    final String estadoLower = (trayecto.estado ?? '').toLowerCase();
-    final bool estaCancelado = estadoLower == 'cancelado';
-    final bool estaAnulado = estadoLower == 'anulado';
-    final bool estaFinalizado = estadoLower == 'finalizado';
+    final bool estaCancelado = trayecto.estado == EstadoTraslado.cancelado;
+    final bool estaAnulado = trayecto.estado == EstadoTraslado.noRealizado;
+    final bool estaFinalizado = trayecto.estado == EstadoTraslado.finalizado;
 
     // Estado inactivo: cancelado o anulado
     final bool estaInactivo = estaCancelado || estaAnulado;
@@ -1925,7 +1907,6 @@ class _TrayectoAnalisisDialogState extends State<_TrayectoAnalisisDialog> {
   @override
   Widget build(BuildContext context) {
     final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
-    final DateFormat timeFormat = DateFormat('HH:mm');
     final DateFormat dateTimeFormat = DateFormat('dd/MM/yyyy HH:mm');
 
     return Dialog(
@@ -1967,14 +1948,13 @@ class _TrayectoAnalisisDialogState extends State<_TrayectoAnalisisDialog> {
                           color: AppColors.textPrimaryLight,
                         ),
                       ),
-                      if (widget.trayecto.codigo != null)
-                        Text(
-                          'Código: ${widget.trayecto.codigo}',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            color: AppColors.textSecondaryLight,
-                          ),
+                      Text(
+                        'Código: ${widget.trayecto.codigo}',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: AppColors.textSecondaryLight,
                         ),
+                      ),
                     ],
                   ),
                 ),
@@ -2002,10 +1982,10 @@ class _TrayectoAnalisisDialogState extends State<_TrayectoAnalisisDialog> {
                           child: _buildSection(
                             title: '📋 Información General',
                             children: <Widget>[
-                              _buildInfoRow('Estado', widget.trayecto.estadoFormateado),
-                              _buildInfoRow('Tipo', widget.trayecto.tipoTrasladoFormateado),
-                              _buildInfoRow('Fecha', widget.trayecto.fecha != null ? dateFormat.format(widget.trayecto.fecha!) : '-'),
-                              _buildInfoRow('Hora Programada', widget.trayecto.horaProgramada != null ? timeFormat.format(widget.trayecto.horaProgramada!) : '-'),
+                              _buildInfoRow('Estado', widget.trayecto.estado.name),
+                              _buildInfoRow('Tipo', widget.trayecto.tipoTraslado),
+                              _buildInfoRow('Fecha', dateFormat.format(widget.trayecto.fecha)),
+                              _buildInfoRow('Hora Programada', widget.trayecto.horaProgramada),
                             ],
                           ),
                         ),
@@ -2014,10 +1994,8 @@ class _TrayectoAnalisisDialogState extends State<_TrayectoAnalisisDialog> {
                           child: _buildSection(
                             title: '👥 Recursos Asignados',
                             children: <Widget>[
-                              _buildInfoRow('Conductor', widget.trayecto.idPersonalConductor ?? 'Sin asignar'),
-                              _buildInfoRow('Enfermero', widget.trayecto.idPersonalEnfermero ?? 'Sin asignar'),
-                              _buildInfoRow('Médico', widget.trayecto.idPersonalMedico ?? 'Sin asignar'),
-                              _buildInfoRow('Vehículo', widget.trayecto.idVehiculo ?? 'Sin asignar'),
+                              _buildInfoRow('Conductor', widget.trayecto.conductorNombre ?? widget.trayecto.idConductor ?? 'Sin asignar'),
+                              _buildInfoRow('Vehículo', widget.trayecto.vehiculoMatricula ?? widget.trayecto.idVehiculo ?? 'Sin asignar'),
                             ],
                           ),
                         ),
@@ -2050,24 +2028,17 @@ class _TrayectoAnalisisDialogState extends State<_TrayectoAnalisisDialog> {
                       ],
                     ),
 
-                    // SECCIÓN: Kilometraje
-                    if (widget.trayecto.kmInicio != null || widget.trayecto.kmFin != null || widget.trayecto.kmTotales != null)
+                    // SECCIÓN: Kilometraje y Duración
+                    if (widget.trayecto.kilometrosRecorridos != null || widget.trayecto.tiempoViajeMinutos != null || widget.trayecto.tiempoEsperaOrigenMinutos != null)
                       _buildSection(
-                        title: '🛣️ Kilometraje',
+                        title: '🛣️ Métricas del Trayecto',
                         children: <Widget>[
-                          _buildInfoRow('KM Inicio', widget.trayecto.kmInicio?.toStringAsFixed(2) ?? '-'),
-                          _buildInfoRow('KM Fin', widget.trayecto.kmFin?.toStringAsFixed(2) ?? '-'),
-                          _buildInfoRow('KM Totales', widget.trayecto.kmTotales?.toStringAsFixed(2) ?? '-'),
-                        ],
-                      ),
-
-                    // SECCIÓN: Duración
-                    if (widget.trayecto.duracionEstimadaMinutos != null || widget.trayecto.duracionRealMinutos != null)
-                      _buildSection(
-                        title: '⏱️ Duración',
-                        children: <Widget>[
-                          _buildInfoRow('Estimada', widget.trayecto.duracionEstimadaMinutos != null ? '${widget.trayecto.duracionEstimadaMinutos} min' : '-'),
-                          _buildInfoRow('Real', widget.trayecto.duracionRealMinutos != null ? '${widget.trayecto.duracionRealMinutos} min' : '-'),
+                          if (widget.trayecto.kilometrosRecorridos != null)
+                            _buildInfoRow('KM Recorridos', widget.trayecto.kilometrosRecorridos!.toStringAsFixed(2)),
+                          if (widget.trayecto.tiempoViajeMinutos != null)
+                            _buildInfoRow('Tiempo de Viaje', '${widget.trayecto.tiempoViajeMinutos} min'),
+                          if (widget.trayecto.tiempoEsperaOrigenMinutos != null)
+                            _buildInfoRow('Tiempo de Espera', '${widget.trayecto.tiempoEsperaOrigenMinutos} min'),
                         ],
                       ),
 
@@ -2101,12 +2072,6 @@ class _TrayectoAnalisisDialogState extends State<_TrayectoAnalisisDialog> {
                               : 'Pendiente',
                         ),
                         _buildInfoRow(
-                          'En Tránsito',
-                          widget.trayecto.fechaEnTransito != null
-                              ? dateTimeFormat.format(widget.trayecto.fechaEnTransito!)
-                              : 'Pendiente',
-                        ),
-                        _buildInfoRow(
                           'En Destino',
                           widget.trayecto.fechaEnDestino != null
                               ? dateTimeFormat.format(widget.trayecto.fechaEnDestino!)
@@ -2126,8 +2091,8 @@ class _TrayectoAnalisisDialogState extends State<_TrayectoAnalisisDialog> {
                         // Estados de finalización anormal
                         _buildInfoRow(
                           'Cancelado',
-                          widget.trayecto.fechaCancelado != null
-                              ? dateTimeFormat.format(widget.trayecto.fechaCancelado!)
+                          widget.trayecto.fechaCancelacion != null
+                              ? dateTimeFormat.format(widget.trayecto.fechaCancelacion!)
                               : '-',
                         ),
                         _buildInfoRow(
@@ -2146,26 +2111,26 @@ class _TrayectoAnalisisDialogState extends State<_TrayectoAnalisisDialog> {
                     ),
 
                     // SECCIÓN: Observaciones
-                    if (widget.trayecto.observaciones != null || widget.trayecto.observacionesInternas != null)
+                    if (widget.trayecto.observaciones != null || widget.trayecto.observacionesMedicas != null)
                       _buildSection(
                         title: '📝 Observaciones',
                         children: <Widget>[
                           if (widget.trayecto.observaciones != null)
                             _buildInfoRow('Generales', widget.trayecto.observaciones!),
-                          if (widget.trayecto.observacionesInternas != null)
-                            _buildInfoRow('Internas', widget.trayecto.observacionesInternas!),
+                          if (widget.trayecto.observacionesMedicas != null)
+                            _buildInfoRow('Médicas', widget.trayecto.observacionesMedicas!),
                         ],
                       ),
 
-                    // SECCIÓN: Motivos de Finalización Anormal
-                    if (widget.trayecto.motivoCancelacion != null || widget.trayecto.motivoNoRealizacion != null)
+                    // SECCIÓN: Motivos de Cancelación
+                    if (widget.trayecto.motivoCancelacion != null || widget.trayecto.observacionesCancelacion != null)
                       _buildSection(
-                        title: '⚠️ Motivos de Finalización',
+                        title: '⚠️ Motivos de Cancelación',
                         children: <Widget>[
                           if (widget.trayecto.motivoCancelacion != null)
-                            _buildInfoRow('Cancelación', widget.trayecto.motivoCancelacion!),
-                          if (widget.trayecto.motivoNoRealizacion != null)
-                            _buildInfoRow('No Realización', widget.trayecto.motivoNoRealizacion!),
+                            _buildInfoRow('Motivo', widget.trayecto.motivoCancelacion!),
+                          if (widget.trayecto.observacionesCancelacion != null)
+                            _buildInfoRow('Observaciones', widget.trayecto.observacionesCancelacion!),
                         ],
                       ),
 
@@ -2173,20 +2138,18 @@ class _TrayectoAnalisisDialogState extends State<_TrayectoAnalisisDialog> {
                     _buildSection(
                       title: '🔍 Auditoría',
                       children: <Widget>[
-                        if (widget.trayecto.idUsuarioAsignacion != null)
-                          _buildInfoRow('Usuario Asignación', widget.trayecto.idUsuarioAsignacion!),
+                        if (widget.trayecto.usuarioAsignacion != null)
+                          _buildInfoRow('Usuario Asignación', widget.trayecto.usuarioAsignacion!),
                         if (widget.trayecto.fechaAsignacion != null)
                           _buildInfoRow('Fecha Asignación', dateTimeFormat.format(widget.trayecto.fechaAsignacion!)),
-                        if (widget.trayecto.idUsuarioEnvio != null)
-                          _buildInfoRow('Usuario Envío', widget.trayecto.idUsuarioEnvio!),
-                        if (widget.trayecto.fechaEnvio != null)
-                          _buildInfoRow('Fecha Envío', dateTimeFormat.format(widget.trayecto.fechaEnvio!.toLocal())),
-                        if (widget.trayecto.idUsuarioCancelacion != null)
-                          _buildInfoRow('Usuario Cancelación', widget.trayecto.idUsuarioCancelacion!),
-                        if (widget.trayecto.createdAt != null)
-                          _buildInfoRow('Creado', dateTimeFormat.format(widget.trayecto.createdAt!.toLocal())),
-                        if (widget.trayecto.updatedAt != null)
-                          _buildInfoRow('Actualizado', dateTimeFormat.format(widget.trayecto.updatedAt!.toLocal())),
+                        if (widget.trayecto.usuarioEnvio != null)
+                          _buildInfoRow('Usuario Envío', widget.trayecto.usuarioEnvio!),
+                        if (widget.trayecto.fechaEnviado != null)
+                          _buildInfoRow('Fecha Envío', dateTimeFormat.format(widget.trayecto.fechaEnviado!.toLocal())),
+                        if (widget.trayecto.usuarioCancelacion != null)
+                          _buildInfoRow('Usuario Cancelación', widget.trayecto.usuarioCancelacion!),
+                        _buildInfoRow('Creado', dateTimeFormat.format(widget.trayecto.createdAt.toLocal())),
+                        _buildInfoRow('Actualizado', dateTimeFormat.format(widget.trayecto.updatedAt.toLocal())),
                         if (widget.trayecto.createdBy != null)
                           _buildInfoRow('Creado Por', widget.trayecto.createdBy!),
                         if (widget.trayecto.updatedBy != null)

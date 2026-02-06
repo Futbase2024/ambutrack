@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/services/auth_service.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';

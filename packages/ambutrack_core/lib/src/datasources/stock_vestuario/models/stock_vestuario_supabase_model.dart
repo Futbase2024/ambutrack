@@ -1,4 +1,4 @@
-import 'package:ambutrack_core_datasource/src/datasources/stock_vestuario/entities/stock_vestuario_entity.dart';
+import 'package:ambutrack_core/src/datasources/stock_vestuario/entities/stock_vestuario_entity.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'stock_vestuario_supabase_model.g.dart';

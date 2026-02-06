@@ -221,7 +221,7 @@ class ServiciosFilters {
 
       switch (columna) {
         case 'tipoTraslado':
-          valor = (traslado.tipoTraslado ?? 'ida').toUpperCase();
+          valor = traslado.tipoTraslado.toUpperCase();
           break;
         case 'paciente':
           if (servicio?.paciente != null) {
@@ -264,11 +264,11 @@ class ServiciosFilters {
           valor = servicio?.motivoTraslado?.nombre ?? '';
           break;
         case 'estatus':
-          valor = traslado.estadoFormateado;
+          valor = traslado.estado.name;
           break;
         case 'conductor':
-          valor = traslado.idPersonalConductor != null
-              ? (personalPorId[traslado.idPersonalConductor!] ?? '')
+          valor = traslado.idConductor != null
+              ? (personalPorId[traslado.idConductor!] ?? '')
               : '';
           break;
         case 'matricula':

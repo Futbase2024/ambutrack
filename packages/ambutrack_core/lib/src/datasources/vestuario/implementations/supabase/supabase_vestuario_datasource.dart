@@ -1,6 +1,6 @@
-import 'package:ambutrack_core_datasource/src/datasources/vestuario/entities/vestuario_entity.dart';
-import 'package:ambutrack_core_datasource/src/datasources/vestuario/models/vestuario_supabase_model.dart';
-import 'package:ambutrack_core_datasource/src/datasources/vestuario/vestuario_contract.dart';
+import 'package:ambutrack_core/src/datasources/vestuario/entities/vestuario_entity.dart';
+import 'package:ambutrack_core/src/datasources/vestuario/models/vestuario_supabase_model.dart';
+import 'package:ambutrack_core/src/datasources/vestuario/vestuario_contract.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

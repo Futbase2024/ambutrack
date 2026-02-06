@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:ambutrack_core/ambutrack_core.dart';
+import '../../../../core/logging/app_logger.dart';
+import '../../../../core/realtime/connection_manager.dart';
 import '../../domain/repositories/traslados_repository.dart';
 import 'traslados_event.dart';
 import 'traslados_state.dart';
@@ -23,9 +26,20 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
     on<EventoTrasladoRecibido>(_onEventoTrasladoRecibido);
   }
 
+  static const String _tag = 'TrasladosBloc';
+
   final TrasladosRepository _repository;
+  final _connectionManager = RealtimeConnectionManager();
+
   StreamSubscription? _trasladosStreamSubscription;
   StreamSubscription? _eventosStreamSubscription;
+
+  /// Acceso al ConnectionManager para la UI
+  RealtimeConnectionManager get connectionManager => _connectionManager;
+
+  /// Stream de estados de conexión Realtime para la UI
+  Stream<RealtimeConnectionState> get connectionState =>
+      _connectionManager.connectionState;
 
   /// Carga los traslados activos del conductor
   Future<void> _onCargarTrasladosActivos(
@@ -33,16 +47,26 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
     Emitter<TrasladosState> emit,
   ) async {
     try {
-      debugPrint('🎯 [TrasladosBloc] Cargando traslados activos del conductor: ${event.idConductor}');
+      AppLogger.startOperation(
+        'Cargando traslados activos del conductor: ${event.idConductor}',
+        tag: _tag,
+      );
       emit(const TrasladosLoading());
 
       final traslados = await _repository.getActivosByIdConductor(event.idConductor);
 
-      debugPrint('✅ [TrasladosBloc] Traslados cargados: ${traslados.length}');
+      AppLogger.endOperation(
+        'Traslados cargados: ${traslados.length}',
+        tag: _tag,
+      );
       emit(TrasladosLoaded(traslados: traslados));
     } catch (e, stackTrace) {
-      debugPrint('❌ [TrasladosBloc] Error al cargar traslados: $e');
-      debugPrint('Stack trace: $stackTrace');
+      AppLogger.failOperation(
+        'Cargar traslados',
+        e,
+        stackTrace,
+        tag: _tag,
+      );
       emit(TrasladosError('Error al cargar traslados: $e'));
     }
   }
@@ -242,7 +266,7 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
     Emitter<TrasladosState> emit,
   ) async {
     try {
-      debugPrint('🔔 [TrasladosBloc] Iniciando stream de eventos Realtime');
+      AppLogger.startOperation('Stream de eventos Realtime', tag: _tag);
 
       // Cancelar subscriptions anteriores
       await _trasladosStreamSubscription?.cancel();
@@ -253,26 +277,48 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
       final traslados = await _repository.getActivosByIdConductor(event.idConductor);
       emit(TrasladosLoaded(traslados: traslados));
 
-      debugPrint('✅ [TrasladosBloc] ${traslados.length} traslados cargados inicialmente');
+      AppLogger.info(
+        '${traslados.length} traslados cargados inicialmente',
+        tag: _tag,
+      );
 
       // Suscribirse a eventos Realtime
       _eventosStreamSubscription = _repository
           .streamEventosConductor()
           .listen(
             (evento) {
-              debugPrint('⚡ [TrasladosBloc] Evento Realtime: ${evento.eventType.label} - Traslado: ${evento.trasladoId}');
+              AppLogger.debug(
+                'Evento Realtime: ${evento.eventType.label} - Traslado: ${evento.trasladoId}',
+                tag: _tag,
+              );
               add(EventoTrasladoRecibido(evento, event.idConductor));
             },
             onError: (error) {
-              debugPrint('❌ [TrasladosBloc] Error en stream de eventos: $error');
+              AppLogger.error(
+                'Error en stream de eventos',
+                error,
+                null,
+                tag: _tag,
+              );
+              _connectionManager.onSubscribeStatus(
+                RealtimeSubscribeStatus.channelError,
+                error,
+              );
               emit(TrasladosError('Error en Realtime: $error'));
+            },
+            onDone: () {
+              AppLogger.warning('Stream de eventos cerrado', tag: _tag);
             },
           );
 
-      debugPrint('✅ [TrasladosBloc] Stream de eventos Realtime iniciado');
+      AppLogger.endOperation('Stream de eventos Realtime', tag: _tag);
     } catch (e, stackTrace) {
-      debugPrint('❌ [TrasladosBloc] Error al iniciar stream de eventos: $e');
-      debugPrint('Stack trace: $stackTrace');
+      AppLogger.failOperation(
+        'Iniciar stream de eventos',
+        e,
+        stackTrace,
+        tag: _tag,
+      );
       emit(TrasladosError('Error al iniciar eventos Realtime: $e'));
     }
   }
@@ -366,10 +412,11 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
 
   @override
   Future<void> close() {
-    debugPrint('🔌 [TrasladosBloc] Cerrando BLoC y cancelando streams');
+    AppLogger.info('Cerrando BLoC y cancelando streams', tag: _tag);
     _trasladosStreamSubscription?.cancel();
     _eventosStreamSubscription?.cancel();
     _repository.disposeRealtimeChannels();
+    _connectionManager.dispose();
     return super.close();
   }
 }

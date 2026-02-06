@@ -1,5 +1,5 @@
-import 'package:ambutrack_core_datasource/src/core/base_datasource.dart';
-import 'package:ambutrack_core_datasource/src/datasources/almacen/entities/proveedor_entity.dart';
+import 'package:ambutrack_core/src/core/base_datasource.dart';
+import 'package:ambutrack_core/src/datasources/almacen/entities/proveedor_entity.dart';
 
 /// Contrato para el datasource de Proveedores
 abstract class ProveedorDataSource implements BaseDatasource<ProveedorEntity> {

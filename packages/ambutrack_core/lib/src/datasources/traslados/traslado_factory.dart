@@ -7,6 +7,6 @@ import 'traslado_contract.dart';
 class TrasladoDataSourceFactory {
   /// Crea una instancia de TrasladoDataSource usando Supabase
   static TrasladoDataSource createSupabase() {
-    return SupabaseTrasladoDataSource(Supabase.instance.client);
+    return SupabaseTrasladosDataSource(Supabase.instance.client);
   }
 }

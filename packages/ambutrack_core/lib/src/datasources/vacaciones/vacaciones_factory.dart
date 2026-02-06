@@ -1,5 +1,5 @@
-import 'package:ambutrack_core_datasource/src/datasources/vacaciones/implementations/supabase/supabase_vacaciones_datasource.dart';
-import 'package:ambutrack_core_datasource/src/datasources/vacaciones/vacaciones_contract.dart';
+import 'package:ambutrack_core/src/datasources/vacaciones/implementations/supabase/supabase_vacaciones_datasource.dart';
+import 'package:ambutrack_core/src/datasources/vacaciones/vacaciones_contract.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Factory para crear instancias de VacacionesDataSource

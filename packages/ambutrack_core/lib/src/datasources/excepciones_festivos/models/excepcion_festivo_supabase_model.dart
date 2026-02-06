@@ -1,4 +1,4 @@
-import 'package:ambutrack_core_datasource/src/datasources/excepciones_festivos/entities/excepcion_festivo_entity.dart';
+import 'package:ambutrack_core/src/datasources/excepciones_festivos/entities/excepcion_festivo_entity.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'excepcion_festivo_supabase_model.g.dart';

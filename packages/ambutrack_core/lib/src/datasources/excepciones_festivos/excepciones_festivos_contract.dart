@@ -1,4 +1,4 @@
-import 'package:ambutrack_core_datasource/src/datasources/excepciones_festivos/entities/excepcion_festivo_entity.dart';
+import 'package:ambutrack_core/src/datasources/excepciones_festivos/entities/excepcion_festivo_entity.dart';
 
 /// Contrato para el DataSource de Excepciones/Festivos
 abstract class ExcepcionesFestivosDataSource {
