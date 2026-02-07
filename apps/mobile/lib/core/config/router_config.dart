@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:ambutrack_core/ambutrack_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -15,6 +16,8 @@ import '../../features/registro_horario/presentation/pages/registro_horario_page
 import '../../features/servicios/presentation/pages/servicios_historico_page.dart';
 import '../../features/servicios/presentation/pages/servicios_page.dart';
 import '../../features/servicios/presentation/pages/traslado_detalle_page.dart';
+import '../../features/tramites/presentation/pages/tramite_detalle_page.dart';
+import '../../features/tramites/presentation/pages/tramites_page.dart';
 import '../widgets/layouts/main_layout.dart';
 
 /// Memoria de navegación para hot restart
@@ -188,6 +191,52 @@ GoRouter createAppRouter(AuthBloc authBloc) {
                 context: context,
                 state: state,
                 child: TrasladoDetallePage(idTraslado: idTraslado),
+              );
+            },
+          ),
+        ],
+      ),
+
+      // Trámites (Vacaciones y Ausencias)
+      GoRoute(
+        path: '/tramites',
+        name: 'tramites',
+        pageBuilder: (BuildContext context, GoRouterState state) {
+          return _buildPageWithTransition(
+            context: context,
+            state: state,
+            child: const TramitesPage(),
+          );
+        },
+        routes: [
+          // Detalle de vacación
+          GoRoute(
+            path: 'vacacion/:id',
+            name: 'tramite-vacacion-detalle',
+            pageBuilder: (BuildContext context, GoRouterState state) {
+              final vacacion = state.extra as VacacionesEntity;
+              return _buildPageWithTransition(
+                context: context,
+                state: state,
+                child: TramiteDetallePage.vacacion(vacacion: vacacion),
+              );
+            },
+          ),
+          // Detalle de ausencia
+          GoRoute(
+            path: 'ausencia/:id',
+            name: 'tramite-ausencia-detalle',
+            pageBuilder: (BuildContext context, GoRouterState state) {
+              final Map<String, dynamic> extra = state.extra as Map<String, dynamic>;
+              final ausencia = extra['ausencia'] as AusenciaEntity;
+              final tipoAusencia = extra['tipo'] as TipoAusenciaEntity;
+              return _buildPageWithTransition(
+                context: context,
+                state: state,
+                child: TramiteDetallePage.ausencia(
+                  ausencia: ausencia,
+                  tipoAusencia: tipoAusencia,
+                ),
               );
             },
           ),

@@ -98,13 +98,7 @@ class HomeAndroidPage extends StatelessWidget {
           emoji: '📄',
           title: 'Trámites',
           onTap: () {
-            // TODO: Navegar a trámites
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Trámites - Próximamente'),
-                duration: Duration(seconds: 2),
-              ),
-            );
+            context.push('/tramites');
           },
         ),
         _buildFunctionalityCard(
