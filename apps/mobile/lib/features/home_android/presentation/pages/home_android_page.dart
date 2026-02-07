@@ -5,70 +5,93 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../registro_horario/presentation/bloc/registro_horario_bloc.dart';
+import '../../../registro_horario/presentation/bloc/registro_horario_event.dart';
+import '../../../registro_horario/presentation/bloc/registro_horario_state.dart';
 
 /// Página Home de AmbuTrack Mobile
 ///
 /// Dashboard principal para personal de campo.
-class HomeAndroidPage extends StatelessWidget {
+class HomeAndroidPage extends StatefulWidget {
   const HomeAndroidPage({super.key});
+
+  @override
+  State<HomeAndroidPage> createState() => _HomeAndroidPageState();
+}
+
+class _HomeAndroidPageState extends State<HomeAndroidPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Cargar el estado del turno al iniciar
+    context.read<RegistroHorarioBloc>().add(const CargarRegistrosHorario());
+  }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-        child: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            // Mostrar loading si está verificando
-            if (state is AuthInitial || state is AuthLoading) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            }
-
-            // Si no está autenticado
-            if (state is! AuthAuthenticated) {
-              return const Center(
-                child: Text('No autenticado'),
-              );
-            }
-
-            final user = state.user;
-            final personal = state.personal;
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Tarjeta del usuario
-                  _buildUserCard(user, personal),
-
-                  const SizedBox(height: 24),
-
-                  // Título de sección
-                  Text(
-                    'Funcionalidades',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[800],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Cuadrícula de botones de funcionalidades
-                  _buildFunctionalityGrid(context),
-
-                  const SizedBox(height: 24),
-                ],
-              ),
+      child: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, authState) {
+          // Mostrar loading si está verificando
+          if (authState is AuthInitial || authState is AuthLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
             );
-          },
-        ),
+          }
+
+          // Si no está autenticado
+          if (authState is! AuthAuthenticated) {
+            return const Center(
+              child: Text('No autenticado'),
+            );
+          }
+
+          final user = authState.user;
+          final personal = authState.personal;
+
+          return BlocBuilder<RegistroHorarioBloc, RegistroHorarioState>(
+            builder: (context, registroState) {
+              // Determinar si el turno está activo
+              final bool turnoActivo = registroState is RegistroHorarioLoaded &&
+                  registroState.estadoActual == EstadoFichaje.dentro;
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Tarjeta del usuario
+                    _buildUserCard(user, personal),
+
+                    const SizedBox(height: 24),
+
+                    // Título de sección
+                    Text(
+                      'Funcionalidades',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Cuadrícula de botones de funcionalidades
+                    _buildFunctionalityGrid(context, turnoActivo),
+
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
   /// Cuadrícula de funcionalidades principales
-  Widget _buildFunctionalityGrid(BuildContext context) {
+  Widget _buildFunctionalityGrid(BuildContext context, bool turnoActivo) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -77,42 +100,75 @@ class HomeAndroidPage extends StatelessWidget {
       mainAxisSpacing: 12,
       childAspectRatio: 1.1,
       children: [
+        // Botón de Turno - SIEMPRE activo
         _buildFunctionalityCard(
           context: context,
-          emoji: '⏰',
-          title: 'Registro Horario',
+          iconPath: 'assets/icons/turnos.png',
+          title: turnoActivo ? 'Turno Activo' : 'Entrar en Turno',
+          enabled: true,
+          isActive: turnoActivo,
           onTap: () {
             context.push('/registro-horario');
           },
         ),
+        // Servicios - Requiere turno activo
         _buildFunctionalityCard(
           context: context,
-          emoji: '🚑',
+          iconPath: 'assets/icons/servicios.png',
           title: 'Servicios',
+          enabled: turnoActivo,
           onTap: () {
-            context.push('/servicios');
+            if (turnoActivo) {
+              context.push('/servicios');
+            }
           },
         ),
+        // Trámites - Requiere turno activo
         _buildFunctionalityCard(
           context: context,
-          emoji: '📄',
+          iconPath: 'assets/icons/documento.png',
           title: 'Trámites',
+          enabled: turnoActivo,
           onTap: () {
-            context.push('/tramites');
+            if (turnoActivo) {
+              context.push('/tramites');
+            }
           },
         ),
+        // Vehículo - Requiere turno activo
         _buildFunctionalityCard(
           context: context,
-          emoji: '➕',
-          title: 'Más',
+          iconPath: 'assets/icons/ambu.png',
+          title: 'Vehículo',
+          enabled: turnoActivo,
           onTap: () {
-            // TODO: Mostrar más opciones
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Más funciones - Próximamente'),
-                duration: Duration(seconds: 2),
-              ),
-            );
+            if (turnoActivo) {
+              context.push('/vehiculo');
+            }
+          },
+        ),
+        // Vestuario - Requiere turno activo
+        _buildFunctionalityCard(
+          context: context,
+          iconPath: 'assets/icons/vestuario.png',
+          title: 'Vestuario',
+          enabled: turnoActivo,
+          onTap: () {
+            if (turnoActivo) {
+              context.push('/vestuario');
+            }
+          },
+        ),
+        // Ambulancias - Requiere turno activo
+        _buildFunctionalityCard(
+          context: context,
+          iconPath: 'assets/icons/ambulancia.png',
+          title: 'Ambulancias',
+          enabled: turnoActivo,
+          onTap: () {
+            if (turnoActivo) {
+              context.push('/ambulancias');
+            }
           },
         ),
       ],
@@ -122,61 +178,101 @@ class HomeAndroidPage extends StatelessWidget {
   /// Tarjeta individual de funcionalidad
   Widget _buildFunctionalityCard({
     required BuildContext context,
-    required String emoji,
+    required String iconPath,
     required String title,
     required VoidCallback onTap,
+    bool enabled = true,
+    bool isActive = false,
   }) {
-    return Card(
-      elevation: 2,
-      color: Colors.grey[100],
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            children: [
-              // Icono - 80% del espacio
-              Expanded(
-                flex: 80,
-                child: Center(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      // El icono ocupará el 70% del espacio disponible
-                      final iconSize = constraints.maxHeight * 0.7;
-                      return FittedBox(
-                        fit: BoxFit.contain,
-                        child: Text(
-                          emoji,
-                          style: TextStyle(
-                            fontSize: iconSize,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
+    // Colores según el estado
+    final Color cardColor;
+    final Color textColor;
+    final double opacity;
 
-              // Título - 20% del espacio
-              Expanded(
-                flex: 20,
-                child: Center(
-                  child: Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[800],
+    if (!enabled) {
+      // Deshabilitado: gris claro con opacidad
+      cardColor = Colors.grey[300]!;
+      textColor = Colors.grey[500]!;
+      opacity = 0.5;
+    } else if (isActive) {
+      // Activo: verde con fondo
+      cardColor = AppColors.success.withValues(alpha: 0.1);
+      textColor = AppColors.success;
+      opacity = 1.0;
+    } else {
+      // Normal: gris claro
+      cardColor = Colors.grey[100]!;
+      textColor = Colors.grey[800]!;
+      opacity = 1.0;
+    }
+
+    return Opacity(
+      opacity: opacity,
+      child: Card(
+        elevation: enabled ? 2 : 0,
+        color: cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: isActive
+              ? BorderSide(color: AppColors.success, width: 2)
+              : BorderSide.none,
+        ),
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              children: [
+                // Icono - 80% del espacio
+                Expanded(
+                  flex: 80,
+                  child: Center(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // El icono ocupará el 70% del espacio disponible
+                        final iconSize = constraints.maxHeight * 0.7;
+                        return SizedBox(
+                          width: iconSize,
+                          height: iconSize,
+                          child: ColorFiltered(
+                            colorFilter: !enabled
+                                ? const ColorFilter.mode(
+                                    Colors.grey,
+                                    BlendMode.saturation,
+                                  )
+                                : const ColorFilter.mode(
+                                    Colors.transparent,
+                                    BlendMode.multiply,
+                                  ),
+                            child: Image.asset(
+                              iconPath,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
-              ),
-            ],
+
+                // Título - 20% del espacio
+                Expanded(
+                  flex: 20,
+                  child: Center(
+                    child: Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

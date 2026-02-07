@@ -49,6 +49,20 @@ export 'src/datasources/vehiculos/vehiculos_factory.dart' show VehiculoDataSourc
 export 'src/datasources/vehiculos/implementations/supabase/supabase_vehiculo_datasource.dart';
 export 'src/datasources/vehiculos/models/vehiculo_supabase_model.dart';
 
+export 'src/datasources/incidencias_vehiculo/entities/incidencia_vehiculo_entity.dart';
+export 'src/datasources/incidencias_vehiculo/incidencia_vehiculo_contract.dart';
+export 'src/datasources/incidencias_vehiculo/incidencia_vehiculo_factory.dart' show IncidenciaVehiculoDataSourceFactory;
+export 'src/datasources/incidencias_vehiculo/implementations/supabase/supabase_incidencia_vehiculo_datasource.dart';
+export 'src/datasources/incidencias_vehiculo/models/incidencia_vehiculo_supabase_model.dart';
+
+export 'src/datasources/checklist_vehiculo/entities/checklist_vehiculo_entity.dart';
+export 'src/datasources/checklist_vehiculo/entities/item_checklist_entity.dart';
+export 'src/datasources/checklist_vehiculo/checklist_vehiculo_contract.dart';
+export 'src/datasources/checklist_vehiculo/checklist_vehiculo_factory.dart' show ChecklistVehiculoDataSourceFactory;
+export 'src/datasources/checklist_vehiculo/implementations/supabase/supabase_checklist_vehiculo_datasource.dart';
+export 'src/datasources/checklist_vehiculo/models/checklist_vehiculo_supabase_model.dart';
+export 'src/datasources/checklist_vehiculo/models/item_checklist_supabase_model.dart';
+
 export 'src/datasources/registro_horario/entities/registro_horario_entity.dart';
 export 'src/datasources/registro_horario/registro_horario_contract.dart';
 export 'src/datasources/registro_horario/registro_horario_factory.dart' show RegistroHorarioDataSourceFactory;
@@ -305,6 +319,19 @@ export 'src/datasources/traslados/models/traslado_supabase_model.dart';
 export 'src/datasources/traslados/traslado_contract.dart';
 export 'src/datasources/traslados/traslado_factory.dart' show TrasladoDataSourceFactory;
 export 'src/datasources/traslados/implementations/supabase/supabase_traslado_datasource.dart';
+
+// Ambulancias y Revisiones
+export 'src/datasources/ambulancias_revisiones/entities/tipo_ambulancia_entity.dart';
+export 'src/datasources/ambulancias_revisiones/entities/ambulancia_entity.dart';
+export 'src/datasources/ambulancias_revisiones/entities/revision_entity.dart';
+export 'src/datasources/ambulancias_revisiones/entities/item_revision_entity.dart';
+export 'src/datasources/ambulancias_revisiones/ambulancias_revisiones_contract.dart';
+export 'src/datasources/ambulancias_revisiones/ambulancias_revisiones_factory.dart' show AmbulanciasRevisionesDataSourceFactory;
+export 'src/datasources/ambulancias_revisiones/implementations/supabase/supabase_ambulancias_datasource.dart';
+export 'src/datasources/ambulancias_revisiones/models/tipo_ambulancia_supabase_model.dart';
+export 'src/datasources/ambulancias_revisiones/models/ambulancia_supabase_model.dart';
+export 'src/datasources/ambulancias_revisiones/models/revision_supabase_model.dart';
+export 'src/datasources/ambulancias_revisiones/models/item_revision_supabase_model.dart';
 
 // Utils - Utilidades públicas
 export 'src/utils/exceptions/datasource_exception.dart';

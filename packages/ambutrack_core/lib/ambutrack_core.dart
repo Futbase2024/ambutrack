@@ -325,6 +325,19 @@ export 'src/datasources/traslados/traslado_contract.dart';
 export 'src/datasources/traslados/traslado_factory.dart' show TrasladoDataSourceFactory;
 export 'src/datasources/traslados/implementations/supabase/supabase_traslado_datasource.dart';
 
+// Ambulancias y Revisiones
+export 'src/datasources/ambulancias_revisiones/entities/tipo_ambulancia_entity.dart';
+export 'src/datasources/ambulancias_revisiones/entities/ambulancia_entity.dart';
+export 'src/datasources/ambulancias_revisiones/entities/revision_entity.dart';
+export 'src/datasources/ambulancias_revisiones/entities/item_revision_entity.dart';
+export 'src/datasources/ambulancias_revisiones/ambulancias_revisiones_contract.dart';
+export 'src/datasources/ambulancias_revisiones/ambulancias_revisiones_factory.dart' show AmbulanciasRevisionesDataSourceFactory;
+export 'src/datasources/ambulancias_revisiones/implementations/supabase/supabase_ambulancias_datasource.dart';
+export 'src/datasources/ambulancias_revisiones/models/tipo_ambulancia_supabase_model.dart';
+export 'src/datasources/ambulancias_revisiones/models/ambulancia_supabase_model.dart';
+export 'src/datasources/ambulancias_revisiones/models/revision_supabase_model.dart';
+export 'src/datasources/ambulancias_revisiones/models/item_revision_supabase_model.dart';
+
 // Utils - Utilidades públicas
 export 'src/utils/exceptions/datasource_exception.dart';
 export 'src/utils/typedefs/datasource_typedefs.dart';

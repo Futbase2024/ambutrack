@@ -15,6 +15,8 @@ dependencies:
   # ===== CORE SHARED PACKAGE (Monorepo) =====
   ambutrack_core:
     path: ../../packages/ambutrack_core
+  ambutrack_core_datasource:
+    path: ../web/packages/ambutrack_core_datasource
 
   # ===== STATE MANAGEMENT =====
   flutter_bloc: ^9.1.1
@@ -75,17 +77,18 @@ flutter:
   uses-material-design: true
 
   assets:
-    - lib/assets/images/
+    - assets/images/
+    - assets/icons/
 
 # ===== FLUTTER LAUNCHER ICONS CONFIGURATION =====
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "lib/assets/images/logo.png"
+  image_path: "assets/images/logo.png"
   min_sdk_android: 21
   remove_alpha_ios: true
   background_color_ios: "#FFFFFF"
 
   # Android adaptive icon
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "lib/assets/images/logo.png"
+  adaptive_icon_foreground: "assets/images/logo.png"

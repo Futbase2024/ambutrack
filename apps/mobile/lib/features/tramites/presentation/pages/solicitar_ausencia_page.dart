@@ -323,7 +323,7 @@ class _SolicitarAusenciaPageState extends State<SolicitarAusenciaPage> {
                     _buildFieldLabel('Tipo de Ausencia', required: true),
                     const SizedBox(height: AppSizes.spacingSmall),
                     DropdownButtonFormField<TipoAusenciaEntity>(
-                      value: _tipoSeleccionado,
+                      initialValue: _tipoSeleccionado,
                       decoration: InputDecoration(
                         hintText: 'Seleccionar tipo',
                         border: OutlineInputBorder(

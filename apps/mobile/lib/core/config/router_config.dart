@@ -18,6 +18,15 @@ import '../../features/servicios/presentation/pages/servicios_page.dart';
 import '../../features/servicios/presentation/pages/traslado_detalle_page.dart';
 import '../../features/tramites/presentation/pages/tramite_detalle_page.dart';
 import '../../features/tramites/presentation/pages/tramites_page.dart';
+import '../../features/vehiculo/presentation/pages/vehiculo_page.dart';
+import '../../features/vehiculo/presentation/pages/incidencias/reportar_incidencia_page.dart';
+import '../../features/vehiculo/presentation/pages/checklist/checklist_mensual_page.dart';
+import '../../features/vehiculo/presentation/pages/caducidades/caducidades_page.dart';
+import '../../features/vehiculo/presentation/pages/historial/historial_page.dart';
+import '../../features/vestuario/presentation/pages/vestuario_page.dart';
+import '../../features/ambulancias/presentation/pages/ambulancias_page.dart';
+import '../../features/ambulancias/presentation/pages/ambulancia_detalle_page.dart';
+import '../../features/ambulancias/presentation/pages/revision_page.dart';
 import '../widgets/layouts/main_layout.dart';
 
 /// Memoria de navegación para hot restart
@@ -239,6 +248,125 @@ GoRouter createAppRouter(AuthBloc authBloc) {
                 ),
               );
             },
+          ),
+        ],
+      ),
+
+      // Vehículo
+      GoRoute(
+        path: '/vehiculo',
+        name: 'vehiculo',
+        pageBuilder: (BuildContext context, GoRouterState state) {
+          return _buildPageWithTransition(
+            context: context,
+            state: state,
+            child: const VehiculoPage(),
+          );
+        },
+        routes: [
+          // Reportar incidencia
+          GoRoute(
+            path: 'reportar-incidencia',
+            name: 'reportar-incidencia',
+            pageBuilder: (BuildContext context, GoRouterState state) {
+              return _buildPageWithTransition(
+                context: context,
+                state: state,
+                child: const ReportarIncidenciaPage(),
+              );
+            },
+          ),
+          // Checklist mensual
+          GoRoute(
+            path: 'checklist',
+            name: 'checklist-mensual',
+            pageBuilder: (BuildContext context, GoRouterState state) {
+              return _buildPageWithTransition(
+                context: context,
+                state: state,
+                child: const ChecklistMensualPage(),
+              );
+            },
+          ),
+          // Caducidades
+          GoRoute(
+            path: 'caducidades',
+            name: 'caducidades',
+            pageBuilder: (BuildContext context, GoRouterState state) {
+              return _buildPageWithTransition(
+                context: context,
+                state: state,
+                child: const CaducidadesPage(),
+              );
+            },
+          ),
+          // Historial
+          GoRoute(
+            path: 'historial',
+            name: 'historial',
+            pageBuilder: (BuildContext context, GoRouterState state) {
+              return _buildPageWithTransition(
+                context: context,
+                state: state,
+                child: const HistorialPage(),
+              );
+            },
+          ),
+        ],
+      ),
+
+      // Vestuario
+      GoRoute(
+        path: '/vestuario',
+        name: 'vestuario',
+        pageBuilder: (BuildContext context, GoRouterState state) {
+          return _buildPageWithTransition(
+            context: context,
+            state: state,
+            child: const VestuarioPage(),
+          );
+        },
+      ),
+
+      // Ambulancias
+      GoRoute(
+        path: '/ambulancias',
+        name: 'ambulancias',
+        pageBuilder: (BuildContext context, GoRouterState state) {
+          return _buildPageWithTransition(
+            context: context,
+            state: state,
+            child: const AmbulanciasPage(),
+          );
+        },
+        routes: [
+          // Detalle de ambulancia
+          GoRoute(
+            path: ':id',
+            name: 'ambulancia-detalle',
+            pageBuilder: (BuildContext context, GoRouterState state) {
+              final ambulanciaId = state.pathParameters['id']!;
+              return _buildPageWithTransition(
+                context: context,
+                state: state,
+                child: AmbulanciaDetallePage(ambulanciaId: ambulanciaId),
+              );
+            },
+            routes: [
+              // Detalle de revisión
+              GoRoute(
+                path: 'revision/:revisionId',
+                name: 'revision-detalle',
+                pageBuilder: (BuildContext context, GoRouterState state) {
+                  final revisionId = state.pathParameters['revisionId']!;
+                  return _buildPageWithTransition(
+                    context: context,
+                    state: state,
+                    child: RevisionPage(revisionId: revisionId),
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),

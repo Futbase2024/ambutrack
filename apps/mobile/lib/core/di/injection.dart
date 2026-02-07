@@ -5,6 +5,7 @@ import 'package:ambutrack_core/ambutrack_core.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/registro_horario/data/repositories/registro_horario_repository_impl.dart';
 import '../../features/registro_horario/domain/repositories/registro_horario_repository.dart';
 import '../../features/registro_horario/presentation/bloc/registro_horario_bloc.dart';
@@ -19,6 +20,17 @@ import '../../features/tramites/domain/repositories/tipos_ausencia_repository.da
 import '../../features/tramites/domain/repositories/vacaciones_repository.dart';
 import '../../features/tramites/presentation/bloc/ausencias_bloc.dart';
 import '../../features/tramites/presentation/bloc/vacaciones_bloc.dart';
+import '../../features/vehiculo/data/repositories/incidencias_repository_impl.dart';
+import '../../features/vehiculo/domain/repositories/incidencias_repository.dart';
+import '../../features/vehiculo/presentation/bloc/incidencias/incidencias_bloc.dart';
+import '../../features/vehiculo/data/repositories/checklist_vehiculo_repository_impl.dart';
+import '../../features/vehiculo/domain/repositories/checklist_vehiculo_repository.dart';
+import '../../features/vehiculo/presentation/bloc/checklist/checklist_bloc.dart';
+import '../../features/vehiculo/presentation/bloc/vehiculo_asignado/vehiculo_asignado_bloc.dart';
+import '../../features/ambulancias/data/repositories/ambulancias_repository_impl.dart';
+import '../../features/ambulancias/domain/repositories/ambulancias_repository.dart';
+import '../../features/ambulancias/presentation/bloc/ambulancias_bloc.dart';
+import '../../features/ambulancias/presentation/bloc/revisiones_bloc.dart';
 
 /// Localizador de servicios global usando GetIt
 final GetIt getIt = GetIt.instance;
@@ -61,8 +73,8 @@ Future<void> configureDependencies() async {
     () => RegistroHorarioRepositoryImpl(),
   );
 
-  // BLoC (Factory para crear nueva instancia en cada página)
-  getIt.registerFactory<RegistroHorarioBloc>(
+  // BLoC (Singleton para mantener el estado del turno globalmente)
+  getIt.registerLazySingleton<RegistroHorarioBloc>(
     () => RegistroHorarioBloc(
       registroHorarioRepository: getIt<RegistroHorarioRepository>(),
       authBloc: getIt<AuthBloc>(),
@@ -106,5 +118,64 @@ Future<void> configureDependencies() async {
       getIt<AusenciasRepository>(),
       getIt<TiposAusenciaRepository>(),
     ),
+  );
+
+  // ===== INCIDENCIAS VEHÍCULO =====
+
+  // Repository
+  getIt.registerLazySingleton<IncidenciasRepository>(
+    () => IncidenciasRepositoryImpl(),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<IncidenciasBloc>(
+    () => IncidenciasBloc(getIt<IncidenciasRepository>()),
+  );
+
+  // ===== CHECKLIST VEHÍCULO =====
+
+  // Repository
+  getIt.registerLazySingleton<ChecklistVehiculoRepository>(
+    () => ChecklistVehiculoRepositoryImpl(),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<ChecklistBloc>(
+    () => ChecklistBloc(
+      getIt<ChecklistVehiculoRepository>(),
+      getIt<AuthBloc>(),
+    ),
+  );
+
+  // ===== VEHÍCULO ASIGNADO =====
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<VehiculoAsignadoBloc>(
+    () {
+      final authBloc = getIt<AuthBloc>();
+      final authState = authBloc.state;
+      // Usar Personal ID (necesario para buscar turnos y vehículos asignados)
+      // Si no hay personal, usar user.id como fallback
+      final userId = authState is AuthAuthenticated
+          ? (authState.personal?.id ?? authState.user.id)
+          : '';
+      return VehiculoAsignadoBloc(userId: userId);
+    },
+  );
+
+  // ===== AMBULANCIAS =====
+
+  // Repository
+  getIt.registerLazySingleton<AmbulanciasRepository>(
+    () => AmbulanciasRepositoryImpl(),
+  );
+
+  // BLoCs (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<AmbulanciasBloc>(
+    () => AmbulanciasBloc(getIt<AmbulanciasRepository>()),
+  );
+
+  getIt.registerFactory<RevisionesBloc>(
+    () => RevisionesBloc(getIt<AmbulanciasRepository>()),
   );
 }

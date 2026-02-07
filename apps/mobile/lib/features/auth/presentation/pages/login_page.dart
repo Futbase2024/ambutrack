@@ -79,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: <Widget>[
                       // Logo AmbuTrack
                       Image.asset(
-                        'lib/assets/images/logonuevo.png',
+                        'assets/images/logonuevo.png',
                         width: 300,
                         fit: BoxFit.contain,
                       ),

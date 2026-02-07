@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/di/injection.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../bloc/registro_horario_bloc.dart';
 import '../bloc/registro_horario_event.dart';
@@ -14,21 +13,20 @@ import '../widgets/historial_fichajes_widget.dart';
 /// Página de Registro Horario
 ///
 /// Permite al personal fichar entrada/salida con geolocalización.
-class RegistroHorarioPage extends StatelessWidget {
+class RegistroHorarioPage extends StatefulWidget {
   const RegistroHorarioPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => getIt<RegistroHorarioBloc>()
-        ..add(const CargarRegistrosHorario()),
-      child: const _RegistroHorarioView(),
-    );
-  }
+  State<RegistroHorarioPage> createState() => _RegistroHorarioPageState();
 }
 
-class _RegistroHorarioView extends StatelessWidget {
-  const _RegistroHorarioView();
+class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Cargar registros al entrar a la página usando el Bloc global
+    context.read<RegistroHorarioBloc>().add(const CargarRegistrosHorario());
+  }
 
   @override
   Widget build(BuildContext context) {

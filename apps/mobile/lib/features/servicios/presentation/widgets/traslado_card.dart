@@ -85,7 +85,7 @@ class TrasladoCard extends StatelessWidget {
                 ),
 
                 // Botón de acción rápida en la parte inferior (si aplica)
-                if (mostrarBotonAccion && siguienteEstado != null)
+                if (mostrarBotonAccion)
                   _buildBotonAccionInferior(siguienteEstado),
               ],
             ),

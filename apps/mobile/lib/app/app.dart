@@ -7,6 +7,7 @@ import '../core/di/injection.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/presentation/bloc/auth_bloc.dart';
 import '../features/auth/presentation/bloc/auth_event.dart';
+import '../features/registro_horario/presentation/bloc/registro_horario_bloc.dart';
 import 'flavors.dart';
 
 /// Widget principal de AmbuTrack Mobile
@@ -21,12 +22,14 @@ class App extends StatefulWidget {
 
 class _AppState extends State<App> {
   late final AuthBloc _authBloc;
+  late final RegistroHorarioBloc _registroHorarioBloc;
 
   @override
   void initState() {
     super.initState();
-    // Obtener AuthBloc del service locator
+    // Obtener BLoCs del service locator
     _authBloc = getIt<AuthBloc>();
+    _registroHorarioBloc = getIt<RegistroHorarioBloc>();
 
     // Verificar sesión existente al iniciar
     _authBloc.add(const AuthCheckRequested());
@@ -34,14 +37,17 @@ class _AppState extends State<App> {
 
   @override
   void dispose() {
-    // No cerrar el AuthBloc aquí porque es singleton y se usa en toda la app
+    // No cerrar los BLoCs aquí porque son singleton y se usan en toda la app
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<AuthBloc>.value(
-      value: _authBloc,
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthBloc>.value(value: _authBloc),
+        BlocProvider<RegistroHorarioBloc>.value(value: _registroHorarioBloc),
+      ],
       child: MaterialApp.router(
         title: F.title,
         debugShowCheckedModeBanner: F.isDev,
