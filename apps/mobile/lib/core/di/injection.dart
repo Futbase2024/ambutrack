@@ -11,6 +11,14 @@ import '../../features/registro_horario/presentation/bloc/registro_horario_bloc.
 import '../../features/servicios/data/repositories/traslados_repository_impl.dart';
 import '../../features/servicios/domain/repositories/traslados_repository.dart';
 import '../../features/servicios/presentation/bloc/traslados_bloc.dart';
+import '../../features/tramites/data/repositories/ausencias_repository_impl.dart';
+import '../../features/tramites/data/repositories/tipos_ausencia_repository_impl.dart';
+import '../../features/tramites/data/repositories/vacaciones_repository_impl.dart';
+import '../../features/tramites/domain/repositories/ausencias_repository.dart';
+import '../../features/tramites/domain/repositories/tipos_ausencia_repository.dart';
+import '../../features/tramites/domain/repositories/vacaciones_repository.dart';
+import '../../features/tramites/presentation/bloc/ausencias_bloc.dart';
+import '../../features/tramites/presentation/bloc/vacaciones_bloc.dart';
 
 /// Localizador de servicios global usando GetIt
 final GetIt getIt = GetIt.instance;
@@ -71,5 +79,32 @@ Future<void> configureDependencies() async {
   // BLoC (Factory para crear nueva instancia en cada página)
   getIt.registerFactory<TrasladosBloc>(
     () => TrasladosBloc(getIt<TrasladosRepository>()),
+  );
+
+  // ===== TRÁMITES =====
+
+  // Repositories (el datasource se crea internamente usando el factory del core package)
+  getIt.registerLazySingleton<VacacionesRepository>(
+    () => VacacionesRepositoryImpl(),
+  );
+
+  getIt.registerLazySingleton<AusenciasRepository>(
+    () => AusenciasRepositoryImpl(),
+  );
+
+  getIt.registerLazySingleton<TiposAusenciaRepository>(
+    () => TiposAusenciaRepositoryImpl(),
+  );
+
+  // BLoCs (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<VacacionesBloc>(
+    () => VacacionesBloc(getIt<VacacionesRepository>()),
+  );
+
+  getIt.registerFactory<AusenciasBloc>(
+    () => AusenciasBloc(
+      getIt<AusenciasRepository>(),
+      getIt<TiposAusenciaRepository>(),
+    ),
   );
 }
