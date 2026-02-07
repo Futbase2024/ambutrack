@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ambutrack_core/ambutrack_core.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
@@ -99,11 +101,9 @@ class _ServiciosTableState extends State<ServiciosTable> {
           _buildHeader(),
           const SizedBox(height: 8),
 
-          // Tabla de traslados
+          // Tabla de traslados (ocupa todo el espacio vertical disponible)
           Expanded(
-            child: SingleChildScrollView(
-              child: _buildTablaTraslados(),
-            ),
+            child: _buildTablaTraslados(),
           ),
         ],
       ),
@@ -216,36 +216,39 @@ class _ServiciosTableState extends State<ServiciosTable> {
       onAsignarConductorMasivoRequested: _mostrarDialogoAsignacionMasiva,
       onModificarHora: _mostrarDialogoModificarHora,
       onCancelarTraslado: _mostrarDialogoCancelarTraslado,
+      onVerHistorial: _mostrarDialogoHistorial,
     );
 
     return ResizableDataTable(
-      storageKey: 'planificar_servicios_table_widths',
+      // Usar nueva key para forzar reset de anchos guardados
+      storageKey: 'planificar_servicios_table_widths_v2',
       rowHeight: 35.0,
+      fillHeight: true, // La tabla ocupa todo el espacio vertical disponible
       initialColumnWidths: const <double>[
-        49.37890625, // (Checkbox)
-        91.15625, // I/V
-        66.9453125, // Hora
-        242.22265625, // Paciente
-        209.63671875, // Dom. Origen
-        120, // Loc. Origen
-        130.73046875, // Origen
-        141.109375, // Dom. Destino
-        120, // Loc. Dest
-        120, // Destino
+        40, // (Checkbox)
+        50, // I/V (solo flecha)
+        70, // Hora
+        200, // Paciente
+        180, // Dom. Origen
+        110, // Loc. Origen
+        130, // Origen
+        180, // Dom. Destino
+        110, // Loc. Dest
+        130, // Destino
         120, // Terapia
-        117.3203125, // Estado
-        120, // Conductor
-        100, // Matrícula
-        61.94140625, // H. Env
-        65, // H. Rec
-        72.9765625, // H. Org
-        73.16796875, // H. Sal
-        69.61328125, // H. Dst
-        71.13671875, // H. Fin
-        54.9609375, // SIC
-        53.4140625, // CA
-        51.62109375, // Ayu
-        120, // Ac
+        100, // Estado
+        140, // Conductor
+        90, // Matrícula
+        60, // H. Env
+        60, // H. Rec
+        60, // H. Org
+        60, // H. Sal
+        60, // H. Dst
+        60, // H. Fin
+        45, // SIC
+        45, // CA
+        45, // Ayu
+        60, // Ac
       ],
       filterRow: ServiciosFilters(
         traslados: widget.traslados,
@@ -602,6 +605,421 @@ class _ServiciosTableState extends State<ServiciosTable> {
       );
     } else {
       debugPrint('❌ Cancelación de traslado abortada');
+    }
+  }
+
+  /// Muestra el diálogo con el historial de estados de un traslado
+  Future<void> _mostrarDialogoHistorial(
+    String idTraslado,
+    String pacienteNombre,
+  ) async {
+    debugPrint('📜 ServiciosTable: Abriendo diálogo de historial de estados');
+    debugPrint('   - Traslado: $idTraslado');
+    debugPrint('   - Paciente: $pacienteNombre');
+
+    // Mostrar diálogo de carga mientras se obtiene el historial
+    if (!mounted) {
+      return;
+    }
+
+    // Variable para guardar el contexto del diálogo de carga
+    BuildContext? loadingDialogContext;
+
+    unawaited(showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        // Guardar el contexto del diálogo de carga después del frame
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          loadingDialogContext = dialogContext;
+        });
+        return AlertDialog(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const CircularProgressIndicator(),
+              const SizedBox(width: 16),
+              Text(
+                'Cargando historial...',
+                style: GoogleFonts.inter(fontSize: 14),
+              ),
+            ],
+          ),
+        );
+      },
+    ));
+
+    // Esperar un frame para que el diálogo se muestre y el contexto se guarde
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    try {
+      // Consultar historial de estados desde Supabase
+      final List<Map<String, dynamic>> historialResponse = await Supabase.instance.client
+          .from('historial_estados_traslado')
+          .select()
+          .eq('id_traslado', idTraslado)
+          .order('fecha_cambio', ascending: false);
+
+      debugPrint('✅ Historial obtenido: ${historialResponse.length} registros');
+
+      // Obtener los IDs únicos de usuarios
+      final Set<String> idsUsuarios = <String>{};
+      for (final Map<String, dynamic> item in historialResponse) {
+        final String? idUsuario = item['id_usuario'] as String?;
+        if (idUsuario != null && idUsuario.isNotEmpty) {
+          idsUsuarios.add(idUsuario);
+        }
+      }
+
+      // Consultar nombres de usuarios si hay IDs
+      final Map<String, Map<String, dynamic>> usuariosPorId = <String, Map<String, dynamic>>{};
+      if (idsUsuarios.isNotEmpty) {
+        final List<Map<String, dynamic>> usuariosResponse = await Supabase.instance.client
+            .from('tpersonal')
+            .select('id, nombre, apellidos')
+            .inFilter('id', idsUsuarios.toList());
+
+        for (final Map<String, dynamic> usuario in usuariosResponse) {
+          final String id = usuario['id'] as String;
+          usuariosPorId[id] = usuario;
+        }
+        debugPrint('✅ Usuarios obtenidos: ${usuariosPorId.length}');
+      }
+
+      // Agregar datos de usuario a cada item del historial
+      final List<Map<String, dynamic>> response = historialResponse.map((Map<String, dynamic> item) {
+        final String? idUsuario = item['id_usuario'] as String?;
+        if (idUsuario != null && usuariosPorId.containsKey(idUsuario)) {
+          return <String, dynamic>{
+            ...item,
+            'usuario': usuariosPorId[idUsuario],
+          };
+        }
+        return item;
+      }).toList();
+
+      if (!mounted) {
+        return;
+      }
+
+      // Cerrar diálogo de carga usando el contexto guardado
+      if (loadingDialogContext != null && loadingDialogContext!.mounted) {
+        Navigator.of(loadingDialogContext!).pop();
+      }
+
+      // Mostrar diálogo con el historial
+      await showDialog<void>(
+        context: context,
+        builder: (BuildContext dialogContext) {
+          return AlertDialog(
+            title: Row(
+              children: <Widget>[
+                const Icon(Icons.history, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'Historial de Estados',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (pacienteNombre.isNotEmpty)
+                        Text(
+                          pacienteNombre,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppColors.textSecondaryLight,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 500,
+              height: 400,
+              child: response.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          const Icon(
+                            Icons.info_outline,
+                            size: 48,
+                            color: AppColors.gray300,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No hay historial de estados',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: AppColors.textSecondaryLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: response.length,
+                      separatorBuilder: (BuildContext context, int index) =>
+                          const Divider(height: 1),
+                      itemBuilder: (BuildContext context, int index) {
+                        final Map<String, dynamic> item = response[index];
+                        return _buildHistorialItem(item, index == 0);
+                      },
+                    ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(
+                  'Cerrar',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint('❌ Error al obtener historial: $e');
+
+      // Cerrar diálogo de carga usando el contexto guardado
+      if (loadingDialogContext != null && loadingDialogContext!.mounted) {
+        Navigator.of(loadingDialogContext!).pop();
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      // Mostrar error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cargar historial: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  /// Construye un item del historial de estados
+  Widget _buildHistorialItem(Map<String, dynamic> item, bool esActual) {
+    final String? estadoAnteriorStr = item['estado_anterior'] as String?;
+    final String estadoNuevoStr = item['estado_nuevo'] as String? ?? 'desconocido';
+    final String? fechaCambioStr = item['fecha_cambio'] as String?;
+    final String? observaciones = item['observaciones'] as String?;
+
+    // Obtener nombre del usuario que realizó el cambio
+    final Map<String, dynamic>? usuarioData = item['usuario'] as Map<String, dynamic>?;
+    String nombreUsuario = 'Usuario desconocido';
+    if (usuarioData != null) {
+      final String nombre = usuarioData['nombre'] as String? ?? '';
+      final String apellidos = usuarioData['apellidos'] as String? ?? '';
+      if (nombre.isNotEmpty || apellidos.isNotEmpty) {
+        nombreUsuario = '$nombre $apellidos'.trim();
+      }
+    }
+
+    // Parsear la fecha
+    DateTime? fechaCambio;
+    if (fechaCambioStr != null) {
+      fechaCambio = DateTime.tryParse(fechaCambioStr);
+    }
+
+    // Obtener etiquetas de los estados
+    final String estadoAnteriorLabel = estadoAnteriorStr != null
+        ? _getEstadoLabel(estadoAnteriorStr)
+        : 'Sin estado';
+    final String estadoNuevoLabel = _getEstadoLabel(estadoNuevoStr);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: esActual
+          ? BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+            )
+          : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          // Fecha y hora
+          Row(
+            children: <Widget>[
+              Icon(
+                Icons.access_time,
+                size: 14,
+                color: esActual ? AppColors.primary : AppColors.textSecondaryLight,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                fechaCambio != null
+                    ? '${fechaCambio.day.toString().padLeft(2, '0')}/${fechaCambio.month.toString().padLeft(2, '0')}/${fechaCambio.year} ${fechaCambio.hour.toString().padLeft(2, '0')}:${fechaCambio.minute.toString().padLeft(2, '0')}'
+                    : 'Fecha desconocida',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: esActual ? FontWeight.w600 : FontWeight.normal,
+                  color: esActual ? AppColors.primary : AppColors.textSecondaryLight,
+                ),
+              ),
+              if (esActual) ...<Widget>[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'ACTUAL',
+                    style: GoogleFonts.inter(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 4),
+
+          // Usuario que realizó el cambio
+          Row(
+            children: <Widget>[
+              const Icon(
+                Icons.person_outline,
+                size: 14,
+                color: AppColors.textSecondaryLight,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                nombreUsuario,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: AppColors.textSecondaryLight,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Cambio de estado
+          Row(
+            children: <Widget>[
+              _buildEstadoBadge(estadoAnteriorLabel, estadoAnteriorStr),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward, size: 16, color: AppColors.gray400),
+              const SizedBox(width: 8),
+              _buildEstadoBadge(estadoNuevoLabel, estadoNuevoStr),
+            ],
+          ),
+
+          // Observaciones (si las hay)
+          if (observaciones != null && observaciones.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Icon(Icons.notes, size: 14, color: AppColors.textSecondaryLight),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    observaciones,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Construye un badge para el estado
+  Widget _buildEstadoBadge(String label, String? estadoStr) {
+    final Color color = _getColorForEstadoStr(estadoStr);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.inter(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  /// Obtiene la etiqueta legible de un estado
+  String _getEstadoLabel(String estadoStr) {
+    switch (estadoStr) {
+      case 'pendiente':
+        return 'PENDIENTE';
+      case 'asignado':
+        return 'ASIGNADO';
+      case 'enviado':
+        return 'ENVIADO';
+      case 'recibido_conductor':
+        return 'RECIBIDO';
+      case 'en_origen':
+        return 'EN ORIGEN';
+      case 'saliendo_origen':
+        return 'EN RUTA';
+      case 'en_transito':
+        return 'EN TRÁNSITO';
+      case 'en_destino':
+        return 'EN DESTINO';
+      case 'finalizado':
+        return 'FINALIZADO';
+      case 'cancelado':
+        return 'CANCELADO';
+      case 'no_realizado':
+        return 'NO REALIZADO';
+      default:
+        return estadoStr.toUpperCase();
+    }
+  }
+
+  /// Obtiene el color para un estado dado como string
+  Color _getColorForEstadoStr(String? estadoStr) {
+    switch (estadoStr) {
+      case 'cancelado':
+      case 'no_realizado':
+      case 'finalizado':
+        return AppColors.error;
+      case 'pendiente':
+        return AppColors.info;
+      case 'asignado':
+      case 'enviado':
+      case 'recibido_conductor':
+      case 'en_origen':
+      case 'saliendo_origen':
+      case 'en_transito':
+      case 'en_destino':
+        return AppColors.success;
+      default:
+        return AppColors.gray500;
     }
   }
 }

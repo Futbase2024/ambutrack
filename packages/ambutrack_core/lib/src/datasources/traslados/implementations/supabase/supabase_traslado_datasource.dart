@@ -621,9 +621,11 @@ class SupabaseTrasladosDataSource implements TrasladoDataSource {
       }
     }
 
-    // Crear canal Realtime único con ID para evitar colisiones
-    final channelName = 'traslados_eventos_$personalId';
+    // Crear canal Realtime único con timestamp para evitar colisiones entre múltiples BLoCs
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final channelName = 'traslados_eventos_${personalId}_$timestamp';
     channel = _client.channel(channelName);
+    debugPrint('🔔 [TrasladosDataSource] Canal único creado: $channelName');
 
     // SUSCRIPCIÓN 1: Eventos donde SOY el new_conductor_id (me asignaron)
     channel.onPostgresChanges(
@@ -819,6 +821,14 @@ class SupabaseTrasladosDataSource implements TrasladoDataSource {
       debugPrint('   - Matrícula: $matriculaVehiculo');
       debugPrint('   - Técnico: $idTecnico');
 
+      // Obtener estado actual del traslado para determinar si es una reasignación
+      final currentData = await _client
+          .from(_tableName)
+          .select('estado')
+          .eq('id', id)
+          .single();
+      final estadoActual = currentData['estado'] as String;
+
       // Construir el mapa de actualización solo con campos no nulos
       // Al asignar recursos también se envía automáticamente al conductor
       final DateTime ahora = DateTime.now().toUtc();
@@ -832,6 +842,33 @@ class SupabaseTrasladosDataSource implements TrasladoDataSource {
         'usuario_envio': usuarioId, // Mismo usuario que asignó
         'updated_at': ahora.toIso8601String(),
       };
+
+      // Estados avanzados que indican que el traslado fue desasignado y reasignado
+      const estadosAvanzados = [
+        'recibido_conductor',
+        'en_origen',
+        'saliendo_origen',
+        'en_transito',
+        'en_destino',
+      ];
+
+      // Si el traslado tiene un estado avanzado (fue desasignado y reasignado), limpiar tracking
+      if (estadosAvanzados.contains(estadoActual)) {
+        debugPrint(
+          '🔄 [TrasladosDataSource] ⚠️ Traslado con estado avanzado "$estadoActual" siendo reasignado. Limpiando tracking anterior',
+        );
+
+        // Limpiar todas las fechas y ubicaciones de estados avanzados
+        updateData['fecha_recibido_conductor'] = null;
+        updateData['fecha_en_origen'] = null;
+        updateData['ubicacion_en_origen'] = null;
+        updateData['fecha_saliendo_origen'] = null;
+        updateData['ubicacion_saliendo_origen'] = null;
+        updateData['fecha_en_transito'] = null;
+        updateData['ubicacion_en_transito'] = null;
+        updateData['fecha_en_destino'] = null;
+        updateData['ubicacion_en_destino'] = null;
+      }
 
       if (idConductor != null) {
         updateData['id_conductor'] = idConductor;
@@ -854,6 +891,16 @@ class SupabaseTrasladosDataSource implements TrasladoDataSource {
 
       debugPrint('✅ [TrasladosDataSource] Recursos asignados correctamente');
 
+      // Registrar el cambio de estado en el historial
+      final estadoAnterior = EstadoTraslado.fromString(estadoActual);
+      await _registrarCambioEstado(
+        idTraslado: id,
+        estadoAnterior: estadoAnterior,
+        estadoNuevo: EstadoTraslado.enviado,
+        idUsuario: usuarioId ?? 'sistema',
+        observaciones: 'Asignación desde web: Conductor $idConductor, Vehículo $matriculaVehiculo',
+      );
+
       // Obtener traslado actualizado desde la vista con datos completos
       return getById(id);
     } catch (e, stackTrace) {
@@ -869,6 +916,18 @@ class SupabaseTrasladosDataSource implements TrasladoDataSource {
   }) async {
     try {
       debugPrint('🚫 [TrasladosDataSource] Desasignando recursos del traslado: $id');
+
+      // Obtener estado actual antes de desasignar
+      final currentData = await _client
+          .from(_tableName)
+          .select('estado, id_conductor, matricula_vehiculo')
+          .eq('id', id)
+          .single();
+      final estadoActual = currentData['estado'] as String;
+      final conductorAnterior = currentData['id_conductor'] as String?;
+      final matriculaAnterior = currentData['matricula_vehiculo'] as String?;
+
+      final String? usuarioId = _client.auth.currentUser?.id;
 
       // Actualizar el traslado: poner recursos y todos los horarios/ubicaciones en null
       // Al desasignar se pierde todo el tracking que haya hecho el conductor
@@ -902,6 +961,16 @@ class SupabaseTrasladosDataSource implements TrasladoDataSource {
           .eq('id', id);
 
       debugPrint('✅ [TrasladosDataSource] Recursos desasignados correctamente');
+
+      // Registrar el cambio de estado en el historial
+      final estadoAnterior = EstadoTraslado.fromString(estadoActual);
+      await _registrarCambioEstado(
+        idTraslado: id,
+        estadoAnterior: estadoAnterior,
+        estadoNuevo: EstadoTraslado.pendiente,
+        idUsuario: usuarioId ?? 'sistema',
+        observaciones: 'Desasignación desde web: Conductor anterior $conductorAnterior, Vehículo $matriculaAnterior',
+      );
 
       // Obtener traslado actualizado desde la vista con datos completos
       return getById(id);

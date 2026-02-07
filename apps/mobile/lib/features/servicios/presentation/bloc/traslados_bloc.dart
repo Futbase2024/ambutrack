@@ -277,9 +277,56 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
     RefrescarTraslados event,
     Emitter<TrasladosState> emit,
   ) async {
-    debugPrint('🔄 [TrasladosBloc] Refrescando traslados...');
-    // El stream se encargará de actualizar automáticamente
-    // Este evento es principalmente para manejar errores del stream
+    try {
+      debugPrint('🔄 [TrasladosBloc] Refrescando traslados manualmente...');
+
+      // Obtener ID del conductor desde el estado actual
+      if (state is! TrasladosLoaded) {
+        debugPrint('⚠️  [TrasladosBloc] No se puede refrescar sin traslados cargados');
+        return;
+      }
+
+      // Recargar traslados desde la base de datos
+      final currentState = state as TrasladosLoaded;
+
+      // Para obtener el ID del conductor, necesitamos extraerlo del primer traslado
+      // O podríamos almacenarlo en el estado. Por ahora, simplemente recargamos
+      // basándonos en los IDs de los traslados existentes
+
+      if (currentState.traslados.isEmpty) {
+        debugPrint('✅ [TrasladosBloc] No hay traslados para refrescar');
+        return;
+      }
+
+      // Obtener el ID del conductor del primer traslado
+      final idConductor = currentState.traslados.first.idConductor;
+      if (idConductor == null) {
+        debugPrint('⚠️  [TrasladosBloc] No se pudo obtener ID del conductor');
+        return;
+      }
+
+      // Recargar traslados
+      final trasladosActualizados = await _repository.getActivosByIdConductor(idConductor);
+
+      // Actualizar estado conservando el traslado seleccionado si existe
+      final trasladoSeleccionadoActualizado = currentState.trasladoSeleccionado != null
+          ? trasladosActualizados.firstWhere(
+              (t) => t.id == currentState.trasladoSeleccionado!.id,
+              orElse: () => currentState.trasladoSeleccionado!,
+            )
+          : null;
+
+      emit(currentState.copyWith(
+        traslados: trasladosActualizados,
+        trasladoSeleccionado: trasladoSeleccionadoActualizado,
+      ));
+
+      debugPrint('✅ [TrasladosBloc] Traslados refrescados: ${trasladosActualizados.length}');
+    } catch (e, stackTrace) {
+      debugPrint('❌ [TrasladosBloc] Error al refrescar traslados: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // No emitir error para no interrumpir la experiencia del usuario
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -388,6 +435,34 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
             // Fetch traslado completo desde la BD
             final traslado = await _repository.getById(evento.trasladoId);
 
+            // 🔒 PROTECCIÓN: Verificar que el traslado no tenga un estado avanzado o final inconsistente
+            // Si el backend funciona correctamente, esto no debería ocurrir
+            // Pero es una capa extra de seguridad
+            // Nota: "enviado" es válido porque el datasource mobile establece estado="enviado" al asignar
+            const estadosInvalidos = [
+              // Estados avanzados (en progreso)
+              EstadoTraslado.recibido,
+              EstadoTraslado.enOrigen,
+              EstadoTraslado.saliendoOrigen,
+              EstadoTraslado.enTransito,
+              EstadoTraslado.enDestino,
+              // Estados finales (no se pueden reasignar traslados finalizados/cancelados)
+              EstadoTraslado.finalizado,
+              EstadoTraslado.cancelado,
+              EstadoTraslado.noRealizado,
+            ];
+
+            if (estadosInvalidos.contains(traslado.estado)) {
+              debugPrint(
+                '⚠️ [TrasladosBloc] ADVERTENCIA: Traslado reasignado con estado inválido "${traslado.estado.value}"',
+              );
+              debugPrint('   Este traslado debería haber sido reseteado a "asignado" por el backend');
+              debugPrint('   Ignorando este traslado hasta que el backend lo corrija');
+
+              // No agregar el traslado a la lista hasta que tenga un estado válido
+              return;
+            }
+
             // ✅ Crear nueva lista con el traslado actualizado/añadido
             final List<TrasladoEntity> nuevosTraslados;
             final index = traslados.indexWhere((t) => t.id == traslado.id);
@@ -402,14 +477,45 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
               debugPrint('➕ [TrasladosBloc] Traslado añadido a lista');
             }
 
-            emit(currentState.copyWith(traslados: nuevosTraslados));
+            // Emitir estado de asignación para mostrar diálogo
+            final esReasignacion = evento.eventType == EventoTrasladoType.reassigned;
+            emit(TrasladoAsignado(
+              traslado: traslado,
+              esReasignacion: esReasignacion,
+            ));
+
+            // ✅ Si el trasladoSeleccionado es null o es el mismo traslado que se reasignó,
+            // actualizarlo para que la página de detalle lo muestre correctamente
+            final TrasladoEntity? nuevoTrasladoSeleccionado;
+            if (currentState.trasladoSeleccionado == null ||
+                currentState.trasladoSeleccionado?.id == traslado.id) {
+              nuevoTrasladoSeleccionado = traslado;
+              debugPrint('🎯 [TrasladosBloc] Actualizando trasladoSeleccionado con traslado reasignado');
+            } else {
+              nuevoTrasladoSeleccionado = currentState.trasladoSeleccionado;
+            }
+
+            // Luego emitir el estado normal con la lista actualizada
+            emit(currentState.copyWith(
+              traslados: nuevosTraslados,
+              trasladoSeleccionado: nuevoTrasladoSeleccionado,
+            ));
           }
 
           // ME QUITARON (en caso de reassigned de mí a otro)
           if (evento.oldConductorId == miId && evento.newConductorId != miId) {
             debugPrint('🗑️ [TrasladosBloc] Traslado ${evento.trasladoId} reasignado a otro conductor');
 
-            // ✅ Crear nueva lista sin el traslado
+            // Buscar el traslado en la lista ANTES de eliminarlo
+            final trasladoDesasignado = traslados.firstWhere(
+              (t) => t.id == evento.trasladoId,
+              orElse: () => throw Exception('Traslado no encontrado en la lista'),
+            );
+
+            // Emitir estado de desasignación con los datos del traslado
+            emit(TrasladoDesasignado(traslado: trasladoDesasignado));
+
+            // Crear nueva lista sin el traslado
             final nuevosTraslados = traslados.where((t) => t.id != evento.trasladoId).toList();
             debugPrint('➖ [TrasladosBloc] Traslado eliminado de lista. Restantes: ${nuevosTraslados.length}');
 
@@ -438,28 +544,31 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
 
           if (evento.oldConductorId == miId) {
             debugPrint('🗑️ [TrasladosBloc] ✅ Traslado ${evento.trasladoId} desasignado DE MÍ');
-            final existeEnLista = traslados.any((t) => t.id == evento.trasladoId);
-            debugPrint('   - ¿Existe en lista?: $existeEnLista');
 
-            if (existeEnLista) {
-              // ✅ Crear nueva lista sin el traslado (para que Equatable detecte el cambio)
-              final nuevosTraslados = traslados.where((t) => t.id != evento.trasladoId).toList();
-              debugPrint('➖ [TrasladosBloc] Traslado eliminado de lista. Traslados restantes: ${nuevosTraslados.length}');
+            // Buscar el traslado en la lista ANTES de eliminarlo
+            final trasladoDesasignado = traslados.firstWhere(
+              (t) => t.id == evento.trasladoId,
+              orElse: () => throw Exception('Traslado no encontrado en la lista'),
+            );
 
-              // Si el traslado desasignado es el que está seleccionado, limpiarlo
-              final esElSeleccionado = currentState.trasladoSeleccionado?.id == evento.trasladoId;
-              if (esElSeleccionado) {
-                debugPrint('🧹 [TrasladosBloc] Limpiando trasladoSeleccionado');
-              }
+            // Emitir estado de desasignación con los datos del traslado
+            emit(TrasladoDesasignado(traslado: trasladoDesasignado));
 
-              emit(currentState.copyWith(
-                traslados: nuevosTraslados,
-                clearTrasladoSeleccionado: esElSeleccionado,
-                clearPaciente: esElSeleccionado,
-              ));
-            } else {
-              debugPrint('⚠️ [TrasladosBloc] Traslado no estaba en la lista');
+            // Luego crear nueva lista sin el traslado
+            final nuevosTraslados = traslados.where((t) => t.id != evento.trasladoId).toList();
+            debugPrint('➖ [TrasladosBloc] Traslado eliminado de lista. Traslados restantes: ${nuevosTraslados.length}');
+
+            // Si el traslado desasignado es el que está seleccionado, limpiarlo
+            final esElSeleccionado = currentState.trasladoSeleccionado?.id == evento.trasladoId;
+            if (esElSeleccionado) {
+              debugPrint('🧹 [TrasladosBloc] Limpiando trasladoSeleccionado');
             }
+
+            emit(currentState.copyWith(
+              traslados: nuevosTraslados,
+              clearTrasladoSeleccionado: esElSeleccionado,
+              clearPaciente: esElSeleccionado,
+            ));
           } else {
             debugPrint('ℹ️ [TrasladosBloc] Traslado desasignado pero no era mío');
           }
@@ -497,7 +606,10 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
     AppLogger.info('Cerrando BLoC y cancelando streams', tag: _tag);
     _trasladosStreamSubscription?.cancel();
     _eventosStreamSubscription?.cancel();
-    _repository.disposeRealtimeChannels();
+    // ❌ NO cerrar los canales Realtime aquí porque múltiples BLoCs comparten el mismo cliente de Supabase
+    // Si un BLoC cierra los canales con removeAllChannels(), afecta a TODOS los demás BLoCs activos
+    // Los canales se cerrarán automáticamente cuando el usuario cierre sesión o la app se cierre
+    // _repository.disposeRealtimeChannels();
     _connectionManager.dispose();
     return super.close();
   }

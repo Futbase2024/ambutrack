@@ -82,55 +82,326 @@ class _TrasladoDetallePageContent extends StatelessWidget {
           if (state is TrasladosError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
-              ),
-            );
-          } else if (state is EstadoCambiadoSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Estado cambiado a: ${state.traslado.estado.label}',
+                content: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(state.message)),
+                  ],
                 ),
-                backgroundColor: AppColors.success,
-                duration: const Duration(seconds: 2),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 3),
               ),
             );
-          } else if (state is TrasladosLoaded) {
-            // Verificar si el traslado seleccionado fue desasignado
-            final trasladoExiste = state.traslados.any((t) => t.id == idTraslado);
-            if (!trasladoExiste) {
-              // El traslado fue desasignado, volver a la pantalla de servicios
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Este traslado ha sido desasignado'),
-                    backgroundColor: AppColors.warning,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-                // ✅ Usar go() en lugar de pop() para forzar recreación del BLoC
-                context.go('/servicios');
-              });
-            }
+          } else if (state is TrasladoDesasignado) {
+            // Mostrar diálogo profesional con los datos del traslado desasignado
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _mostrarDialogoDesasignacion(context, state.traslado);
+            });
           }
         },
+        // ✅ Solo reconstruir cuando cambian datos reales, no durante cambios de estado
+        buildWhen: (previous, current) {
+          // No reconstruir durante el cambio de estado (los botones tienen su propio builder)
+          if (current is CambiandoEstadoTraslado) return false;
+          // No reconstruir en éxito (el cambio ya se procesó)
+          if (current is EstadoCambiadoSuccess) return false;
+          // Reconstruir para cualquier otro estado
+          return true;
+        },
         builder: (context, state) {
-          if (state is TrasladosLoading || state is CambiandoEstadoTraslado) {
+          if (state is TrasladosLoading) {
             return const Center(
               child: CircularProgressIndicator(),
             );
           }
 
-          if (state is TrasladosLoaded && state.trasladoSeleccionado != null) {
-            final traslado = state.trasladoSeleccionado!;
-            return _TrasladoGestionContent(traslado: traslado);
+          if (state is TrasladosLoaded) {
+            // ✅ Verificar si el traslado existe en la lista de traslados activos
+            final trasladoEnLista = state.getTrasladoById(idTraslado);
+
+            // Si el traslado está en la lista pero trasladoSeleccionado es null,
+            // significa que aún se está cargando los detalles completos
+            if (trasladoEnLista != null && state.trasladoSeleccionado == null) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+
+            // Si trasladoSeleccionado está cargado, mostrar el contenido
+            if (state.trasladoSeleccionado != null) {
+              final traslado = state.trasladoSeleccionado!;
+              return Column(
+                children: [
+                  // Barra de progreso lineal cuando está cambiando estado
+                  BlocBuilder<TrasladosBloc, TrasladosState>(
+                    builder: (context, blocState) {
+                      if (blocState is CambiandoEstadoTraslado) {
+                        return LinearProgressIndicator(
+                          backgroundColor: AppColors.gray200,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            _getColorFromHex(blocState.estadoNuevo.colorHex),
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                  Expanded(
+                    child: _TrasladoGestionContent(traslado: traslado),
+                  ),
+                ],
+              );
+            }
           }
 
+          // Solo mostrar "no encontrado" si realmente no existe en la lista
           return const Center(
             child: Text('Traslado no encontrado'),
           );
         },
+      ),
+    );
+  }
+
+  Color _getColorFromHex(String hexColor) {
+    final hex = hexColor.replaceAll('#', '');
+    return Color(int.parse('FF$hex', radix: 16));
+  }
+
+  Future<void> _mostrarDialogoDesasignacion(BuildContext context, TrasladoEntity traslado) {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icono de advertencia
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.warning_amber_rounded,
+                  size: 48,
+                  color: AppColors.warning,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Título
+              const Text(
+                'Traslado Desasignado',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.gray900,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+
+              // Descripción
+              const Text(
+                'Este traslado ha sido desasignado desde la web.',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: AppColors.gray700,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              // Detalles del traslado desasignado
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.gray50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.gray200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Paciente
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.person_outline,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            traslado.pacienteNombre ?? 'No especificado',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.gray900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Hora programada (GRANDE)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.access_time_outlined,
+                          size: 20,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          '${DateFormat('dd/MM/yyyy').format(traslado.fecha)} - ${traslado.horaProgramada.substring(0, 5)}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Origen
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          margin: const EdgeInsets.only(top: 4),
+                          decoration: const BoxDecoration(
+                            color: AppColors.success,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'ORIGEN',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.gray600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                traslado.origenCompleto,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.gray900,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Destino
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          margin: const EdgeInsets.only(top: 4),
+                          decoration: const BoxDecoration(
+                            color: AppColors.error,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'DESTINO',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.gray600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                traslado.destinoCompleto,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.gray900,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Botón
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    context.pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.warning,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Entendido',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -810,25 +1081,32 @@ class _TrasladoGestionContent extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gray300, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ...estadosSiguientes.map((estado) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _buildEstadoButton(context, estado),
-            );
-          }),
-        ],
-      ),
+    return BlocBuilder<TrasladosBloc, TrasladosState>(
+      builder: (context, state) {
+        // Detectar si se está cambiando el estado
+        final isLoading = state is CambiandoEstadoTraslado;
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.gray300, width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ...estadosSiguientes.map((estado) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _buildEstadoButton(context, estado, isLoading: isLoading),
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -965,39 +1243,68 @@ class _TrasladoGestionContent extends StatelessWidget {
     );
   }
 
-  Widget _buildEstadoButton(BuildContext context, EstadoTraslado nuevoEstado) {
+  Widget _buildEstadoButton(
+    BuildContext context,
+    EstadoTraslado nuevoEstado, {
+    required bool isLoading,
+  }) {
     final color = _getColorFromHex(nuevoEstado.colorHex);
 
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () => _cambiarEstado(context, nuevoEstado),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+    return Opacity(
+      opacity: isLoading ? 0.6 : 1.0,
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: isLoading ? null : () => _cambiarEstado(context, nuevoEstado),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: color,
+            disabledForegroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            elevation: isLoading ? 0 : 2,
           ),
-          elevation: 0,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              _getIconForEstado(nuevoEstado),
-              size: 20,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              nuevoEstado.label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isLoading) ...[
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Procesando...',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ] else ...[
+                Icon(
+                  _getIconForEstado(nuevoEstado),
+                  size: 22,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  nuevoEstado.label,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -1023,6 +1330,14 @@ class _TrasladoGestionContent extends StatelessWidget {
   }
 
   Future<void> _cambiarEstado(BuildContext context, EstadoTraslado nuevoEstado) async {
+    // Mostrar diálogo de confirmación
+    final confirmar = await _mostrarDialogoConfirmacion(context, nuevoEstado);
+    if (confirmar != true) return;
+
+    // Mostrar diálogo de loading
+    if (!context.mounted) return;
+    _mostrarDialogoLoading(context, nuevoEstado);
+
     try {
       // Obtener ID de usuario desde AuthBloc (antes de operaciones async)
       final authState = context.read<AuthBloc>().state;
@@ -1059,7 +1374,18 @@ class _TrasladoGestionContent extends StatelessWidget {
               ),
             );
       }
+
+      // Cerrar diálogo de loading después de un breve delay para que el usuario vea el proceso
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Cerrar loading dialog
+      }
     } catch (e) {
+      // Cerrar diálogo de loading
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1069,6 +1395,192 @@ class _TrasladoGestionContent extends StatelessWidget {
         );
       }
     }
+  }
+
+  void _mostrarDialogoLoading(BuildContext context, EstadoTraslado nuevoEstado) {
+    final color = _getColorFromHex(nuevoEstado.colorHex);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.white,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Spinner con color del estado
+                SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 4,
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Título
+                Text(
+                  'Cambiando a ${nuevoEstado.label}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.gray900,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+
+                // Descripción
+                const Text(
+                  'Obteniendo ubicación y actualizando estado...',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.gray600,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<bool?> _mostrarDialogoConfirmacion(BuildContext context, EstadoTraslado nuevoEstado) {
+    final color = _getColorFromHex(nuevoEstado.colorHex);
+
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icono del estado
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _getIconForEstado(nuevoEstado),
+                  size: 48,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Título
+              const Text(
+                'Confirmar cambio de estado',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.gray900,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+
+              // Descripción
+              RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: AppColors.gray700,
+                    height: 1.4,
+                  ),
+                  children: [
+                    const TextSpan(text: '¿Confirmas que deseas cambiar el estado a '),
+                    TextSpan(
+                      text: nuevoEstado.label,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                      ),
+                    ),
+                    const TextSpan(text: '?'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Botones
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: AppColors.gray300, width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.gray700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: color,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Confirmar',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Color _getColorFromHex(String hexColor) {

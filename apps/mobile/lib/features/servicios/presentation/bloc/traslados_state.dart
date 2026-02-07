@@ -128,3 +128,29 @@ class TrasladosStreamActualizando extends TrasladosState {
   @override
   List<Object?> get props => [trasladosActuales];
 }
+
+/// Estado cuando se asigna un nuevo traslado al conductor
+class TrasladoAsignado extends TrasladosState {
+  const TrasladoAsignado({
+    required this.traslado,
+    required this.esReasignacion,
+  });
+
+  final TrasladoEntity traslado;
+  final bool esReasignacion;
+
+  @override
+  List<Object?> get props => [traslado, esReasignacion];
+}
+
+/// Estado cuando se desasigna un traslado del conductor
+class TrasladoDesasignado extends TrasladosState {
+  const TrasladoDesasignado({
+    required this.traslado,
+  });
+
+  final TrasladoEntity traslado;
+
+  @override
+  List<Object?> get props => [traslado];
+}

@@ -15,6 +15,7 @@ class ResizableDataTable extends StatefulWidget {
     this.filterRow, // Nueva propiedad para fila de filtros
     this.initialColumnWidths, // Anchos predefinidos (opcional)
     this.onRowTap, // Callback cuando se hace clic en una fila
+    this.fillHeight = false, // Si la tabla debe ocupar todo el espacio vertical
     super.key,
   });
 
@@ -27,6 +28,7 @@ class ResizableDataTable extends StatefulWidget {
   final DataTableRow? filterRow; // Fila opcional de filtros
   final List<double>? initialColumnWidths; // Anchos iniciales predefinidos
   final void Function(int index)? onRowTap; // Callback para clic en fila
+  final bool fillHeight; // Si debe llenar todo el espacio vertical disponible
 
   @override
   State<ResizableDataTable> createState() => _ResizableDataTableState();
@@ -35,7 +37,8 @@ class ResizableDataTable extends StatefulWidget {
 class _ResizableDataTableState extends State<ResizableDataTable> {
   late List<double> _columnWidths;
   bool _isLoading = true;
-  final ScrollController _scrollController = ScrollController();
+  final ScrollController _horizontalScrollController = ScrollController();
+  final ScrollController _verticalScrollController = ScrollController();
   int? _selectedRowIndex; // Índice de la fila seleccionada
 
   @override
@@ -46,7 +49,8 @@ class _ResizableDataTableState extends State<ResizableDataTable> {
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _horizontalScrollController.dispose();
+    _verticalScrollController.dispose();
     super.dispose();
   }
 
@@ -160,17 +164,82 @@ class _ResizableDataTableState extends State<ResizableDataTable> {
     final double totalWidth = _columnWidths.fold<double>(0.0, (double sum, double width) => sum + width) +
                               (widget.columns.length - 1) * 8; // 8px por cada resize handle
 
+    // Si fillHeight es true, la tabla ocupa todo el espacio vertical disponible
+    if (widget.fillHeight) {
+      return _buildFullHeightTable(totalWidth);
+    }
+
+    // Comportamiento original: la tabla solo ocupa el espacio necesario
+    return _buildMinHeightTable(totalWidth);
+  }
+
+  /// Construye la tabla ocupando todo el espacio vertical disponible
+  /// con el scrollbar horizontal siempre visible en la parte inferior
+  Widget _buildFullHeightTable(double totalWidth) {
+    return Column(
+      children: <Widget>[
+        // Área expandida con scroll horizontal que contiene todo
+        Expanded(
+          child: Scrollbar(
+            controller: _horizontalScrollController,
+            thumbVisibility: true,
+            thickness: 12,
+            radius: const Radius.circular(6),
+            notificationPredicate: (ScrollNotification notification) => notification.depth == 0,
+            child: SingleChildScrollView(
+              controller: _horizontalScrollController,
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: totalWidth,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    // Header Row (fijo)
+                    _buildHeaderRow(),
+
+                    // Filter Row (fijo, si existe)
+                    if (widget.filterRow != null) _buildFilterRow(widget.filterRow!),
+
+                    // Data Rows con scroll vertical
+                    Expanded(
+                      child: Scrollbar(
+                        controller: _verticalScrollController,
+                        thumbVisibility: true,
+                        thickness: 8,
+                        radius: const Radius.circular(4),
+                        child: ListView.builder(
+                          controller: _verticalScrollController,
+                          itemCount: widget.rows.length,
+                          itemExtent: widget.rowHeight,
+                          itemBuilder: (BuildContext context, int index) {
+                            return _buildDataRow(widget.rows[index], index);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Construye la tabla con altura mínima (comportamiento original)
+  Widget _buildMinHeightTable(double totalWidth) {
     return Scrollbar(
-      controller: _scrollController,
+      controller: _horizontalScrollController,
       thumbVisibility: true,
       thickness: 12,
       radius: const Radius.circular(6),
       child: SingleChildScrollView(
-        controller: _scrollController,
+        controller: _horizontalScrollController,
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(bottom: 16), // ✅ Espacio para ver última fila
+        padding: const EdgeInsets.only(bottom: 16),
         child: SizedBox(
-          width: totalWidth, // ⭐ Forzar ancho total
+          width: totalWidth,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,

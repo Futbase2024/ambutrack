@@ -27,6 +27,7 @@ class TrasladoRowBuilder {
     this.onAsignarConductorMasivoRequested,
     this.onModificarHora,
     this.onCancelarTraslado,
+    this.onVerHistorial,
   });
 
   final Map<String, ServicioEntity> serviciosPorTraslado;
@@ -63,6 +64,10 @@ class TrasladoRowBuilder {
   /// Recibe el ID del traslado, hora programada, origen y destino para mostrar contexto
   final void Function(String idTraslado, String pacienteNombre, DateTime? horaProgramada, String origen, String destino)? onCancelarTraslado;
 
+  /// Callback para ver el historial de estados de un traslado
+  /// Recibe el ID del traslado y el nombre del paciente para mostrar contexto
+  final void Function(String idTraslado, String pacienteNombre)? onVerHistorial;
+
   /// Construye una fila de datos para un traslado
   DataTableRow buildRow(TrasladoEntity traslado) {
     final ServicioEntity? servicio = serviciosPorTraslado[traslado.id];
@@ -71,9 +76,10 @@ class TrasladoRowBuilder {
     final PacienteEntity? paciente = servicio?.paciente;
 
     final String tipoTraslado = traslado.tipoTraslado.toUpperCase();
-    final String horaProgramada = traslado.horaProgramada;
+    // Formatear hora a HH:mm (quitar segundos si vienen en formato HH:mm:ss)
+    final String horaProgramada = _formatearHora(traslado.horaProgramada);
 
-    final String estatus = traslado.estado.name;
+    final String estatus = _getEstatusTexto(traslado.estado);
     final Color estatusColor = _getEstatusColor(traslado);
 
     final String pacienteNombre = paciente != null
@@ -145,32 +151,32 @@ class TrasladoRowBuilder {
           alignment: Alignment.center,
         ),
         DataTableCell(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(
-                tipoTraslado == 'IDA' ? Icons.arrow_forward : Icons.arrow_back,
-                size: 14,
-                color: tipoTraslado == 'IDA' ? AppColors.success : AppColors.error,
-              ),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  tipoTraslado,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: tipoTraslado == 'IDA' ? AppColors.success : AppColors.error,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          child: Tooltip(
+            message: tipoTraslado,
+            child: Container(
+              width: 28,
+              height: 22,
+              decoration: BoxDecoration(
+                color: tipoTraslado == 'IDA'
+                    ? AppColors.success.withValues(alpha: 0.15)
+                    : AppColors.error.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: tipoTraslado == 'IDA'
+                      ? AppColors.success.withValues(alpha: 0.4)
+                      : AppColors.error.withValues(alpha: 0.4),
                 ),
               ),
-            ],
+              child: Icon(
+                tipoTraslado == 'IDA' ? Icons.arrow_forward_rounded : Icons.arrow_back_rounded,
+                size: 18,
+                color: tipoTraslado == 'IDA' ? AppColors.success : AppColors.error,
+              ),
+            ),
           ),
-          alignment: Alignment.centerLeft,
+          alignment: Alignment.center,
         ),
-        DataTableCell(child: _buildCellText(horaProgramada, true, 13), alignment: Alignment.center),
+        DataTableCell(child: _buildHoraCell(horaProgramada), alignment: Alignment.center),
         DataTableCell(child: _buildCellText(pacienteNombre, false, 11)),
         DataTableCell(child: _buildCellText(domicilioOrigen, false, 11)),
         DataTableCell(child: _buildCellText(localidadOrigen, false, 11)),
@@ -187,7 +193,7 @@ class TrasladoRowBuilder {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              estatus.toUpperCase(),
+              estatus,
               style: GoogleFonts.inter(
                 fontSize: 9,
                 fontWeight: FontWeight.w600,
@@ -271,6 +277,8 @@ class TrasladoRowBuilder {
     // Un traslado tiene conductor asignado si idConductor no es null
     // Esto cubre estados: asignado, enviado, recibido_conductor, en_origen, etc.
     final bool tieneConductorAsignado = traslado.idConductor != null;
+    // Un traslado finalizado no puede ser desasignado
+    final bool estaFinalizado = traslado.estado == EstadoTraslado.finalizado;
 
     return <ContextMenuOption>[
       ContextMenuOption(
@@ -292,12 +300,14 @@ class TrasladoRowBuilder {
             }
           },
         ),
-      // Si tiene conductor asignado → Desasignar, si no → Asignar
-      ContextMenuOption(
-        label: tieneConductorAsignado ? 'Desasignar conductor' : 'Asignar conductor',
-        emoji: tieneConductorAsignado ? '🚫' : '🚗',
-        onTap: () {
-          if (tieneConductorAsignado) {
+      // Si tiene conductor asignado y NO está finalizado → Desasignar
+      // Si no tiene conductor → Asignar
+      // Si está finalizado → No mostrar opción de desasignar
+      if (tieneConductorAsignado && !estaFinalizado)
+        ContextMenuOption(
+          label: 'Desasignar conductor',
+          emoji: '🚫',
+          onTap: () {
             // Verificar si hay múltiples traslados seleccionados
             // Si el traslado actual está en la selección y hay más de 1, usar desasignación masiva
             final bool usarDesasignacionMasiva = trasladosSeleccionados.length > 1 &&
@@ -318,7 +328,14 @@ class TrasladoRowBuilder {
                 onDesasignarConductor!(traslado.id);
               }
             }
-          } else {
+          },
+        ),
+      // Solo mostrar "Asignar conductor" si NO tiene conductor asignado
+      if (!tieneConductorAsignado)
+        ContextMenuOption(
+          label: 'Asignar conductor',
+          emoji: '🚗',
+          onTap: () {
             // Verificar si hay múltiples traslados seleccionados
             // Si el traslado actual está en la selección y hay más de 1, usar asignación masiva
             final bool usarAsignacionMasiva = trasladosSeleccionados.length > 1 &&
@@ -335,10 +352,10 @@ class TrasladoRowBuilder {
               debugPrint('   - Estado actual: ${traslado.estado.name}');
               _solicitarAsignacionConductor(traslado, servicio);
             }
-          }
-        },
-      ),
-      if (tieneHoraProgramada)
+          },
+        ),
+      // Solo mostrar "Modificar hora" si NO está finalizado
+      if (tieneHoraProgramada && !estaFinalizado)
         ContextMenuOption(
           label: 'Modificar hora',
           emoji: '🕐',
@@ -386,6 +403,22 @@ class TrasladoRowBuilder {
             }
           },
         ),
+      // Ver historial de estados - siempre disponible
+      ContextMenuOption(
+        label: 'Ver historial',
+        emoji: '📜',
+        onTap: () {
+          debugPrint('📜 Ver historial de traslado: ${traslado.id}');
+          // Usar paciente del servicio
+          final PacienteEntity? pacienteLocal = servicio?.paciente;
+          final String pacienteNombreLocal = pacienteLocal != null
+              ? '${pacienteLocal.nombre} ${pacienteLocal.primerApellido}'
+              : '';
+          if (onVerHistorial != null) {
+            onVerHistorial!(traslado.id, pacienteNombreLocal);
+          }
+        },
+      ),
     ];
   }
 
@@ -1368,54 +1401,59 @@ class TrasladoRowBuilder {
   List<DataTableCell> _buildHorasCronologicas(TrasladoEntity traslado) {
     return <DataTableCell>[
       DataTableCell(
-        child: _buildCellText(
+        child: _buildHoraCronologicaCell(
           traslado.fechaEnviado != null ? DateFormat('HH:mm').format(traslado.fechaEnviado!) : '',
-          false,
-          11,
         ),
         alignment: Alignment.center,
       ),
       DataTableCell(
-        child: _buildCellText(
+        child: _buildHoraCronologicaCell(
           traslado.fechaRecibidoConductor != null ? DateFormat('HH:mm').format(traslado.fechaRecibidoConductor!) : '',
-          false,
-          11,
         ),
         alignment: Alignment.center,
       ),
       DataTableCell(
-        child: _buildCellText(
+        child: _buildHoraCronologicaCell(
           traslado.fechaEnOrigen != null ? DateFormat('HH:mm').format(traslado.fechaEnOrigen!) : '',
-          false,
-          11,
         ),
         alignment: Alignment.center,
       ),
       DataTableCell(
-        child: _buildCellText(
+        child: _buildHoraCronologicaCell(
           traslado.fechaSaliendoOrigen != null ? DateFormat('HH:mm').format(traslado.fechaSaliendoOrigen!) : '',
-          false,
-          11,
         ),
         alignment: Alignment.center,
       ),
       DataTableCell(
-        child: _buildCellText(
+        child: _buildHoraCronologicaCell(
           traslado.fechaEnDestino != null ? DateFormat('HH:mm').format(traslado.fechaEnDestino!) : '',
-          false,
-          11,
         ),
         alignment: Alignment.center,
       ),
       DataTableCell(
-        child: _buildCellText(
+        child: _buildHoraCronologicaCell(
           traslado.fechaFinalizado != null ? DateFormat('HH:mm').format(traslado.fechaFinalizado!) : '',
-          false,
-          11,
         ),
         alignment: Alignment.center,
       ),
     ];
+  }
+
+  /// Construye la celda de hora cronológica con estilo destacado (negrita y más grande)
+  Widget _buildHoraCronologicaCell(String hora) {
+    if (hora.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Text(
+      hora,
+      style: GoogleFonts.inter(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimaryLight,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 
   List<DataTableCell> _buildCheckboxesRequisitos(TrasladoEntity traslado) {
@@ -1456,30 +1494,63 @@ class TrasladoRowBuilder {
   }
 
   Color _getEstatusColor(TrasladoEntity traslado) {
-    final String estado = traslado.estado.name;
-
-    switch (estado.toLowerCase()) {
-      case 'pendiente':
-        return AppColors.warning;
-      case 'asignado':
-        return AppColors.info;
-      case 'enviado':
-      case 'recibido_conductor':
-        return AppColors.primary;
-      case 'en_origen':
-      case 'saliendo_origen':
-      case 'en_transito':
-        return AppColors.secondary;
-      case 'en_destino':
-      case 'finalizado':
-        return AppColors.success;
-      case 'cancelado':
-      case 'anulado':
-      case 'no_realizado':
+    switch (traslado.estado) {
+      // Rojo: Estados finales negativos
+      case EstadoTraslado.cancelado:
+      case EstadoTraslado.noRealizado:
+      case EstadoTraslado.finalizado:
         return AppColors.error;
-      default:
-        return AppColors.textSecondaryLight;
+      // Azul: Pendiente
+      case EstadoTraslado.pendiente:
+        return AppColors.info;
+      // Verde: Todos los demás estados activos
+      case EstadoTraslado.asignado:
+      case EstadoTraslado.enviado:
+      case EstadoTraslado.recibido:
+      case EstadoTraslado.enOrigen:
+      case EstadoTraslado.saliendoOrigen:
+      case EstadoTraslado.enTransito:
+      case EstadoTraslado.enDestino:
+        return AppColors.success;
     }
+  }
+
+  /// Obtiene el texto de visualización para el estado del traslado
+  /// Usa el label del enum pero cambia "SALIENDO" por "EN RUTA"
+  String _getEstatusTexto(EstadoTraslado estado) {
+    // Caso especial: mostrar "EN RUTA" en lugar de "SALIENDO"
+    if (estado == EstadoTraslado.saliendoOrigen) {
+      return 'EN RUTA';
+    }
+    // Para el resto, usar el label del enum
+    return estado.label;
+  }
+
+  /// Construye la celda de hora programada con estilo destacado
+  Widget _buildHoraCell(String hora) {
+    return Text(
+      hora,
+      style: GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: AppColors.primary,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  /// Formatea la hora a formato HH:mm (quita los segundos si vienen en formato HH:mm:ss)
+  String _formatearHora(String hora) {
+    if (hora.isEmpty) {
+      return '';
+    }
+    // Si viene en formato HH:mm:ss, extraer solo HH:mm
+    final List<String> partes = hora.split(':');
+    if (partes.length >= 2) {
+      return '${partes[0]}:${partes[1]}';
+    }
+    return hora;
   }
 
   /// Obtiene el valor de una columna para filtrado

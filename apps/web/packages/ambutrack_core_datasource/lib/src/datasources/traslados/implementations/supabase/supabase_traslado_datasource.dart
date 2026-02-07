@@ -704,11 +704,47 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
       if (matriculaVehiculo != null) updateData['matricula_vehiculo'] = matriculaVehiculo;
       if (idTecnico != null) updateData['id_tecnico'] = idTecnico;
 
-      // Si se asignan recursos y el estado era 'pendiente', pasar a 'asignado'
+      // Obtener estado actual del traslado
       final currentData =
           await _supabase.from(_tableName).select('estado').eq('id', id).single();
+      final estadoActual = currentData['estado'] as String;
 
-      if (currentData['estado'] == 'pendiente') {
+      // Estados que deben resetear al reasignar
+      const estadosAvanzados = [
+        'enviado',
+        'recibido_conductor',
+        'en_origen',
+        'saliendo_origen',
+        'en_transito',
+        'en_destino',
+      ];
+
+      // Si el traslado tiene un estado avanzado (fue desasignado y reasignado), resetear a 'asignado'
+      if (estadosAvanzados.contains(estadoActual)) {
+        debugPrint(
+          '📦 SupabaseTrasladoDataSource: ⚠️ Traslado con estado avanzado "$estadoActual" siendo reasignado. Reseteando a "asignado"',
+        );
+        updateData['estado'] = 'asignado';
+        updateData['fecha_asignacion'] = DateTime.now().toIso8601String();
+        final userId = _supabase.auth.currentUser?.id;
+        if (userId != null) {
+          updateData['usuario_asignacion'] = userId;
+          updateData['updated_by'] = userId;
+        }
+
+        // Limpiar fechas de estados avanzados al resetear
+        updateData['fecha_enviado'] = null;
+        updateData['fecha_recibido_conductor'] = null;
+        updateData['fecha_en_origen'] = null;
+        updateData['fecha_saliendo_origen'] = null;
+        updateData['fecha_en_transito'] = null;
+        updateData['fecha_en_destino'] = null;
+        updateData['ubicacion_en_origen'] = null;
+        updateData['ubicacion_saliendo_origen'] = null;
+        updateData['ubicacion_en_transito'] = null;
+        updateData['ubicacion_en_destino'] = null;
+      } else if (estadoActual == 'pendiente') {
+        // Si el estado era 'pendiente', pasar a 'asignado' normalmente
         updateData['estado'] = 'asignado';
         // ✅ Establecer campos de auditoría de asignación
         updateData['fecha_asignacion'] = DateTime.now().toIso8601String();

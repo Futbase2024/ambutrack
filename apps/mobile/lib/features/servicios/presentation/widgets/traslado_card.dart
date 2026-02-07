@@ -10,11 +10,22 @@ class TrasladoCard extends StatelessWidget {
   const TrasladoCard({
     required this.traslado,
     required this.onTap,
+    this.onCambiarEstado,
     super.key,
   });
 
   final TrasladoEntity traslado;
   final VoidCallback onTap;
+  final void Function(EstadoTraslado)? onCambiarEstado;
+
+  /// Obtiene el label a mostrar en el badge
+  /// Si el estado es "SALIENDO", muestra "EN RUTA" en su lugar
+  String _getBadgeLabel(EstadoTraslado estado) {
+    if (estado == EstadoTraslado.saliendoOrigen) {
+      return 'EN RUTA';
+    }
+    return estado.label;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +38,12 @@ class TrasladoCard extends StatelessWidget {
     // Color del borde según tipo de traslado
     final bool esIda = traslado.tipoTraslado.toUpperCase() == 'IDA';
     final Color colorBorde = esIda ? AppColors.primary : AppColors.emergency;
+
+    // Obtener siguiente estado si existe y hay callback
+    final EstadoTraslado? siguienteEstado = _obtenerSiguienteEstado(traslado.estado);
+    final bool mostrarBotonAccion = onCambiarEstado != null &&
+                                     siguienteEstado != null &&
+                                     traslado.estado.isActivo;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -56,11 +73,21 @@ class TrasladoCard extends StatelessWidget {
               ),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: isNarrow
-                  ? _buildNarrowLayout(estadoColor)
-                  : _buildWideLayout(estadoColor),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Contenido principal de la tarjeta
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: isNarrow
+                      ? _buildNarrowLayout(estadoColor)
+                      : _buildWideLayout(estadoColor),
+                ),
+
+                // Botón de acción rápida en la parte inferior (si aplica)
+                if (mostrarBotonAccion && siguienteEstado != null)
+                  _buildBotonAccionInferior(siguienteEstado),
+              ],
             ),
           ),
         ),
@@ -132,7 +159,7 @@ class TrasladoCard extends StatelessWidget {
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        traslado.estado.label,
+                        _getBadgeLabel(traslado.estado),
                         style: TextStyle(
                           color: estadoColor,
                           fontSize: 13,
@@ -336,7 +363,7 @@ class TrasladoCard extends StatelessWidget {
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
-                                    traslado.estado.label,
+                                    _getBadgeLabel(traslado.estado),
                                     style: TextStyle(
                                       color: estadoColor,
                                       fontSize: 14,
@@ -544,6 +571,103 @@ class TrasladoCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Botón de acción inferior para cambiar estado
+  Widget _buildBotonAccionInferior(EstadoTraslado siguienteEstado) {
+    final color = _getColorFromHex(siguienteEstado.colorHex);
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: AppColors.gray200,
+            width: 1,
+          ),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onCambiarEstado?.call(siguienteEstado),
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(16),
+            bottomRight: Radius.circular(16),
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  _getIconForEstado(siguienteEstado),
+                  size: 18,
+                  color: color,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Cambiar a ${siguienteEstado.label}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.arrow_forward,
+                  size: 16,
+                  color: color,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Obtiene el siguiente estado posible
+  EstadoTraslado? _obtenerSiguienteEstado(EstadoTraslado estadoActual) {
+    switch (estadoActual) {
+      case EstadoTraslado.asignado:
+      case EstadoTraslado.pendiente:
+      case EstadoTraslado.enviado:
+        return EstadoTraslado.recibido;
+      case EstadoTraslado.recibido:
+        return EstadoTraslado.enOrigen;
+      case EstadoTraslado.enOrigen:
+        return EstadoTraslado.saliendoOrigen;
+      case EstadoTraslado.saliendoOrigen:
+        return EstadoTraslado.enDestino;
+      case EstadoTraslado.enDestino:
+        return EstadoTraslado.finalizado;
+      default:
+        return null;
+    }
+  }
+
+  /// Obtiene el icono apropiado para cada estado
+  IconData _getIconForEstado(EstadoTraslado estado) {
+    switch (estado) {
+      case EstadoTraslado.enviado:
+        return Icons.send_outlined;
+      case EstadoTraslado.recibido:
+        return Icons.check_circle_outline;
+      case EstadoTraslado.enOrigen:
+        return Icons.location_on;
+      case EstadoTraslado.saliendoOrigen:
+        return Icons.drive_eta;
+      case EstadoTraslado.enTransito:
+        return Icons.local_shipping_outlined;
+      case EstadoTraslado.enDestino:
+        return Icons.place;
+      case EstadoTraslado.finalizado:
+        return Icons.check_circle;
+      default:
+        return Icons.arrow_forward;
+    }
   }
 
   /// Convierte hex string a Color
