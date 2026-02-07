@@ -288,6 +288,8 @@ import 'package:ambutrack_web/features/vehiculos/data/repositories/vehiculo_repo
     as _i814;
 import 'package:ambutrack_web/features/vehiculos/domain/repositories/vehiculo_repository.dart'
     as _i145;
+import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_bloc.dart'
+    as _i1015;
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart'
     as _i1042;
 import 'package:get_it/get_it.dart' as _i174;
@@ -564,6 +566,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i1042.VehiculosBloc>(
       () => _i1042.VehiculosBloc(gh<_i145.VehiculoRepository>()),
+    );
+    gh.factory<_i1015.StockEquipamientoBloc>(
+      () => _i1015.StockEquipamientoBloc(gh<_i145.VehiculoRepository>()),
     );
     gh.lazySingleton<_i750.RoleService>(
       () => _i750.RoleService(

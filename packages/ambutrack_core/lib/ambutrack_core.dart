@@ -240,6 +240,7 @@ export 'src/datasources/stock_vestuario/stock_vestuario_factory.dart' show Stock
 
 // ❌ LEGACY - Stock viejo comentado para evitar conflictos con nuevo sistema /almacen/
 export 'src/datasources/stock/entities/categoria_equipamiento_entity.dart';
+export 'src/datasources/stock/entities/vehiculo_stock_resumen_entity.dart';
 // export 'src/datasources/stock/entities/producto_entity.dart';
 // export 'src/datasources/stock/entities/stock_vehiculo_entity.dart';
 // export 'src/datasources/stock/entities/movimiento_stock_entity.dart';

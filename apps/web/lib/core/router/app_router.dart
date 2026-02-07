@@ -51,6 +51,7 @@ import 'package:ambutrack_web/features/vehiculos/consumo_km_page.dart';
 import 'package:ambutrack_web/features/vehiculos/documentacion_page.dart';
 import 'package:ambutrack_web/features/vehiculos/geolocalizacion_page.dart';
 import 'package:ambutrack_web/features/vehiculos/historial_averias_page.dart';
+import 'package:ambutrack_web/features/vehiculos/presentation/pages/stock_equipamiento_page.dart';
 import 'package:ambutrack_web/features/vehiculos/vehiculo_stock_page.dart';
 import 'package:ambutrack_web/features/vehiculos/vehiculos_page.dart';
 import 'package:flutter/material.dart';
@@ -637,19 +638,15 @@ final GoRouter appRouter = GoRouter(
         child: const HistorialAveriasPage(),
       ),
         ),
-        // Stock de Equipamiento (redirige a Stock de Almacén)
+        // Stock de Equipamiento de Vehículos
         GoRoute(
           path: '/flota/stock-equipamiento',
           name: 'flota_stock_equipamiento',
           pageBuilder: (BuildContext context, GoRouterState state) =>
-          _buildPageWithTransition(
-        key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Stock de Equipamiento',
-          subtitle: 'Gestión de equipamiento de vehículos',
-          icon: Icons.inventory,
-        ),
-      ),
+              _buildPageWithTransition(
+            key: state.pageKey,
+            child: const StockEquipamientoPage(),
+          ),
         ),
 
         // Stock de vehículo individual

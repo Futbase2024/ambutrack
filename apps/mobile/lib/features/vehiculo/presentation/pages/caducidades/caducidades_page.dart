@@ -5,58 +5,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../../core/di/injection.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../bloc/caducidades/caducidades_bloc.dart';
+import '../../bloc/caducidades/caducidades_event.dart';
+import '../../bloc/caducidades/caducidades_state.dart';
 import '../../bloc/vehiculo_asignado/vehiculo_asignado_bloc.dart';
 import '../../bloc/vehiculo_asignado/vehiculo_asignado_event.dart';
 import '../../bloc/vehiculo_asignado/vehiculo_asignado_state.dart';
-
-/// Clase auxiliar para representar items con caducidad
-class _CaducidadItem {
-  final String nombre;
-  final DateTime? fechaCaducidad;
-
-  const _CaducidadItem({
-    required this.nombre,
-    this.fechaCaducidad,
-  });
-
-  bool get estaVencido {
-    if (fechaCaducidad == null) return false;
-    return fechaCaducidad!.isBefore(DateTime.now());
-  }
-
-  int? get diasHastaVencimiento {
-    if (fechaCaducidad == null) return null;
-    final diferencia = fechaCaducidad!.difference(DateTime.now());
-    return diferencia.inDays;
-  }
-}
-
-/// Función auxiliar para obtener datos de ejemplo
-List<_CaducidadItem> _getCaducidadesEjemplo() {
-  final hoy = DateTime.now();
-  return [
-    _CaducidadItem(
-      nombre: 'Desfibrilador',
-      fechaCaducidad: hoy.add(const Duration(days: 90)),
-    ),
-    _CaducidadItem(
-      nombre: 'Baterías DEA',
-      fechaCaducidad: hoy.add(const Duration(days: 15)),
-    ),
-    _CaducidadItem(
-      nombre: 'Suero fisiológico',
-      fechaCaducidad: hoy.subtract(const Duration(days: 5)),
-    ),
-    _CaducidadItem(
-      nombre: 'Gasas estériles',
-      fechaCaducidad: hoy.add(const Duration(days: 45)),
-    ),
-    _CaducidadItem(
-      nombre: 'Vendas',
-      fechaCaducidad: hoy.add(const Duration(days: 120)),
-    ),
-  ];
-}
 
 /// Página de control de caducidades del vehículo
 class CaducidadesPage extends StatelessWidget {
@@ -64,9 +18,14 @@ class CaducidadesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) =>
-          getIt<VehiculoAsignadoBloc>()..add(const LoadVehiculoAsignado()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) =>
+              getIt<VehiculoAsignadoBloc>()..add(const LoadVehiculoAsignado()),
+        ),
+        BlocProvider(create: (context) => getIt<CaducidadesBloc>()),
+      ],
       child: const _CaducidadesView(),
     );
   }
@@ -122,20 +81,74 @@ class _CaducidadesViewState extends State<_CaducidadesView> {
 
             final vehiculo = vehiculoState.vehiculo;
 
-            // TODO: Implementar carga de caducidades desde datasource
-            // Por ahora, mostrar datos de ejemplo
-            final List<_CaducidadItem> itemsConCaducidad = _getCaducidadesEjemplo();
+            // Cargar caducidades si aún no están cargadas
+            return BlocConsumer<CaducidadesBloc, CaducidadesState>(
+              listener: (context, state) {
+                if (state is CaducidadesError) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              },
+              builder: (context, caducidadesState) {
+                // Cargar datos si es estado inicial
+                if (caducidadesState is CaducidadesInitial) {
+                  context.read<CaducidadesBloc>().add(LoadCaducidades(vehiculo.id));
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                    ),
+                  );
+                }
 
-            return Column(
-              children: [
-                _VehiculoHeader(vehiculo: vehiculo),
-                _ResumenCaducidades(items: itemsConCaducidad),
-                Expanded(
-                  child: itemsConCaducidad.isEmpty
-                      ? const _EmptyView()
-                      : _CaducidadesList(items: itemsConCaducidad),
-                ),
-              ],
+                if (caducidadesState is CaducidadesLoading) {
+                  return Column(
+                    children: [
+                      _VehiculoHeader(vehiculo: vehiculo),
+                      const Expanded(
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }
+
+                if (caducidadesState is CaducidadesLoaded) {
+                  return Column(
+                    children: [
+                      _VehiculoHeader(vehiculo: vehiculo),
+                      _ResumenCaducidades(
+                        vencidos: caducidadesState.vencidos,
+                        proximosAVencer: caducidadesState.proximosAVencer,
+                        vigentes: caducidadesState.vigentes,
+                      ),
+                      Expanded(
+                        child: caducidadesState.items.isEmpty
+                            ? const _EmptyView()
+                            : _CaducidadesList(items: caducidadesState.items),
+                      ),
+                    ],
+                  );
+                }
+
+                // Estado de error
+                return Column(
+                  children: [
+                    _VehiculoHeader(vehiculo: vehiculo),
+                    const Expanded(
+                      child: _ErrorView(
+                        message: 'Error al cargar caducidades',
+                      ),
+                    ),
+                  ],
+                );
+              },
             );
           },
         ),
@@ -192,21 +205,18 @@ class _VehiculoHeader extends StatelessWidget {
 
 /// Resumen de caducidades
 class _ResumenCaducidades extends StatelessWidget {
-  const _ResumenCaducidades({required this.items});
+  const _ResumenCaducidades({
+    required this.vencidos,
+    required this.proximosAVencer,
+    required this.vigentes,
+  });
 
-  final List<_CaducidadItem> items;
+  final int vencidos;
+  final int proximosAVencer;
+  final int vigentes;
 
   @override
   Widget build(BuildContext context) {
-    final vencidos = items.where((item) => item.estaVencido).length;
-    final proximosAVencer = items
-        .where((item) =>
-            !item.estaVencido &&
-            item.diasHastaVencimiento != null &&
-            item.diasHastaVencimiento! <= 30)
-        .length;
-    final vigentes = items.length - vencidos - proximosAVencer;
-
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -315,23 +325,15 @@ class _ResumenItem extends StatelessWidget {
 class _CaducidadesList extends StatelessWidget {
   const _CaducidadesList({required this.items});
 
-  final List<_CaducidadItem> items;
+  final List<StockVehiculoEntity> items;
 
   @override
   Widget build(BuildContext context) {
-    // Ordenar por fecha de caducidad (más próximo primero)
-    final sortedItems = List<_CaducidadItem>.from(items)
-      ..sort((a, b) {
-        if (a.fechaCaducidad == null) return 1;
-        if (b.fechaCaducidad == null) return -1;
-        return a.fechaCaducidad!.compareTo(b.fechaCaducidad!);
-      });
-
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: sortedItems.length,
+      itemCount: items.length,
       itemBuilder: (context, index) {
-        final item = sortedItems[index];
+        final item = items[index];
         return _CaducidadCard(item: item);
       },
     );
@@ -342,12 +344,13 @@ class _CaducidadesList extends StatelessWidget {
 class _CaducidadCard extends StatelessWidget {
   const _CaducidadCard({required this.item});
 
-  final _CaducidadItem item;
+  final StockVehiculoEntity item;
 
   @override
   Widget build(BuildContext context) {
-    final estaVencido = item.estaVencido;
-    final diasRestantes = item.diasHastaVencimiento;
+    final fechaCaducidad = item.fechaCaducidad!;
+    final diasRestantes = fechaCaducidad.difference(DateTime.now()).inDays;
+    final estaVencido = diasRestantes < 0;
     final color = _getStatusColor(estaVencido, diasRestantes);
 
     return Container(
@@ -392,7 +395,7 @@ class _CaducidadCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.nombre,
+                    item.productoNombre ?? 'Producto desconocido',
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -408,10 +411,18 @@ class _CaducidadCard extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  if (item.fechaCaducidad != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Vence: ${_formatFecha(fechaCaducidad)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.gray600,
+                    ),
+                  ),
+                  if (item.lote != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'Vence: ${_formatFecha(item.fechaCaducidad!)}',
+                      'Lote: ${item.lote}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.gray600,
@@ -427,24 +438,23 @@ class _CaducidadCard extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(bool estaVencido, int? diasRestantes) {
+  Color _getStatusColor(bool estaVencido, int diasRestantes) {
     if (estaVencido) return AppColors.error;
-    if (diasRestantes != null && diasRestantes <= 7) return AppColors.error;
-    if (diasRestantes != null && diasRestantes <= 30) return AppColors.warning;
+    if (diasRestantes <= 7) return AppColors.error;
+    if (diasRestantes <= 30) return AppColors.warning;
     return AppColors.success;
   }
 
-  IconData _getStatusIcon(bool estaVencido, int? diasRestantes) {
+  IconData _getStatusIcon(bool estaVencido, int diasRestantes) {
     if (estaVencido) return Icons.error;
-    if (diasRestantes != null && diasRestantes <= 30) {
+    if (diasRestantes <= 30) {
       return Icons.warning_amber;
     }
     return Icons.check_circle;
   }
 
-  String _getStatusText(bool estaVencido, int? diasRestantes) {
+  String _getStatusText(bool estaVencido, int diasRestantes) {
     if (estaVencido) return 'VENCIDO';
-    if (diasRestantes == null) return 'Sin fecha de caducidad';
     if (diasRestantes == 0) return 'Vence hoy';
     if (diasRestantes == 1) return 'Vence mañana';
     if (diasRestantes <= 7) return 'Vence en $diasRestantes días';
@@ -507,7 +517,7 @@ class _EmptyView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'No hay material con caducidad próxima o vencida',
+              'No hay material con caducidad registrada',
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.gray600,

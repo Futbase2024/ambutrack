@@ -240,26 +240,24 @@ export 'src/datasources/stock_vestuario/entities/stock_vestuario_entity.dart';
 export 'src/datasources/stock_vestuario/stock_vestuario_contract.dart';
 export 'src/datasources/stock_vestuario/stock_vestuario_factory.dart' show StockVestuarioDataSourceFactory;
 
-// ❌ LEGACY - Stock viejo comentado para evitar conflictos con nuevo sistema /almacen/
+// ✅ STOCK VEHÍCULOS - Para caducidades y control de equipamiento por vehículo
 export 'src/datasources/stock/entities/categoria_equipamiento_entity.dart';
-// export 'src/datasources/stock/entities/producto_entity.dart';
-// export 'src/datasources/stock/entities/stock_vehiculo_entity.dart';
-// export 'src/datasources/stock/entities/movimiento_stock_entity.dart';
-// export 'src/datasources/stock/entities/alerta_stock_entity.dart';
-// export 'src/datasources/stock/entities/stock_minimo_entity.dart';
-// export 'src/datasources/stock/entities/revision_mensual_entity.dart';
-// export 'src/datasources/stock/entities/item_revision_entity.dart';
-// export 'src/datasources/stock/stock_contract.dart';
-// export 'src/datasources/stock/stock_factory.dart' show StockDataSourceFactory;
-// export 'src/datasources/stock/implementations/supabase/supabase_stock_datasource.dart';
+export 'src/datasources/stock/entities/stock_vehiculo_entity.dart' show StockVehiculoEntity;
+export 'src/datasources/stock/entities/movimiento_stock_entity.dart' show MovimientoStockEntity;
+export 'src/datasources/stock/entities/alerta_stock_entity.dart';
+export 'src/datasources/stock/entities/stock_minimo_entity.dart';
+export 'src/datasources/stock/entities/revision_mensual_entity.dart';
+export 'src/datasources/stock/entities/item_revision_entity.dart' show ItemRevisionEntity;
+export 'src/datasources/stock/stock_contract.dart';
+export 'src/datasources/stock/stock_factory.dart' show StockDataSourceFactory;
+export 'src/datasources/stock/implementations/supabase/supabase_stock_datasource.dart';
 export 'src/datasources/stock/models/categoria_equipamiento_supabase_model.dart';
-// export 'src/datasources/stock/models/producto_supabase_model.dart';
-// export 'src/datasources/stock/models/stock_vehiculo_supabase_model.dart';
-// export 'src/datasources/stock/models/movimiento_stock_supabase_model.dart';
-// export 'src/datasources/stock/models/alerta_stock_supabase_model.dart';
-// export 'src/datasources/stock/models/stock_minimo_supabase_model.dart';
-// export 'src/datasources/stock/models/revision_mensual_supabase_model.dart';
-// export 'src/datasources/stock/models/item_revision_supabase_model.dart';
+export 'src/datasources/stock/models/stock_vehiculo_supabase_model.dart';
+export 'src/datasources/stock/models/movimiento_stock_supabase_model.dart';
+export 'src/datasources/stock/models/alerta_stock_supabase_model.dart';
+export 'src/datasources/stock/models/stock_minimo_supabase_model.dart';
+export 'src/datasources/stock/models/revision_mensual_supabase_model.dart';
+export 'src/datasources/stock/models/item_revision_supabase_model.dart';
 
 // Almacén (legacy - mantener compatibilidad)
 export 'src/datasources/almacen/entities/proveedor_entity.dart';

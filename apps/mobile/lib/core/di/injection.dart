@@ -31,6 +31,9 @@ import '../../features/ambulancias/data/repositories/ambulancias_repository_impl
 import '../../features/ambulancias/domain/repositories/ambulancias_repository.dart';
 import '../../features/ambulancias/presentation/bloc/ambulancias_bloc.dart';
 import '../../features/ambulancias/presentation/bloc/revisiones_bloc.dart';
+import '../../features/vehiculo/data/repositories/stock_repository_impl.dart';
+import '../../features/vehiculo/domain/repositories/stock_repository.dart';
+import '../../features/vehiculo/presentation/bloc/caducidades/caducidades_bloc.dart';
 
 /// Localizador de servicios global usando GetIt
 final GetIt getIt = GetIt.instance;
@@ -177,5 +180,17 @@ Future<void> configureDependencies() async {
 
   getIt.registerFactory<RevisionesBloc>(
     () => RevisionesBloc(getIt<AmbulanciasRepository>()),
+  );
+
+  // ===== STOCK Y CADUCIDADES =====
+
+  // Repository
+  getIt.registerLazySingleton<StockRepository>(
+    () => StockRepositoryImpl(),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<CaducidadesBloc>(
+    () => CaducidadesBloc(stockRepository: getIt<StockRepository>()),
   );
 }
