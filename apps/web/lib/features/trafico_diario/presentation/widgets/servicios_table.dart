@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:ambutrack_core/ambutrack_core.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/entities/servicio_entity.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/resizable_data_table.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/trafico_diario_bloc.dart';
@@ -143,15 +144,11 @@ class _ServiciosTableState extends State<ServiciosTable> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    const Icon(Icons.clear, size: 16, color: AppColors.textPrimaryLight),
+                    const Icon(Icons.clear, size: 16, color: Colors.white),
                     const SizedBox(width: 4),
                     Text(
                       'Limpiar',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimaryLight,
-                      ),
+                      style: AppTextStyles.buttonSmall,
                     ),
                   ],
                 ),
@@ -221,7 +218,7 @@ class _ServiciosTableState extends State<ServiciosTable> {
 
     return ResizableDataTable(
       // Usar nueva key para forzar reset de anchos guardados
-      storageKey: 'planificar_servicios_table_widths_v2',
+      storageKey: 'planificar_servicios_table_widths_v5',
       rowHeight: 35.0,
       fillHeight: true, // La tabla ocupa todo el espacio vertical disponible
       initialColumnWidths: const <double>[
@@ -238,6 +235,10 @@ class _ServiciosTableState extends State<ServiciosTable> {
         120, // Terapia
         100, // Estado
         140, // Conductor
+        45, // SIC
+        45, // CA
+        45, // Ayu
+        45, // Ac
         90, // Matrícula
         60, // H. Env
         60, // H. Rec
@@ -245,10 +246,6 @@ class _ServiciosTableState extends State<ServiciosTable> {
         60, // H. Sal
         60, // H. Dst
         60, // H. Fin
-        45, // SIC
-        45, // CA
-        45, // Ayu
-        60, // Ac
       ],
       filterRow: ServiciosFilters(
         traslados: widget.traslados,
@@ -283,6 +280,10 @@ class _ServiciosTableState extends State<ServiciosTable> {
         DataTableColumn(label: 'Terapia'),
         DataTableColumn(label: 'Estado', alignment: Alignment.center),
         DataTableColumn(label: 'Conductor', alignment: Alignment.center),
+        DataTableColumn(label: 'SIC', alignment: Alignment.center),
+        DataTableColumn(label: 'CA', alignment: Alignment.center),
+        DataTableColumn(label: 'Ayu', alignment: Alignment.center),
+        DataTableColumn(label: 'Ac', alignment: Alignment.center),
         DataTableColumn(label: 'Matrícula', alignment: Alignment.center),
         DataTableColumn(label: 'H. Env', alignment: Alignment.center),
         DataTableColumn(label: 'H. Rec', alignment: Alignment.center),
@@ -290,10 +291,6 @@ class _ServiciosTableState extends State<ServiciosTable> {
         DataTableColumn(label: 'H. Sal', alignment: Alignment.center),
         DataTableColumn(label: 'H. Dst', alignment: Alignment.center),
         DataTableColumn(label: 'H. Fin', alignment: Alignment.center),
-        DataTableColumn(label: 'SIC', alignment: Alignment.center),
-        DataTableColumn(label: 'CA', alignment: Alignment.center),
-        DataTableColumn(label: 'Ayu', alignment: Alignment.center),
-        DataTableColumn(label: 'Ac', alignment: Alignment.center),
       ],
       rows: trasladosFiltrados.map(rowBuilder.buildRow).toList(),
     );

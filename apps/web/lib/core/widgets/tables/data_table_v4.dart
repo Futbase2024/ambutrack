@@ -6,6 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// DataTable v4 - Versión simplificada y optimizada
 ///
+/// @deprecated Use AppDataGridV5 instead. This version is kept for legacy compatibility only.
+/// Reason: AppDataGridV5 uses ListView.builder for better performance with large datasets.
+///
 /// Características:
 /// - Bordes superiores redondeados
 /// - Filas más compactas (altura reducida)
@@ -252,7 +255,7 @@ class _DataTableV4State<T> extends State<DataTableV4<T>> {
             child: AppIconButton(
               icon: Icons.edit_outlined,
               onPressed: () => widget.onEdit!(data),
-              color: const Color(0xFF60A5FA), // Azul suave
+              color: AppColors.secondaryLight,
               size: 36,
             ),
           ),
@@ -267,7 +270,7 @@ class _DataTableV4State<T> extends State<DataTableV4<T>> {
                 await Future<void>.delayed(const Duration(milliseconds: 50));
                 widget.onDelete!(data);
               },
-              color: const Color(0xFFF87171), // Rojo suave
+              color: AppColors.error,
               size: 36,
             ),
           ),

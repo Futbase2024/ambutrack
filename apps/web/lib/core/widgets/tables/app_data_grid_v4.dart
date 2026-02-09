@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// DataTable simplificada y optimizada para alto rendimiento
+///
+/// @deprecated Use AppDataGridV5 instead. This version is kept for legacy compatibility only.
+/// Reason: AppDataGridV5 uses ListView.builder for better performance with large datasets (lazy loading).
+///
 /// - Ocupa todo el ancho disponible
 /// - Diseño minimalista
 /// - Optimizada para grandes volúmenes de datos

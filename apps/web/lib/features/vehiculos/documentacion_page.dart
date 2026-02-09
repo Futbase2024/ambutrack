@@ -20,14 +20,14 @@ class DocumentacionPage extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: <Color>[Color(0xFFEF4444), Color(0xFFF97316)],
+                  colors: <Color>[AppColors.error, AppColors.turnoNaranja],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+                    color: AppColors.error.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -73,7 +73,7 @@ class DocumentacionPage extends StatelessWidget {
                     label: const Text('Agregar Documento'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFFEF4444),
+                      foregroundColor: AppColors.error,
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

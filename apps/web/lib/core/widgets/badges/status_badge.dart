@@ -87,9 +87,9 @@ class StatusBadge extends StatelessWidget {
         );
       case StatusBadgeType.error:
         return const StatusBadgeColors(
-          background: Color(0xFFFEF2F2), // red-50
-          text: Color(0xFF991B1B), // red-800
-          border: Color(0xFFFECACA), // red-200
+          background: AppColors.badgeErrorBg,
+          text: AppColors.badgeErrorText,
+          border: AppColors.badgeErrorBorder,
         );
     }
   }

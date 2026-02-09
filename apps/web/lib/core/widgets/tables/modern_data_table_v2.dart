@@ -6,6 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// DataTable moderna V2 - Diseño minimalista y profesional
 ///
+/// @deprecated Use AppDataGridV5 instead. This version is kept for legacy compatibility only.
+/// Reason: AppDataGridV5 uses ListView.builder for better performance with large datasets.
+///
 /// Inspirado en diseños financieros/bancarios modernos
 /// Características:
 /// - Diseño limpio sin bordes gruesos

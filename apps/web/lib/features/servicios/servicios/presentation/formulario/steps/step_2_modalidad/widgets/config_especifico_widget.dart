@@ -1,5 +1,6 @@
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -67,7 +68,7 @@ class ConfigEspecificoWidget extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Agrega al menos una fecha específica para el servicio',
-                    style: GoogleFonts.inter(fontSize: 12, color: AppColors.textPrimaryLight),
+                    style: AppTextStyles.tableCellSmall,
                   ),
                 ),
               ],

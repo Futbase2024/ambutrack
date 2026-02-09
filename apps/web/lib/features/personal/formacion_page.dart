@@ -82,7 +82,7 @@ class _FormacionPageState extends State<FormacionPage> {
         gradient: const LinearGradient(
           colors: <Color>[
             AppColors.secondary,
-            Color(0xFF7C3AED),
+            AppColors.formacion,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,

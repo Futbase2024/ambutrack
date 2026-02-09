@@ -172,6 +172,8 @@ class ServiciosFilters {
             },
           ),
         ),
+        // Requisitos - sin filtro (4 columnas: SIC, CA, Ayu, Ac)
+        ...List<DataTableCell>.generate(4, (_) => const DataTableCell(child: SizedBox.shrink(), alignment: Alignment.center)),
         // Matrícula
         DataTableCell(
           child: FiltroDropdownWidget(
@@ -184,10 +186,8 @@ class ServiciosFilters {
             },
           ),
         ),
-        // Horas cronológicas - sin filtro (5 columnas)
-        ...List<DataTableCell>.generate(5, (_) => const DataTableCell(child: SizedBox.shrink(), alignment: Alignment.center)),
-        // Requisitos - sin filtro (4 columnas)
-        ...List<DataTableCell>.generate(4, (_) => const DataTableCell(child: SizedBox.shrink(), alignment: Alignment.center)),
+        // Horas cronológicas - sin filtro (6 columnas: H. Env, H. Rec, H. Org, H. Sal, H. Dst, H. Fin)
+        ...List<DataTableCell>.generate(6, (_) => const DataTableCell(child: SizedBox.shrink(), alignment: Alignment.center)),
       ],
     );
   }

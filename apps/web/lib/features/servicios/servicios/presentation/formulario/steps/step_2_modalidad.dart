@@ -1,5 +1,6 @@
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/models/modalidad_servicio.dart';
 import 'package:flutter/material.dart';
@@ -343,7 +344,7 @@ class _ConfigUnico extends StatelessWidget {
           Expanded(
             child: Text(
               'El servicio se creará solo para la fecha de inicio del tratamiento',
-              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textPrimaryLight),
+              style: AppTextStyles.tableCellSmall,
             ),
           ),
         ],
@@ -372,7 +373,7 @@ class _ConfigDiario extends StatelessWidget {
           Expanded(
             child: Text(
               'El servicio se repetirá todos los días durante el periodo de tratamiento',
-              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textPrimaryLight),
+              style: AppTextStyles.tableCellSmall,
             ),
           ),
         ],
@@ -818,7 +819,7 @@ class _ConfigEspecifico extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Agrega al menos una fecha específica para el servicio',
-                    style: GoogleFonts.inter(fontSize: 12, color: AppColors.textPrimaryLight),
+                    style: AppTextStyles.tableCellSmall,
                   ),
                 ),
               ],

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Modelo para una columna del DataTable
+@Deprecated('Use DataGridColumn from app_data_grid_v5.dart instead')
 class AppDataColumn {
   const AppDataColumn({
     required this.label,
@@ -17,6 +18,7 @@ class AppDataColumn {
 }
 
 /// Modelo para una celda del DataTable
+@Deprecated('Use DataGridCell from app_data_grid_v5.dart instead')
 class AppDataCell {
   const AppDataCell({
     required this.child,
@@ -28,6 +30,9 @@ class AppDataCell {
 }
 
 /// Widget de DataTable común y reutilizable para toda la aplicación
+///
+/// @deprecated Use AppDataGridV5 instead. This version is kept for legacy compatibility only.
+/// Reason: AppDataGridV5 uses ListView.builder for better performance with large datasets.
 ///
 /// Características:
 /// - Responsivo y ocupa todo el ancho disponible

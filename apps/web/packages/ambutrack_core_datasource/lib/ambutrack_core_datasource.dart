@@ -272,23 +272,23 @@ export 'src/datasources/almacen/implementations/supabase/supabase_almacen_dataso
 export 'src/datasources/almacen/entities/almacen_entity.dart';
 export 'src/datasources/almacen/entities/producto_entity.dart';
 export 'src/datasources/almacen/entities/stock_entity.dart';
-export 'src/datasources/almacen/entities/movimiento_stock_entity.dart';
+export 'src/datasources/almacen/entities/movimiento_stock_entity.dart' hide MovimientoStockEntity;
 export 'src/datasources/almacen/entities/mantenimiento_electromedicina_entity.dart';
 export 'src/datasources/almacen/models/almacen_supabase_model.dart';
 export 'src/datasources/almacen/models/producto_supabase_model.dart';
 export 'src/datasources/almacen/models/stock_supabase_model.dart';
-export 'src/datasources/almacen/models/movimiento_stock_supabase_model.dart';
+export 'src/datasources/almacen/models/movimiento_stock_supabase_model.dart' hide MovimientoStockSupabaseModel;
 export 'src/datasources/almacen/models/mantenimiento_electromedicina_supabase_model.dart';
 export 'src/datasources/almacen/producto_contract.dart';
 export 'src/datasources/almacen/producto_factory.dart';
-export 'src/datasources/almacen/stock_contract.dart';
-export 'src/datasources/almacen/stock_factory.dart';
+export 'src/datasources/almacen/stock_contract.dart' hide StockDataSource;
+export 'src/datasources/almacen/stock_factory.dart' hide StockDataSourceFactory;
 export 'src/datasources/almacen/movimiento_stock_contract.dart';
 export 'src/datasources/almacen/movimiento_stock_factory.dart';
 export 'src/datasources/almacen/mantenimiento_electromedicina_contract.dart';
 export 'src/datasources/almacen/mantenimiento_electromedicina_factory.dart';
 export 'src/datasources/almacen/implementations/supabase/supabase_producto_datasource.dart';
-export 'src/datasources/almacen/implementations/supabase/supabase_stock_datasource.dart';
+export 'src/datasources/almacen/implementations/supabase/supabase_stock_datasource.dart' hide SupabaseStockDataSource;
 export 'src/datasources/almacen/implementations/supabase/supabase_movimiento_stock_datasource.dart';
 export 'src/datasources/almacen/implementations/supabase/supabase_mantenimiento_electromedicina_datasource.dart';
 
@@ -322,14 +322,14 @@ export 'src/datasources/traslados/implementations/supabase/supabase_traslado_dat
 export 'src/datasources/ambulancias_revisiones/entities/tipo_ambulancia_entity.dart';
 export 'src/datasources/ambulancias_revisiones/entities/ambulancia_entity.dart';
 export 'src/datasources/ambulancias_revisiones/entities/revision_entity.dart';
-export 'src/datasources/ambulancias_revisiones/entities/item_revision_entity.dart';
+export 'src/datasources/ambulancias_revisiones/entities/item_revision_entity.dart' hide ItemRevisionEntity;
 export 'src/datasources/ambulancias_revisiones/ambulancias_revisiones_contract.dart';
 export 'src/datasources/ambulancias_revisiones/ambulancias_revisiones_factory.dart' show AmbulanciasRevisionesDataSourceFactory;
 export 'src/datasources/ambulancias_revisiones/implementations/supabase/supabase_ambulancias_datasource.dart';
 export 'src/datasources/ambulancias_revisiones/models/tipo_ambulancia_supabase_model.dart';
 export 'src/datasources/ambulancias_revisiones/models/ambulancia_supabase_model.dart';
 export 'src/datasources/ambulancias_revisiones/models/revision_supabase_model.dart';
-export 'src/datasources/ambulancias_revisiones/models/item_revision_supabase_model.dart';
+export 'src/datasources/ambulancias_revisiones/models/item_revision_supabase_model.dart' hide ItemRevisionSupabaseModel;
 
 // Utils - Utilidades públicas
 export 'src/utils/exceptions/datasource_exception.dart';

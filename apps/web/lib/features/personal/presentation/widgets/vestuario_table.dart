@@ -423,14 +423,14 @@ class _VestuarioTableState extends State<VestuarioTable> {
   Widget _buildTallaCell(VestuarioEntity item) {
     return Text(
       item.talla,
-      style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimaryLight),
+      style: AppTextStyles.tableCell,
     );
   }
 
   Widget _buildCantidadCell(VestuarioEntity item) {
     return Text(
       '${item.cantidad ?? 1}',
-      style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimaryLight),
+      style: AppTextStyles.tableCell,
     );
   }
 
@@ -438,7 +438,7 @@ class _VestuarioTableState extends State<VestuarioTable> {
     final String fecha = DateFormat('dd/MM/yyyy').format(item.fechaEntrega);
     return Text(
       fecha,
-      style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimaryLight),
+      style: AppTextStyles.tableCell,
     );
   }
 

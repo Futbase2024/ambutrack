@@ -185,7 +185,7 @@ class _HorariosHeader extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: <Color>[AppColors.success, Color(0xFF10B981)],
+          colors: <Color>[AppColors.success, AppColors.secondary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

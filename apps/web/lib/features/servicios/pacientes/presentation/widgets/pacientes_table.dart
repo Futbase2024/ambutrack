@@ -7,7 +7,7 @@ import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
-import 'package:ambutrack_web/core/widgets/tables/app_data_grid_v5.dart';
+import 'package:ambutrack_web/core/widgets/tables/app_standard_table.dart';
 import 'package:ambutrack_web/features/servicios/pacientes/presentation/bloc/pacientes_bloc.dart';
 import 'package:ambutrack_web/features/servicios/pacientes/presentation/bloc/pacientes_event.dart';
 import 'package:ambutrack_web/features/servicios/pacientes/presentation/bloc/pacientes_state.dart';
@@ -16,7 +16,6 @@ import 'package:ambutrack_web/features/servicios/pacientes/presentation/widgets/
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/servicio_form_wizard_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Tabla de gestión de Pacientes
 class PacientesTable extends StatefulWidget {
@@ -113,11 +112,7 @@ class _PacientesTableState extends State<PacientesTable> {
                     Expanded(
                       child: Text(
                         'Listado de Pacientes',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimaryLight,
-                        ),
+                        style: AppTextStyles.h4,
                       ),
                     ),
                     // Búsqueda
@@ -143,28 +138,25 @@ class _PacientesTableState extends State<PacientesTable> {
                     padding: const EdgeInsets.only(bottom: AppSizes.spacing),
                     child: Text(
                       'Mostrando ${filtrados.length} de ${state.pacientes.length} pacientes',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: AppColors.textSecondaryLight,
-                      ),
+                      style: AppTextStyles.bodySmallSecondary,
                     ),
                   ),
 
                 // Tabla con scroll interno
                 Expanded(
-                  child: AppDataGridV5<PacienteEntity>(
-                    columns: const <DataGridColumn>[
-                      DataGridColumn(label: 'IDENTIFICACIÓN', sortable: true),
-                      DataGridColumn(label: 'NOMBRE', flexWidth: 2, sortable: true),
-                      DataGridColumn(label: 'DIRECCIÓN', flexWidth: 2),
-                      DataGridColumn(label: 'TELÉFONO'),
+                  child: AppStandardTable<PacienteEntity>(
+                    columns: const <StandardTableColumn>[
+                      StandardTableColumn(label: 'IDENTIFICACIÓN', sortable: true),
+                      StandardTableColumn(label: 'NOMBRE', flexWidth: 2, sortable: true),
+                      StandardTableColumn(label: 'DIRECCIÓN', flexWidth: 2),
+                      StandardTableColumn(label: 'TELÉFONO'),
                     ],
                     rows: pacientesPaginados,
-                    buildCells: (PacienteEntity paciente) => <DataGridCell>[
-                      DataGridCell(child: _buildIdentificacionCell(paciente)),
-                      DataGridCell(child: _buildNombreCell(paciente)),
-                      DataGridCell(child: _buildDireccionCell(paciente)),
-                      DataGridCell(child: _buildTelefonoCell(paciente)),
+                    buildCells: (PacienteEntity paciente) => <StandardTableCell>[
+                      StandardTableCell(child: _buildIdentificacionCell(paciente)),
+                      StandardTableCell(child: _buildNombreCell(paciente)),
+                      StandardTableCell(child: _buildDireccionCell(paciente)),
+                      StandardTableCell(child: _buildTelefonoCell(paciente)),
                     ],
                     sortColumnIndex: _sortColumnIndex,
                     sortAscending: _sortAscending,
@@ -175,7 +167,6 @@ class _PacientesTableState extends State<PacientesTable> {
                       });
                     },
                     rowHeight: 64,
-                    outerBorderColor: AppColors.gray300,
                     emptyMessage: _searchQuery.isNotEmpty
                         ? 'No se encontraron pacientes con los filtros aplicados'
                         : 'No hay pacientes registrados',
@@ -183,7 +174,6 @@ class _PacientesTableState extends State<PacientesTable> {
                       CustomAction<PacienteEntity>(
                         icon: Icons.add_circle_outline,
                         tooltip: 'Crear Servicio',
-                        color: AppColors.primary,
                         onPressed: (PacienteEntity paciente) => _createServicio(context, paciente),
                       ),
                     ],
@@ -438,9 +428,7 @@ class _PacientesTableState extends State<PacientesTable> {
   Widget _buildIdentificacionCell(PacienteEntity paciente) {
     return Text(
       paciente.identificacion ?? '-',
-      style: GoogleFonts.inter(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
+      style: AppTextStyles.tableCellBold.copyWith(
         color: paciente.identificacion != null
             ? AppColors.textPrimaryLight
             : AppColors.textSecondaryLight.withValues(alpha: 0.5),
@@ -452,11 +440,7 @@ class _PacientesTableState extends State<PacientesTable> {
   Widget _buildNombreCell(PacienteEntity paciente) {
     return Text(
       paciente.nombreCompleto,
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimaryLight,
-      ),
+      style: AppTextStyles.tableCellBold,
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     );
@@ -465,8 +449,7 @@ class _PacientesTableState extends State<PacientesTable> {
   Widget _buildDireccionCell(PacienteEntity paciente) {
     return Text(
       paciente.domicilioDireccion ?? '-',
-      style: GoogleFonts.inter(
-        fontSize: 13,
+      style: AppTextStyles.tableCell.copyWith(
         color: paciente.domicilioDireccion != null
             ? AppColors.textSecondaryLight
             : AppColors.textSecondaryLight.withValues(alpha: 0.5),
@@ -480,8 +463,7 @@ class _PacientesTableState extends State<PacientesTable> {
   Widget _buildTelefonoCell(PacienteEntity paciente) {
     return Text(
       paciente.telefonoMovil ?? paciente.telefonoFijo ?? '-',
-      style: GoogleFonts.inter(
-        fontSize: 13,
+      style: AppTextStyles.tableCell.copyWith(
         color: (paciente.telefonoMovil != null || paciente.telefonoFijo != null)
             ? AppColors.textSecondaryLight
             : AppColors.textSecondaryLight.withValues(alpha: 0.5),
@@ -555,10 +537,7 @@ class _SearchFieldState extends State<_SearchField> {
         ),
         isDense: true,
       ),
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        color: AppColors.textPrimaryLight,
-      ),
+      style: AppTextStyles.input,
     );
   }
 }
@@ -608,19 +587,12 @@ class _ErrorView extends StatelessWidget {
           const SizedBox(height: AppSizes.spacing),
           Text(
             'Error al cargar pacientes',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.error,
-            ),
+            style: AppTextStyles.h5.copyWith(color: AppColors.error),
           ),
           const SizedBox(height: AppSizes.spacingSmall),
           Text(
             message,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: AppColors.textSecondaryLight,
-            ),
+            style: AppTextStyles.bodySecondary,
             textAlign: TextAlign.center,
           ),
         ],

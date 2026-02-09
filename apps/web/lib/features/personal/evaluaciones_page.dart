@@ -46,7 +46,7 @@ class EvaluacionesPage extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: <Color>[AppColors.secondary, Color(0xFF7C3AED)],
+          colors: <Color>[AppColors.secondary, AppColors.formacion],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

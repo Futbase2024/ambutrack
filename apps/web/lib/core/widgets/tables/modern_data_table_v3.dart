@@ -8,6 +8,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// ModernDataTableV3 - Tabla genérica reutilizable para toda la aplicación
 ///
+/// @deprecated Use AppDataGridV5 instead. This version is kept for legacy compatibility only.
+/// Reason: AppDataGridV5 uses ListView.builder for better performance with large datasets.
+///
 /// IMPORTANTE: Este widget ahora usa AppDataGridV4 siguiendo el mismo patrón
 /// que vehiculos_table_v4.dart para consistencia UI/UX.
 ///

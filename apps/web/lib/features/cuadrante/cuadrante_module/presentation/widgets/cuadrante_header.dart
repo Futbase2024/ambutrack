@@ -2,6 +2,7 @@ import 'package:ambutrack_core/ambutrack_core.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:ambutrack_web/features/contratos/domain/repositories/contrato_repository.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/domain/entities/cuadrante_filter.dart';
@@ -143,7 +144,7 @@ class _CuadranteHeaderState extends State<CuadranteHeader> {
                   icon: const Icon(Icons.auto_awesome, size: 16),
                   label: Text(
                     'Auto',
-                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
+                    style: AppTextStyles.chipText,
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
@@ -164,7 +165,7 @@ class _CuadranteHeaderState extends State<CuadranteHeader> {
                   icon: const Icon(Icons.content_copy, size: 16),
                   label: Text(
                     'Copiar',
-                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
+                    style: AppTextStyles.chipText,
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.secondaryLight,
@@ -187,7 +188,7 @@ class _CuadranteHeaderState extends State<CuadranteHeader> {
                   icon: const Icon(Icons.refresh, size: 16),
                   label: Text(
                     'Refrescar',
-                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
+                    style: AppTextStyles.chipText,
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.info,

@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// DataTable moderno y profesional con diseño limpio
+///
+/// @deprecated Use AppDataGridV5 instead. This version is kept for legacy compatibility only.
+/// Reason: AppDataGridV5 uses ListView.builder for better performance with large datasets.
 class ModernDataTable<T> extends StatefulWidget {
   const ModernDataTable({
     required this.columns,

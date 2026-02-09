@@ -527,21 +527,21 @@ class _TurnoFormDialogState extends State<TurnoFormDialog> {
         'nombre': '☀️ 12h Día',
         'horaInicio': '08:00',
         'horaFin': '20:00',
-        'color': Color(0xFF14B8A6), // Turquesa
+        'color': AppColors.turnoTurquesa,
       },
       <String, dynamic>{
         'id': '12h_noche',
         'nombre': '🌙 12h Noche',
         'horaInicio': '20:00',
         'horaFin': '08:00',
-        'color': Color(0xFF3B82F6), // Azul
+        'color': AppColors.turnoAzul,
       },
       <String, dynamic>{
         'id': '24h',
         'nombre': '🚨 24 Horas',
         'horaInicio': '08:00',
         'horaFin': '08:00',
-        'color': Color(0xFF9333EA), // Morado
+        'color': AppColors.turnoMorado,
       },
     ];
 
@@ -1066,13 +1066,13 @@ class _TurnoFormDialogState extends State<TurnoFormDialog> {
   Color _getTipoColor(TipoTurno tipo) {
     switch (tipo) {
       case TipoTurno.manana:
-        return const Color(0xFF10B981); // 🟢 Verde
+        return AppColors.success; // 🟢 Verde
       case TipoTurno.tarde:
-        return const Color(0xFFF97316); // 🟠 Naranja
+        return AppColors.turnoNaranja; // 🟠 Naranja
       case TipoTurno.noche:
-        return const Color(0xFF3B82F6); // 🔵 Azul
+        return AppColors.turnoAzul; // 🔵 Azul
       case TipoTurno.personalizado:
-        return const Color(0xFF6B7280); // ⚪ Gris
+        return AppColors.turnoGris; // ⚪ Gris
     }
   }
 

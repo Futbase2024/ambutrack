@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 
 /// DataGrid estilo Excel con columnas adaptables y scroll horizontal
 ///
+/// @deprecated Use AppDataGridV5 instead. This version is kept for legacy compatibility only.
+/// Reason: AppDataGridV5 uses ListView.builder for better performance with large datasets.
+///
 /// CARACTERÍSTICAS:
 /// - ✅ Columnas adaptables al contenido (auto-sizing)
 /// - ✅ Scroll horizontal fluido

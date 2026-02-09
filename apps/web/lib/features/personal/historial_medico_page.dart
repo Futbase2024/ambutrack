@@ -46,7 +46,7 @@ class HistorialMedicoPage extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: <Color>[AppColors.emergency, Color(0xFFDC2626)],
+          colors: <Color>[AppColors.emergency, AppColors.averia],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

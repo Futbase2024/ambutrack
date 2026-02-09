@@ -20,14 +20,14 @@ class GeolocalizacionPage extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: <Color>[Color(0xFF10B981), Color(0xFF059669)],
+                  colors: <Color>[AppColors.success, AppColors.secondary],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                    color: AppColors.success.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),

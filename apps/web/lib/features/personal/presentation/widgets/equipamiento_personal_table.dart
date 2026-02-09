@@ -375,14 +375,14 @@ class _EquipamientoPersonalTableState extends State<EquipamientoPersonalTable> {
     final String fecha = DateFormat('dd/MM/yyyy').format(item.fechaAsignacion);
     return Text(
       fecha,
-      style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimaryLight),
+      style: AppTextStyles.tableCell,
     );
   }
 
   Widget _buildTallaCell(EquipamientoPersonalEntity item) {
     return Text(
       item.talla ?? '-',
-      style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimaryLight),
+      style: AppTextStyles.tableCell,
     );
   }
 

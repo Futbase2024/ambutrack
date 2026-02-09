@@ -1,5 +1,6 @@
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -23,7 +24,7 @@ class ConfigUnicoWidget extends StatelessWidget {
           Expanded(
             child: Text(
               'El servicio se creará solo para la fecha de inicio del tratamiento',
-              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textPrimaryLight),
+              style: AppTextStyles.tableCellSmall,
             ),
           ),
         ],
@@ -52,7 +53,7 @@ class ConfigDiarioWidget extends StatelessWidget {
           Expanded(
             child: Text(
               'El servicio se repetirá todos los días durante el periodo de tratamiento',
-              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textPrimaryLight),
+              style: AppTextStyles.tableCellSmall,
             ),
           ),
         ],

@@ -46,7 +46,7 @@ class DocumentacionPersonalPage extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: <Color>[AppColors.info, Color(0xFF0EA5E9)],
+          colors: <Color>[AppColors.info, AppColors.documentacion],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

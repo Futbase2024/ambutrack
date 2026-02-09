@@ -1,5 +1,6 @@
 import 'package:ambutrack_core/ambutrack_core.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/context_menu/custom_context_menu.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/entities/servicio_entity.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/resizable_data_table.dart';
@@ -69,7 +70,7 @@ class TrasladoRowBuilder {
   final void Function(String idTraslado, String pacienteNombre)? onVerHistorial;
 
   /// Construye una fila de datos para un traslado
-  DataTableRow buildRow(TrasladoEntity traslado) {
+  DataTableRow buildRow(TrasladoEntity traslado, [int index = 0]) {
     final ServicioEntity? servicio = serviciosPorTraslado[traslado.id];
 
     // Usar paciente del servicio (traslado no tiene paciente directo)
@@ -206,9 +207,9 @@ class TrasladoRowBuilder {
           alignment: Alignment.center,
         ),
         DataTableCell(child: _buildCellText(conductor, true, 11), alignment: Alignment.center),
+        ..._buildCheckboxesRequisitos(traslado),
         DataTableCell(child: _buildCellText(matricula, true, 11), alignment: Alignment.center),
         ..._buildHorasCronologicas(traslado),
-        ..._buildCheckboxesRequisitos(traslado),
     ];
 
     // Verificar si esta fila está seleccionada
@@ -233,9 +234,9 @@ class TrasladoRowBuilder {
           alignment: cell.alignment,
         );
       }).toList(),
-      // Color de fondo azul claro cuando está seleccionado
+      // Color de fondo verde claro cuando está seleccionado
       backgroundColor: estaSeleccionado
-          ? AppColors.primary.withValues(alpha: 0.15)
+          ? AppColors.tableSelectedRowBg
           : null,
       isSelected: estaSeleccionado,
       // Selección con Shift para múltiple, clic normal para única
@@ -535,7 +536,7 @@ class TrasladoRowBuilder {
                                 child: _buildSeccion(
                                   titulo: 'SERVICIO',
                                   icono: Icons.medical_services,
-                                  color: const Color(0xFF7C3AED),
+                                  color: AppColors.formacion,
                                   child: _buildServicioSection(
                                     motivoTraslado, tipoRecurrencia, tipoAmbulancia, prioridad,
                                     fechaInicioServicio, fechaFinServicio, horaRecogida, horaVuelta,
@@ -694,7 +695,7 @@ class TrasladoRowBuilder {
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    Text('TRASLADO DE $tipoTraslado', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimaryLight)),
+                    Text('TRASLADO DE $tipoTraslado', style: AppTextStyles.h6),
                     if (codigo != null && codigo.isNotEmpty) ...<Widget>[
                       const SizedBox(width: 8),
                       Container(
@@ -710,7 +711,7 @@ class TrasladoRowBuilder {
                   children: <Widget>[
                     Icon(Icons.calendar_today, size: 12, color: colorTipo),
                     const SizedBox(width: 4),
-                    Text(fechaTraslado.toUpperCase(), style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textPrimaryLight)),
+                    Text(fechaTraslado.toUpperCase(), style: AppTextStyles.badgeDark),
                     const SizedBox(width: 12),
                     Icon(Icons.access_time_filled, size: 12, color: colorTipo),
                     const SizedBox(width: 4),
@@ -823,8 +824,8 @@ class TrasladoRowBuilder {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(nombre.toUpperCase(), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimaryLight)),
-                  Text(documento, style: GoogleFonts.inter(fontSize: 10, color: AppColors.textSecondaryLight)),
+                  Text(nombre.toUpperCase(), style: AppTextStyles.tableHeader),
+                  Text(documento, style: AppTextStyles.tableCellSmall),
                 ],
               ),
             ),
@@ -866,8 +867,8 @@ class TrasladoRowBuilder {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(label, style: GoogleFonts.inter(fontSize: 8, color: AppColors.textSecondaryLight)),
-                Text(valor, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(label, style: AppTextStyles.tableCellSmall.copyWith(fontSize: 8)),
+                Text(valor, style: AppTextStyles.tableCellSmall.copyWith(fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -915,9 +916,9 @@ class TrasladoRowBuilder {
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text(tipoOrigen, style: GoogleFonts.inter(fontSize: 8, color: AppColors.textSecondaryLight)),
+                Text(tipoOrigen, style: AppTextStyles.tableCellSmall.copyWith(fontSize: 8)),
                 const SizedBox(height: 2),
-                Text(origenDetalle.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight), maxLines: 2),
+                Text(origenDetalle.toUpperCase(), style: AppTextStyles.tableCellSmall.copyWith(fontWeight: FontWeight.w600), maxLines: 2),
                 if (ubicacionOrigen != '-') ...<Widget>[
                   const SizedBox(height: 2),
                   Row(
@@ -969,9 +970,9 @@ class TrasladoRowBuilder {
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text(tipoDestino, style: GoogleFonts.inter(fontSize: 8, color: AppColors.textSecondaryLight)),
+                Text(tipoDestino, style: AppTextStyles.tableCellSmall.copyWith(fontSize: 8)),
                 const SizedBox(height: 2),
-                Text(destinoDetalle.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight), maxLines: 2),
+                Text(destinoDetalle.toUpperCase(), style: AppTextStyles.tableCellSmall.copyWith(fontWeight: FontWeight.w600), maxLines: 2),
                 if (ubicacionDestino != '-') ...<Widget>[
                   const SizedBox(height: 2),
                   Row(
@@ -1039,7 +1040,7 @@ class TrasladoRowBuilder {
         const SizedBox(height: 6),
         _buildRecursoItem(Icons.medical_services_outlined, 'Enfermero', enfermero, AppColors.info),
         const SizedBox(height: 6),
-        _buildRecursoItem(Icons.local_hospital_outlined, 'Médico', medico, const Color(0xFF7C3AED)),
+        _buildRecursoItem(Icons.local_hospital_outlined, 'Médico', medico, AppColors.formacion),
       ],
     );
   }
@@ -1442,7 +1443,16 @@ class TrasladoRowBuilder {
   /// Construye la celda de hora cronológica con estilo destacado (negrita y más grande)
   Widget _buildHoraCronologicaCell(String hora) {
     if (hora.isEmpty) {
-      return const SizedBox.shrink();
+      return Text(
+        '-',
+        style: GoogleFonts.inter(
+          fontSize: 13,
+          fontWeight: FontWeight.w400,
+          color: AppColors.textSecondaryLight,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
     }
     return Text(
       hora,
@@ -1500,9 +1510,9 @@ class TrasladoRowBuilder {
       case EstadoTraslado.noRealizado:
       case EstadoTraslado.finalizado:
         return AppColors.error;
-      // Azul: Pendiente
+      // Naranja: Pendiente (según diseño de imagen)
       case EstadoTraslado.pendiente:
-        return AppColors.info;
+        return AppColors.warning;
       // Verde: Todos los demás estados activos
       case EstadoTraslado.asignado:
       case EstadoTraslado.enviado:

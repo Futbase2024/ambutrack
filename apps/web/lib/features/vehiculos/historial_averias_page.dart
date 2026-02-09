@@ -20,14 +20,14 @@ class HistorialAveriasPage extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: <Color>[Color(0xFFDC2626), Color(0xFFB91C1C)],
+                  colors: <Color>[AppColors.emergency, AppColors.averia],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: const Color(0xFFDC2626).withValues(alpha: 0.3),
+                    color: AppColors.emergency.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -73,7 +73,7 @@ class HistorialAveriasPage extends StatelessWidget {
                     label: const Text('Reportar Avería'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFFDC2626),
+                      foregroundColor: AppColors.emergency,
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

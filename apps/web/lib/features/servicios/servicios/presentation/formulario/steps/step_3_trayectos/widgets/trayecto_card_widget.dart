@@ -1,6 +1,7 @@
 import 'package:ambutrack_core/ambutrack_core.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/dropdowns/app_searchable_dropdown.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/models/tipo_ubicacion.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/models/trayecto_data.dart';
@@ -541,7 +542,7 @@ class _TrayectoCardWidgetState extends State<TrayectoCardWidget> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               isDense: true,
             ),
-            style: GoogleFonts.inter(fontSize: 13, color: AppColors.textPrimaryLight),
+            style: AppTextStyles.tableCell,
             onChanged: onUbicacionEnCentroChanged,
           ),
         ],

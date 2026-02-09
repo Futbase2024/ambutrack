@@ -1,4 +1,5 @@
 import 'package:ambutrack_web/app/flavors.dart';
+import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/features/menu/presentation/widgets/app_bar_with_menu.dart';
 import 'package:flutter/material.dart';
 
@@ -68,7 +69,7 @@ class _DebugBannerPainter extends CustomPainter {
 
     // Dibujar el fondo amarillo del banner
     final Paint bgPaint = Paint()
-      ..color = const Color(0xFFF59E0B)
+      ..color = AppColors.warning
       ..style = PaintingStyle.fill;
 
     canvas.drawRect(

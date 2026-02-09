@@ -7,7 +7,7 @@ import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/bloc/
 import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/bloc/asignaciones/asignaciones_event.dart';
 import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/bloc/asignaciones/asignaciones_state.dart';
 import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/widgets/asignacion_form_dialog.dart';
-import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/widgets/asignaciones_table.dart';
+import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/widgets/asignaciones_table_styled.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -73,7 +73,7 @@ class _AsignacionesViewState extends State<_AsignacionesView> {
             const SizedBox(height: AppSizes.spacingXl),
 
             // Tabla ocupa el espacio restante
-            const Expanded(child: AsignacionesTable()),
+            const Expanded(child: AsignacionesTableStyled()),
           ],
         ),
       ),

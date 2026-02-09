@@ -20,14 +20,14 @@ class ConsumoKmPage extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: <Color>[Color(0xFFF59E0B), Color(0xFFEAB308)],
+                  colors: <Color>[AppColors.warning, AppColors.consumo],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                    color: AppColors.warning.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -73,7 +73,7 @@ class ConsumoKmPage extends StatelessWidget {
                     label: const Text('Registrar Consumo'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFFF59E0B),
+                      foregroundColor: AppColors.warning,
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
