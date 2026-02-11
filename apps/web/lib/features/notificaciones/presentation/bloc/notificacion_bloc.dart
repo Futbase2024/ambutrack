@@ -31,6 +31,8 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
       marcarComoLeida: (String id) => _onMarcarComoLeida(id, emit),
       marcarTodasComoLeidas: (String usuarioId) => _onMarcarTodasComoLeidas(usuarioId, emit),
       eliminarNotificacion: (String id) => _onEliminarNotificacion(id, emit),
+      eliminarTodasNotificaciones: (String usuarioId) => _onEliminarTodasNotificaciones(usuarioId, emit),
+      eliminarMultiplesNotificaciones: (List<String> ids) => _onEliminarMultiplesNotificaciones(ids, emit),
       errorOccurred: (String message) => _onErrorOccurred(message, emit),
     );
   }
@@ -236,8 +238,60 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
       if (e is DataSourceException) {
         if (e.code == 'UNAUTHENTICATED') {
           errorMessage = 'Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.';
+        } else if (e.code == 'PERMISSION_DENIED') {
+          errorMessage = 'No tienes permisos para eliminar esta notificación. Pertenece a otro usuario.';
         } else if (e.code == 'RLS_BLOCKED') {
           errorMessage = 'No tienes permisos para eliminar esta notificación.';
+        } else {
+          errorMessage = e.message;
+        }
+      }
+
+      if (!emit.isDone) {
+        emit(NotificacionState.error(errorMessage));
+      }
+    }
+  }
+
+  Future<void> _onEliminarTodasNotificaciones(String usuarioId, Emitter<NotificacionState> emit) async {
+    debugPrint('🔔 NotificacionBloc: Eliminando todas las notificaciones para usuario $usuarioId');
+    try {
+      await _repository.deleteAll(usuarioId);
+      debugPrint('✅ NotificacionBloc: Todas las notificaciones eliminadas correctamente');
+    } catch (e) {
+      debugPrint('❌ NotificacionBloc: Error al eliminar todas las notificaciones: $e');
+
+      // Extraer mensaje de error más específico
+      String errorMessage = e.toString();
+      if (e is DataSourceException) {
+        if (e.code == 'UNAUTHENTICATED') {
+          errorMessage = 'Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.';
+        } else {
+          errorMessage = e.message;
+        }
+      }
+
+      if (!emit.isDone) {
+        emit(NotificacionState.error(errorMessage));
+      }
+    }
+  }
+
+  Future<void> _onEliminarMultiplesNotificaciones(List<String> ids, Emitter<NotificacionState> emit) async {
+    debugPrint('🔔 NotificacionBloc: Eliminando ${ids.length} notificaciones');
+    try {
+      await _repository.deleteMultiple(ids);
+      debugPrint('✅ NotificacionBloc: ${ids.length} notificaciones eliminadas correctamente');
+    } catch (e) {
+      debugPrint('❌ NotificacionBloc: Error al eliminar notificaciones: $e');
+
+      // Extraer mensaje de error más específico
+      String errorMessage = e.toString();
+      if (e is DataSourceException) {
+        if (e.code == 'UNAUTHENTICATED') {
+          errorMessage = 'Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.';
+        } else if (e.code == 'RLS_BLOCKED') {
+          errorMessage = 'No se pudieron eliminar algunas notificaciones por permisos.';
         } else {
           errorMessage = e.message;
         }

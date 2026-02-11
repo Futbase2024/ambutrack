@@ -166,14 +166,35 @@ SELECT auth.uid();
 
 **Causa**: Las políticas RLS están bloqueando la operación porque:
 - El `usuario_destino_id` no coincide con `auth.uid()`
-- La notificación no existe
+- La notificación no existe (ya fue eliminada)
 - Falta el contexto de autenticación en la request
 
+**Solución implementada**:
+El datasource ahora verifica primero si la notificación existe:
+1. **Si no existe**: considera la operación exitosa (idempotencia - ya estaba eliminada)
+2. **Si existe pero pertenece a otro usuario**: lanza `PERMISSION_DENIED`
+3. **Si es del usuario actual**: procede a eliminar
+
+**Logs mejorados**:
+```
+ℹ️ delete - La notificación ya no existe (posiblemente eliminada previamente)
+⚠️ delete - La notificación pertenece a otro usuario
+✅ delete - Eliminada correctamente
+```
+
+### Problema: Race Condition (notificación ya eliminada)
+
+**Causa**: La notificación fue eliminada entre el momento en que se mostró en la UI y cuando el usuario hizo clic para eliminarla. Esto puede ocurrir por:
+- Sistema de realtime que actualizó otras pestañas/sesiones
+- Múltiples clics accidentales
+- Sincronización automática
+
 **Solución**:
-1. Verificar logs del datasource
-2. Confirmar que `currentUser` no es null
-3. Verificar que la notificación existe y pertenece al usuario
-4. Revisar políticas RLS en Supabase Dashboard
+El sistema ahora maneja este caso de forma elegante:
+1. Verifica si la notificación existe antes de eliminar
+2. Si ya fue eliminada, registra en log pero NO lanza error
+3. Considera la operación exitosa (idempotencia)
+4. La UI se actualiza automáticamente vía realtime
 
 ## 📚 Referencias
 
@@ -188,12 +209,18 @@ SELECT auth.uid();
 ### DataSource (Core Package)
 - ✅ Agregada validación de autenticación en todas las operaciones
 - ✅ Mejorado logging con detalles del usuario autenticado
-- ✅ Errores específicos con códigos (`UNAUTHENTICATED`, `RLS_BLOCKED`)
+- ✅ Errores específicos con códigos (`UNAUTHENTICATED`, `PERMISSION_DENIED`, `RLS_BLOCKED`)
 - ✅ Método `.select()` en delete/update para verificar filas afectadas
+- ✅ **Idempotencia en delete**: Verifica existencia antes de eliminar
+- ✅ **Manejo de race conditions**: No falla si la notificación ya fue eliminada
+- ✅ **Validación de permisos**: Distingue entre "no existe" y "sin permisos"
 
 ### BLoC (App)
 - ✅ Manejo de errores específicos de RLS
-- ✅ Mensajes de error traducidos y claros
+- ✅ Mensajes de error traducidos y claros según código:
+  - `UNAUTHENTICATED`: "Tu sesión ha expirado..."
+  - `PERMISSION_DENIED`: "No tienes permisos... Pertenece a otro usuario"
+  - `RLS_BLOCKED`: "No tienes permisos para eliminar..."
 - ✅ Logging mejorado con emojis para facilitar debugging
 
 ### UI (Notificaciones Panel)

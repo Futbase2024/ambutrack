@@ -266,8 +266,12 @@ class _NotificacionesContent extends StatelessWidget {
                   ),
                 ),
 
-                // Footer con botón de marcar todas como leídas
-                if (conteoNoLeidas > 0) _MarkAllButton(conteoNoLeidas: conteoNoLeidas),
+                // Footer con botones de acción
+                if (notificaciones.isNotEmpty)
+                  _FooterButtons(
+                    conteoNoLeidas: conteoNoLeidas,
+                    totalNotificaciones: notificaciones.length,
+                  ),
               ],
             );
           },
@@ -315,7 +319,7 @@ class _Header extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           if (conteoNoLeidas > 0)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -332,16 +336,58 @@ class _Header extends StatelessWidget {
                 ),
               ),
             ),
+          const Spacer(),
+          // Botón de cerrar
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(
+              Icons.close,
+              color: AppColors.backgroundLight,
+              size: 20,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: 32,
+              minHeight: 32,
+            ),
+            tooltip: 'Cerrar',
+          ),
         ],
       ),
     );
   }
 }
 
-class _MarkAllButton extends StatelessWidget {
-  const _MarkAllButton({required this.conteoNoLeidas});
+class _FooterButtons extends StatelessWidget {
+  const _FooterButtons({
+    required this.conteoNoLeidas,
+    required this.totalNotificaciones,
+  });
 
   final int conteoNoLeidas;
+  final int totalNotificaciones;
+
+  Future<void> _eliminarTodas(BuildContext context, String usuarioId) async {
+    // Capturar el bloc antes del showDialog
+    final NotificacionBloc notificacionBloc = context.read<NotificacionBloc>();
+
+    // Mostrar diálogo de confirmación profesional
+    final bool? confirmed = await showSimpleConfirmationDialog(
+      context: context,
+      title: 'Eliminar todas las notificaciones',
+      message: '¿Estás seguro de que deseas eliminar todas tus notificaciones ($totalNotificaciones)?\n\nEsta acción no se puede deshacer.',
+      confirmText: 'Eliminar todas',
+      icon: Icons.delete_sweep,
+    );
+
+    // Si el usuario confirmó, eliminar todas
+    if (confirmed == true && context.mounted) {
+      notificacionBloc.add(
+        NotificacionEvent.eliminarTodasNotificaciones(usuarioId),
+      );
+      Navigator.of(context).pop();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -359,19 +405,45 @@ class _MarkAllButton extends StatelessWidget {
               top: BorderSide(color: AppColors.gray200),
             ),
           ),
-          child: FilledButton.tonal(
-            onPressed: () {
-              context.read<NotificacionBloc>().add(
-                NotificacionEvent.marcarTodasComoLeidas(authState.user.uid),
-              );
-              Navigator.of(context).pop();
-            },
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(double.infinity, 40),
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.backgroundLight,
-            ),
-            child: Text('Marcar $conteoNoLeidas como leídas'),
+          child: Row(
+            children: <Widget>[
+              // Botón Eliminar todas
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _eliminarTodas(context, authState.user.uid),
+                  icon: const Icon(Icons.delete_sweep, size: 18),
+                  label: const Text('Eliminar todas'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 40),
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error),
+                  ),
+                ),
+              ),
+
+              // Espaciado
+              if (conteoNoLeidas > 0) const SizedBox(width: 12),
+
+              // Botón Marcar como leídas (solo si hay notificaciones no leídas)
+              if (conteoNoLeidas > 0)
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      context.read<NotificacionBloc>().add(
+                        NotificacionEvent.marcarTodasComoLeidas(authState.user.uid),
+                      );
+                      Navigator.of(context).pop();
+                    },
+                    icon: const Icon(Icons.done_all, size: 18),
+                    label: Text('Marcar $conteoNoLeidas leídas'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 40),
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.backgroundLight,
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
       },

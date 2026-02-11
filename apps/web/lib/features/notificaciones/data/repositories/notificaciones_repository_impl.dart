@@ -55,6 +55,18 @@ class NotificacionesRepositoryImpl implements NotificacionesRepository {
   }
 
   @override
+  Future<void> deleteAll(String usuarioId) async {
+    debugPrint('📬 Repository: Eliminando todas las notificaciones para usuario $usuarioId');
+    return _dataSource.deleteAll(usuarioId);
+  }
+
+  @override
+  Future<void> deleteMultiple(List<String> ids) async {
+    debugPrint('📬 Repository: Eliminando ${ids.length} notificaciones');
+    return _dataSource.deleteMultiple(ids);
+  }
+
+  @override
   Stream<List<NotificacionEntity>> watchNotificaciones(String usuarioId) {
     debugPrint('📬 Repository: Iniciando stream de notificaciones para usuario $usuarioId');
     return _dataSource.watchNotificaciones(usuarioId);

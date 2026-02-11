@@ -79,7 +79,6 @@ class _TramiteDetallePageState extends State<TramiteDetallePage> {
     final String? aprobadoPor;
     final DateTime? fechaAprobacion;
     final IconData icono;
-    final Color colorIcono;
     final String? motivoODescripcion;
 
     if (widget.vacacion != null) {
@@ -94,7 +93,6 @@ class _TramiteDetallePageState extends State<TramiteDetallePage> {
       aprobadoPor = v.aprobadoPor;
       fechaAprobacion = v.fechaAprobacion;
       icono = Icons.beach_access_rounded;
-      colorIcono = AppColors.success;
       motivoODescripcion = null;
     } else {
       final a = widget.ausencia!;
@@ -109,18 +107,18 @@ class _TramiteDetallePageState extends State<TramiteDetallePage> {
       aprobadoPor = a.aprobadoPor;
       fechaAprobacion = a.fechaAprobacion;
       icono = _getIconoTipo(tipo.nombre);
-      colorIcono = _getColorFromHex(tipo.color);
       motivoODescripcion = a.motivo;
     }
 
     return SafeArea(
       child: Scaffold(
-        backgroundColor: AppColors.backgroundLight,
+        backgroundColor: AppColors.gray50,
         appBar: AppBar(
           title: const Text('Detalle del Trámite'),
-          backgroundColor: colorIcono,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
+          centerTitle: true,
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSizes.paddingMedium),
@@ -133,13 +131,13 @@ class _TramiteDetallePageState extends State<TramiteDetallePage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: colorIcono.withValues(alpha: 0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius:
                           BorderRadius.circular(AppSizes.radiusMedium),
                     ),
                     child: Icon(
                       icono,
-                      color: colorIcono,
+                      color: AppColors.primary,
                       size: 40,
                     ),
                   ),
@@ -356,13 +354,4 @@ class _TramiteDetallePageState extends State<TramiteDetallePage> {
     return Icons.event_busy_rounded;
   }
 
-  Color _getColorFromHex(String hexColor) {
-    try {
-      return Color(
-        int.parse(hexColor.replaceFirst('#', '0xFF')),
-      );
-    } catch (e) {
-      return AppColors.gray500;
-    }
-  }
 }

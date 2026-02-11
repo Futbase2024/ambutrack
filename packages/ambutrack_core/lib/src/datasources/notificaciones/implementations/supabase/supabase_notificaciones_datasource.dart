@@ -208,6 +208,28 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
       _log('🗑️ delete - Usuario autenticado: ${currentUser.id}');
       _log('🗑️ delete - Tabla: $_tableName');
 
+      // Primero verificar si la notificación existe y pertenece al usuario
+      final existing = await _client
+          .from(_tableName)
+          .select('id, usuario_destino_id')
+          .eq('id', id)
+          .maybeSingle();
+
+      if (existing == null) {
+        _log('ℹ️ delete - La notificación ya no existe (posiblemente eliminada previamente)');
+        // No lanzar error, considerar como éxito (idempotencia)
+        return;
+      }
+
+      if (existing['usuario_destino_id'] != currentUser.id) {
+        _log('⚠️ delete - La notificación pertenece a otro usuario');
+        throw DataSourceException(
+          message: 'No tienes permisos para eliminar esta notificación.',
+          code: 'PERMISSION_DENIED',
+        );
+      }
+
+      // Ahora sí, eliminar
       final response = await _client
           .from(_tableName)
           .delete()
@@ -217,11 +239,9 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
       _log('🗑️ delete - Respuesta: ${response.length} filas afectadas');
 
       if (response.isEmpty) {
-        _log('⚠️ delete - No se eliminó ninguna fila. Posible problema de permisos RLS.');
-        throw DataSourceException(
-          message: 'No se pudo eliminar la notificación. Es posible que no tengas permisos o que la notificación no exista.',
-          code: 'RLS_BLOCKED',
-        );
+        _log('⚠️ delete - No se eliminó ninguna fila (race condition: eliminada entre verificación y delete)');
+        // No lanzar error, ya estaba eliminada
+        return;
       }
 
       _log('✅ delete - Eliminada correctamente');
@@ -355,20 +375,36 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
         value: usuarioId,
       ),
       callback: (payload) {
-        final model = NotificacionSupabaseModel.fromJson(payload.newRecord);
+        // Para DELETE, usar oldRecord; para INSERT/UPDATE, usar newRecord
+        final recordData = payload.eventType == PostgresChangeEvent.delete
+            ? payload.oldRecord
+            : payload.newRecord;
+
+        // Si no hay datos, salir
+        if (recordData.isEmpty) {
+          _log('⚠️ watchNotificaciones - Evento ${payload.eventType} sin datos');
+          return;
+        }
+
+        final model = NotificacionSupabaseModel.fromJson(recordData);
         final notificacion = model.toEntity();
+
+        _log('🔔 watchNotificaciones - Evento: ${payload.eventType}, ID: ${notificacion.id}');
 
         switch (payload.eventType) {
           case PostgresChangeEvent.insert:
             currentNotificaciones = [notificacion, ...currentNotificaciones];
+            _log('✅ watchNotificaciones - Notificación insertada, total: ${currentNotificaciones.length}');
             break;
           case PostgresChangeEvent.update:
             currentNotificaciones = currentNotificaciones.map((n) {
               return n.id == notificacion.id ? notificacion : n;
             }).toList();
+            _log('✅ watchNotificaciones - Notificación actualizada, total: ${currentNotificaciones.length}');
             break;
           case PostgresChangeEvent.delete:
             currentNotificaciones = currentNotificaciones.where((n) => n.id != notificacion.id).toList();
+            _log('✅ watchNotificaciones - Notificación eliminada, total: ${currentNotificaciones.length}');
             break;
           default:
             break;
@@ -376,6 +412,7 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
 
         if (!_notificacionesController.isClosed) {
           _notificacionesController.add(currentNotificaciones);
+          _log('📤 watchNotificaciones - Stream actualizado con ${currentNotificaciones.length} notificaciones');
         }
       },
     ).subscribe();

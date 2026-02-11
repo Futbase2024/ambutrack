@@ -23,6 +23,12 @@ abstract class NotificacionesRepository {
   /// Elimina una notificación
   Future<void> delete(String id);
 
+  /// Elimina todas las notificaciones de un usuario
+  Future<void> deleteAll(String usuarioId);
+
+  /// Elimina múltiples notificaciones
+  Future<void> deleteMultiple(List<String> ids);
+
   /// Stream de notificaciones en tiempo real para un usuario
   Stream<List<NotificacionEntity>> watchNotificaciones(String usuarioId);
 

@@ -69,9 +69,9 @@ class _SolicitarVacacionesPageState extends State<SolicitarVacacionesPage> {
     if (fecha != null) {
       setState(() {
         _fechaInicio = fecha;
-        // Si la fecha fin es anterior, ajustarla
-        if (_fechaFin != null && _fechaFin!.isBefore(_fechaInicio!)) {
-          _fechaFin = null;
+        // Establecer automáticamente la fecha de fin al mismo día
+        if (_fechaFin == null || _fechaFin!.isBefore(_fechaInicio!)) {
+          _fechaFin = fecha;
         }
       });
       _calcularDias();
@@ -169,12 +169,13 @@ class _SolicitarVacacionesPageState extends State<SolicitarVacacionesPage> {
 
     return SafeArea(
       child: Scaffold(
-        backgroundColor: AppColors.backgroundLight,
+        backgroundColor: AppColors.gray50,
         appBar: AppBar(
           title: const Text('Solicitar Vacaciones'),
-          backgroundColor: AppColors.success,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
+          centerTitle: true,
         ),
         body: BlocListener<VacacionesBloc, VacacionesState>(
           listener: (context, state) {
@@ -237,7 +238,7 @@ class _SolicitarVacacionesPageState extends State<SolicitarVacacionesPage> {
                               Navigator.of(context).pop();
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.success,
+                              backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               elevation: 0,
@@ -429,7 +430,7 @@ class _SolicitarVacacionesPageState extends State<SolicitarVacacionesPage> {
                       child: ElevatedButton(
                         onPressed: isLoading ? null : _solicitarVacaciones,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success,
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           disabledBackgroundColor: AppColors.gray300,
                           shape: RoundedRectangleBorder(

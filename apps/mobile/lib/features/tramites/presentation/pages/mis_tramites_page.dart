@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_sizes.dart';
 import '../bloc/ausencias_bloc.dart';
 import '../bloc/ausencias_state.dart';
 import '../bloc/vacaciones_bloc.dart';
@@ -40,12 +39,13 @@ class _MisTramitesPageState extends State<MisTramitesPage>
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        backgroundColor: AppColors.backgroundLight,
+        backgroundColor: AppColors.gray50,
         appBar: AppBar(
           title: const Text('Mis Trámites'),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
+          centerTitle: true,
           bottom: TabBar(
             controller: _tabController,
             indicatorColor: Colors.white,
@@ -90,16 +90,16 @@ class _VacacionesListView extends StatelessWidget {
         if (state is VacacionesError) {
           return Center(
             child: Padding(
-              padding: const EdgeInsets.all(AppSizes.paddingMedium),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.error_outline_rounded,
-                    size: AppSizes.iconXLarge,
+                    size: 64.0,
                     color: AppColors.error,
                   ),
-                  const SizedBox(height: AppSizes.spacingMedium),
+                  const SizedBox(height: 16.0),
                   Text(
                     'Error al cargar vacaciones',
                     style: const TextStyle(
@@ -109,7 +109,7 @@ class _VacacionesListView extends StatelessWidget {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: AppSizes.spacingSmall),
+                  const SizedBox(height: 8.0),
                   Text(
                     state.message,
                     style: const TextStyle(
@@ -130,16 +130,16 @@ class _VacacionesListView extends StatelessWidget {
           if (vacaciones.isEmpty) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(AppSizes.paddingMedium),
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.beach_access_outlined,
-                      size: AppSizes.iconXLarge * 1.5,
+                      size: 64.0 * 1.5,
                       color: AppColors.gray300,
                     ),
-                    const SizedBox(height: AppSizes.spacingMedium),
+                    const SizedBox(height: 16.0),
                     Text(
                       'No hay vacaciones registradas',
                       style: const TextStyle(
@@ -148,7 +148,7 @@ class _VacacionesListView extends StatelessWidget {
                         color: AppColors.gray600,
                       ),
                     ),
-                    const SizedBox(height: AppSizes.spacingSmall),
+                    const SizedBox(height: 8.0),
                     Text(
                       'Solicita tus primeras vacaciones desde la pantalla principal',
                       style: const TextStyle(
@@ -169,7 +169,7 @@ class _VacacionesListView extends StatelessWidget {
           final rechazadas = state.rechazadas;
 
           return ListView(
-            padding: const EdgeInsets.symmetric(vertical: AppSizes.paddingMedium),
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
             children: [
               if (pendientes.isNotEmpty) ...[
                 _buildSeccionHeader('Pendientes (${pendientes.length})'),
@@ -181,7 +181,7 @@ class _VacacionesListView extends StatelessWidget {
                     dias: v.diasSolicitados,
                     estado: v.estado,
                     icono: Icons.beach_access_rounded,
-                    colorIcono: AppColors.success,
+                    colorIcono: AppColors.primary,
                     observaciones: v.observaciones,
                     fechaSolicitud: v.fechaSolicitud,
                     solicitadoPor: v.idPersonal,
@@ -193,7 +193,7 @@ class _VacacionesListView extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(height: AppSizes.spacingMedium),
+                const SizedBox(height: 16.0),
               ],
               if (aprobadas.isNotEmpty) ...[
                 _buildSeccionHeader('Aprobadas (${aprobadas.length})'),
@@ -205,7 +205,7 @@ class _VacacionesListView extends StatelessWidget {
                     dias: v.diasSolicitados,
                     estado: v.estado,
                     icono: Icons.beach_access_rounded,
-                    colorIcono: AppColors.success,
+                    colorIcono: AppColors.primary,
                     observaciones: v.observaciones,
                     fechaSolicitud: v.fechaSolicitud,
                     solicitadoPor: v.idPersonal,
@@ -219,7 +219,7 @@ class _VacacionesListView extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(height: AppSizes.spacingMedium),
+                const SizedBox(height: 16.0),
               ],
               if (rechazadas.isNotEmpty) ...[
                 _buildSeccionHeader('Rechazadas (${rechazadas.length})'),
@@ -231,7 +231,7 @@ class _VacacionesListView extends StatelessWidget {
                     dias: v.diasSolicitados,
                     estado: v.estado,
                     icono: Icons.beach_access_rounded,
-                    colorIcono: AppColors.success,
+                    colorIcono: AppColors.primary,
                     observaciones: v.observaciones,
                     fechaSolicitud: v.fechaSolicitud,
                     solicitadoPor: v.idPersonal,
@@ -258,9 +258,9 @@ class _VacacionesListView extends StatelessWidget {
   Widget _buildSeccionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(
-        left: AppSizes.paddingMedium,
-        right: AppSizes.paddingMedium,
-        bottom: AppSizes.paddingSmall,
+        left: 16.0,
+        right: 16.0,
+        bottom: 8.0,
       ),
       child: Text(
         title,
@@ -290,16 +290,16 @@ class _AusenciasListView extends StatelessWidget {
         if (state is AusenciasError) {
           return Center(
             child: Padding(
-              padding: const EdgeInsets.all(AppSizes.paddingMedium),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.error_outline_rounded,
-                    size: AppSizes.iconXLarge,
+                    size: 64.0,
                     color: AppColors.error,
                   ),
-                  const SizedBox(height: AppSizes.spacingMedium),
+                  const SizedBox(height: 16.0),
                   Text(
                     'Error al cargar ausencias',
                     style: const TextStyle(
@@ -309,7 +309,7 @@ class _AusenciasListView extends StatelessWidget {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: AppSizes.spacingSmall),
+                  const SizedBox(height: 8.0),
                   Text(
                     state.message,
                     style: const TextStyle(
@@ -331,16 +331,16 @@ class _AusenciasListView extends StatelessWidget {
           if (ausencias.isEmpty) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(AppSizes.paddingMedium),
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.event_busy_outlined,
-                      size: AppSizes.iconXLarge * 1.5,
+                      size: 64.0 * 1.5,
                       color: AppColors.gray300,
                     ),
-                    const SizedBox(height: AppSizes.spacingMedium),
+                    const SizedBox(height: 16.0),
                     Text(
                       'No hay ausencias registradas',
                       style: const TextStyle(
@@ -349,7 +349,7 @@ class _AusenciasListView extends StatelessWidget {
                         color: AppColors.gray600,
                       ),
                     ),
-                    const SizedBox(height: AppSizes.spacingSmall),
+                    const SizedBox(height: 8.0),
                     Text(
                       'Solicita ausencias desde la pantalla principal',
                       style: const TextStyle(
@@ -370,7 +370,7 @@ class _AusenciasListView extends StatelessWidget {
           final rechazadas = state.rechazadas;
 
           return ListView(
-            padding: const EdgeInsets.symmetric(vertical: AppSizes.paddingMedium),
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
             children: [
               if (pendientes.isNotEmpty) ...[
                 _buildSeccionHeader('Pendientes (${pendientes.length})'),
@@ -396,7 +396,7 @@ class _AusenciasListView extends StatelessWidget {
                     dias: a.diasAusencia,
                     estado: _getEstadoString(a.estado),
                     icono: _getIconoTipo(tipo.nombre),
-                    colorIcono: _getColorFromHex(tipo.color),
+                    colorIcono: AppColors.primary,
                     subtitulo: a.motivo,
                     observaciones: a.observaciones,
                     fechaSolicitud: a.createdAt,
@@ -413,7 +413,7 @@ class _AusenciasListView extends StatelessWidget {
                     },
                   );
                 }),
-                const SizedBox(height: AppSizes.spacingMedium),
+                const SizedBox(height: 16.0),
               ],
               if (aprobadas.isNotEmpty) ...[
                 _buildSeccionHeader('Aprobadas (${aprobadas.length})'),
@@ -439,7 +439,7 @@ class _AusenciasListView extends StatelessWidget {
                     dias: a.diasAusencia,
                     estado: _getEstadoString(a.estado),
                     icono: _getIconoTipo(tipo.nombre),
-                    colorIcono: _getColorFromHex(tipo.color),
+                    colorIcono: AppColors.primary,
                     subtitulo: a.motivo,
                     observaciones: a.observaciones,
                     fechaSolicitud: a.createdAt,
@@ -458,7 +458,7 @@ class _AusenciasListView extends StatelessWidget {
                     },
                   );
                 }),
-                const SizedBox(height: AppSizes.spacingMedium),
+                const SizedBox(height: 16.0),
               ],
               if (rechazadas.isNotEmpty) ...[
                 _buildSeccionHeader('Rechazadas (${rechazadas.length})'),
@@ -484,7 +484,7 @@ class _AusenciasListView extends StatelessWidget {
                     dias: a.diasAusencia,
                     estado: _getEstadoString(a.estado),
                     icono: _getIconoTipo(tipo.nombre),
-                    colorIcono: _getColorFromHex(tipo.color),
+                    colorIcono: AppColors.primary,
                     subtitulo: a.motivo,
                     observaciones: a.observaciones,
                     fechaSolicitud: a.createdAt,
@@ -516,9 +516,9 @@ class _AusenciasListView extends StatelessWidget {
   Widget _buildSeccionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(
-        left: AppSizes.paddingMedium,
-        right: AppSizes.paddingMedium,
-        bottom: AppSizes.paddingSmall,
+        left: 16.0,
+        right: 16.0,
+        bottom: 8.0,
       ),
       child: Text(
         title,
@@ -551,13 +551,4 @@ class _AusenciasListView extends StatelessWidget {
     return Icons.event_busy_rounded;
   }
 
-  Color _getColorFromHex(String hexColor) {
-    try {
-      return Color(
-        int.parse(hexColor.replaceFirst('#', '0xFF')),
-      );
-    } catch (e) {
-      return AppColors.gray500;
-    }
-  }
 }

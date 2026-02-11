@@ -20,5 +20,9 @@ class NotificacionEvent with _$NotificacionEvent {
 
   const factory NotificacionEvent.eliminarNotificacion(String id) = _EliminarNotificacion;
 
+  const factory NotificacionEvent.eliminarTodasNotificaciones(String usuarioId) = _EliminarTodasNotificaciones;
+
+  const factory NotificacionEvent.eliminarMultiplesNotificaciones(List<String> ids) = _EliminarMultiplesNotificaciones;
+
   const factory NotificacionEvent.errorOccurred(String message) = _ErrorOccurred;
 }

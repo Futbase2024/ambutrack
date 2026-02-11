@@ -78,12 +78,13 @@ class _TramitesViewState extends State<_TramitesView> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        backgroundColor: AppColors.backgroundLight,
+        backgroundColor: AppColors.gray50,
         appBar: AppBar(
           title: const Text('Trámites'),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
+          centerTitle: true,
         ),
         body: RefreshIndicator(
           onRefresh: () async {
@@ -98,27 +99,28 @@ class _TramitesViewState extends State<_TramitesView> {
                 // Resumen estadístico compacto
                 const _ResumenWidget(),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // Título de sección
                 Text(
                   'Solicitar Trámite',
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.gray800,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
                 // Cuadrícula de trámites
                 _buildTramitesGrid(context),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // Botón ver todos mis trámites
                 SizedBox(
                   width: double.infinity,
+                  height: 50,
                   child: ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
@@ -138,15 +140,20 @@ class _TramitesViewState extends State<_TramitesView> {
                         ),
                       );
                     },
-                    icon: const Icon(Icons.list_rounded),
-                    label: const Text('Ver todos mis trámites'),
+                    icon: const Icon(Icons.list_rounded, size: 20),
+                    label: const Text(
+                      'Ver todos mis trámites',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      elevation: 0,
+                      elevation: 2,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                   ),
@@ -164,9 +171,9 @@ class _TramitesViewState extends State<_TramitesView> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.1,
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      childAspectRatio: 1.2,
       children: [
         _buildTramiteCard(
           context: context,
@@ -248,52 +255,35 @@ class _TramitesViewState extends State<_TramitesView> {
     required VoidCallback onTap,
   }) {
     return Card(
-      elevation: 2,
-      color: Colors.grey[100],
+      elevation: 1,
+      color: Colors.white,
+      shadowColor: AppColors.primary.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(12),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icono - 80% del espacio
-              Expanded(
-                flex: 80,
-                child: Center(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final iconSize = constraints.maxHeight * 0.7;
-                      return FittedBox(
-                        fit: BoxFit.contain,
-                        child: Text(
-                          emoji,
-                          style: TextStyle(
-                            fontSize: iconSize,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+              // Emoji
+              Text(
+                emoji,
+                style: const TextStyle(fontSize: 48),
               ),
+              const SizedBox(height: 8),
 
-              // Título - 20% del espacio
-              Expanded(
-                flex: 20,
-                child: Center(
-                  child: Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[800],
-                    ),
-                  ),
+              // Título
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.gray800,
                 ),
               ),
             ],
@@ -394,38 +384,40 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 1,
-      color: Colors.grey[100],
+      color: Colors.white,
+      shadowColor: AppColors.primary.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             // Emoji
             Text(
               emoji,
-              style: const TextStyle(fontSize: 32),
+              style: const TextStyle(fontSize: 28),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
 
             // Valor
             Text(
               value,
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.w700,
                 color: color,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
 
             // Label
             Text(
               label,
               style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[700],
+                fontSize: 11,
+                color: AppColors.gray600,
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,

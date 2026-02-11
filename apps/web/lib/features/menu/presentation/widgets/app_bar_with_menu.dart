@@ -310,39 +310,46 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
     showDialog<void>(
       context: context,
       builder: (BuildContext dialogContext) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Stack(
-            children: <Widget>[
-              Positioned(
-                left: offset.dx - 380 + size.width,
-                top: offset.dy + size.height + 8,
-                child: Material(
-                  elevation: 16,
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    width: 380,
-                    height: 500,
-                    decoration: BoxDecoration(
-                      color: AppColors.backgroundLight,
+        return GestureDetector(
+          onTap: () => Navigator.of(dialogContext).pop(), // Cerrar al tocar fuera
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: EdgeInsets.zero, // Sin padding para posicionamiento absoluto
+            child: GestureDetector(
+              onTap: () {}, // Evitar que clics dentro cierren el diálogo
+              child: Stack(
+                children: <Widget>[
+                  Positioned(
+                    left: offset.dx - 380 + size.width,
+                    top: offset.dy + size.height + 8,
+                    child: Material(
+                      elevation: 16,
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: <BoxShadow>[
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                      child: Container(
+                        width: 380,
+                        height: 500,
+                        decoration: BoxDecoration(
+                          color: AppColors.backgroundLight,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: <BoxShadow>[
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    // Proporcionar el bloc al diálogo usando BlocProvider.value
-                    child: BlocProvider<NotificacionBloc>.value(
-                      value: notificacionBloc,
-                      child: const NotificacionesPanel(),
+                        // Proporcionar el bloc al diálogo usando BlocProvider.value
+                        child: BlocProvider<NotificacionBloc>.value(
+                          value: notificacionBloc,
+                          child: const NotificacionesPanel(),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },
