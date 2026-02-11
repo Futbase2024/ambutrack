@@ -27,6 +27,7 @@ import '../../features/vestuario/presentation/pages/vestuario_page.dart';
 import '../../features/ambulancias/presentation/pages/ambulancias_page.dart';
 import '../../features/ambulancias/presentation/pages/ambulancia_detalle_page.dart';
 import '../../features/ambulancias/presentation/pages/revision_page.dart';
+import '../../features/notificaciones/presentation/pages/notificaciones_page.dart';
 import '../widgets/layouts/main_layout.dart';
 
 /// Memoria de navegación para hot restart
@@ -162,6 +163,19 @@ GoRouter createAppRouter(AuthBloc authBloc) {
             context: context,
             state: state,
             child: const PerfilPage(),
+          );
+        },
+      ),
+
+      // Notificaciones
+      GoRoute(
+        path: '/notificaciones',
+        name: 'notificaciones',
+        pageBuilder: (BuildContext context, GoRouterState state) {
+          return _buildPageWithTransition(
+            context: context,
+            state: state,
+            child: const NotificacionesPage(),
           );
         },
       ),

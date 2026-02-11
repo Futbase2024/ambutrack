@@ -1,9 +1,14 @@
 import 'package:ambutrack_web/app/flavors.dart';
+import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_event.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
 import 'package:ambutrack_web/features/menu/presentation/widgets/app_menu.dart';
+import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_bloc.dart';
+import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_event.dart';
+import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_state.dart';
+import 'package:ambutrack_web/features/notificaciones/presentation/widgets/notificaciones_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -204,69 +209,146 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
 
   /// Botón de notificaciones
   Widget _buildNotificationButton(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12.0),
-        onTap: () {
-          // TODO(team): Implementar panel de notificaciones
-        },
-        child: Stack(
-          children: <Widget>[
-            Container(
-              padding: const EdgeInsets.all(10.0),
-              decoration: BoxDecoration(
-                color: AppColors.backgroundLight.withValues(alpha: 0.1),
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (BuildContext context, AuthState authState) {
+        if (authState is! AuthAuthenticated) {
+          return const SizedBox.shrink();
+        }
+
+        final String userId = authState.user.uid;
+
+        return BlocProvider(
+          create: (BuildContext context) {
+            final NotificacionBloc bloc = getIt<NotificacionBloc>();
+            // Suscribir al BLoC para recibir notificaciones en tiempo real
+            bloc.add(NotificacionEvent.subscribeNotificaciones(userId));
+            return bloc;
+          },
+          child: BlocBuilder<NotificacionBloc, NotificacionState>(
+            builder: (BuildContext context, NotificacionState state) {
+              int conteoNoLeidas = 0;
+
+              // Obtener conteo de notificaciones no leídas
+              state.maybeMap(
+                orElse: () {},
+                loaded: (value) {
+                  conteoNoLeidas = value.conteoNoLeidas;
+                },
+              );
+
+              return Material(
+              color: Colors.transparent,
+              child: InkWell(
                 borderRadius: BorderRadius.circular(12.0),
-                border: Border.all(
-                  color: AppColors.backgroundLight.withValues(alpha: 0.2),
+                onTap: () {
+                  _mostrarPanelNotificaciones(context);
+                },
+                child: Stack(
+                  children: <Widget>[
+                    Container(
+                      padding: const EdgeInsets.all(10.0),
+                      decoration: BoxDecoration(
+                        color: AppColors.backgroundLight.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12.0),
+                        border: Border.all(
+                          color: AppColors.backgroundLight.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.notifications_outlined,
+                        color: AppColors.backgroundLight,
+                        size: 20,
+                      ),
                     ),
-              ),
-              child: const Icon(
-                Icons.notifications_outlined,
-                color: AppColors.backgroundLight,
-                size: 20,
-              ),
-            ),
-            // Badge de notificaciones
-            Positioned(
-              right: 6,
-              top: 6,
-              child: Container(
-                padding: const EdgeInsets.all(3.0),
-                decoration: BoxDecoration(
-                  color: AppColors.emergency,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.backgroundLight,
-                    width: 1.5,
-                  ),
-                  boxShadow: const <BoxShadow>[
-                    BoxShadow(
-                      color: Color.fromRGBO(220, 38, 38, 0.4),
-                      blurRadius: 4,
-                      offset: Offset(0, 1),
-                    ),
+                    // Badge de notificaciones
+                    if (conteoNoLeidas > 0)
+                      Positioned(
+                        right: 6,
+                        top: 6,
+                        child: Container(
+                          padding: const EdgeInsets.all(3.0),
+                          decoration: BoxDecoration(
+                            color: AppColors.emergency,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.backgroundLight,
+                              width: 1.5,
+                            ),
+                            boxShadow: const <BoxShadow>[
+                              BoxShadow(
+                                color: Color.fromRGBO(220, 38, 38, 0.4),
+                                blurRadius: 4,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            conteoNoLeidas > 9 ? '9+' : '$conteoNoLeidas',
+                            style: GoogleFonts.inter(
+                              color: AppColors.backgroundLight,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
-                constraints: const BoxConstraints(
-                  minWidth: 16,
-                  minHeight: 16,
-                ),
-                child: Text(
-                  '3',
-                  style: GoogleFonts.inter(
-                    color: AppColors.backgroundLight,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
+              ),
+            );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  /// Muestra el panel de notificaciones como un diálogo
+  void _mostrarPanelNotificaciones(BuildContext context) {
+    final RenderBox button = context.findRenderObject() as RenderBox;
+    final Offset offset = button.localToGlobal(Offset.zero);
+    final Size size = button.size;
+
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Stack(
+            children: <Widget>[
+              Positioned(
+                left: offset.dx - 380 + size.width,
+                top: offset.dy + size.height + 8,
+                child: Material(
+                  elevation: 16,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    width: 380,
+                    height: 500,
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundLight,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: <BoxShadow>[
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: const NotificacionesPanel(),
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 

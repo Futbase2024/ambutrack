@@ -122,6 +122,12 @@ import 'package:ambutrack_web/features/menu/data/repositories/menu_repository_im
     as _i216;
 import 'package:ambutrack_web/features/menu/domain/repositories/menu_repository.dart'
     as _i388;
+import 'package:ambutrack_web/features/notificaciones/data/repositories/notificaciones_repository_impl.dart'
+    as _i12;
+import 'package:ambutrack_web/features/notificaciones/domain/repositories/notificaciones_repository.dart'
+    as _i1037;
+import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_bloc.dart'
+    as _i938;
 import 'package:ambutrack_web/features/personal/data/repositories/equipamiento_personal_repository_impl.dart'
     as _i517;
 import 'package:ambutrack_web/features/personal/data/repositories/historial_medico_repository_impl.dart'
@@ -467,6 +473,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i922.ContratoRepository>(
       () => _i552.ContratoRepositoryImpl(gh<_i40.ContratoDataSource>()),
     );
+    gh.lazySingleton<_i1037.NotificacionesRepository>(
+      () => _i12.NotificacionesRepositoryImpl(),
+    );
     gh.lazySingleton<_i229.PacienteRepository>(
       () => _i1045.PacienteRepositoryImpl(),
     );
@@ -501,9 +510,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i223.CuadranteAsignacionRepository>(),
       ),
     );
-    gh.factory<_i101.VacacionesBloc>(
-      () => _i101.VacacionesBloc(gh<_i769.VacacionesRepository>()),
-    );
     gh.factory<_i100.ProvinciaBloc>(
       () => _i100.ProvinciaBloc(gh<_i958.ProvinciaRepository>()),
     );
@@ -535,6 +541,13 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i321.NetworkInfo>(
       () => _i321.NetworkInfoImpl(gh<_i973.InternetConnectionChecker>()),
     );
+    gh.factory<_i101.VacacionesBloc>(
+      () => _i101.VacacionesBloc(
+        gh<_i769.VacacionesRepository>(),
+        gh<_i1037.NotificacionesRepository>(),
+        gh<_i373.PersonalRepository>(),
+      ),
+    );
     gh.factory<_i87.ExcepcionesFestivosBloc>(
       () =>
           _i87.ExcepcionesFestivosBloc(gh<_i172.ExcepcionFestivoRepository>()),
@@ -546,6 +559,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i796.EspecialidadBloc>(
       () => _i796.EspecialidadBloc(gh<_i1023.EspecialidadRepository>()),
+    );
+    gh.factory<_i938.NotificacionBloc>(
+      () => _i938.NotificacionBloc(gh<_i1037.NotificacionesRepository>()),
     );
     gh.factory<_i987.GeneracionAutomaticaBloc>(
       () => _i987.GeneracionAutomaticaBloc(

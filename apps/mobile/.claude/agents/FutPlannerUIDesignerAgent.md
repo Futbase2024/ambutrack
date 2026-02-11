@@ -750,6 +750,341 @@ showModalBottomSheet<void>(
 )
 ```
 
+---
+
+## 🎨 DIÁLOGOS PROFESIONALES (OBLIGATORIO)
+
+### ❌ PROHIBIDO: SnackBar para acciones importantes
+
+**NUNCA usar SnackBar para:**
+- Acciones destructivas o críticas (eliminaciones, desasignaciones)
+- Notificaciones que requieren confirmación explícita
+- Información importante que no debe perderse
+- Cambios de estado que afectan el flujo de trabajo
+
+**✅ SÍ usar SnackBar solo para:**
+- Confirmaciones rápidas de éxito no críticas
+- Información contextual trivial
+- Feedback inmediato de acciones simples
+
+### ✅ Diálogo Profesional de Confirmación
+
+```dart
+/// Muestra un diálogo profesional de confirmación
+Future<bool?> showProfessionalConfirmDialog(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required String confirmLabel,
+  required IconData icon,
+  required Color iconColor,
+  String? cancelLabel,
+}) {
+  return showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icono con fondo de color
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 48,
+                color: iconColor,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Título
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.gray900,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+
+            // Mensaje
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 15,
+                color: AppColors.gray700,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+
+            // Botones
+            Row(
+              children: [
+                if (cancelLabel != null) ...[
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: BorderSide(color: AppColors.gray300),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        cancelLabel,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.gray700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: iconColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      confirmLabel,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+```
+
+### ✅ Diálogo Profesional de Resultado
+
+```dart
+/// Muestra un diálogo profesional de resultado (éxito, error, info)
+Future<void> showProfessionalResultDialog(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required IconData icon,
+  required Color iconColor,
+  String actionLabel = 'Entendido',
+  VoidCallback? onClose,
+}) {
+  return showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icono con fondo de color
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 48,
+                color: iconColor,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Título
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.gray900,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+
+            // Mensaje
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 15,
+                color: AppColors.gray700,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+
+            // Botón de acción
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  onClose?.call();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: iconColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  actionLabel,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+```
+
+### 🎨 Tipos de Diálogos según Severidad
+
+| Tipo | Color | Icono | Uso |
+|------|-------|-------|-----|
+| **Error** | `AppColors.error` | `Icons.error_outline` | Errores críticos |
+| **Advertencia** | `AppColors.warning` | `Icons.warning_amber_rounded` | Eliminaciones, cambios importantes |
+| **Información** | `AppColors.info` | `Icons.info_outline` | Información relevante |
+| **Éxito** | `AppColors.success` | `Icons.check_circle_outline` | Confirmaciones importantes |
+
+### 📋 Ejemplo de Uso: Confirmación de Eliminación
+
+```dart
+// ✅ CORRECTO: Diálogo profesional para confirmar eliminación
+final confirmed = await showProfessionalConfirmDialog(
+  context,
+  title: '¿Eliminar notificación?',
+  message: '¿Estás seguro de que quieres eliminar esta notificación? Esta acción no se puede deshacer.',
+  icon: Icons.warning_amber_rounded,
+  iconColor: AppColors.warning,
+  confirmLabel: 'Eliminar',
+  cancelLabel: 'Cancelar',
+);
+
+if (confirmed == true) {
+  // Ejecutar eliminación
+  context.read<NotificacionesBloc>().add(
+    NotificacionesEvent.eliminar(id: notificacion.id),
+  );
+
+  // Mostrar resultado con diálogo profesional
+  if (mounted) {
+    await showProfessionalResultDialog(
+      context,
+      title: 'Notificación eliminada',
+      message: 'La notificación ha sido eliminada correctamente.',
+      icon: Icons.check_circle_outline,
+      iconColor: AppColors.success,
+      onClose: () {
+        // Acción post-cierre si es necesario
+      },
+    );
+  }
+}
+```
+
+### 📋 Ejemplo de Uso: Resultado de Operación
+
+```dart
+// ✅ CORRECTO: Diálogo profesional para mostrar resultado
+BlocListener<NotificacionesBloc, NotificacionesState>(
+  listener: (context, state) {
+    state.maybeWhen(
+      eliminacionExitosa: () async {
+        await showProfessionalResultDialog(
+          context,
+          title: 'Operación exitosa',
+          message: 'Las notificaciones seleccionadas han sido eliminadas.',
+          icon: Icons.check_circle_outline,
+          iconColor: AppColors.success,
+        );
+      },
+      error: (mensaje) async {
+        await showProfessionalResultDialog(
+          context,
+          title: 'Error',
+          message: mensaje,
+          icon: Icons.error_outline,
+          iconColor: AppColors.error,
+        );
+      },
+      orElse: () {},
+    );
+  },
+  child: ...,
+)
+```
+
+### 📋 Checklist de Diálogos Profesionales
+
+```
+□ barrierDismissible: false (no cerrar tocando fuera)
+□ Icono grande (48px) con fondo de color con alpha 0.1
+□ Título claro y conciso (20px, FontWeight.w700)
+□ Descripción detallada (15px, height 1.4)
+□ Botón de acción full-width (single button) o Row (multiple buttons)
+□ Border radius: 16 para Dialog, 10 para botones
+□ Padding consistente: 24px contenedor, 14px vertical botones
+□ Colores según tipo (error/warning/success/info)
+□ NUNCA usar SnackBar para acciones importantes
+```
+
 ### Indicadores
 
 ```dart

@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../notificaciones/domain/repositories/notificaciones_repository.dart';
 import '../../domain/repositories/ausencias_repository.dart';
 import '../../domain/repositories/tipos_ausencia_repository.dart';
 import 'ausencias_event.dart';
@@ -16,6 +19,8 @@ class AusenciasBloc extends Bloc<AusenciasEvent, AusenciasState> {
   AusenciasBloc(
     this._ausenciasRepository,
     this._tiposRepository,
+    this._notificacionesRepository,
+    this._authBloc,
   ) : super(const AusenciasInitial()) {
     on<AusenciasLoadRequested>(_onLoadRequested);
     on<AusenciasLoadByPersonalRequested>(_onLoadByPersonalRequested);
@@ -31,6 +36,8 @@ class AusenciasBloc extends Bloc<AusenciasEvent, AusenciasState> {
 
   final AusenciasRepository _ausenciasRepository;
   final TiposAusenciaRepository _tiposRepository;
+  final NotificacionesRepository _notificacionesRepository;
+  final AuthBloc _authBloc;
   StreamSubscription<List<AusenciaEntity>>? _watchSubscription;
 
   Future<void> _onLoadRequested(
@@ -168,6 +175,12 @@ class AusenciasBloc extends Bloc<AusenciasEvent, AusenciasState> {
     try {
       final created = await _ausenciasRepository.create(event.ausencia);
       debugPrint('🏥 AusenciasBloc: ✅ Ausencia creada: ${created.id}');
+
+      // Notificar a jefes de personal si está pendiente
+      if (created.estado == EstadoAusencia.pendiente) {
+        await _notificarNuevaAusencia(created);
+      }
+
       emit(AusenciaCreated(created));
 
       // Recargar lista después de crear
@@ -175,6 +188,56 @@ class AusenciasBloc extends Bloc<AusenciasEvent, AusenciasState> {
     } catch (e) {
       debugPrint('🏥 AusenciasBloc: ❌ Error al crear: $e');
       emit(AusenciasError(e.toString()));
+    }
+  }
+
+  /// Notifica a los jefes de personal sobre una nueva solicitud de ausencia
+  Future<void> _notificarNuevaAusencia(AusenciaEntity ausencia) async {
+    try {
+      // Obtener datos del usuario autenticado
+      final authState = _authBloc.state;
+      if (authState is! AuthAuthenticated || authState.personal == null) {
+        debugPrint('🏥 AusenciasBloc: ⚠️ No se puede notificar - usuario no autenticado');
+        return;
+      }
+
+      final personal = authState.personal!;
+      final nombrePersonal = '${personal.nombre} ${personal.apellidos}'.trim();
+      final fechaInicioStr = '${ausencia.fechaInicio.day}/${ausencia.fechaInicio.month}/${ausencia.fechaInicio.year}';
+      final fechaFinStr = '${ausencia.fechaFin.day}/${ausencia.fechaFin.month}/${ausencia.fechaFin.year}';
+
+      // Obtener el tipo de ausencia para el mensaje
+      String tipoAusenciaNombre = 'ausencia';
+      try {
+        final tipos = await _tiposRepository.getAll();
+        final tipo = tipos.firstWhere((t) => t.id == ausencia.idTipoAusencia);
+        tipoAusenciaNombre = tipo.nombre.toLowerCase();
+      } catch (e) {
+        debugPrint('🏥 AusenciasBloc: ⚠️ No se pudo obtener tipo de ausencia: $e');
+      }
+
+      // Crear notificación para jefes de personal
+      await _notificacionesRepository.notificarJefesPersonal(
+        tipo: 'ausencia_solicitada',
+        titulo: 'Nueva Solicitud de Ausencia',
+        mensaje: '$nombrePersonal ha solicitado $tipoAusenciaNombre ($fechaInicioStr - $fechaFinStr): ${ausencia.motivo}',
+        entidadTipo: 'ausencia',
+        entidadId: ausencia.id,
+        metadata: {
+          'personal_id': ausencia.idPersonal,
+          'personal_nombre': nombrePersonal,
+          'tipo_ausencia_id': ausencia.idTipoAusencia,
+          'tipo_ausencia_nombre': tipoAusenciaNombre,
+          'fecha_inicio': ausencia.fechaInicio.toIso8601String(),
+          'fecha_fin': ausencia.fechaFin.toIso8601String(),
+          'motivo': ausencia.motivo,
+        },
+      );
+
+      debugPrint('🏥 AusenciasBloc: ✅ Notificación enviada a jefes de personal');
+    } catch (e) {
+      debugPrint('🏥 AusenciasBloc: ❌ Error al enviar notificación: $e');
+      // No fallar el flujo principal si falla la notificación
     }
   }
 

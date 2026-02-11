@@ -1,4 +1,7 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core/ambutrack_core.dart' as core;
+import 'package:ambutrack_web/features/notificaciones/domain/repositories/notificaciones_repository.dart';
+import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
+import 'package:ambutrack_web/features/personal/domain/repositories/personal_repository.dart';
 import 'package:ambutrack_web/features/vacaciones/domain/repositories/vacaciones_repository.dart';
 import 'package:ambutrack_web/features/vacaciones/presentation/bloc/vacaciones_event.dart';
 import 'package:ambutrack_web/features/vacaciones/presentation/bloc/vacaciones_state.dart';
@@ -9,7 +12,11 @@ import 'package:injectable/injectable.dart';
 /// BLoC para gestión de Vacaciones
 @injectable
 class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
-  VacacionesBloc(this._repository) : super(const VacacionesInitial()) {
+  VacacionesBloc(
+    this._repository,
+    this._notificacionesRepository,
+    this._personalRepository,
+  ) : super(const VacacionesInitial()) {
     on<VacacionesLoadRequested>(_onLoadRequested);
     on<VacacionesLoadByYearRequested>(_onLoadByYearRequested);
     on<VacacionesCreateRequested>(_onCreateRequested);
@@ -20,6 +27,8 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
   }
 
   final VacacionesRepository _repository;
+  final NotificacionesRepository _notificacionesRepository;
+  final PersonalRepository _personalRepository;
 
   /// Maneja la carga de todas las vacaciones
   Future<void> _onLoadRequested(
@@ -30,7 +39,7 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
     emit(const VacacionesLoading());
 
     try {
-      final List<VacacionesEntity> vacaciones = await _repository.getAll();
+      final List<core.VacacionesEntity> vacaciones = await _repository.getAll();
       debugPrint('🏖️ VacacionesBloc: ✅ ${vacaciones.length} vacaciones cargadas');
       emit(VacacionesLoaded(vacaciones: vacaciones));
     } catch (e) {
@@ -48,8 +57,8 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
     emit(const VacacionesLoading());
 
     try {
-      final List<VacacionesEntity> allVacaciones = await _repository.getAll();
-      final List<VacacionesEntity> vacaciones = allVacaciones.where((VacacionesEntity v) {
+      final List<core.VacacionesEntity> allVacaciones = await _repository.getAll();
+      final List<core.VacacionesEntity> vacaciones = allVacaciones.where((core.VacacionesEntity v) {
         return v.fechaInicio.year == event.year || v.fechaFin.year == event.year;
       }).toList();
 
@@ -77,7 +86,7 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
     emit(const VacacionesLoading());
 
     try {
-      final List<VacacionesEntity> vacaciones =
+      final List<core.VacacionesEntity> vacaciones =
           await _repository.getByPersonalId(event.idPersonal!);
       debugPrint('🏖️ VacacionesBloc: ✅ ${vacaciones.length} vacaciones del personal');
       emit(VacacionesLoaded(vacaciones: vacaciones));
@@ -95,13 +104,18 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
     debugPrint('🏖️ VacacionesBloc: Creando nueva vacación...');
 
     try {
-      final VacacionesEntity createdVacacion = await _repository.create(event.vacacion);
+      final core.VacacionesEntity createdVacacion = await _repository.create(event.vacacion);
       debugPrint('🏖️ VacacionesBloc: ✅ Vacación creada exitosamente');
+
+      // Si la vacación está pendiente, notificar a los jefes de personal
+      if (createdVacacion.estado == 'pendiente') {
+        await _notificarNuevaVacacion(createdVacacion);
+      }
 
       // Agregar la nueva vacación al estado actual sin recargar todo
       if (state is VacacionesLoaded) {
         final VacacionesLoaded currentState = state as VacacionesLoaded;
-        final List<VacacionesEntity> updatedVacaciones = <VacacionesEntity>[
+        final List<core.VacacionesEntity> updatedVacaciones = <core.VacacionesEntity>[
           ...currentState.vacaciones,
           createdVacacion,
         ];
@@ -121,6 +135,39 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
     }
   }
 
+  /// Notifica a los jefes de personal sobre una nueva solicitud de vacaciones
+  Future<void> _notificarNuevaVacacion(core.VacacionesEntity vacacion) async {
+    try {
+      // Obtener datos del personal
+      final PersonalEntity personal = await _personalRepository.getById(vacacion.idPersonal);
+
+      final String nombrePersonal = '${personal.nombre} ${personal.apellidos ?? ''}'.trim();
+      final String fechaInicioStr = '${vacacion.fechaInicio.day}/${vacacion.fechaInicio.month}/${vacacion.fechaInicio.year}';
+      final String fechaFinStr = '${vacacion.fechaFin.day}/${vacacion.fechaFin.month}/${vacacion.fechaFin.year}';
+
+      // Crear notificación para jefes de personal
+      await _notificacionesRepository.notificarJefesPersonal(
+        tipo: 'vacacion_solicitada',
+        titulo: 'Nueva Solicitud de Vacaciones',
+        mensaje: '$nombrePersonal ha solicitado ${vacacion.diasSolicitados} días de vacaciones ($fechaInicioStr - $fechaFinStr)',
+        entidadTipo: 'vacacion',
+        entidadId: vacacion.id,
+        metadata: <String, dynamic>{
+          'personal_id': vacacion.idPersonal,
+          'personal_nombre': nombrePersonal,
+          'fecha_inicio': vacacion.fechaInicio.toIso8601String(),
+          'fecha_fin': vacacion.fechaFin.toIso8601String(),
+          'dias': vacacion.diasSolicitados,
+        },
+      );
+
+      debugPrint('🏖️ VacacionesBloc: ✅ Notificación enviada a jefes de personal');
+    } catch (e) {
+      debugPrint('🏖️ VacacionesBloc: ❌ Error al enviar notificación: $e');
+      // No fallar el flujo principal si falla la notificación
+    }
+  }
+
   /// Maneja la actualización de una vacación
   Future<void> _onUpdateRequested(
     VacacionesUpdateRequested event,
@@ -135,7 +182,7 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
       // Actualizar solo la vacación en el estado actual sin recargar todo
       if (state is VacacionesLoaded) {
         final VacacionesLoaded currentState = state as VacacionesLoaded;
-        final List<VacacionesEntity> updatedVacaciones = currentState.vacaciones.map((VacacionesEntity v) {
+        final List<core.VacacionesEntity> updatedVacaciones = currentState.vacaciones.map((core.VacacionesEntity v) {
           return v.id == event.vacacion.id ? event.vacacion : v;
         }).toList();
 
@@ -168,8 +215,8 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
       // Eliminar la vacación del estado actual sin recargar todo
       if (state is VacacionesLoaded) {
         final VacacionesLoaded currentState = state as VacacionesLoaded;
-        final List<VacacionesEntity> updatedVacaciones = currentState.vacaciones
-            .where((VacacionesEntity v) => v.id != event.id)
+        final List<core.VacacionesEntity> updatedVacaciones = currentState.vacaciones
+            .where((core.VacacionesEntity v) => v.id != event.id)
             .toList();
 
         debugPrint('🏖️ VacacionesBloc: Eliminando vacación del estado sin recargar desde BD');
@@ -202,7 +249,7 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
     debugPrint('✂️ Rango a eliminar: ${event.fechaInicioEliminar} - ${event.fechaFinEliminar}');
 
     try {
-      final VacacionesEntity vacacion = event.vacacion;
+      final core.VacacionesEntity vacacion = event.vacacion;
       final DateTime inicioEliminar = _normalizeDate(event.fechaInicioEliminar);
       final DateTime finEliminar = _normalizeDate(event.fechaFinEliminar);
       final DateTime inicioOriginal = _normalizeDate(vacacion.fechaInicio);
@@ -223,7 +270,7 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
         final DateTime nuevaFechaInicio = finEliminar.add(const Duration(days: 1));
         final int nuevosDias = finOriginal.difference(nuevaFechaInicio).inDays + 1;
 
-        final VacacionesEntity vacacionActualizada = vacacion.copyWith(
+        final core.VacacionesEntity vacacionActualizada = vacacion.copyWith(
           fechaInicio: nuevaFechaInicio,
           diasSolicitados: nuevosDias,
           updatedAt: DateTime.now(),
@@ -241,7 +288,7 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
         final DateTime nuevaFechaFin = inicioEliminar.subtract(const Duration(days: 1));
         final int nuevosDias = nuevaFechaFin.difference(inicioOriginal).inDays + 1;
 
-        final VacacionesEntity vacacionActualizada = vacacion.copyWith(
+        final core.VacacionesEntity vacacionActualizada = vacacion.copyWith(
           fechaFin: nuevaFechaFin,
           diasSolicitados: nuevosDias,
           updatedAt: DateTime.now(),
@@ -261,7 +308,7 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
         final DateTime nuevaFechaFin1 = inicioEliminar.subtract(const Duration(days: 1));
         final int nuevosDias1 = nuevaFechaFin1.difference(inicioOriginal).inDays + 1;
 
-        final VacacionesEntity vacacionActualizada = vacacion.copyWith(
+        final core.VacacionesEntity vacacionActualizada = vacacion.copyWith(
           fechaFin: nuevaFechaFin1,
           diasSolicitados: nuevosDias1,
           updatedAt: DateTime.now(),
@@ -271,7 +318,7 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
         final DateTime nuevaFechaInicio2 = finEliminar.add(const Duration(days: 1));
         final int nuevosDias2 = finOriginal.difference(nuevaFechaInicio2).inDays + 1;
 
-        final VacacionesEntity nuevaVacacion = VacacionesEntity(
+        final core.VacacionesEntity nuevaVacacion = core.VacacionesEntity(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           idPersonal: vacacion.idPersonal,
           fechaInicio: nuevaFechaInicio2,
@@ -294,8 +341,8 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
         // Actualizar estado con ambas vacaciones
         if (state is VacacionesLoaded) {
           final VacacionesLoaded currentState = state as VacacionesLoaded;
-          final List<VacacionesEntity> updatedVacaciones =
-              currentState.vacaciones.map((VacacionesEntity v) {
+          final List<core.VacacionesEntity> updatedVacaciones =
+              currentState.vacaciones.map((core.VacacionesEntity v) {
             return v.id == vacacion.id ? vacacionActualizada : v;
           }).toList()
                 ..add(nuevaVacacion);
@@ -327,13 +374,13 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
 
   /// Actualiza el estado de forma optimista con una vacación actualizada
   void _actualizarEstadoOptimista(
-    VacacionesEntity vacacionActualizada,
+    core.VacacionesEntity vacacionActualizada,
     Emitter<VacacionesState> emit,
   ) {
     if (state is VacacionesLoaded) {
       final VacacionesLoaded currentState = state as VacacionesLoaded;
-      final List<VacacionesEntity> updatedVacaciones =
-          currentState.vacaciones.map((VacacionesEntity v) {
+      final List<core.VacacionesEntity> updatedVacaciones =
+          currentState.vacaciones.map((core.VacacionesEntity v) {
         return v.id == vacacionActualizada.id ? vacacionActualizada : v;
       }).toList();
 

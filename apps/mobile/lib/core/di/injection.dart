@@ -34,6 +34,10 @@ import '../../features/ambulancias/presentation/bloc/revisiones_bloc.dart';
 import '../../features/vehiculo/data/repositories/stock_repository_impl.dart';
 import '../../features/vehiculo/domain/repositories/stock_repository.dart';
 import '../../features/vehiculo/presentation/bloc/caducidades/caducidades_bloc.dart';
+import '../../features/notificaciones/data/repositories/notificaciones_repository_impl.dart';
+import '../../features/notificaciones/domain/repositories/notificaciones_repository.dart';
+import '../../features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
+import '../../features/notificaciones/services/local_notifications_service.dart';
 
 /// Localizador de servicios global usando GetIt
 final GetIt getIt = GetIt.instance;
@@ -113,13 +117,19 @@ Future<void> configureDependencies() async {
 
   // BLoCs (Factory para crear nueva instancia en cada página)
   getIt.registerFactory<VacacionesBloc>(
-    () => VacacionesBloc(getIt<VacacionesRepository>()),
+    () => VacacionesBloc(
+      getIt<VacacionesRepository>(),
+      getIt<NotificacionesRepository>(),
+      getIt<AuthBloc>(),
+    ),
   );
 
   getIt.registerFactory<AusenciasBloc>(
     () => AusenciasBloc(
       getIt<AusenciasRepository>(),
       getIt<TiposAusenciaRepository>(),
+      getIt<NotificacionesRepository>(),
+      getIt<AuthBloc>(),
     ),
   );
 
@@ -192,5 +202,25 @@ Future<void> configureDependencies() async {
   // BLoC (Factory para crear nueva instancia en cada página)
   getIt.registerFactory<CaducidadesBloc>(
     () => CaducidadesBloc(stockRepository: getIt<StockRepository>()),
+  );
+
+  // ===== NOTIFICACIONES =====
+
+  // Servicio de notificaciones locales (Singleton)
+  getIt.registerLazySingleton<LocalNotificationsService>(
+    () => LocalNotificationsService(),
+  );
+
+  // Repository
+  getIt.registerLazySingleton<NotificacionesRepository>(
+    () => NotificacionesRepositoryImpl(authBloc: getIt<AuthBloc>()),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<NotificacionesBloc>(
+    () => NotificacionesBloc(
+      repository: getIt<NotificacionesRepository>(),
+      localNotificationsService: getIt<LocalNotificationsService>(),
+    ),
   );
 }

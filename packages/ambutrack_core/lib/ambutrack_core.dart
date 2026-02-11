@@ -339,6 +339,13 @@ export 'src/datasources/ambulancias_revisiones/models/ambulancia_supabase_model.
 export 'src/datasources/ambulancias_revisiones/models/revision_supabase_model.dart';
 export 'src/datasources/ambulancias_revisiones/models/item_revision_supabase_model.dart';
 
+// ✅ NOTIFICACIONES - Sistema de notificaciones en tiempo real
+export 'src/datasources/notificaciones/entities/notificacion_entity.dart';
+export 'src/datasources/notificaciones/notificaciones_contract.dart';
+export 'src/datasources/notificaciones/notificaciones_factory.dart' show NotificacionesDataSourceFactory;
+export 'src/datasources/notificaciones/implementations/supabase/supabase_notificaciones_datasource.dart';
+export 'src/datasources/notificaciones/models/notificacion_supabase_model.dart';
+
 // Utils - Utilidades públicas
 export 'src/utils/exceptions/datasource_exception.dart';
 export 'src/utils/typedefs/datasource_typedefs.dart';

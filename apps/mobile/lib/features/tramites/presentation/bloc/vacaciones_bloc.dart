@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../notificaciones/domain/repositories/notificaciones_repository.dart';
 import '../../domain/repositories/vacaciones_repository.dart';
 import 'vacaciones_event.dart';
 import 'vacaciones_state.dart';
@@ -12,7 +15,11 @@ import 'vacaciones_state.dart';
 /// BLoC para gestionar el estado de las vacaciones.
 @injectable
 class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
-  VacacionesBloc(this._repository) : super(const VacacionesInitial()) {
+  VacacionesBloc(
+    this._repository,
+    this._notificacionesRepository,
+    this._authBloc,
+  ) : super(const VacacionesInitial()) {
     on<VacacionesLoadRequested>(_onLoadRequested);
     on<VacacionesLoadByPersonalRequested>(_onLoadByPersonalRequested);
     on<VacacionesCreateRequested>(_onCreateRequested);
@@ -23,6 +30,8 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
   }
 
   final VacacionesRepository _repository;
+  final NotificacionesRepository _notificacionesRepository;
+  final AuthBloc _authBloc;
   StreamSubscription<List<VacacionesEntity>>? _watchSubscription;
 
   Future<void> _onLoadRequested(
@@ -75,6 +84,12 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
     try {
       final created = await _repository.create(event.vacacion);
       debugPrint('🏖️ VacacionesBloc: ✅ Vacación creada: ${created.id}');
+
+      // Notificar a jefes de personal si está pendiente
+      if (created.estado == 'pendiente') {
+        await _notificarNuevaVacacion(created);
+      }
+
       emit(VacacionCreated(created));
 
       // Recargar lista después de crear
@@ -82,6 +97,44 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
     } catch (e) {
       debugPrint('🏖️ VacacionesBloc: ❌ Error al crear: $e');
       emit(VacacionesError(e.toString()));
+    }
+  }
+
+  /// Notifica a los jefes de personal sobre una nueva solicitud de vacaciones
+  Future<void> _notificarNuevaVacacion(VacacionesEntity vacacion) async {
+    try {
+      // Obtener datos del usuario autenticado
+      final authState = _authBloc.state;
+      if (authState is! AuthAuthenticated || authState.personal == null) {
+        debugPrint('🏖️ VacacionesBloc: ⚠️ No se puede notificar - usuario no autenticado');
+        return;
+      }
+
+      final personal = authState.personal!;
+      final nombrePersonal = '${personal.nombre} ${personal.apellidos}'.trim();
+      final fechaInicioStr = '${vacacion.fechaInicio.day}/${vacacion.fechaInicio.month}/${vacacion.fechaInicio.year}';
+      final fechaFinStr = '${vacacion.fechaFin.day}/${vacacion.fechaFin.month}/${vacacion.fechaFin.year}';
+
+      // Crear notificación para jefes de personal
+      await _notificacionesRepository.notificarJefesPersonal(
+        tipo: 'vacacion_solicitada',
+        titulo: 'Nueva Solicitud de Vacaciones',
+        mensaje: '$nombrePersonal ha solicitado ${vacacion.diasSolicitados} días de vacaciones ($fechaInicioStr - $fechaFinStr)',
+        entidadTipo: 'vacacion',
+        entidadId: vacacion.id,
+        metadata: {
+          'personal_id': vacacion.idPersonal,
+          'personal_nombre': nombrePersonal,
+          'fecha_inicio': vacacion.fechaInicio.toIso8601String(),
+          'fecha_fin': vacacion.fechaFin.toIso8601String(),
+          'dias': vacacion.diasSolicitados,
+        },
+      );
+
+      debugPrint('🏖️ VacacionesBloc: ✅ Notificación enviada a jefes de personal');
+    } catch (e) {
+      debugPrint('🏖️ VacacionesBloc: ❌ Error al enviar notificación: $e');
+      // No fallar el flujo principal si falla la notificación
     }
   }
 

@@ -95,26 +95,26 @@ class _HomeAndroidPageState extends State<HomeAndroidPage> {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
+      crossAxisCount: 2, // 2 columnas
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 1.1,
+      childAspectRatio: 1.0,
       children: [
-        // Botón de Turno - SIEMPRE activo
+        // 1. Turno - SIEMPRE activo
         _buildFunctionalityCard(
           context: context,
-          iconPath: 'assets/icons/turnos.png',
-          title: turnoActivo ? 'Turno Activo' : 'Entrar en Turno',
+          iconPath: 'lib/assets/images/reolj.png',
+          title: 'Turno',
           enabled: true,
           isActive: turnoActivo,
           onTap: () {
             context.push('/registro-horario');
           },
         ),
-        // Servicios - Requiere turno activo
+        // 2. Servicios - Requiere turno activo
         _buildFunctionalityCard(
           context: context,
-          iconPath: 'assets/icons/servicios.png',
+          iconPath: 'lib/assets/images/hospital.png',
           title: 'Servicios',
           enabled: turnoActivo,
           onTap: () {
@@ -123,10 +123,10 @@ class _HomeAndroidPageState extends State<HomeAndroidPage> {
             }
           },
         ),
-        // Trámites - Requiere turno activo
+        // 3. Trámites - Requiere turno activo
         _buildFunctionalityCard(
           context: context,
-          iconPath: 'assets/icons/documento.png',
+          iconPath: 'lib/assets/images/documento.png',
           title: 'Trámites',
           enabled: turnoActivo,
           onTap: () {
@@ -135,10 +135,10 @@ class _HomeAndroidPageState extends State<HomeAndroidPage> {
             }
           },
         ),
-        // Vehículo - Requiere turno activo
+        // 4. Vehículo - Requiere turno activo
         _buildFunctionalityCard(
           context: context,
-          iconPath: 'assets/icons/ambu.png',
+          iconPath: 'lib/assets/images/ambazul.png',
           title: 'Vehículo',
           enabled: turnoActivo,
           onTap: () {
@@ -147,27 +147,15 @@ class _HomeAndroidPageState extends State<HomeAndroidPage> {
             }
           },
         ),
-        // Vestuario - Requiere turno activo
+        // 5. Vestuario - Requiere turno activo
         _buildFunctionalityCard(
           context: context,
-          iconPath: 'assets/icons/vestuario.png',
+          iconPath: 'lib/assets/images/maletin.png',
           title: 'Vestuario',
           enabled: turnoActivo,
           onTap: () {
             if (turnoActivo) {
               context.push('/vestuario');
-            }
-          },
-        ),
-        // Ambulancias - Requiere turno activo
-        _buildFunctionalityCard(
-          context: context,
-          iconPath: 'assets/icons/ambulancia.png',
-          title: 'Ambulancias',
-          enabled: turnoActivo,
-          onTap: () {
-            if (turnoActivo) {
-              context.push('/ambulancias');
             }
           },
         ),

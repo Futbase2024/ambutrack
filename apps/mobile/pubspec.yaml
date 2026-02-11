@@ -45,6 +45,10 @@ dependencies:
   geolocator: ^13.0.2
   permission_handler: ^11.3.1
 
+  # ===== LOCAL NOTIFICATIONS (Mobile Only) =====
+  flutter_local_notifications: ^17.0.0
+  timezone: ^0.9.0
+
   # ===== UI =====
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
@@ -77,18 +81,18 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/
-    - assets/icons/
+    - lib/assets/images/
+    - lib/assets/icons/
 
 # ===== FLUTTER LAUNCHER ICONS CONFIGURATION =====
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/logo.png"
+  image_path: "lib/assets/images/logo.png"
   min_sdk_android: 21
   remove_alpha_ios: true
   background_color_ios: "#FFFFFF"
 
   # Android adaptive icon
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/images/logo.png"
+  adaptive_icon_foreground: "lib/assets/images/logo.png"
