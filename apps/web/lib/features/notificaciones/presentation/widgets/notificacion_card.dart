@@ -1,6 +1,8 @@
 import 'package:ambutrack_core/ambutrack_core.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Widget que muestra una notificación individual
 class NotificacionCard extends StatelessWidget {
@@ -9,11 +11,13 @@ class NotificacionCard extends StatelessWidget {
     required this.notificacion,
     this.onTap,
     this.onMarkAsRead,
+    this.onDelete,
   });
 
   final NotificacionEntity notificacion;
   final VoidCallback? onTap;
   final VoidCallback? onMarkAsRead;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -93,19 +97,96 @@ class NotificacionCard extends StatelessWidget {
               ),
             ),
 
-            // Botón de marcar como leída (si no está leída)
-            if (!isLeida && onMarkAsRead != null)
-              IconButton(
-                icon: const Icon(Icons.check_circle_outline, size: 20),
-                color: AppColors.success,
-                onPressed: onMarkAsRead,
-                tooltip: 'Marcar como leída',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
-                ),
+            // Menú de acciones
+            PopupMenuButton<String>(
+              icon: const Icon(
+                Icons.more_vert,
+                size: 20,
+                color: AppColors.gray600,
               ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: 32,
+                minHeight: 32,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+              ),
+              elevation: 8,
+              offset: const Offset(0, 8),
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                // Marcar como leída (solo si no está leída)
+                if (!isLeida) ...<PopupMenuEntry<String>>[
+                  PopupMenuItem<String>(
+                    value: 'mark_read',
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: <Widget>[
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(
+                            Icons.check_circle_outline,
+                            size: 16,
+                            color: AppColors.success,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Marcar como leída',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimaryLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(height: 1),
+                ],
+                // Eliminar
+                PopupMenuItem<String>(
+                  value: 'delete',
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: <Widget>[
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          size: 16,
+                          color: AppColors.error,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Eliminar',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textPrimaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              onSelected: (String value) {
+                if (value == 'mark_read' && onMarkAsRead != null) {
+                  onMarkAsRead!();
+                } else if (value == 'delete' && onDelete != null) {
+                  onDelete!();
+                }
+              },
+            ),
           ],
         ),
       ),

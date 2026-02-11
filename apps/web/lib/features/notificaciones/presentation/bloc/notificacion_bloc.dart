@@ -90,32 +90,86 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
   }
 
   void _onNotificacionesUpdated(List<NotificacionEntity> notificaciones, Emitter<NotificacionState> emit) {
+    debugPrint('🔔 NotificacionBloc: _onNotificacionesUpdated - emit.isDone: ${emit.isDone}, state: ${state.runtimeType}');
+
     if (!emit.isDone) {
-      state.whenOrNull(
+      state.when(
+        initial: () {
+          // Si aún no tenemos estado loaded, crear uno con conteo 0 temporal
+          debugPrint('🔔 NotificacionBloc: Estado inicial, creando loaded con ${notificaciones.length} notificaciones');
+          emit(NotificacionState.loaded(
+            notificaciones: notificaciones,
+            conteoNoLeidas: notificaciones.where((NotificacionEntity n) => !n.leida).length,
+          ));
+        },
+        loading: () {
+          // Si está cargando, crear estado loaded
+          debugPrint('🔔 NotificacionBloc: Estado loading, creando loaded con ${notificaciones.length} notificaciones');
+          emit(NotificacionState.loaded(
+            notificaciones: notificaciones,
+            conteoNoLeidas: notificaciones.where((NotificacionEntity n) => !n.leida).length,
+          ));
+        },
         loaded: (List<NotificacionEntity> currentNotificaciones, int conteoNoLeidas) {
-          if (!emit.isDone) {
-            emit(NotificacionState.loaded(
-              notificaciones: notificaciones,
-              conteoNoLeidas: conteoNoLeidas,
-            ));
-          }
+          debugPrint('🔔 NotificacionBloc: Emitiendo loaded con ${notificaciones.length} notificaciones y $conteoNoLeidas no leídas');
+          emit(NotificacionState.loaded(
+            notificaciones: notificaciones,
+            conteoNoLeidas: conteoNoLeidas,
+          ));
+        },
+        error: (String message) {
+          // Si hay error, crear estado loaded
+          debugPrint('🔔 NotificacionBloc: Estado error, creando loaded con ${notificaciones.length} notificaciones');
+          emit(NotificacionState.loaded(
+            notificaciones: notificaciones,
+            conteoNoLeidas: notificaciones.where((NotificacionEntity n) => !n.leida).length,
+          ));
         },
       );
+    } else {
+      debugPrint('⚠️ NotificacionBloc: No se emitió porque emit.isDone es true');
     }
   }
 
   void _onConteoUpdated(int conteo, Emitter<NotificacionState> emit) {
+    debugPrint('🔔 NotificacionBloc: _onConteoUpdated - emit.isDone: ${emit.isDone}, state: ${state.runtimeType}');
+
     if (!emit.isDone) {
-      state.whenOrNull(
+      state.when(
+        initial: () {
+          // Si aún no tenemos estado loaded, crear uno con lista vacía temporal
+          debugPrint('🔔 NotificacionBloc: Estado inicial, creando loaded con conteo $conteo');
+          emit(NotificacionState.loaded(
+            notificaciones: const <NotificacionEntity>[],
+            conteoNoLeidas: conteo,
+          ));
+        },
+        loading: () {
+          // Si está cargando, crear estado loaded
+          debugPrint('🔔 NotificacionBloc: Estado loading, creando loaded con conteo $conteo');
+          emit(NotificacionState.loaded(
+            notificaciones: const <NotificacionEntity>[],
+            conteoNoLeidas: conteo,
+          ));
+        },
         loaded: (List<NotificacionEntity> notificaciones, int currentConteo) {
-          if (!emit.isDone) {
-            emit(NotificacionState.loaded(
-              notificaciones: notificaciones,
-              conteoNoLeidas: conteo,
-            ));
-          }
+          debugPrint('🔔 NotificacionBloc: Emitiendo loaded con ${notificaciones.length} notificaciones y $conteo no leídas');
+          emit(NotificacionState.loaded(
+            notificaciones: notificaciones,
+            conteoNoLeidas: conteo,
+          ));
+        },
+        error: (String message) {
+          // Si hay error, crear estado loaded
+          debugPrint('🔔 NotificacionBloc: Estado error, creando loaded con conteo $conteo');
+          emit(NotificacionState.loaded(
+            notificaciones: const <NotificacionEntity>[],
+            conteoNoLeidas: conteo,
+          ));
         },
       );
+    } else {
+      debugPrint('⚠️ NotificacionBloc: No se emitió porque emit.isDone es true');
     }
   }
 
@@ -123,10 +177,24 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
     debugPrint('🔔 NotificacionBloc: Marcando notificación $id como leída');
     try {
       await _repository.marcarComoLeida(id);
+      debugPrint('✅ NotificacionBloc: Notificación marcada como leída correctamente');
     } catch (e) {
-      debugPrint('🔔 NotificacionBloc: Error al marcar como leída: $e');
+      debugPrint('❌ NotificacionBloc: Error al marcar como leída: $e');
+
+      // Extraer mensaje de error más específico
+      String errorMessage = e.toString();
+      if (e is DataSourceException) {
+        if (e.code == 'UNAUTHENTICATED') {
+          errorMessage = 'Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.';
+        } else if (e.code == 'RLS_BLOCKED') {
+          errorMessage = 'No tienes permisos para modificar esta notificación.';
+        } else {
+          errorMessage = e.message;
+        }
+      }
+
       if (!emit.isDone) {
-        emit(NotificacionState.error(e.toString()));
+        emit(NotificacionState.error(errorMessage));
       }
     }
   }
@@ -135,10 +203,22 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
     debugPrint('🔔 NotificacionBloc: Marcando todas como leídas para usuario $usuarioId');
     try {
       await _repository.marcarTodasComoLeidas(usuarioId);
+      debugPrint('✅ NotificacionBloc: Todas las notificaciones marcadas como leídas correctamente');
     } catch (e) {
-      debugPrint('🔔 NotificacionBloc: Error al marcar todas como leídas: $e');
+      debugPrint('❌ NotificacionBloc: Error al marcar todas como leídas: $e');
+
+      // Extraer mensaje de error más específico
+      String errorMessage = e.toString();
+      if (e is DataSourceException) {
+        if (e.code == 'UNAUTHENTICATED') {
+          errorMessage = 'Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.';
+        } else {
+          errorMessage = e.message;
+        }
+      }
+
       if (!emit.isDone) {
-        emit(NotificacionState.error(e.toString()));
+        emit(NotificacionState.error(errorMessage));
       }
     }
   }
@@ -147,10 +227,24 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
     debugPrint('🔔 NotificacionBloc: Eliminando notificación $id');
     try {
       await _repository.delete(id);
+      debugPrint('✅ NotificacionBloc: Notificación eliminada correctamente');
     } catch (e) {
-      debugPrint('🔔 NotificacionBloc: Error al eliminar notificación: $e');
+      debugPrint('❌ NotificacionBloc: Error al eliminar notificación: $e');
+
+      // Extraer mensaje de error más específico si es un DataSourceException
+      String errorMessage = e.toString();
+      if (e is DataSourceException) {
+        if (e.code == 'UNAUTHENTICATED') {
+          errorMessage = 'Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.';
+        } else if (e.code == 'RLS_BLOCKED') {
+          errorMessage = 'No tienes permisos para eliminar esta notificación.';
+        } else {
+          errorMessage = e.message;
+        }
+      }
+
       if (!emit.isDone) {
-        emit(NotificacionState.error(e.toString()));
+        emit(NotificacionState.error(errorMessage));
       }
     }
   }

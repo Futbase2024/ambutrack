@@ -95,11 +95,35 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
   @override
   Future<void> marcarComoLeida(String id) async {
     try {
-      await _client
+      // Verificar autenticación
+      final currentUser = _client.auth.currentUser;
+      if (currentUser == null) {
+        throw DataSourceException(
+          message: 'Usuario no autenticado',
+          code: 'UNAUTHENTICATED',
+        );
+      }
+
+      _log('✏️ marcarComoLeida - Notificación ID: $id');
+      _log('✏️ marcarComoLeida - Usuario autenticado: ${currentUser.id}');
+
+      final response = await _client
           .from(_tableName)
           .update({'leida': true, 'fecha_lectura': DateTime.now().toIso8601String()})
-          .eq('id', id);
+          .eq('id', id)
+          .select();
+
+      if (response.isEmpty) {
+        _log('⚠️ marcarComoLeida - No se actualizó ninguna fila');
+        throw DataSourceException(
+          message: 'No se pudo marcar la notificación como leída. Es posible que no tengas permisos o que la notificación no exista.',
+          code: 'RLS_BLOCKED',
+        );
+      }
+
+      _log('✅ marcarComoLeida - Marcada correctamente');
     } catch (e) {
+      if (e is DataSourceException) rethrow;
       throw DataSourceException(
         message: 'Error al marcar notificación como leída: $e',
         code: 'UPDATE_ERROR',
@@ -110,12 +134,34 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
   @override
   Future<void> marcarTodasComoLeidas(String usuarioId) async {
     try {
-      await _client
+      // Verificar autenticación
+      final currentUser = _client.auth.currentUser;
+      if (currentUser == null) {
+        throw DataSourceException(
+          message: 'Usuario no autenticado',
+          code: 'UNAUTHENTICATED',
+        );
+      }
+
+      _log('✏️ marcarTodasComoLeidas - Usuario ID: $usuarioId');
+      _log('✏️ marcarTodasComoLeidas - Usuario autenticado: ${currentUser.id}');
+
+      final response = await _client
           .from(_tableName)
           .update({'leida': true, 'fecha_lectura': DateTime.now().toIso8601String()})
           .eq('usuario_destino_id', usuarioId)
-          .eq('leida', false);
+          .eq('leida', false)
+          .select();
+
+      _log('✏️ marcarTodasComoLeidas - ${response.length} notificaciones marcadas como leídas');
+
+      if (response.isEmpty) {
+        _log('ℹ️ marcarTodasComoLeidas - No hay notificaciones para marcar');
+      } else {
+        _log('✅ marcarTodasComoLeidas - Marcadas correctamente');
+      }
     } catch (e) {
+      if (e is DataSourceException) rethrow;
       throw DataSourceException(
         message: 'Error al marcar todas como leídas: $e',
         code: 'UPDATE_ERROR',
@@ -148,7 +194,18 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
   @override
   Future<void> delete(String id) async {
     try {
+      // Verificar autenticación
+      final currentUser = _client.auth.currentUser;
+      if (currentUser == null) {
+        _log('❌ delete - Usuario no autenticado');
+        throw DataSourceException(
+          message: 'Usuario no autenticado',
+          code: 'UNAUTHENTICATED',
+        );
+      }
+
       _log('🗑️ delete - Eliminando notificación ID: $id');
+      _log('🗑️ delete - Usuario autenticado: ${currentUser.id}');
       _log('🗑️ delete - Tabla: $_tableName');
 
       final response = await _client
@@ -158,14 +215,18 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
           .select();
 
       _log('🗑️ delete - Respuesta: ${response.length} filas afectadas');
-      _log('🗑️ delete - Datos: $response');
 
       if (response.isEmpty) {
-        _log('⚠️ delete - ADVERTENCIA: No se eliminó ninguna fila (puede ser problema de RLS)');
-      } else {
-        _log('✅ delete - Eliminada correctamente');
+        _log('⚠️ delete - No se eliminó ninguna fila. Posible problema de permisos RLS.');
+        throw DataSourceException(
+          message: 'No se pudo eliminar la notificación. Es posible que no tengas permisos o que la notificación no exista.',
+          code: 'RLS_BLOCKED',
+        );
       }
+
+      _log('✅ delete - Eliminada correctamente');
     } catch (e, stackTrace) {
+      if (e is DataSourceException) rethrow;
       _log('❌ delete - Error: $e');
       _log('❌ delete - StackTrace: $stackTrace');
       throw DataSourceException(
@@ -178,8 +239,19 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
   @override
   Future<void> deleteAll(String usuarioId) async {
     try {
+      // Verificar autenticación
+      final currentUser = _client.auth.currentUser;
+      if (currentUser == null) {
+        _log('❌ deleteAll - Usuario no autenticado');
+        throw DataSourceException(
+          message: 'Usuario no autenticado',
+          code: 'UNAUTHENTICATED',
+        );
+      }
+
       _log('🗑️ deleteAll - Eliminando todas las notificaciones');
       _log('🗑️ deleteAll - Usuario ID: $usuarioId');
+      _log('🗑️ deleteAll - Usuario autenticado: ${currentUser.id}');
       _log('🗑️ deleteAll - Tabla: $_tableName');
 
       final response = await _client
@@ -191,11 +263,12 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
       _log('🗑️ deleteAll - Respuesta: ${response.length} filas afectadas');
 
       if (response.isEmpty) {
-        _log('⚠️ deleteAll - ADVERTENCIA: No se eliminó ninguna fila (puede ser problema de RLS)');
+        _log('ℹ️ deleteAll - No hay notificaciones para eliminar');
       } else {
         _log('✅ deleteAll - ${response.length} notificaciones eliminadas');
       }
     } catch (e, stackTrace) {
+      if (e is DataSourceException) rethrow;
       _log('❌ deleteAll - Error: $e');
       _log('❌ deleteAll - StackTrace: $stackTrace');
       throw DataSourceException(
@@ -208,7 +281,18 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
   @override
   Future<void> deleteMultiple(List<String> ids) async {
     try {
+      // Verificar autenticación
+      final currentUser = _client.auth.currentUser;
+      if (currentUser == null) {
+        _log('❌ deleteMultiple - Usuario no autenticado');
+        throw DataSourceException(
+          message: 'Usuario no autenticado',
+          code: 'UNAUTHENTICATED',
+        );
+      }
+
       _log('🗑️ deleteMultiple - Eliminando ${ids.length} notificaciones');
+      _log('🗑️ deleteMultiple - Usuario autenticado: ${currentUser.id}');
       _log('🗑️ deleteMultiple - IDs: $ids');
       _log('🗑️ deleteMultiple - Tabla: $_tableName');
 
@@ -218,14 +302,21 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
           .inFilter('id', ids)
           .select();
 
-      _log('🗑️ deleteMultiple - Respuesta: ${response.length} filas afectadas');
+      _log('🗑️ deleteMultiple - Respuesta: ${response.length} filas afectadas de ${ids.length} solicitadas');
 
       if (response.isEmpty) {
-        _log('⚠️ deleteMultiple - ADVERTENCIA: No se eliminó ninguna fila (puede ser problema de RLS)');
-      } else {
-        _log('✅ deleteMultiple - ${response.length} notificaciones eliminadas');
+        _log('⚠️ deleteMultiple - No se eliminó ninguna fila');
+        throw DataSourceException(
+          message: 'No se pudieron eliminar las notificaciones. Es posible que no tengas permisos o que no existan.',
+          code: 'RLS_BLOCKED',
+        );
+      } else if (response.length < ids.length) {
+        _log('⚠️ deleteMultiple - Solo se eliminaron ${response.length} de ${ids.length} notificaciones');
       }
+
+      _log('✅ deleteMultiple - ${response.length} notificaciones eliminadas');
     } catch (e, stackTrace) {
+      if (e is DataSourceException) rethrow;
       _log('❌ deleteMultiple - Error: $e');
       _log('❌ deleteMultiple - StackTrace: $stackTrace');
       throw DataSourceException(

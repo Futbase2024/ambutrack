@@ -1,3 +1,4 @@
+import 'package:ambutrack_core/ambutrack_core.dart';
 import 'package:ambutrack_web/app/flavors.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
@@ -219,12 +220,12 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
               int conteoNoLeidas = 0;
 
               // Obtener conteo de notificaciones no leídas
-              state.maybeMap(
-                orElse: () {},
-                loaded: (value) {
-                  conteoNoLeidas = value.conteoNoLeidas;
+              state.whenOrNull(
+                loaded: (List<NotificacionEntity> notificaciones, int conteo) {
+                  conteoNoLeidas = conteo;
+                  debugPrint('🔔 Badge: Actualizando badge con $conteoNoLeidas no leídas');
                 },
-              );
+              ) ?? debugPrint('🔔 Badge: Estado no es loaded, es ${state.runtimeType}');
 
               return Material(
               color: Colors.transparent,
@@ -303,9 +304,12 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
     final Offset offset = button.localToGlobal(Offset.zero);
     final Size size = button.size;
 
+    // Capturar el bloc antes de showDialog para pasarlo al nuevo contexto
+    final NotificacionBloc notificacionBloc = context.read<NotificacionBloc>();
+
     showDialog<void>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return Dialog(
           backgroundColor: Colors.transparent,
           child: Stack(
@@ -330,7 +334,11 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                         ),
                       ],
                     ),
-                    child: const NotificacionesPanel(),
+                    // Proporcionar el bloc al diálogo usando BlocProvider.value
+                    child: BlocProvider<NotificacionBloc>.value(
+                      value: notificacionBloc,
+                      child: const NotificacionesPanel(),
+                    ),
                   ),
                 ),
               ),

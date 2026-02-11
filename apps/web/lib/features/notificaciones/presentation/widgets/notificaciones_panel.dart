@@ -1,5 +1,6 @@
-import 'package:ambutrack_core/src/datasources/notificaciones/entities/notificacion_entity.dart';
+import 'package:ambutrack_core/ambutrack_core.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
 import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_bloc.dart';
@@ -8,6 +9,7 @@ import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notifica
 import 'package:ambutrack_web/features/notificaciones/presentation/widgets/notificacion_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 /// Panel de notificaciones que se muestra al hacer clic en el icono de campana
 class NotificacionesPanel extends StatelessWidget {
@@ -35,13 +37,194 @@ class NotificacionesPanel extends StatelessWidget {
 class _NotificacionesContent extends StatelessWidget {
   const _NotificacionesContent();
 
+  /// Navega al detalle correspondiente según el tipo de notificación
+  void _navegarADetalle(BuildContext context, NotificacionEntity notificacion) {
+    // Cerrar el panel de notificaciones
+    Navigator.of(context).pop();
+
+    // Marcar como leída automáticamente al hacer clic
+    if (!notificacion.leida) {
+      context.read<NotificacionBloc>().add(
+        NotificacionEvent.marcarComoLeida(notificacion.id),
+      );
+    }
+
+    // Navegar según el tipo de notificación y el ID de entidad
+    if (notificacion.entidadId != null) {
+      switch (notificacion.tipo) {
+        case NotificacionTipo.vacacionSolicitada:
+        case NotificacionTipo.vacacionAprobada:
+        case NotificacionTipo.vacacionRechazada:
+          // Navegar a vacaciones
+          context.go('/vacaciones');
+          break;
+        case NotificacionTipo.ausenciaSolicitada:
+        case NotificacionTipo.ausenciaAprobada:
+        case NotificacionTipo.ausenciaRechazada:
+          // Navegar a ausencias
+          context.go('/ausencias');
+          break;
+        case NotificacionTipo.cambioTurno:
+          // Navegar a tráfico diario
+          context.go('/trafico-diario');
+          break;
+        default:
+          // Para otros tipos, quedarse en la página actual
+          break;
+      }
+    }
+  }
+
+  /// Elimina una notificación después de confirmar
+  Future<void> _eliminarNotificacion(BuildContext context, String notificacionId) async {
+    // Capturar el bloc antes del showDialog
+    final NotificacionBloc notificacionBloc = context.read<NotificacionBloc>();
+
+    // Mostrar diálogo de confirmación profesional
+    final bool? confirmed = await showSimpleConfirmationDialog(
+      context: context,
+      title: 'Eliminar notificación',
+      message: '¿Estás seguro de que deseas eliminar esta notificación?\n\nEsta acción no se puede deshacer.',
+      confirmText: 'Eliminar',
+      icon: Icons.delete_outline,
+    );
+
+    // Si el usuario confirmó, eliminar la notificación
+    if (confirmed == true && context.mounted) {
+      notificacionBloc.add(
+        NotificacionEvent.eliminarNotificacion(notificacionId),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<NotificacionBloc, NotificacionState>(
+    return BlocConsumer<NotificacionBloc, NotificacionState>(
+      listener: (BuildContext context, NotificacionState state) {
+        // Mostrar diálogos de error cuando ocurren problemas RLS
+        state.whenOrNull(
+          error: (String message) {
+            // Determinar el tipo de error basado en el mensaje
+            final IconData icon;
+            final Color iconColor;
+            final String title;
+
+            if (message.contains('sesión ha expirado') || message.contains('autenticado')) {
+              icon = Icons.lock_outline;
+              iconColor = AppColors.error;
+              title = 'Sesión expirada';
+            } else if (message.contains('permisos')) {
+              icon = Icons.shield_outlined;
+              iconColor = AppColors.error;
+              title = 'Sin permisos';
+            } else {
+              icon = Icons.error_outline;
+              iconColor = AppColors.error;
+              title = 'Error';
+            }
+
+            // Mostrar diálogo profesional
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                showDialog<void>(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (BuildContext dialogContext) {
+                    return Dialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.white,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: iconColor.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                icon,
+                                size: 48,
+                                color: iconColor,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.gray900,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              message,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                color: AppColors.gray700,
+                                height: 1.4,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(dialogContext).pop();
+                                  // Recargar notificaciones después de cerrar el error
+                                  if (context.mounted) {
+                                    final AuthState authState = context.read<AuthBloc>().state;
+                                    if (authState is AuthAuthenticated) {
+                                      context.read<NotificacionBloc>().add(
+                                        NotificacionEvent.subscribeNotificaciones(authState.user.uid),
+                                      );
+                                    }
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: iconColor,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Entendido',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }
+            });
+          },
+        );
+      },
       builder: (BuildContext context, NotificacionState state) {
         return state.map(
           initial: (_) => const Center(child: CircularProgressIndicator()),
           loading: (_) => const Center(child: CircularProgressIndicator()),
+          // ignore: always_specify_types
           loaded: (loadedState) {
             final List<NotificacionEntity> notificaciones = loadedState.notificaciones;
             final int conteoNoLeidas = loadedState.conteoNoLeidas;
@@ -71,11 +254,13 @@ class _NotificacionesContent extends StatelessWidget {
                       final NotificacionEntity notificacion = notificaciones[index];
                       return NotificacionCard(
                         notificacion: notificacion,
+                        onTap: () => _navegarADetalle(context, notificacion),
                         onMarkAsRead: !notificacion.leida
                             ? () => context.read<NotificacionBloc>().add(
                                   NotificacionEvent.marcarComoLeida(notificacion.id),
                                 )
                             : null,
+                        onDelete: () => _eliminarNotificacion(context, notificacion.id),
                       );
                     },
                   ),
@@ -86,7 +271,12 @@ class _NotificacionesContent extends StatelessWidget {
               ],
             );
           },
-          error: (errorState) => _NotificacionesErrorState(message: errorState.message),
+          // ignore: always_specify_types
+          error: (errorState) {
+            // Mantener la vista anterior en caso de error
+            // El diálogo ya se mostró en el listener
+            return const Center(child: CircularProgressIndicator());
+          },
         );
       },
     );
@@ -157,7 +347,9 @@ class _MarkAllButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (BuildContext context, AuthState authState) {
-        if (authState is! AuthAuthenticated) return const SizedBox.shrink();
+        if (authState is! AuthAuthenticated) {
+          return const SizedBox.shrink();
+        }
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -177,6 +369,7 @@ class _MarkAllButton extends StatelessWidget {
             style: FilledButton.styleFrom(
               minimumSize: const Size(double.infinity, 40),
               backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.backgroundLight,
             ),
             child: Text('Marcar $conteoNoLeidas como leídas'),
           ),
@@ -233,43 +426,3 @@ class _NotificacionesEmptyState extends StatelessWidget {
   }
 }
 
-class _NotificacionesErrorState extends StatelessWidget {
-  const _NotificacionesErrorState({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const Icon(
-            Icons.error_outline,
-            size: 48,
-            color: AppColors.error,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Error al cargar notificaciones',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.gray700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.gray500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}

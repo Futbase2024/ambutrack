@@ -255,6 +255,62 @@ CrudOperationHandler.handleSuccess(context: context, isSaving: _isSaving, isEdit
 CrudOperationHandler.handleError(context: context, isSaving: _isSaving, isEditing: _isEditing, entityName: 'Vehículo', errorMessage: state.message, onClose: () => setState(() => _isSaving = false));
 ```
 
+### Diálogos de Confirmación (OBLIGATORIO)
+
+**REGLA**: SIEMPRE usar `showSimpleConfirmationDialog` para acciones destructivas o confirmaciones.
+
+#### Para confirmaciones simples (eliminar notificación, marcar, etc.)
+```dart
+import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
+
+final bool? confirmed = await showSimpleConfirmationDialog(
+  context: context,
+  title: 'Eliminar notificación',
+  message: '¿Estás seguro de que deseas eliminar esta notificación?\n\nEsta acción no se puede deshacer.',
+  confirmText: 'Eliminar',
+  icon: Icons.delete_outline,
+  // iconColor: AppColors.error (por defecto)
+  // cancelText: 'Cancelar' (por defecto)
+  // confirmButtonColor: AppColors.error (por defecto)
+);
+
+if (confirmed == true) {
+  // Realizar acción
+}
+```
+
+#### Para confirmaciones críticas (eliminar vehículo, usuario, etc.)
+```dart
+import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
+
+final bool? confirmed = await showConfirmationDialog(
+  context: context,
+  title: 'Confirmar Eliminación',
+  message: 'Esta acción es permanente y no se puede deshacer.',
+  confirmText: 'Eliminar',
+  itemDetails: {
+    'Matrícula': vehiculo.matricula,
+    'Marca': vehiculo.marca,
+    'Modelo': vehiculo.modelo,
+  },
+  warningMessage: 'Se eliminarán también todos los registros asociados.',
+  icon: Icons.delete_forever,
+  iconColor: AppColors.error,
+  confirmButtonColor: AppColors.error,
+);
+
+if (confirmed == true) {
+  // Realizar acción (con doble confirmación automática)
+}
+```
+
+**❌ NO USAR**:
+- AlertDialog genérico
+- SnackBar para acciones destructivas
+- Diálogos sin estilos consistentes
+
+**📍 Ubicación**: `lib/core/widgets/dialogs/confirmation_dialog.dart`
+
 ### Loading Overlays
 | Operación | Mensaje | Color | Icono |
 |-----------|---------|-------|-------|
