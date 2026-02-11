@@ -20,7 +20,7 @@ class NotificacionSupabaseModel with _$NotificacionSupabaseModel {
     @JsonKey(name: 'entidad_id') String? entidadId,
     required bool leida,
     @JsonKey(name: 'fecha_lectura') DateTime? fechaLectura,
-    required Map<String, dynamic> metadata,
+    @Default({}) Map<String, dynamic> metadata,  // ✅ Default vacío en lugar de required
     @JsonKey(name: 'created_at') required DateTime createdAt,
     @JsonKey(name: 'updated_at') DateTime? updatedAt,
   }) = _NotificacionSupabaseModel;

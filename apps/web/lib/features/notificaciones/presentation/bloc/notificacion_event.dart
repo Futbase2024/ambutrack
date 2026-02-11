@@ -19,4 +19,6 @@ class NotificacionEvent with _$NotificacionEvent {
   const factory NotificacionEvent.marcarTodasComoLeidas(String usuarioId) = _MarcarTodasComoLeidas;
 
   const factory NotificacionEvent.eliminarNotificacion(String id) = _EliminarNotificacion;
+
+  const factory NotificacionEvent.errorOccurred(String message) = _ErrorOccurred;
 }

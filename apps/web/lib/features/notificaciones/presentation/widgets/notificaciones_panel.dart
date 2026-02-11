@@ -25,13 +25,8 @@ class NotificacionesPanel extends StatelessWidget {
           );
         }
 
-        final String userId = authState.user.uid;
-
-        return BlocProvider(
-          create: (BuildContext context) => NotificacionBloc(context.read())
-            ..add(NotificacionEvent.subscribeNotificaciones(userId)),
-          child: const _NotificacionesContent(),
-        );
+        // Usar el NotificacionBloc provisto por MainLayout
+        return const _NotificacionesContent();
       },
     );
   }

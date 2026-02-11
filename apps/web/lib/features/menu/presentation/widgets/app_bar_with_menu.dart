@@ -1,12 +1,10 @@
 import 'package:ambutrack_web/app/flavors.dart';
-import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_event.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
 import 'package:ambutrack_web/features/menu/presentation/widgets/app_menu.dart';
 import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_bloc.dart';
-import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_event.dart';
 import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_state.dart';
 import 'package:ambutrack_web/features/notificaciones/presentation/widgets/notificaciones_panel.dart';
 import 'package:flutter/material.dart';
@@ -215,16 +213,8 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
           return const SizedBox.shrink();
         }
 
-        final String userId = authState.user.uid;
-
-        return BlocProvider(
-          create: (BuildContext context) {
-            final NotificacionBloc bloc = getIt<NotificacionBloc>();
-            // Suscribir al BLoC para recibir notificaciones en tiempo real
-            bloc.add(NotificacionEvent.subscribeNotificaciones(userId));
-            return bloc;
-          },
-          child: BlocBuilder<NotificacionBloc, NotificacionState>(
+        // Usar el NotificacionBloc provisto por MainLayout
+        return BlocBuilder<NotificacionBloc, NotificacionState>(
             builder: (BuildContext context, NotificacionState state) {
               int conteoNoLeidas = 0;
 
@@ -301,8 +291,7 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
             );
-            },
-          ),
+          },
         );
       },
     );

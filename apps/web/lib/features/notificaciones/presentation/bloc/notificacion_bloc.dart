@@ -31,6 +31,7 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
       marcarComoLeida: (String id) => _onMarcarComoLeida(id, emit),
       marcarTodasComoLeidas: (String usuarioId) => _onMarcarTodasComoLeidas(usuarioId, emit),
       eliminarNotificacion: (String id) => _onEliminarNotificacion(id, emit),
+      errorOccurred: (String message) => _onErrorOccurred(message, emit),
     );
   }
 
@@ -52,9 +53,9 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
         debugPrint('🔔 NotificacionBloc: ${notificaciones.length} notificaciones actualizadas');
         add(NotificacionEvent.notificacionesUpdated(notificaciones));
       },
-      onError: (error) {
+      onError: (Object error) {
         debugPrint('🔔 NotificacionBloc: Error en stream de notificaciones: $error');
-        emit(NotificacionState.error(error.toString()));
+        add(NotificacionEvent.errorOccurred(error.toString()));
       },
     );
 
@@ -64,8 +65,9 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
         debugPrint('🔔 NotificacionBloc: Conteo actualizado: $conteo');
         add(NotificacionEvent.conteoUpdated(conteo));
       },
-      onError: (error) {
+      onError: (Object error) {
         debugPrint('🔔 NotificacionBloc: Error en stream de conteo: $error');
+        add(NotificacionEvent.errorOccurred(error.toString()));
       },
     );
 
@@ -73,28 +75,48 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
     try {
       final List<NotificacionEntity> notificaciones = await _repository.getByUsuario(usuarioId);
       final int conteo = await _repository.getConteoNoLeidas(usuarioId);
-      emit(NotificacionState.loaded(
-        notificaciones: notificaciones,
-        conteoNoLeidas: conteo,
-      ));
+      if (!emit.isDone) {
+        emit(NotificacionState.loaded(
+          notificaciones: notificaciones,
+          conteoNoLeidas: conteo,
+        ));
+      }
     } catch (e) {
       debugPrint('🔔 NotificacionBloc: Error al cargar datos iniciales: $e');
-      emit(NotificacionState.error(e.toString()));
+      if (!emit.isDone) {
+        emit(NotificacionState.error(e.toString()));
+      }
     }
   }
 
   void _onNotificacionesUpdated(List<NotificacionEntity> notificaciones, Emitter<NotificacionState> emit) {
-    state.maybeMap(
-      loaded: (value) => emit(value.copyWith(notificaciones: notificaciones)),
-      orElse: () {},
-    );
+    if (!emit.isDone) {
+      state.whenOrNull(
+        loaded: (List<NotificacionEntity> currentNotificaciones, int conteoNoLeidas) {
+          if (!emit.isDone) {
+            emit(NotificacionState.loaded(
+              notificaciones: notificaciones,
+              conteoNoLeidas: conteoNoLeidas,
+            ));
+          }
+        },
+      );
+    }
   }
 
   void _onConteoUpdated(int conteo, Emitter<NotificacionState> emit) {
-    state.maybeMap(
-      loaded: (value) => emit(value.copyWith(conteoNoLeidas: conteo)),
-      orElse: () {},
-    );
+    if (!emit.isDone) {
+      state.whenOrNull(
+        loaded: (List<NotificacionEntity> notificaciones, int currentConteo) {
+          if (!emit.isDone) {
+            emit(NotificacionState.loaded(
+              notificaciones: notificaciones,
+              conteoNoLeidas: conteo,
+            ));
+          }
+        },
+      );
+    }
   }
 
   Future<void> _onMarcarComoLeida(String id, Emitter<NotificacionState> emit) async {
@@ -103,7 +125,9 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
       await _repository.marcarComoLeida(id);
     } catch (e) {
       debugPrint('🔔 NotificacionBloc: Error al marcar como leída: $e');
-      emit(NotificacionState.error(e.toString()));
+      if (!emit.isDone) {
+        emit(NotificacionState.error(e.toString()));
+      }
     }
   }
 
@@ -113,7 +137,9 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
       await _repository.marcarTodasComoLeidas(usuarioId);
     } catch (e) {
       debugPrint('🔔 NotificacionBloc: Error al marcar todas como leídas: $e');
-      emit(NotificacionState.error(e.toString()));
+      if (!emit.isDone) {
+        emit(NotificacionState.error(e.toString()));
+      }
     }
   }
 
@@ -123,7 +149,16 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
       await _repository.delete(id);
     } catch (e) {
       debugPrint('🔔 NotificacionBloc: Error al eliminar notificación: $e');
-      emit(NotificacionState.error(e.toString()));
+      if (!emit.isDone) {
+        emit(NotificacionState.error(e.toString()));
+      }
+    }
+  }
+
+  void _onErrorOccurred(String message, Emitter<NotificacionState> emit) {
+    debugPrint('🔔 NotificacionBloc: Error ocurrido: $message');
+    if (!emit.isDone) {
+      emit(NotificacionState.error(message));
     }
   }
 

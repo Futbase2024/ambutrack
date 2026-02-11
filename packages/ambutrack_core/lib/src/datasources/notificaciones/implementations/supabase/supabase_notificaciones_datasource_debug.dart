@@ -169,9 +169,17 @@ class SupabaseNotificacionesDataSourceDebug implements NotificacionesDataSource 
       _log('create - Tipo: ${notificacion.tipo.value}');
 
       final model = NotificacionSupabaseModel.fromEntity(notificacion);
-      _log('create - Model JSON: ${model.toJson()}');
+      final json = model.toJson();
 
-      final response = await _client.from(_tableName).insert(model.toJson()).select().single();
+      // Eliminar el campo 'id' si está vacío para que Supabase genere uno automáticamente
+      if (json['id'] == null || json['id'] == '') {
+        json.remove('id');
+        _log('create - Campo id vacío removido, Supabase generará uno');
+      }
+
+      _log('create - Model JSON: $json');
+
+      final response = await _client.from(_tableName).insert(json).select().single();
 
       _log('create - Insertado con ID: ${response['id']}');
 

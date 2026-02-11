@@ -127,7 +127,14 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
   Future<NotificacionEntity> create(NotificacionEntity notificacion) async {
     try {
       final model = NotificacionSupabaseModel.fromEntity(notificacion);
-      final response = await _client.from(_tableName).insert(model.toJson()).select().single();
+      final json = model.toJson();
+
+      // Eliminar el campo 'id' si está vacío para que Supabase genere uno automáticamente
+      if (json['id'] == null || json['id'] == '') {
+        json.remove('id');
+      }
+
+      final response = await _client.from(_tableName).insert(json).select().single();
 
       return NotificacionSupabaseModel.fromJson(response).toEntity();
     } catch (e) {
@@ -315,34 +322,22 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
     Map<String, dynamic> metadata = const {},
   }) async {
     try {
-      // Buscar todos los jefes de personal y administradores
-      final personalResponse = await _client
-          .from('tpersonal')
-          .select('usuario_id')
-          .inFilter('categoria', ['admin', 'jefe_personal', 'jefe_trafico'])
-          .eq('activo', true);
+      _log('📬 notificarJefesPersonal - Llamando función PostgreSQL');
+      _log('📬 Tipo: $tipo, Título: $titulo');
 
-      // Crear notificación para cada jefe
-      for (final p in personalResponse) {
-        final notificacion = NotificacionEntity(
-          id: '', // Se generará en la BD
-          empresaId: _empresaId,
-          usuarioDestinoId: p['usuario_id'] as String,
-          tipo: NotificacionTipo.fromString(tipo),
-          titulo: titulo,
-          mensaje: mensaje,
-          entidadTipo: entidadTipo,
-          entidadId: entidadId,
-          leida: false,
-          fechaLectura: null,
-          metadata: metadata,
-          createdAt: DateTime.now(),
-          updatedAt: null,
-        );
+      // Usar función PostgreSQL con SECURITY DEFINER (bypass RLS)
+      await _client.rpc('crear_notificacion_jefes_personal', params: {
+        'p_tipo': tipo,
+        'p_titulo': titulo,
+        'p_mensaje': mensaje,
+        'p_entidad_tipo': entidadTipo,
+        'p_entidad_id': entidadId,
+        'p_metadata': metadata,
+      });
 
-        await create(notificacion);
-      }
+      _log('✅ notificarJefesPersonal - Notificaciones creadas exitosamente');
     } catch (e) {
+      _log('❌ notificarJefesPersonal - Error: $e');
       throw DataSourceException(
         message: 'Error al notificar jefes de personal: $e',
         code: 'NOTIFY_ERROR',
