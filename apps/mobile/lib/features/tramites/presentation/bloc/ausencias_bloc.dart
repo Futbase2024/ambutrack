@@ -202,7 +202,7 @@ class AusenciasBloc extends Bloc<AusenciasEvent, AusenciasState> {
       }
 
       final personal = authState.personal!;
-      final nombrePersonal = '${personal.nombre} ${personal.apellidos}'.trim();
+      final nombrePersonal = personal.nombreCompleto ?? personal.email;
       final fechaInicioStr = '${ausencia.fechaInicio.day}/${ausencia.fechaInicio.month}/${ausencia.fechaInicio.year}';
       final fechaFinStr = '${ausencia.fechaFin.day}/${ausencia.fechaFin.month}/${ausencia.fechaFin.year}';
 

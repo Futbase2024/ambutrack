@@ -410,17 +410,17 @@ class TrasladoCard extends StatelessWidget {
 
               // DERECHA 50%: Requisitos
               Expanded(
-                child: traslado.requiereEquipamientoEspecial
+                child: (traslado.requiereEquipamientoEspecial ?? false)
                     ? Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          if (traslado.requiereCamilla)
+                          if (traslado.requiereCamilla ?? false)
                             _buildRequisitoCircularLarge(Icons.bed),
-                          if (traslado.requiereSillaRuedas)
+                          if (traslado.requiereSillaRuedas ?? false)
                             _buildRequisitoCircularLarge(Icons.accessible),
-                          if (traslado.requiereAyuda)
+                          if (traslado.requiereAyuda ?? false)
                             _buildRequisitoCircularLarge(Icons.people),
-                          if (traslado.requiereAcompanante)
+                          if (traslado.requiereAcompanante ?? false)
                             _buildRequisitoCircularLarge(Icons.person_add),
                         ],
                       )

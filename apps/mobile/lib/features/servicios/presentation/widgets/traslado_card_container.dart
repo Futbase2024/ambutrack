@@ -67,9 +67,11 @@ class TrasladoCardContainer extends StatelessWidget {
           // Comparar usando Equatable
           final cambio = previousTraslado != currentTraslado;
           if (cambio) {
+            final estadoAnterior = EstadoTraslado.fromValue(previousTraslado.estado);
+            final estadoActual = EstadoTraslado.fromValue(currentTraslado.estado);
             debugPrint('🔄 [CardContainer] Traslado $trasladoId cambió - reconstruyendo');
-            debugPrint('   - Estado anterior: ${previousTraslado.estado.label}');
-            debugPrint('   - Estado actual: ${currentTraslado.estado.label}');
+            debugPrint('   - Estado anterior: ${estadoAnterior?.label ?? previousTraslado.estado}');
+            debugPrint('   - Estado actual: ${estadoActual?.label ?? currentTraslado.estado}');
           }
           return cambio;
         }

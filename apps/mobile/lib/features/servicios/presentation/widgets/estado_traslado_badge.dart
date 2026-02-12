@@ -81,6 +81,8 @@ class EstadoTrasladoBadge extends StatelessWidget {
         return Icons.send_outlined;
       case EstadoTraslado.recibido:
         return Icons.check_circle_outline;
+      case EstadoTraslado.recibidoConductor:
+        return Icons.phone_callback_outlined;
       case EstadoTraslado.enOrigen:
         return Icons.location_on;
       case EstadoTraslado.saliendoOrigen:
@@ -95,6 +97,10 @@ class EstadoTrasladoBadge extends StatelessWidget {
         return Icons.cancel;
       case EstadoTraslado.noRealizado:
         return Icons.block;
+      case EstadoTraslado.suspendido:
+        return Icons.pause_circle_outline;
+      case EstadoTraslado.anulado:
+        return Icons.cancel_outlined;
     }
   }
 }

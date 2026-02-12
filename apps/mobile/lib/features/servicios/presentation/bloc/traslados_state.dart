@@ -65,7 +65,10 @@ class TrasladosLoaded extends TrasladosState {
 
   /// Filtra traslados por estado
   List<TrasladoEntity> getTrasladosByEstado(EstadoTraslado estado) {
-    return traslados.where((t) => t.estado == estado).toList();
+    return traslados.where((t) {
+      final estadoActual = EstadoTraslado.fromValue(t.estado);
+      return estadoActual == estado;
+    }).toList();
   }
 
   /// Obtiene los traslados de hoy

@@ -540,7 +540,10 @@ class _ServiciosHistoricoPageContentState
     // 2. Aplicar filtro por estado si está seleccionado
     if (_filtroEstado != null) {
       trasladosFiltrados = trasladosFiltrados
-          .where((t) => t.estado == _filtroEstado)
+          .where((t) {
+            final estadoActual = EstadoTraslado.fromValue(t.estado);
+            return estadoActual == _filtroEstado;
+          })
           .toList();
     }
 

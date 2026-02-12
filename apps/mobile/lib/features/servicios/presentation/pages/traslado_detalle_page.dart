@@ -270,7 +270,7 @@ class _TrasladoDetallePageContent extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          '${DateFormat('dd/MM/yyyy').format(traslado.fecha)} - ${traslado.horaProgramada.substring(0, 5)}',
+                          '${traslado.fecha != null ? DateFormat('dd/MM/yyyy').format(traslado.fecha!) : '--/--/----'} - ${traslado.horaProgramada != null ? '${traslado.horaProgramada!.hour.toString().padLeft(2, '0')}:${traslado.horaProgramada!.minute.toString().padLeft(2, '0')}' : '--:--'}',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -310,7 +310,7 @@ class _TrasladoDetallePageContent extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                traslado.origenCompleto,
+                                traslado.origenCompleto ?? 'No especificado',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -354,7 +354,7 @@ class _TrasladoDetallePageContent extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                traslado.destinoCompleto,
+                                traslado.destinoCompleto ?? 'No especificado',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -414,18 +414,20 @@ class _TrasladoGestionContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final estadoActual = EstadoTraslado.fromValue(traslado.estado);
+
     return SafeArea(
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header minimalista
-            _buildMinimalistHeader(context),
+            _buildMinimalistHeader(context, estadoActual),
 
             // ACCIONES PRINCIPALES (arriba, después del header)
-            if (traslado.estado.isActivo) ...[
+            if (estadoActual?.estaEnCurso ?? false) ...[
               const SizedBox(height: 16),
-              _buildAccionesPrincipales(context),
+              _buildAccionesPrincipales(context, estadoActual),
             ] else ...[
               const SizedBox(height: 16),
               _buildTrasladoFinalizado(),
@@ -441,7 +443,7 @@ class _TrasladoGestionContent extends StatelessWidget {
     );
   }
 
-  Widget _buildMinimalistHeader(BuildContext context) {
+  Widget _buildMinimalistHeader(BuildContext context, EstadoTraslado? estadoActual) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -464,13 +466,13 @@ class _TrasladoGestionContent extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _getIconForEstado(traslado.estado),
+                      estadoActual != null ? _getIconForEstado(estadoActual) : Icons.help_outline,
                       size: 18,
                       color: Colors.white,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      traslado.estado.label,
+                      estadoActual?.label ?? traslado.estado ?? 'N/A',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -490,7 +492,7 @@ class _TrasladoGestionContent extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  traslado.codigo,
+                  traslado.codigo ?? '',
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
@@ -862,7 +864,7 @@ class _TrasladoGestionContent extends StatelessWidget {
                     child: _buildInfoRow(
                       icon: Icons.calendar_today_outlined,
                       label: 'Fecha',
-                      value: DateFormat('dd/MM/yyyy').format(traslado.fecha),
+                      value: traslado.fecha != null ? DateFormat('dd/MM/yyyy').format(traslado.fecha!) : '--/--/----',
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -870,7 +872,9 @@ class _TrasladoGestionContent extends StatelessWidget {
                     child: _buildInfoRow(
                       icon: Icons.access_time_outlined,
                       label: 'Hora',
-                      value: traslado.horaProgramada.substring(0, 5),
+                      value: traslado.horaProgramada != null
+                          ? '${traslado.horaProgramada!.hour.toString().padLeft(2, '0')}:${traslado.horaProgramada!.minute.toString().padLeft(2, '0')}'
+                          : '--:--',
                     ),
                   ),
                 ],
@@ -929,7 +933,7 @@ class _TrasladoGestionContent extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              traslado.origenCompleto,
+                              traslado.origenCompleto ?? 'No especificado',
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w500,
@@ -979,7 +983,7 @@ class _TrasladoGestionContent extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              traslado.destinoCompleto,
+                              traslado.destinoCompleto ?? 'No especificado',
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w500,
@@ -1050,19 +1054,19 @@ class _TrasladoGestionContent extends StatelessWidget {
               ],
 
               // Requisitos especiales
-              if (traslado.requiereEquipamientoEspecial) ...[
+              if (traslado.requiereEquipamientoEspecial ?? false) ...[
                 const SizedBox(height: 20),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    if (traslado.requiereCamilla)
+                    if (traslado.requiereCamilla ?? false)
                       _buildRequisitoChip(icon: Icons.bed_outlined, label: 'Camilla'),
-                    if (traslado.requiereSillaRuedas)
+                    if (traslado.requiereSillaRuedas ?? false)
                       _buildRequisitoChip(icon: Icons.accessible, label: 'Silla'),
-                    if (traslado.requiereAyuda)
+                    if (traslado.requiereAyuda ?? false)
                       _buildRequisitoChip(icon: Icons.people_outline, label: 'Ayuda'),
-                    if (traslado.requiereAcompanante)
+                    if (traslado.requiereAcompanante ?? false)
                       _buildRequisitoChip(icon: Icons.person_add_outlined, label: 'Acompañante'),
                   ],
                 ),
@@ -1074,8 +1078,8 @@ class _TrasladoGestionContent extends StatelessWidget {
     );
   }
 
-  Widget _buildAccionesPrincipales(BuildContext context) {
-    final estadosSiguientes = _obtenerEstadosSiguientes(traslado.estado);
+  Widget _buildAccionesPrincipales(BuildContext context, EstadoTraslado? estadoActual) {
+    final estadosSiguientes = estadoActual != null ? _obtenerEstadosSiguientes(estadoActual) : <EstadoTraslado>[];
 
     if (estadosSiguientes.isEmpty) {
       return const SizedBox.shrink();
