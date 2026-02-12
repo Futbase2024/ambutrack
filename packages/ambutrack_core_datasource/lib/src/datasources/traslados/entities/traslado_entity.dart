@@ -348,6 +348,10 @@ class TrasladoEntity extends Equatable {
   /// Devuelve null por compatibilidad. Cargar desde PacienteEntity asociado
   String? get poblacionPaciente => null;
 
+  /// Última actualización de estado (alias de updatedAt)
+  /// Para compatibilidad con código legacy
+  DateTime? get ultimaActualizacionEstado => updatedAt;
+
   /// Método copyWith para crear copias inmutables
   TrasladoEntity copyWith({
     String? id,

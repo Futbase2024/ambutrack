@@ -26,8 +26,14 @@ class RegistroHorarioEntity extends BaseEntity {
   /// Longitud GPS del fichaje
   final double? longitud;
 
+  /// Precisión GPS del fichaje (en metros)
+  final double? precisionGps;
+
   /// Notas adicionales del fichaje
   final String? notas;
+
+  /// Observaciones adicionales (alias de notas para compatibilidad)
+  String? get observaciones => notas;
 
   /// Estado del fichaje: 'normal', 'tarde', 'temprano', 'festivo'
   final String estado;
@@ -62,6 +68,7 @@ class RegistroHorarioEntity extends BaseEntity {
     this.ubicacion,
     this.latitud,
     this.longitud,
+    this.precisionGps,
     this.notas,
     this.estado = 'normal',
     this.esManual = false,
@@ -83,6 +90,7 @@ class RegistroHorarioEntity extends BaseEntity {
       'ubicacion': ubicacion,
       'latitud': latitud,
       'longitud': longitud,
+      'precisionGps': precisionGps,
       'notas': notas,
       'estado': estado,
       'esManual': esManual,
@@ -110,6 +118,9 @@ class RegistroHorarioEntity extends BaseEntity {
           : null,
       longitud: json['longitud'] != null
           ? (json['longitud'] as num).toDouble()
+          : null,
+      precisionGps: json['precisionGps'] != null
+          ? (json['precisionGps'] as num).toDouble()
           : null,
       notas: json['notas'] as String?,
       estado: json['estado'] as String? ?? 'normal',
@@ -154,6 +165,7 @@ class RegistroHorarioEntity extends BaseEntity {
     String? ubicacion,
     double? latitud,
     double? longitud,
+    double? precisionGps,
     String? notas,
     String? estado,
     bool? esManual,
@@ -174,6 +186,7 @@ class RegistroHorarioEntity extends BaseEntity {
       ubicacion: ubicacion ?? this.ubicacion,
       latitud: latitud ?? this.latitud,
       longitud: longitud ?? this.longitud,
+      precisionGps: precisionGps ?? this.precisionGps,
       notas: notas ?? this.notas,
       estado: estado ?? this.estado,
       esManual: esManual ?? this.esManual,
@@ -197,6 +210,7 @@ class RegistroHorarioEntity extends BaseEntity {
         ubicacion,
         latitud,
         longitud,
+        precisionGps,
         notas,
         estado,
         esManual,

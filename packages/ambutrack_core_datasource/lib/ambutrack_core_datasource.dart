@@ -43,6 +43,11 @@ export 'src/datasources/users/entities/users_entity.dart';
 export 'src/datasources/users/users_contract.dart';
 export 'src/datasources/users/users_factory.dart' show UsersDataSourceFactory, DataSourceType;
 
+// Auth
+export 'src/datasources/auth/auth_contract.dart';
+export 'src/datasources/auth/auth_factory.dart' show AuthDataSourceFactory;
+export 'src/datasources/auth/implementations/supabase/supabase_auth_datasource.dart';
+
 export 'src/datasources/usuarios/entities/usuario_entity.dart';
 export 'src/datasources/usuarios/usuarios_contract.dart';
 export 'src/datasources/usuarios/usuarios_factory.dart' show UsuarioDataSourceFactory;
@@ -252,7 +257,7 @@ export 'src/datasources/stock/entities/movimiento_stock_entity.dart' show Movimi
 export 'src/datasources/stock/entities/alerta_stock_entity.dart';
 export 'src/datasources/stock/entities/stock_minimo_entity.dart';
 export 'src/datasources/stock/entities/revision_mensual_entity.dart';
-export 'src/datasources/stock/entities/item_revision_entity.dart' show ItemRevisionEntity;
+export 'src/datasources/stock/entities/item_revision_entity.dart' hide ItemRevisionEntity; // Ocultar para evitar conflicto con ambulancias_revisiones
 export 'src/datasources/stock/stock_contract.dart';
 export 'src/datasources/stock/stock_factory.dart' show StockDataSourceFactory;
 export 'src/datasources/stock/implementations/supabase/supabase_stock_datasource.dart';
@@ -319,6 +324,10 @@ export 'src/datasources/servicios_recurrentes/implementations/supabase/supabase_
 // Traslados
 export 'src/datasources/traslados/entities/traslado_entity.dart';
 export 'src/datasources/traslados/entities/estado_traslado.dart';
+export 'src/datasources/traslados/entities/evento_traslado_type.dart';
+export 'src/datasources/traslados/entities/ubicacion_entity.dart';
+export 'src/datasources/traslados/entities/historial_estado_entity.dart';
+export 'src/datasources/traslados/entities/traslado_evento_entity.dart';
 export 'src/datasources/traslados/models/traslado_supabase_model.dart';
 export 'src/datasources/traslados/traslado_contract.dart';
 export 'src/datasources/traslados/traslado_factory.dart' show TrasladoDataSourceFactory;
@@ -328,7 +337,7 @@ export 'src/datasources/traslados/implementations/supabase/supabase_traslado_dat
 export 'src/datasources/ambulancias_revisiones/entities/tipo_ambulancia_entity.dart';
 export 'src/datasources/ambulancias_revisiones/entities/ambulancia_entity.dart';
 export 'src/datasources/ambulancias_revisiones/entities/revision_entity.dart';
-export 'src/datasources/ambulancias_revisiones/entities/item_revision_entity.dart' hide ItemRevisionEntity;
+export 'src/datasources/ambulancias_revisiones/entities/item_revision_entity.dart'; // ItemRevisionEntity principal (con cantidadEsperada, observaciones, conforme)
 export 'src/datasources/ambulancias_revisiones/ambulancias_revisiones_contract.dart';
 export 'src/datasources/ambulancias_revisiones/ambulancias_revisiones_factory.dart' show AmbulanciasRevisionesDataSourceFactory;
 export 'src/datasources/ambulancias_revisiones/implementations/supabase/supabase_ambulancias_datasource.dart';
