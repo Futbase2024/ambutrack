@@ -37,13 +37,15 @@ class SupabaseAuthDataSource implements AuthDataSource {
   @override
   Future<String?> getEmailByDni(String dni) async {
     try {
-      final response = await _client
-          .from('usuarios')
-          .select('email')
-          .eq('dni', dni)
-          .maybeSingle();
+      // Usar función RPC de Supabase (mismo método que usa web)
+      // Esta función busca en la tabla usuarios con case-insensitive
+      // y solo devuelve usuarios activos
+      final String email = await _client.rpc<String>(
+        'get_email_by_dni',
+        params: <String, dynamic>{'dni_input': dni},
+      );
 
-      return response?['email'] as String?;
+      return email.isEmpty ? null : email;
     } catch (e) {
       return null;
     }

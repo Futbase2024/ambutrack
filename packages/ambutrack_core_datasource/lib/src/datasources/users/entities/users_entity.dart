@@ -167,6 +167,9 @@ class UserEntity extends BaseEntity {
   /// DNI del usuario (extraído del metadata)
   String? get dni => metadata?['dni'] as String?;
 
+  /// Categoría del usuario/personal (extraído del metadata)
+  String? get categoria => metadata?['categoria'] as String?;
+
   /// ID de la empresa (extraído del metadata)
   String? get empresaId => metadata?['empresaId'] as String?;
 
