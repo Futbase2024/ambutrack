@@ -1,7 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../entities/estado_traslado.dart';
+import '../../entities/historial_estado_entity.dart';
 import '../../entities/traslado_entity.dart';
+import '../../entities/traslado_evento_entity.dart';
+import '../../entities/ubicacion_entity.dart';
 import '../../models/traslado_supabase_model.dart';
 import '../../traslado_contract.dart';
 
@@ -284,6 +288,57 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   }
 
   @override
+  Future<List<TrasladoEntity>> getByIdConductor(String idConductor) async {
+    // Alias de getByConductor para compatibilidad
+    return getByConductor(idConductor);
+  }
+
+  @override
+  Future<List<TrasladoEntity>> getActivosByIdConductor(
+    String idConductor,
+  ) async {
+    try {
+      debugPrint(
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados activos del conductor: $idConductor',
+      );
+
+      // Estados activos (en curso)
+      final estadosActivos = [
+        'asignado',
+        'enviado',
+        'recibido_conductor',
+        'en_origen',
+        'saliendo_origen',
+        'en_transito',
+        'en_destino',
+      ];
+
+      final response = await _supabase
+          .from(_tableName)
+          .select()
+          .eq('id_conductor', idConductor)
+          .inFilter('estado', estadosActivos)
+          .order('fecha', ascending: false)
+          .order('hora_programada', ascending: true);
+
+      debugPrint(
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados activos obtenidos',
+      );
+
+      return (response as List)
+          .map((json) => TrasladoSupabaseModel.fromJson(
+                json as Map<String, dynamic>,
+              ).toEntity())
+          .toList();
+    } catch (e) {
+      debugPrint(
+        '📦 SupabaseTrasladoDataSource: ❌ Error al obtener traslados activos por conductor: $e',
+      );
+      rethrow;
+    }
+  }
+
+  @override
   Future<List<TrasladoEntity>> getByVehiculo(String idVehiculo) async {
     try {
       debugPrint(
@@ -315,16 +370,25 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   }
 
   @override
-  Future<List<TrasladoEntity>> getByEstado(String estado) async {
+  Future<List<TrasladoEntity>> getByEstado({
+    required EstadoTraslado estado,
+    String? idConductor,
+  }) async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo traslados con estado: $estado',
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados con estado: ${estado.value}${idConductor != null ? ' para conductor: $idConductor' : ''}',
       );
 
-      final response = await _supabase
+      var query = _supabase
           .from(_tableName)
           .select()
-          .eq('estado', estado)
+          .eq('estado', estado.value);
+
+      if (idConductor != null) {
+        query = query.eq('id_conductor', idConductor);
+      }
+
+      final response = await query
           .order('fecha', ascending: false)
           .order('hora_programada', ascending: true);
 
@@ -380,22 +444,29 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
 
   @override
   Future<List<TrasladoEntity>> getByRangoFechas({
-    required DateTime desde,
-    required DateTime hasta,
+    required DateTime fechaInicio,
+    required DateTime fechaFin,
+    String? idConductor,
   }) async {
     try {
-      final desdeStr = desde.toIso8601String().split('T').first;
-      final hastaStr = hasta.toIso8601String().split('T').first;
+      final desdeStr = fechaInicio.toIso8601String().split('T').first;
+      final hastaStr = fechaFin.toIso8601String().split('T').first;
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo traslados entre $desdeStr y $hastaStr',
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados entre $desdeStr y $hastaStr${idConductor != null ? ' para conductor: $idConductor' : ''}',
       );
 
-      final response = await _supabase
+      var query = _supabase
           .from(_tableName)
           .select()
           .gte('fecha', desdeStr)
-          .lte('fecha', hastaStr)
+          .lte('fecha', hastaStr);
+
+      if (idConductor != null) {
+        query = query.eq('id_conductor', idConductor);
+      }
+
+      final response = await query
           .order('fecha', ascending: false)
           .order('hora_programada', ascending: true);
 
@@ -563,25 +634,26 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   }
 
   @override
-  Future<TrasladoEntity> update(TrasladoEntity traslado) async {
+  Future<TrasladoEntity> update({
+    required String id,
+    required Map<String, dynamic> updates,
+  }) async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Actualizando traslado: ${traslado.codigo}',
+        '📦 SupabaseTrasladoDataSource: Actualizando traslado ID: $id',
       );
 
-      final model = TrasladoSupabaseModel.fromEntity(traslado);
-      final json = model.toJson();
-
-      // Remover campos de auditoría
-      json.remove('created_at');
-      json.remove('created_by');
-      json.remove('updated_at');
+      // Remover campos de auditoría que no deben actualizarse manualmente
+      final updateData = Map<String, dynamic>.from(updates);
+      updateData.remove('created_at');
+      updateData.remove('created_by');
+      updateData.remove('updated_at');
 
       // Incluir JOINs con pacientes y tmotivos_traslado para mantener datos embebidos
       final response = await _supabase
           .from(_tableName)
-          .update(json)
-          .eq('id', traslado.id)
+          .update(updateData)
+          .eq('id', id)
           .select('*, pacientes(*), tmotivos_traslado(*)')
           .single();
 
@@ -593,6 +665,86 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
     } catch (e) {
       debugPrint(
         '📦 SupabaseTrasladoDataSource: ❌ Error al actualizar traslado: $e',
+      );
+      rethrow;
+    }
+  }
+
+  @override
+  Future<TrasladoEntity> cambiarEstado({
+    required String idTraslado,
+    required EstadoTraslado nuevoEstado,
+    required String idUsuario,
+    UbicacionEntity? ubicacion,
+    String? observaciones,
+  }) async {
+    try {
+      debugPrint(
+        '📦 SupabaseTrasladoDataSource: Cambiando estado de traslado $idTraslado a ${nuevoEstado.value}',
+      );
+
+      // Obtener estado anterior
+      final trasladoActual = await getById(idTraslado);
+      final estadoAnterior = trasladoActual.estado;
+
+      // Actualizar estado usando updateEstado (que ya maneja las cronas)
+      final trasladoActualizado = await updateEstado(
+        id: idTraslado,
+        nuevoEstado: nuevoEstado.value,
+        ubicacion: ubicacion?.toJson(),
+      );
+
+      // Registrar en historial de estados
+      await _supabase.from('historial_estados_traslado').insert({
+        'traslado_id': idTraslado,
+        'estado_anterior': estadoAnterior,
+        'estado_nuevo': nuevoEstado.value,
+        'fecha_cambio': DateTime.now().toIso8601String(),
+        'usuario_id': idUsuario,
+        if (ubicacion != null) 'ubicacion': ubicacion.toJson(),
+        if (observaciones != null) 'observaciones': observaciones,
+      });
+
+      debugPrint(
+        '📦 SupabaseTrasladoDataSource: ✅ Estado cambiado y registrado en historial',
+      );
+
+      return trasladoActualizado;
+    } catch (e) {
+      debugPrint(
+        '📦 SupabaseTrasladoDataSource: ❌ Error al cambiar estado: $e',
+      );
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<HistorialEstadoEntity>> getHistorialEstados(
+    String idTraslado,
+  ) async {
+    try {
+      debugPrint(
+        '📦 SupabaseTrasladoDataSource: Obteniendo historial de estados del traslado: $idTraslado',
+      );
+
+      final response = await _supabase
+          .from('historial_estados_traslado')
+          .select()
+          .eq('traslado_id', idTraslado)
+          .order('fecha_cambio', ascending: false);
+
+      debugPrint(
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} cambios de estado obtenidos',
+      );
+
+      return (response as List)
+          .map((json) => HistorialEstadoEntity.fromJson(
+                json as Map<String, dynamic>,
+              ))
+          .toList();
+    } catch (e) {
+      debugPrint(
+        '📦 SupabaseTrasladoDataSource: ❌ Error al obtener historial: $e',
       );
       rethrow;
     }
@@ -1126,5 +1278,69 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
               .map((json) => TrasladoSupabaseModel.fromJson(json).toEntity())
               .toList();
         });
+  }
+
+  @override
+  Stream<List<TrasladoEntity>> watchActivosByIdConductor(
+    String idConductor,
+  ) {
+    debugPrint(
+      '📦 SupabaseTrasladoDataSource: Iniciando stream de traslados activos del conductor: $idConductor',
+    );
+
+    // Estados activos (en curso)
+    final estadosActivos = [
+      'asignado',
+      'enviado',
+      'recibido_conductor',
+      'en_origen',
+      'saliendo_origen',
+      'en_transito',
+      'en_destino',
+    ];
+
+    return _supabase
+        .from(_tableName)
+        .stream(primaryKey: ['id'])
+        .map((data) {
+          debugPrint(
+            '📦 SupabaseTrasladoDataSource: 🔄 Stream actualizó traslados activos',
+          );
+          // Filtrar por conductor y estados activos
+          final filtrados = data
+              .where((json) =>
+                  json['id_conductor'] == idConductor &&
+                  estadosActivos.contains(json['estado']))
+              .toList();
+          // Ordenar por fecha descendente y hora_programada ascendente
+          filtrados.sort((a, b) {
+            final cmpFecha = (b['fecha'] as String).compareTo(a['fecha'] as String);
+            if (cmpFecha != 0) return cmpFecha;
+            return (a['hora_programada'] as String).compareTo(b['hora_programada'] as String);
+          });
+          return filtrados
+              .map((json) => TrasladoSupabaseModel.fromJson(json).toEntity())
+              .toList();
+        });
+  }
+
+  @override
+  Stream<TrasladoEventoEntity> streamEventosConductor() {
+    debugPrint(
+      '📦 SupabaseTrasladoDataSource: Iniciando stream de eventos para conductor',
+    );
+
+    // TODO: Implementar stream de eventos desde tabla de eventos
+    // Por ahora retorna un stream vacío
+    return const Stream.empty();
+  }
+
+  @override
+  Future<void> disposeRealtimeChannels() async {
+    debugPrint(
+      '📦 SupabaseTrasladoDataSource: Liberando canales de Realtime',
+    );
+    // Los canales de Supabase se limpian automáticamente cuando se cierra el stream
+    // No hay acción específica requerida
   }
 }
