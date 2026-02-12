@@ -1,0 +1,1 @@
+export 'package:ambutrack_desktop/core/di/locator.dart' show getIt, initializeDependencies;

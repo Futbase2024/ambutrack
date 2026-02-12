@@ -27,7 +27,7 @@ class AuthAuthenticated extends AuthState {
   });
 
   final UserEntity user;
-  final PersonalEntity? personal;
+  final UserEntity? personal;
 
   @override
   List<Object?> get props => [user, personal];

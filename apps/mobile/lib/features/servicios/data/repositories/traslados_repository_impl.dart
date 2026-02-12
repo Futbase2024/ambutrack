@@ -97,7 +97,7 @@ class TrasladosRepositoryImpl implements TrasladosRepository {
   @override
   Stream<TrasladoEntity> watchById(String id) {
     debugPrint('📡 [TrasladosRepository] Iniciando stream del traslado');
-    return _dataSource.watchById(id);
+    return _dataSource.watchById(id).where((t) => t != null).cast<TrasladoEntity>();
   }
 
   @override

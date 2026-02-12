@@ -72,9 +72,10 @@ class TrasladosLoaded extends TrasladosState {
   List<TrasladoEntity> getTrasladosDeHoy() {
     final hoy = DateTime.now();
     return traslados.where((t) {
-      return t.fecha.year == hoy.year &&
-          t.fecha.month == hoy.month &&
-          t.fecha.day == hoy.day;
+      if (t.fecha == null) return false;
+      return t.fecha!.year == hoy.year &&
+          t.fecha!.month == hoy.month &&
+          t.fecha!.day == hoy.day;
     }).toList();
   }
 }

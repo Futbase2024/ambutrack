@@ -300,17 +300,21 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
                   final hoy = DateTime(ahora.year, ahora.month, ahora.day);
 
                   final trasladosHoy = state.traslados.where((t) {
+                    if (t.fecha == null) return false;
                     final fechaTraslado = DateTime(
-                      t.fecha.year,
-                      t.fecha.month,
-                      t.fecha.day,
+                      t.fecha!.year,
+                      t.fecha!.month,
+                      t.fecha!.day,
                     );
                     return fechaTraslado.isAtSameMomentAs(hoy);
                   }).toList();
 
                   totalHoy = trasladosHoy.length;
                   activosHoy = trasladosHoy
-                      .where((t) => t.estado.isActivo)
+                      .where((t) {
+                        final estadoActual = EstadoTraslado.fromValue(t.estado);
+                        return estadoActual?.estaEnCurso ?? false;
+                      })
                       .length;
                 }
 
@@ -392,14 +396,19 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
     final hoy = DateTime(ahora.year, ahora.month, ahora.day);
 
     var trasladosFiltrados = traslados.where((t) {
-      final fechaTraslado = DateTime(t.fecha.year, t.fecha.month, t.fecha.day);
+      if (t.fecha == null) return false;
+      final fechaTraslado = DateTime(t.fecha!.year, t.fecha!.month, t.fecha!.day);
       // Filtrar por fecha Y por estado activo (excluye finalizados, cancelados, no realizados)
-      return fechaTraslado.isAtSameMomentAs(hoy) && t.estado.isActivo;
+      final estadoActual = EstadoTraslado.fromValue(t.estado);
+      return fechaTraslado.isAtSameMomentAs(hoy) && (estadoActual?.estaEnCurso ?? false);
     }).toList();
 
     // 2. Ordenar por hora programada (ascendente)
     trasladosFiltrados.sort((a, b) {
-      return a.horaProgramada.compareTo(b.horaProgramada);
+      if (a.horaProgramada == null && b.horaProgramada == null) return 0;
+      if (a.horaProgramada == null) return 1;
+      if (b.horaProgramada == null) return -1;
+      return a.horaProgramada!.compareTo(b.horaProgramada!);
     });
 
     return trasladosFiltrados;
@@ -497,7 +506,7 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          '${DateFormat('dd/MM/yyyy').format(traslado.fecha)} - ${traslado.horaProgramada.substring(0, 5)}',
+                          '${traslado.fecha != null ? DateFormat('dd/MM/yyyy').format(traslado.fecha!) : '--/--/----'} - ${traslado.horaProgramada != null ? '${traslado.horaProgramada!.hour.toString().padLeft(2, '0')}:${traslado.horaProgramada!.minute.toString().padLeft(2, '0')}' : '--:--'}',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -537,7 +546,7 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                traslado.origenCompleto,
+                                traslado.origenCompleto ?? 'No especificado',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -581,7 +590,7 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                traslado.destinoCompleto,
+                                traslado.destinoCompleto ?? 'No especificado',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -1051,7 +1060,7 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          '${DateFormat('dd/MM/yyyy').format(traslado.fecha)} - ${traslado.horaProgramada.substring(0, 5)}',
+                          '${traslado.fecha != null ? DateFormat('dd/MM/yyyy').format(traslado.fecha!) : '--/--/----'} - ${traslado.horaProgramada != null ? '${traslado.horaProgramada!.hour.toString().padLeft(2, '0')}:${traslado.horaProgramada!.minute.toString().padLeft(2, '0')}' : '--:--'}',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -1091,7 +1100,7 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                traslado.origenCompleto,
+                                traslado.origenCompleto ?? 'No especificado',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -1135,7 +1144,7 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                traslado.destinoCompleto,
+                                traslado.destinoCompleto ?? 'No especificado',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,

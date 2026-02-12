@@ -1,4 +1,8 @@
+import 'entities/estado_traslado.dart';
+import 'entities/historial_estado_entity.dart';
 import 'entities/traslado_entity.dart';
+import 'entities/traslado_evento_entity.dart';
+import 'entities/ubicacion_entity.dart';
 
 /// Contrato abstracto para el DataSource de Traslados
 /// Define las operaciones CRUD y de seguimiento de traslados individuales
@@ -36,6 +40,12 @@ abstract class TrasladoDataSource {
   /// Obtiene traslados por conductor
   Future<List<TrasladoEntity>> getByConductor(String idConductor);
 
+  /// Obtiene traslados por ID de conductor (alias de getByConductor)
+  Future<List<TrasladoEntity>> getByIdConductor(String idConductor);
+
+  /// Obtiene traslados activos por ID de conductor
+  Future<List<TrasladoEntity>> getActivosByIdConductor(String idConductor);
+
   /// Obtiene traslados por vehículo
   Future<List<TrasladoEntity>> getByVehiculo(String idVehiculo);
 
@@ -43,15 +53,21 @@ abstract class TrasladoDataSource {
   /// [estado] puede ser: 'pendiente', 'asignado', 'enviado', 'recibido_conductor',
   /// 'en_origen', 'saliendo_origen', 'en_transito', 'en_destino', 'finalizado',
   /// 'cancelado', 'no_realizado'
-  Future<List<TrasladoEntity>> getByEstado(String estado);
+  /// Soporta filtrado opcional por conductor
+  Future<List<TrasladoEntity>> getByEstado({
+    required EstadoTraslado estado,
+    String? idConductor,
+  });
 
   /// Obtiene traslados por fecha
   Future<List<TrasladoEntity>> getByFecha(DateTime fecha);
 
   /// Obtiene traslados en un rango de fechas
+  /// Soporta filtrado opcional por conductor
   Future<List<TrasladoEntity>> getByRangoFechas({
-    required DateTime desde,
-    required DateTime hasta,
+    required DateTime fechaInicio,
+    required DateTime fechaFin,
+    String? idConductor,
   });
 
   /// Obtiene traslados activos (que están en curso: estados que no son
@@ -73,7 +89,22 @@ abstract class TrasladoDataSource {
 
   /// Actualiza un traslado existente
   /// Se usa principalmente para actualizar estado y cronas (timestamps)
-  Future<TrasladoEntity> update(TrasladoEntity traslado);
+  Future<TrasladoEntity> update({
+    required String id,
+    required Map<String, dynamic> updates,
+  });
+
+  /// Cambia el estado de un traslado y registra el cambio en el historial
+  Future<TrasladoEntity> cambiarEstado({
+    required String idTraslado,
+    required EstadoTraslado nuevoEstado,
+    required String idUsuario,
+    UbicacionEntity? ubicacion,
+    String? observaciones,
+  });
+
+  /// Obtiene el historial de cambios de estado de un traslado
+  Future<List<HistorialEstadoEntity>> getHistorialEstados(String idTraslado);
 
   /// Actualiza el estado de un traslado y registra la fecha/hora
   /// automáticamente en la crona correspondiente
@@ -133,4 +164,13 @@ abstract class TrasladoDataSource {
 
   /// Stream que emite cambios de múltiples traslados específicos por IDs
   Stream<List<TrasladoEntity>> watchByIds(List<String> ids);
+
+  /// Stream que emite traslados activos de un conductor específico
+  Stream<List<TrasladoEntity>> watchActivosByIdConductor(String idConductor);
+
+  /// Stream que emite eventos de traslados para el conductor actual
+  Stream<TrasladoEventoEntity> streamEventosConductor();
+
+  /// Libera los canales de Realtime
+  Future<void> disposeRealtimeChannels();
 }

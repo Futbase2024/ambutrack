@@ -29,21 +29,22 @@ class TrasladoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final estadoColor = _getColorFromHex(traslado.estado.colorHex);
+    final estadoActual = EstadoTraslado.fromValue(traslado.estado);
+    final estadoColor = _getColorFromHex(estadoActual?.colorHex ?? '#999999');
     final screenWidth = MediaQuery.of(context).size.width;
     // Usar layout vertical (narrow) para móviles < 600px
     // Layout horizontal (wide) solo para tablets >= 600px
     final isNarrow = screenWidth < 600;
 
     // Color del borde según tipo de traslado
-    final bool esIda = traslado.tipoTraslado.toUpperCase() == 'IDA';
+    final bool esIda = traslado.tipoTraslado?.toUpperCase() == 'IDA';
     final Color colorBorde = esIda ? AppColors.primary : AppColors.emergency;
 
     // Obtener siguiente estado si existe y hay callback
-    final EstadoTraslado? siguienteEstado = _obtenerSiguienteEstado(traslado.estado);
+    final EstadoTraslado? siguienteEstado = estadoActual != null ? _obtenerSiguienteEstado(estadoActual) : null;
     final bool mostrarBotonAccion = onCambiarEstado != null &&
                                      siguienteEstado != null &&
-                                     traslado.estado.isActivo;
+                                     (estadoActual?.estaEnCurso ?? false);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -80,8 +81,8 @@ class TrasladoCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.all(14),
                   child: isNarrow
-                      ? _buildNarrowLayout(estadoColor)
-                      : _buildWideLayout(estadoColor),
+                      ? _buildNarrowLayout(estadoColor, estadoActual)
+                      : _buildWideLayout(estadoColor, estadoActual),
                 ),
 
                 // Botón de acción rápida en la parte inferior (si aplica)
@@ -96,7 +97,7 @@ class TrasladoCard extends StatelessWidget {
   }
 
   /// Layout para pantallas estrechas (móvil)
-  Widget _buildNarrowLayout(Color estadoColor) {
+  Widget _buildNarrowLayout(Color estadoColor, EstadoTraslado? estadoActual) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -132,7 +133,9 @@ class TrasladoCard extends StatelessWidget {
                   child: FittedBox(
                     fit: BoxFit.contain,
                     child: Text(
-                      traslado.horaProgramada.substring(0, 5),
+                      traslado.horaProgramada != null
+                        ? '${traslado.horaProgramada!.hour.toString().padLeft(2, '0')}:${traslado.horaProgramada!.minute.toString().padLeft(2, '0')}'
+                        : '--:--',
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
@@ -159,7 +162,7 @@ class TrasladoCard extends StatelessWidget {
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        _getBadgeLabel(traslado.estado),
+                        estadoActual != null ? _getBadgeLabel(estadoActual) : 'N/A',
                         style: TextStyle(
                           color: estadoColor,
                           fontSize: 13,
@@ -177,7 +180,7 @@ class TrasladoCard extends StatelessWidget {
               // Requisitos (30%)
               Flexible(
                 flex: 30,
-                child: traslado.requiereEquipamientoEspecial
+                child: (traslado.requiereEquipamientoEspecial ?? false)
                     ? Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
@@ -190,28 +193,28 @@ class TrasladoCard extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            if (traslado.requiereCamilla)
+                            if (traslado.requiereCamilla ?? false)
                               Flexible(
                                 child: FittedBox(
                                   fit: BoxFit.contain,
                                   child: Icon(Icons.bed, color: AppColors.info),
                                 ),
                               ),
-                            if (traslado.requiereSillaRuedas)
+                            if (traslado.requiereSillaRuedas ?? false)
                               Flexible(
                                 child: FittedBox(
                                   fit: BoxFit.contain,
                                   child: Icon(Icons.accessible, color: AppColors.info),
                                 ),
                               ),
-                            if (traslado.requiereAyuda)
+                            if (traslado.requiereAyuda ?? false)
                               Flexible(
                                 child: FittedBox(
                                   fit: BoxFit.contain,
                                   child: Icon(Icons.people, color: AppColors.info),
                                 ),
                               ),
-                            if (traslado.requiereAcompanante)
+                            if (traslado.requiereAcompanante ?? false)
                               Flexible(
                                 child: FittedBox(
                                   fit: BoxFit.contain,
@@ -276,7 +279,7 @@ class TrasladoCard extends StatelessWidget {
   }
 
   /// Layout para pantallas anchas (tablet/móvil grande)
-  Widget _buildWideLayout(Color estadoColor) {
+  Widget _buildWideLayout(Color estadoColor, EstadoTraslado? estadoActual) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -316,7 +319,9 @@ class TrasladoCard extends StatelessWidget {
                       child: FittedBox(
                         fit: BoxFit.contain,
                         child: Text(
-                          traslado.horaProgramada.substring(0, 5),
+                          traslado.horaProgramada != null
+                              ? '${traslado.horaProgramada!.hour.toString().padLeft(2, '0')}:${traslado.horaProgramada!.minute.toString().padLeft(2, '0')}'
+                              : '--:--',
                           style: const TextStyle(
                             fontWeight: FontWeight.w900,
                             color: Colors.white,
@@ -336,7 +341,7 @@ class TrasladoCard extends StatelessWidget {
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              traslado.codigo,
+                              traslado.codigo ?? '',
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
@@ -363,7 +368,7 @@ class TrasladoCard extends StatelessWidget {
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
-                                    _getBadgeLabel(traslado.estado),
+                                    estadoActual != null ? _getBadgeLabel(estadoActual) : 'N/A',
                                     style: TextStyle(
                                       color: estadoColor,
                                       fontSize: 14,
@@ -487,7 +492,7 @@ class TrasladoCard extends StatelessWidget {
     required IconData icono,
     required Color color,
     required String label,
-    required String direccion,
+    String? direccion,
     String? poblacion,
   }) {
     return Row(
@@ -521,7 +526,7 @@ class TrasladoCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                direccion,
+                direccion ?? 'No especificado',
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,

@@ -84,13 +84,15 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
 
       // Cargar paciente completo
       PacienteEntity? paciente;
-      try {
-        debugPrint('👤 [TrasladosBloc] Cargando paciente: ${traslado.idPaciente}');
-        paciente = await _pacienteDataSource.getById(traslado.idPaciente);
-        debugPrint('✅ [TrasladosBloc] Paciente cargado: ${paciente.nombreCompleto}');
-      } catch (e) {
-        debugPrint('⚠️  [TrasladosBloc] No se pudo cargar paciente: $e');
-        // Continuamos sin el paciente completo
+      if (traslado.idPaciente != null) {
+        try {
+          debugPrint('👤 [TrasladosBloc] Cargando paciente: ${traslado.idPaciente}');
+          paciente = await _pacienteDataSource.getById(traslado.idPaciente!);
+          debugPrint('✅ [TrasladosBloc] Paciente cargado: ${paciente.nombreCompleto}');
+        } catch (e) {
+          debugPrint('⚠️  [TrasladosBloc] No se pudo cargar paciente: $e');
+          // Continuamos sin el paciente completo
+        }
       }
 
       if (state is TrasladosLoaded) {
@@ -128,7 +130,7 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
 
       // Obtener traslado actual para guardar el estado anterior
       final trasladoActual = await _repository.getById(event.idTraslado);
-      final estadoAnterior = trasladoActual.estado;
+      final estadoAnterior = EstadoTraslado.fromValue(trasladoActual.estado) ?? EstadoTraslado.pendiente;
 
       // Emitir estado de carga
       emit(CambiandoEstadoTraslado(
@@ -452,9 +454,10 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
               EstadoTraslado.noRealizado,
             ];
 
-            if (estadosInvalidos.contains(traslado.estado)) {
+            final estadoActual = EstadoTraslado.fromValue(traslado.estado);
+            if (estadoActual != null && estadosInvalidos.contains(estadoActual)) {
               debugPrint(
-                '⚠️ [TrasladosBloc] ADVERTENCIA: Traslado reasignado con estado inválido "${traslado.estado.value}"',
+                '⚠️ [TrasladosBloc] ADVERTENCIA: Traslado reasignado con estado inválido "${estadoActual.value}"',
               );
               debugPrint('   Este traslado debería haber sido reseteado a "asignado" por el backend');
               debugPrint('   Ignorando este traslado hasta que el backend lo corrija');
@@ -592,6 +595,14 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
 
             emit(currentState.copyWith(traslados: nuevosTraslados));
           }
+          break;
+
+        // Eventos que no requieren acción especial (solo logueo)
+        case EventoTrasladoType.cancelled:
+        case EventoTrasladoType.started:
+        case EventoTrasladoType.completed:
+        case EventoTrasladoType.inTransit:
+          debugPrint('ℹ️  [TrasladosBloc] Evento ${evento.eventType.label} recibido (sin acción específica)');
           break;
       }
     } catch (e, stackTrace) {

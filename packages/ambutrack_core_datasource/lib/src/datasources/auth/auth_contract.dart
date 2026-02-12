@@ -10,6 +10,15 @@ abstract class AuthDataSource {
     required String password,
   });
 
+  /// Inicia sesión con email y contraseña (alias de signInWithEmail)
+  Future<UserEntity> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  });
+
+  /// Obtiene el email asociado a un DNI
+  Future<String?> getEmailByDni(String dni);
+
   /// Cierra la sesión actual
   Future<void> signOut();
 

@@ -66,6 +66,18 @@ class TrasladoEventoEntity extends Equatable {
   /// Fecha de creación del registro
   final DateTime? createdAt;
 
+  /// ID del conductor anterior (alias de conductorId para compatibilidad)
+  String? get oldConductorId => conductorId;
+
+  /// ID del conductor nuevo (alias de conductorId para compatibilidad)
+  String? get newConductorId => conductorId;
+
+  /// Estado anterior (alias de estadoAnterior para compatibilidad)
+  String? get oldEstado => estadoAnterior;
+
+  /// Estado nuevo (alias de estadoNuevo para compatibilidad)
+  String? get newEstado => estadoNuevo;
+
   /// Convierte el evento a Map<String, dynamic>
   Map<String, dynamic> toJson() {
     return <String, dynamic>{

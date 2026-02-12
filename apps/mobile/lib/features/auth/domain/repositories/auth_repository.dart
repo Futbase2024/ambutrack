@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Interfaz del repositorio de autenticación
 ///

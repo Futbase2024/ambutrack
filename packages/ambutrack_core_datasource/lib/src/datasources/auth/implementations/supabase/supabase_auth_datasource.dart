@@ -26,6 +26,30 @@ class SupabaseAuthDataSource implements AuthDataSource {
   }
 
   @override
+  Future<UserEntity> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    // Alias de signInWithEmail para compatibilidad
+    return signInWithEmail(email: email, password: password);
+  }
+
+  @override
+  Future<String?> getEmailByDni(String dni) async {
+    try {
+      final response = await _client
+          .from('usuarios')
+          .select('email')
+          .eq('dni', dni)
+          .maybeSingle();
+
+      return response?['email'] as String?;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  @override
   Future<void> signOut() async {
     await _client.auth.signOut();
   }
