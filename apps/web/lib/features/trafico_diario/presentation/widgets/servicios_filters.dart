@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/entities/servicio_entity.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/resizable_data_table.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/filtro_dropdown_widget.dart';
@@ -221,7 +221,7 @@ class ServiciosFilters {
 
       switch (columna) {
         case 'tipoTraslado':
-          valor = traslado.tipoTraslado.toUpperCase();
+          valor = (traslado.tipoTraslado ?? '').toUpperCase();
           break;
         case 'paciente':
           if (servicio?.paciente != null) {
@@ -264,7 +264,7 @@ class ServiciosFilters {
           valor = servicio?.motivoTraslado?.nombre ?? '';
           break;
         case 'estatus':
-          valor = traslado.estado.name;
+          valor = EstadoTraslado.fromValue(traslado.estado)?.label ?? traslado.estado ?? '';
           break;
         case 'conductor':
           valor = traslado.idConductor != null

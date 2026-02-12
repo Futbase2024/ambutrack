@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/repositories/traslado_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,7 +17,7 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
   }
 
   /// Suscripción al stream Realtime de traslados
-  StreamSubscription<TrasladoEntity>? _realtimeSubscription;
+  StreamSubscription<List<TrasladoEntity>>? _realtimeSubscription;
 
   Future<void> _onEvent(TraficoDiarioEvent event, Emitter<TraficoDiarioState> emit) async {
     await event.map(
@@ -92,7 +92,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
       // Debug: Mostrar fechas de los primeros 3 traslados para verificar si llegan
       for (int i = 0; i < trasladosCargados.length && i < 3; i++) {
         final TrasladoEntity t = trasladosCargados[i];
-        debugPrint('   📊 Traslado ${i + 1} [${t.codigo}] estado=${t.estado.name}:');
+        final String estadoLabel = EstadoTraslado.fromValue(t.estado)?.label ?? t.estado ?? 'Desconocido';
+        debugPrint('   📊 Traslado ${i + 1} [${t.codigo ?? 'Sin código'}] estado=$estadoLabel:');
         debugPrint('      - fechaEnviado: ${t.fechaEnviado}');
         debugPrint('      - fechaEnOrigen: ${t.fechaEnOrigen}');
         debugPrint('      - fechaSaliendoOrigen: ${t.fechaSaliendoOrigen}');
@@ -520,11 +521,17 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
       // Obtener el traslado actual
       final TrasladoEntity trasladoActual = await _trasladoRepository.getById(idTraslado);
 
-      // Crear entidad actualizada con la nueva hora programada (formato HH:mm:ss)
-      final String nuevaHoraStr =
-          '${nuevaHora.hour.toString().padLeft(2, '0')}:${nuevaHora.minute.toString().padLeft(2, '0')}:00';
+      // Crear entidad actualizada con la nueva hora programada
+      final DateTime fecha = trasladoActual.fecha ?? DateTime.now();
+      final DateTime nuevaHoraProgramada = DateTime(
+        fecha.year,
+        fecha.month,
+        fecha.day,
+        nuevaHora.hour,
+        nuevaHora.minute,
+      );
       final TrasladoEntity trasladoConNuevaHora = trasladoActual.copyWith(
-        horaProgramada: nuevaHoraStr,
+        horaProgramada: nuevaHoraProgramada,
         updatedAt: DateTime.now(),
       );
 
@@ -623,7 +630,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
     required TrasladoEntity traslado,
   }) async {
     debugPrint('📡 TraficoDiarioBloc: Actualización Realtime recibida para traslado ${traslado.id}');
-    debugPrint('   - Estado: ${traslado.estado.label}');
+    final String estadoLabel = EstadoTraslado.fromValue(traslado.estado)?.label ?? traslado.estado ?? 'Desconocido';
+    debugPrint('   - Estado: $estadoLabel');
     debugPrint('   - fechaEnviado: ${traslado.fechaEnviado}');
     debugPrint('   - fechaEnOrigen: ${traslado.fechaEnOrigen}');
     debugPrint('   - fechaSaliendoOrigen: ${traslado.fechaSaliendoOrigen}');
@@ -681,9 +689,11 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
 
     // Suscribirse al stream
     _realtimeSubscription = _trasladoRepository.watchByIds(ids).listen(
-      (TrasladoEntity trasladoActualizado) {
-        // Emitir evento para actualizar el estado
-        add(TraficoDiarioEvent.trasladoActualizadoFromRealtime(traslado: trasladoActualizado));
+      (List<TrasladoEntity> trasladosActualizados) {
+        // Emitir evento para cada traslado actualizado
+        for (final TrasladoEntity trasladoActualizado in trasladosActualizados) {
+          add(TraficoDiarioEvent.trasladoActualizadoFromRealtime(traslado: trasladoActualizado));
+        }
       },
       onError: (Object error) {
         debugPrint('❌ TraficoDiarioBloc: Error en stream Realtime: $error');

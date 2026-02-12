@@ -1,6 +1,5 @@
-// Imports del core datasource (sistema nuevo de almacén - imports directos necesarios)
-// NOTA: Usamos imports directos /src/ porque el barrel file exporta sistema legacy
-import 'package:ambutrack_core/ambutrack_core.dart';
+// Imports específicos para almacén (evitando conflicto con stock de vehículos)
+import 'package:ambutrack_core_datasource/src/datasources/almacen/entities/movimiento_stock_entity.dart';
 
 /// Repositorio para operaciones de Movimientos de Stock
 ///

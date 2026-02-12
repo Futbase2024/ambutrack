@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Contrato del repositorio para Excepciones/Festivos
 abstract class ExcepcionFestivoRepository {

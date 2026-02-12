@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/auth/enums/app_module.dart';
 import 'package:ambutrack_web/core/auth/enums/user_role.dart';
 import 'package:ambutrack_web/core/auth/permissions/crud_permissions.dart';

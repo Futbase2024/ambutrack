@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/turnos/domain/entities/disponibilidad_entity.dart';
 import 'package:ambutrack_web/features/turnos/domain/services/disponibilidad_service.dart';
 import 'package:flutter/foundation.dart';

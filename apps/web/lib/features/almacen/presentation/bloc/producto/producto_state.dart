@@ -1,5 +1,6 @@
 // Imports del core datasource (sistema nuevo de almacén - importación directa)
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart' hide MovimientoStockEntity, StockDataSource, StockDataSourceFactory;
+import 'package:ambutrack_core_datasource/src/datasources/almacen/entities/producto_entity.dart';
 import 'package:equatable/equatable.dart';
 
 /// Estados del ProductoBloc

@@ -82,12 +82,13 @@ Para TODA tarea, Claude DEBE: leer agente → ejecutar → validar con QA
 | Cupertino | ❌ **PROHIBIDO** - Usar Material Design 3 |
 | `domain/entities/` en features | ❌ PROHIBIDO (usar ambutrack_core_datasource) |
 | `data/` en features | ❌ PROHIBIDO (excepto repositories impl) |
+| **`ambutrack_core`** | ❌ **PROHIBIDO** - Paquete deprecado. Usar `ambutrack_core_datasource` |
 | Colores | ✅ `AppColors` SIEMPRE (excepto white/black/transparent) |
 | Textos | ✅ Localizar con `context.tr()` |
 | SafeArea | ✅ OBLIGATORIO en todas las páginas |
 | Widgets | ✅ Clases extraídas, NO métodos `_buildXxx()` que retornan Widget |
 | Loading | ✅ `AppLoadingOverlay` + `CrudOperationHandler` |
-| DataSources | ✅ Entidades en `packages/ambutrack_core_datasource/` |
+| DataSources | ✅ Entidades en `packages/ambutrack_core_datasource/` (NO `ambutrack_core`) |
 | Planes | ✅ Guardar en `docs/plans/`, NUNCA en `.claude/` |
 | Ejecutar app | ❌ NO ejecutar app, solo implementar + analyze |
 | Dropdowns | ✅ `AppDropdown` (≤10 items) / `AppSearchableDropdown` (>10) |

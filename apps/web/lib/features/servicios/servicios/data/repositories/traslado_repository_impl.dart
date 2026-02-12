@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/repositories/traslado_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
@@ -86,12 +86,8 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
 
   @override
   Future<List<TrasladoEntity>> getByEstado(String estado) async {
-    // Convertir String a EstadoTraslado enum
-    final EstadoTraslado estadoEnum = EstadoTraslado.values.firstWhere(
-      (EstadoTraslado e) => e.name == estado,
-      orElse: () => EstadoTraslado.pendiente,
-    );
-    return _dataSource.getByEstado(estado: estadoEnum);
+    // El datasource espera String directamente, no enum
+    return _dataSource.getByEstado(estado);
   }
 
   @override
@@ -101,7 +97,7 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
 
   @override
   Future<List<TrasladoEntity>> getByConductor(String idConductor) async {
-    return _dataSource.getByIdConductor(idConductor);
+    return _dataSource.getByConductor(idConductor);
   }
 
   @override
@@ -109,7 +105,7 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
     required DateTime desde,
     required DateTime hasta,
   }) async {
-    return _dataSource.getByRangoFechas(fechaInicio: desde, fechaFin: hasta);
+    return _dataSource.getByRangoFechas(desde: desde, hasta: hasta);
   }
 
   @override
@@ -137,28 +133,8 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
 
   @override
   Future<TrasladoEntity> update(TrasladoEntity traslado) async {
-    // Convertir TrasladoEntity a Map para el datasource
-    return _dataSource.update(
-      id: traslado.id,
-      updates: <String, dynamic>{
-        'codigo': traslado.codigo,
-        'id_servicio': traslado.idServicio,
-        'id_servicio_recurrente': traslado.idServicioRecurrente,
-        'id_paciente': traslado.idPaciente,
-        'id_motivo_traslado': traslado.idMotivoTraslado,
-        'id_conductor': traslado.idConductor,
-        'id_vehiculo': traslado.idVehiculo,
-        'matricula_vehiculo': traslado.matriculaVehiculo,
-        'fecha': traslado.fecha.toIso8601String(),
-        'hora_programada': traslado.horaProgramada,
-        'estado': traslado.estado.name,
-        'tipo_traslado': traslado.tipoTraslado,
-        'prioridad': traslado.prioridad,
-        'observaciones': traslado.observaciones,
-        'origen': traslado.origen,
-        'destino': traslado.destino,
-      },
-    );
+    // Pass-through directo al datasource
+    return _dataSource.update(traslado);
   }
 
   @override
@@ -267,7 +243,7 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
   }
 
   @override
-  Stream<TrasladoEntity> watchByIds(List<String> ids) {
+  Stream<List<TrasladoEntity>> watchByIds(List<String> ids) {
     debugPrint('📦 TrasladoRepository: Iniciando watch de ${ids.length} traslados');
     return _dataSource.watchByIds(ids);
   }

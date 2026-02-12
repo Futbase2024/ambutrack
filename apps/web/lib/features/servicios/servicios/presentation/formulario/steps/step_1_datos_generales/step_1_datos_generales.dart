@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/steps/step_1_datos_generales/widgets/detalles_medicos_widget.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/steps/step_1_datos_generales/widgets/fechas_tratamiento_widget.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/steps/step_1_datos_generales/widgets/observaciones_field_widget.dart';

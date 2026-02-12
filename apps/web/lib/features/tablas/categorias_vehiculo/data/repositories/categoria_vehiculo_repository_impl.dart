@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/tablas/categorias_vehiculo/domain/repositories/categoria_vehiculo_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';

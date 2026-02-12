@@ -9,7 +9,7 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'package:ambutrack_core/ambutrack_core.dart' as _i40;
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart' as _i40;
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart'
     as _i1033;
 import 'package:ambutrack_web/core/auth/services/role_service.dart' as _i750;
@@ -304,10 +304,16 @@ import 'package:ambutrack_web/features/vacaciones/domain/repositories/vacaciones
     as _i769;
 import 'package:ambutrack_web/features/vacaciones/presentation/bloc/vacaciones_bloc.dart'
     as _i101;
+import 'package:ambutrack_web/features/vehiculos/data/repositories/incidencia_vehiculo_repository_impl.dart'
+    as _i308;
 import 'package:ambutrack_web/features/vehiculos/data/repositories/vehiculo_repository_impl.dart'
     as _i814;
+import 'package:ambutrack_web/features/vehiculos/domain/repositories/incidencia_vehiculo_repository.dart'
+    as _i818;
 import 'package:ambutrack_web/features/vehiculos/domain/repositories/vehiculo_repository.dart'
     as _i145;
+import 'package:ambutrack_web/features/vehiculos/presentation/bloc/incidencia_vehiculo/incidencia_vehiculo_bloc.dart'
+    as _i1050;
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_bloc.dart'
     as _i1015;
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart'
@@ -358,6 +364,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i98.TipoPacienteRepository>(
       () => _i567.TipoPacienteRepositoryImpl(),
+    );
+    gh.lazySingleton<_i818.IncidenciaVehiculoRepository>(
+      () => _i308.IncidenciaVehiculoRepositoryImpl(),
     );
     gh.lazySingleton<_i681.ServicioRecurrenteRepository>(
       () => _i820.ServicioRecurrenteRepositoryImpl(),
@@ -414,6 +423,11 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i983.AlmacenRepository>(
       () => _i704.AlmacenRepositoryImpl(),
+    );
+    gh.factory<_i1050.IncidenciaVehiculoBloc>(
+      () => _i1050.IncidenciaVehiculoBloc(
+        gh<_i818.IncidenciaVehiculoRepository>(),
+      ),
     );
     gh.lazySingleton<_i971.ProductoRepository>(
       () => _i723.ProductoRepositoryImpl(),

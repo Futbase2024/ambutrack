@@ -59,18 +59,20 @@ class UsuariosRepositoryImpl implements UsuariosRepository {
       // 2. Crear en tabla usuarios con el ID generado por auth.users
       debugPrint('  → Paso 2: Creando en tabla usuarios');
       final UserEntity usuarioCompleto = UserEntity(
-        uid: authUserId,
+        id: authUserId,
         email: usuario.email,
         displayName: usuario.displayName,
         photoUrl: usuario.photoUrl,
         phoneNumber: usuario.phoneNumber,
-        emailVerified: false,
         createdAt: DateTime.now(),
-        empresaId: usuario.empresaId,
-        empresaNombre: usuario.empresaNombre,
-        rol: usuario.rol,
-        activo: usuario.activo ?? true,
-        dni: usuario.dni,
+        updatedAt: DateTime.now(),
+        isActive: usuario.activo ?? true,
+        roles: usuario.rol != null ? <String>[usuario.rol!] : const <String>[],
+        metadata: <String, dynamic>{
+          'empresaId': usuario.empresaId,
+          'empresaNombre': usuario.empresaNombre,
+          'dni': usuario.dni,
+        },
       );
 
       final UserEntity usuarioCreado = await _dataSource.create(usuarioCompleto);

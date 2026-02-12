@@ -1,5 +1,7 @@
-// Imports del core datasource (sistema nuevo de almacén - importación directa)
-import 'package:ambutrack_core/ambutrack_core.dart';
+// Imports del core datasource (ocultando clases de stock que tienen conflicto de nombres)
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart' hide MovimientoStockEntity, StockDataSource;
+// Imports específicos para almacén
+import 'package:ambutrack_core_datasource/src/datasources/almacen/entities/movimiento_stock_entity.dart';
 import 'package:ambutrack_web/features/almacen/domain/repositories/movimiento_stock_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';

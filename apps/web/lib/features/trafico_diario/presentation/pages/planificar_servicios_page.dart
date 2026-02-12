@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
@@ -248,10 +248,11 @@ class _PlanificarServiciosViewState extends State<_PlanificarServiciosView> {
                 );
 
                 trasladosPendientes = traslados.where((TrasladoEntity traslado) {
+                  if (traslado.fecha == null) return false;
                   final DateTime trasladoKey = DateTime(
-                    traslado.fecha.year,
-                    traslado.fecha.month,
-                    traslado.fecha.day,
+                    traslado.fecha!.year,
+                    traslado.fecha!.month,
+                    traslado.fecha!.day,
                   );
                   return trasladoKey == selectedDayKey;
                 }).toList();

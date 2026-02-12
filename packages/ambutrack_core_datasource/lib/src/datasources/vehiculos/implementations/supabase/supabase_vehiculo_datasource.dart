@@ -181,6 +181,19 @@ class SupabaseVehiculoDataSource implements VehiculoDataSource {
       final model = VehiculoSupabaseModel.fromEntity(entity);
       final json = model.toJson();
 
+      // Eliminar campos inmutables/autogenerados que no deben actualizarse
+      json.remove('id');
+      json.remove('created_at');
+      json.remove('empresa_id'); // empresa_id no debe cambiar después de la creación
+
+      // Eliminar campos UUID vacíos para evitar errores
+      final List<String> uuidFields = ['created_by', 'updated_by'];
+      for (final String field in uuidFields) {
+        if (json[field] == null || json[field] == '') {
+          json.remove(field);
+        }
+      }
+
       final Map<String, dynamic> response = await _supabase
           .from(_tableName)
           .update(json)

@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'asignaciones_state.freezed.dart';

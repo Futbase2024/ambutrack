@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/cuadrante/dotaciones/domain/repositories/dotaciones_repository.dart';
 import 'package:ambutrack_web/features/cuadrante/dotaciones/presentation/bloc/dotaciones_event.dart';
 import 'package:ambutrack_web/features/cuadrante/dotaciones/presentation/bloc/dotaciones_state.dart';

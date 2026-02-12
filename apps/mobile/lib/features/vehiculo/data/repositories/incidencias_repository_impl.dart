@@ -8,9 +8,11 @@ import '../../domain/repositories/incidencias_repository.dart';
 @LazySingleton(as: IncidenciasRepository)
 class IncidenciasRepositoryImpl implements IncidenciasRepository {
   IncidenciasRepositoryImpl()
-      : _dataSource = IncidenciaVehiculoDataSourceFactory.createSupabase();
+      : _dataSource = IncidenciaVehiculoDataSourceFactory.createSupabase(),
+        _vehiculosDataSource = VehiculoDataSourceFactory.createSupabase();
 
   final IncidenciaVehiculoDataSource _dataSource;
+  final VehiculoDataSource _vehiculosDataSource;
 
   @override
   Future<List<IncidenciaVehiculoEntity>> getAll() async {
@@ -43,8 +45,79 @@ class IncidenciasRepositoryImpl implements IncidenciasRepository {
   @override
   Future<IncidenciaVehiculoEntity> create(
       IncidenciaVehiculoEntity incidencia) async {
-    debugPrint('📦 IncidenciasRepository: Creando nueva incidencia...');
-    return await _dataSource.create(incidencia);
+    debugPrint(
+        '📦 IncidenciasRepository: Creando incidencia para vehículo: ${incidencia.vehiculoId}');
+
+    try {
+      // VALIDACIÓN 1: Si se reporta kilometraje, validar que no sea inferior al actual
+      if (incidencia.kilometrajeReporte != null) {
+        debugPrint(
+            '📦 IncidenciasRepository: 🔍 Validando kilometraje reportado: ${incidencia.kilometrajeReporte} km');
+
+        // Obtener el vehículo para verificar su kilometraje actual
+        final VehiculoEntity? vehiculo =
+            await _vehiculosDataSource.getById(incidencia.vehiculoId);
+
+        if (vehiculo == null) {
+          throw Exception(
+              'Vehículo con ID ${incidencia.vehiculoId} no encontrado');
+        }
+
+        final double kmActual = vehiculo.kmActual ?? 0.0;
+        final double kmReportado = incidencia.kilometrajeReporte!;
+
+        debugPrint(
+            '📦 IncidenciasRepository: 📊 KM actual del vehículo: $kmActual km');
+        debugPrint(
+            '📦 IncidenciasRepository: 📊 KM reportado en incidencia: $kmReportado km');
+
+        // Validar que el kilometraje reportado NO sea inferior al actual
+        if (kmReportado < kmActual) {
+          debugPrint(
+              '📦 IncidenciasRepository: ❌ VALIDACIÓN FALLIDA: KM reportado ($kmReportado km) es inferior al KM actual ($kmActual km)');
+          throw ArgumentError(
+              'El kilometraje reportado ($kmReportado km) no puede ser inferior al kilometraje actual del vehículo ($kmActual km)');
+        }
+
+        debugPrint(
+            '📦 IncidenciasRepository: ✅ Validación de kilometraje exitosa');
+
+        // Crear la incidencia
+        final IncidenciaVehiculoEntity incidenciaCreada =
+            await _dataSource.create(incidencia);
+
+        debugPrint(
+            '📦 IncidenciasRepository: ✅ Incidencia creada con ID: ${incidenciaCreada.id}');
+
+        // ACTUALIZACIÓN: Actualizar el kilometraje del vehículo
+        debugPrint(
+            '📦 IncidenciasRepository: 🔄 Actualizando kilometraje del vehículo a $kmReportado km');
+
+        final VehiculoEntity vehiculoActualizado = vehiculo.copyWith(
+          kmActual: kmReportado,
+          updatedAt: DateTime.now(),
+        );
+
+        await _vehiculosDataSource.update(vehiculoActualizado);
+
+        debugPrint(
+            '📦 IncidenciasRepository: ✅ Kilometraje del vehículo actualizado correctamente');
+
+        return incidenciaCreada;
+      } else {
+        // Si no se reporta kilometraje, solo crear la incidencia
+        debugPrint(
+            '📦 IncidenciasRepository: ℹ️ No se reportó kilometraje, solo se crea la incidencia');
+        final IncidenciaVehiculoEntity incidenciaCreada =
+            await _dataSource.create(incidencia);
+        debugPrint(
+            '📦 IncidenciasRepository: ✅ Incidencia creada con ID: ${incidenciaCreada.id}');
+        return incidenciaCreada;
+      }
+    } catch (e) {
+      debugPrint('📦 IncidenciasRepository: ❌ Error al crear incidencia: $e');
+      rethrow;
+    }
   }
 
   @override

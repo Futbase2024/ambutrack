@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
@@ -271,7 +271,10 @@ class _ServicioActivoItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color estadoColor = _getEstadoColor(servicio.estado);
+    final EstadoTraslado? estadoEnum = EstadoTraslado.fromValue(servicio.estado);
+    final Color estadoColor = estadoEnum != null
+        ? _getEstadoColor(estadoEnum)
+        : AppColors.gray500;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -303,7 +306,7 @@ class _ServicioActivoItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  servicio.codigo,
+                  servicio.codigo ?? 'Sin código',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -336,7 +339,7 @@ class _ServicioActivoItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              servicio.estado.label,
+              estadoEnum?.label ?? servicio.estado ?? 'Desconocido',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 11,
@@ -357,6 +360,7 @@ class _ServicioActivoItem extends StatelessWidget {
         return AppColors.info;
       case EstadoTraslado.enviado:
       case EstadoTraslado.recibido:
+      case EstadoTraslado.recibidoConductor:
         return AppColors.primary;
       case EstadoTraslado.enOrigen:
       case EstadoTraslado.saliendoOrigen:
@@ -367,6 +371,8 @@ class _ServicioActivoItem extends StatelessWidget {
         return AppColors.success;
       case EstadoTraslado.cancelado:
       case EstadoTraslado.noRealizado:
+      case EstadoTraslado.suspendido:
+      case EstadoTraslado.anulado:
         return AppColors.error;
     }
   }

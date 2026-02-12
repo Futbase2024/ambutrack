@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
@@ -8,7 +9,6 @@ import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:ambutrack_web/core/widgets/dropdowns/app_searchable_dropdown.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
-import 'package:ambutrack_web/features/auth/domain/entities/user_entity.dart';
 import 'package:ambutrack_web/features/usuarios/presentation/bloc/usuarios_bloc.dart';
 import 'package:ambutrack_web/features/usuarios/presentation/bloc/usuarios_event.dart';
 import 'package:ambutrack_web/features/usuarios/presentation/bloc/usuarios_state.dart';
@@ -639,21 +639,23 @@ class _UsuarioFormDialogState extends State<UsuarioFormDialog> {
     if (_isEditing) {
       // Actualizar usuario existente
       final UserEntity updatedUser = UserEntity(
-        uid: widget.usuario!.uid,
+        id: widget.usuario!.id,
         email: widget.usuario!.email, // No se puede cambiar
         displayName: displayName,
         phoneNumber: _telefonoController.text.trim().isEmpty ? null : _telefonoController.text.trim(),
-        emailVerified: widget.usuario!.emailVerified,
+        isEmailVerified: widget.usuario!.isEmailVerified,
         createdAt: widget.usuario!.createdAt,
-        lastLoginAt: widget.usuario!.lastLoginAt,
-        empresaId: _selectedEmpresaId,
-        empresaNombre: _empresas.firstWhere(
-          (Map<String, dynamic> e) => e['id'] == _selectedEmpresaId,
-          orElse: () => <String, dynamic>{'nombre': null},
-        )['nombre'] as String?,
-        rol: _selectedRol,
-        activo: _activo,
-        dni: _dniController.text.trim().toUpperCase(),
+        updatedAt: DateTime.now(),
+        isActive: _activo,
+        roles: _selectedRol != null ? <String>[_selectedRol!] : <String>[],
+        metadata: <String, dynamic>{
+          'empresaId': _selectedEmpresaId,
+          'empresaNombre': _empresas.firstWhere(
+            (Map<String, dynamic> e) => e['id'] == _selectedEmpresaId,
+            orElse: () => <String, dynamic>{'nombre': null},
+          )['nombre'] as String?,
+          'dni': _dniController.text.trim().toUpperCase(),
+        },
       );
 
       setState(() => _isSaving = true);
@@ -687,22 +689,24 @@ class _UsuarioFormDialogState extends State<UsuarioFormDialog> {
       final String password = _passwordController.text.trim();
 
       final UserEntity newUser = UserEntity(
-        uid: const Uuid().v4(), // Temporal, se sobrescribirá con el UID de auth
+        id: const Uuid().v4(), // Temporal, se sobrescribirá con el ID de auth
         email: _emailController.text.trim(),
         displayName: displayName,
         phoneNumber: _telefonoController.text.trim().isEmpty ? null : _telefonoController.text.trim(),
-        emailVerified: false,
         createdAt: DateTime.now(),
-        empresaId: _selectedEmpresaId,
-        empresaNombre: _selectedEmpresaId != null
-            ? _empresas.firstWhere(
-                (Map<String, dynamic> e) => e['id'] == _selectedEmpresaId,
-                orElse: () => <String, dynamic>{'nombre': null},
-              )['nombre'] as String?
-            : null,
-        rol: _selectedRol,
-        activo: _activo,
-        dni: _dniController.text.trim().toUpperCase(),
+        updatedAt: DateTime.now(),
+        isActive: _activo,
+        roles: _selectedRol != null ? <String>[_selectedRol!] : <String>[],
+        metadata: <String, dynamic>{
+          'empresaId': _selectedEmpresaId,
+          'empresaNombre': _selectedEmpresaId != null
+              ? _empresas.firstWhere(
+                  (Map<String, dynamic> e) => e['id'] == _selectedEmpresaId,
+                  orElse: () => <String, dynamic>{'nombre': null},
+                )['nombre'] as String?
+              : null,
+          'dni': _dniController.text.trim().toUpperCase(),
+        },
       );
 
       setState(() => _isSaving = true);

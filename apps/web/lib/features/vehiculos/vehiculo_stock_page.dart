@@ -1,9 +1,8 @@
 // ignore_for_file: implementation_imports
-import 'package:ambutrack_core/ambutrack_core.dart';
-import 'package:ambutrack_core/src/datasources/stock/entities/stock_vehiculo_entity.dart';
-import 'package:ambutrack_core/src/datasources/stock/stock_contract.dart'
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+import 'package:ambutrack_core_datasource/src/datasources/stock/stock_contract.dart'
     as legacy_stock;
-import 'package:ambutrack_core/src/datasources/stock/stock_factory.dart'
+import 'package:ambutrack_core_datasource/src/datasources/stock/stock_factory.dart'
     as legacy_stock;
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';

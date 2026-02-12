@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/context_menu/custom_context_menu.dart';
@@ -76,11 +76,14 @@ class TrasladoRowBuilder {
     // Usar paciente del servicio (traslado no tiene paciente directo)
     final PacienteEntity? paciente = servicio?.paciente;
 
-    final String tipoTraslado = traslado.tipoTraslado.toUpperCase();
-    // Formatear hora a HH:mm (quitar segundos si vienen en formato HH:mm:ss)
-    final String horaProgramada = _formatearHora(traslado.horaProgramada);
+    final String tipoTraslado = (traslado.tipoTraslado ?? 'SIN TIPO').toUpperCase();
+    // Formatear hora a HH:mm desde DateTime
+    final String horaProgramada = traslado.horaProgramada != null
+        ? DateFormat('HH:mm').format(traslado.horaProgramada!)
+        : '';
 
-    final String estatus = _getEstatusTexto(traslado.estado);
+    final EstadoTraslado estadoEnum = EstadoTraslado.fromValue(traslado.estado) ?? EstadoTraslado.pendiente;
+    final String estatus = _getEstatusTexto(estadoEnum);
     final Color estatusColor = _getEstatusColor(traslado);
 
     final String pacienteNombre = paciente != null
@@ -273,13 +276,14 @@ class TrasladoRowBuilder {
   /// Construye las opciones del menú contextual para un traslado
   List<ContextMenuOption> _buildContextMenuOptions(TrasladoEntity traslado, ServicioEntity? servicio) {
     final bool tieneServicio = servicio != null;
-    final bool tieneHoraProgramada = traslado.horaProgramada.isNotEmpty;
-    final bool estaPendiente = traslado.estado == EstadoTraslado.pendiente;
+    final bool tieneHoraProgramada = traslado.horaProgramada != null;
+    final EstadoTraslado? estadoEnum = EstadoTraslado.fromValue(traslado.estado);
+    final bool estaPendiente = estadoEnum == EstadoTraslado.pendiente;
     // Un traslado tiene conductor asignado si idConductor no es null
     // Esto cubre estados: asignado, enviado, recibido_conductor, en_origen, etc.
     final bool tieneConductorAsignado = traslado.idConductor != null;
     // Un traslado finalizado no puede ser desasignado
-    final bool estaFinalizado = traslado.estado == EstadoTraslado.finalizado;
+    final bool estaFinalizado = estadoEnum == EstadoTraslado.finalizado;
 
     return <ContextMenuOption>[
       ContextMenuOption(
@@ -350,7 +354,8 @@ class TrasladoRowBuilder {
               }
             } else {
               debugPrint('🚗 Asignar conductor a traslado: ${traslado.id}');
-              debugPrint('   - Estado actual: ${traslado.estado.name}');
+              final String estadoLabel = EstadoTraslado.fromValue(traslado.estado)?.label ?? traslado.estado ?? 'Desconocido';
+              debugPrint('   - Estado actual: $estadoLabel');
               _solicitarAsignacionConductor(traslado, servicio);
             }
           },
@@ -367,13 +372,8 @@ class TrasladoRowBuilder {
             final String pacienteNombreLocal = pacienteLocal != null
                 ? '${pacienteLocal.nombre} ${pacienteLocal.primerApellido}'
                 : '';
-            if (onModificarHora != null) {
-              // Parsear horaProgramada (String) a TimeOfDay para el callback
-              final List<String> horaParts = traslado.horaProgramada.split(':');
-              final int hora = int.tryParse(horaParts.isNotEmpty ? horaParts[0] : '0') ?? 0;
-              final int minuto = int.tryParse(horaParts.length > 1 ? horaParts[1] : '0') ?? 0;
-              final DateTime horaComoDateTime = DateTime(2000, 1, 1, hora, minuto);
-              onModificarHora!(traslado.id, horaComoDateTime, pacienteNombreLocal);
+            if (onModificarHora != null && traslado.horaProgramada != null) {
+              onModificarHora!(traslado.id, traslado.horaProgramada!, pacienteNombreLocal);
             }
           },
         ),
@@ -394,13 +394,8 @@ class TrasladoRowBuilder {
             final String destino = traslado.tipoDestino == 'centro_hospitalario'
                 ? (traslado.destino ?? 'Hospital')
                 : 'Domicilio';
-            if (onCancelarTraslado != null) {
-              // Parsear horaProgramada (String) a DateTime? para el callback
-              final List<String> horaPartsCancelar = traslado.horaProgramada.split(':');
-              final int horaCancelar = int.tryParse(horaPartsCancelar.isNotEmpty ? horaPartsCancelar[0] : '0') ?? 0;
-              final int minutoCancelar = int.tryParse(horaPartsCancelar.length > 1 ? horaPartsCancelar[1] : '0') ?? 0;
-              final DateTime horaComoDateTimeCancelar = DateTime(2000, 1, 1, horaCancelar, minutoCancelar);
-              onCancelarTraslado!(traslado.id, pacienteNombreLocal, horaComoDateTimeCancelar, origen, destino);
+            if (onCancelarTraslado != null && traslado.horaProgramada != null) {
+              onCancelarTraslado!(traslado.id, pacienteNombreLocal, traslado.horaProgramada!, origen, destino);
             }
           },
         ),
@@ -425,11 +420,16 @@ class TrasladoRowBuilder {
 
   /// Muestra un dialog con los detalles completos del traslado (diseño profesional con secciones)
   void _mostrarDetallesServicio(TrasladoEntity traslado, ServicioEntity? servicio) {
-    final String tipoTraslado = traslado.tipoTraslado.toUpperCase();
+    final String tipoTraslado = (traslado.tipoTraslado ?? 'SIN TIPO').toUpperCase();
     final bool esIda = tipoTraslado == 'IDA';
-    final String horaProgramada = traslado.horaProgramada;
-    final String fechaTraslado = DateFormat('EEEE, d MMMM yyyy', 'es_ES').format(traslado.fecha);
-    final String estado = traslado.estado.name;
+    final String horaProgramada = traslado.horaProgramada != null
+        ? DateFormat('HH:mm').format(traslado.horaProgramada!)
+        : 'Sin hora';
+    final String fechaTraslado = traslado.fecha != null
+        ? DateFormat('EEEE, d MMMM yyyy', 'es_ES').format(traslado.fecha!)
+        : 'Sin fecha';
+    final EstadoTraslado? estadoEnum = EstadoTraslado.fromValue(traslado.estado);
+    final String estado = estadoEnum?.label ?? traslado.estado ?? 'Desconocido';
 
     // Recursos asignados
     final String conductor = traslado.idConductor != null
@@ -1244,9 +1244,15 @@ class TrasladoRowBuilder {
 
   /// Sección de auditoría
   Widget _buildAuditoriaSection(TrasladoEntity traslado, ServicioEntity? servicio) {
-    final String createdAt = DateFormat('dd/MM/yyyy HH:mm').format(traslado.createdAt);
-    final String updatedAt = DateFormat('dd/MM/yyyy HH:mm').format(traslado.updatedAt);
-    final String fechaAsignacion = traslado.fechaAsignacion != null ? DateFormat('dd/MM/yyyy HH:mm').format(traslado.fechaAsignacion!) : '-';
+    final String createdAt = traslado.createdAt != null
+        ? DateFormat('dd/MM/yyyy HH:mm').format(traslado.createdAt!)
+        : '-';
+    final String updatedAt = traslado.updatedAt != null
+        ? DateFormat('dd/MM/yyyy HH:mm').format(traslado.updatedAt!)
+        : '-';
+    final String fechaAsignacion = traslado.fechaAsignacion != null
+        ? DateFormat('dd/MM/yyyy HH:mm').format(traslado.fechaAsignacion!)
+        : '-';
 
     return Row(
       children: <Widget>[
@@ -1470,15 +1476,15 @@ class TrasladoRowBuilder {
     return <DataTableCell>[
       // SIC = Solo Silla de Ruedas
       DataTableCell(
-        child: _buildCheckboxCell(traslado.requiereSillaRuedas),
+        child: _buildCheckboxCell(traslado.requiereSillaRuedas ?? false),
         alignment: Alignment.center,
       ),
       // CA = Solo Camilla
-      DataTableCell(child: _buildCheckboxCell(traslado.requiereCamilla), alignment: Alignment.center),
+      DataTableCell(child: _buildCheckboxCell(traslado.requiereCamilla ?? false), alignment: Alignment.center),
       // Ayu = Ayuda
-      DataTableCell(child: _buildCheckboxCell(traslado.requiereAyuda), alignment: Alignment.center),
+      DataTableCell(child: _buildCheckboxCell(traslado.requiereAyuda ?? false), alignment: Alignment.center),
       // Ac = Acompañante
-      DataTableCell(child: _buildCheckboxCell(traslado.requiereAcompanante), alignment: Alignment.center),
+      DataTableCell(child: _buildCheckboxCell(traslado.requiereAcompanante ?? false), alignment: Alignment.center),
     ];
   }
 
@@ -1504,19 +1510,27 @@ class TrasladoRowBuilder {
   }
 
   Color _getEstatusColor(TrasladoEntity traslado) {
-    switch (traslado.estado) {
+    final EstadoTraslado? estadoEnum = EstadoTraslado.fromValue(traslado.estado);
+    if (estadoEnum == null) return AppColors.gray500;
+
+    switch (estadoEnum) {
       // Rojo: Estados finales negativos
       case EstadoTraslado.cancelado:
       case EstadoTraslado.noRealizado:
-      case EstadoTraslado.finalizado:
+      case EstadoTraslado.anulado:
         return AppColors.error;
-      // Naranja: Pendiente (según diseño de imagen)
+      // Verde: Finalizado exitoso
+      case EstadoTraslado.finalizado:
+        return AppColors.success;
+      // Naranja: Pendiente y suspendido
       case EstadoTraslado.pendiente:
+      case EstadoTraslado.suspendido:
         return AppColors.warning;
       // Verde: Todos los demás estados activos
       case EstadoTraslado.asignado:
       case EstadoTraslado.enviado:
       case EstadoTraslado.recibido:
+      case EstadoTraslado.recibidoConductor:
       case EstadoTraslado.enOrigen:
       case EstadoTraslado.saliendoOrigen:
       case EstadoTraslado.enTransito:
@@ -1550,18 +1564,6 @@ class TrasladoRowBuilder {
     );
   }
 
-  /// Formatea la hora a formato HH:mm (quita los segundos si vienen en formato HH:mm:ss)
-  String _formatearHora(String hora) {
-    if (hora.isEmpty) {
-      return '';
-    }
-    // Si viene en formato HH:mm:ss, extraer solo HH:mm
-    final List<String> partes = hora.split(':');
-    if (partes.length >= 2) {
-      return '${partes[0]}:${partes[1]}';
-    }
-    return hora;
-  }
 
   /// Obtiene el valor de una columna para filtrado
   String obtenerValorColumna(TrasladoEntity traslado, String columna) {
@@ -1571,7 +1573,7 @@ class TrasladoRowBuilder {
 
     switch (columna) {
       case 'tipoTraslado':
-        return traslado.tipoTraslado.toUpperCase();
+        return (traslado.tipoTraslado ?? '').toUpperCase();
       case 'paciente':
         return paciente != null
             ? '${paciente.nombre} ${paciente.primerApellido}'
@@ -1580,7 +1582,7 @@ class TrasladoRowBuilder {
         // Usar motivo traslado del servicio
         return servicio?.motivoTraslado?.nombre ?? '';
       case 'estatus':
-        return traslado.estado.name;
+        return EstadoTraslado.fromValue(traslado.estado)?.label ?? traslado.estado ?? '';
       case 'conductor':
         return traslado.idConductor != null
             ? (personalPorId[traslado.idConductor!] ?? traslado.conductorNombre ?? '')

@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
@@ -1143,15 +1143,17 @@ class _TrayectosExcepcionesTabState extends State<_TrayectosExcepcionesTab>
             title: 'Confirmar Eliminación',
             message: '¿Estás seguro de que deseas eliminar este trayecto? Esta acción no se puede deshacer.',
             itemDetails: <String, String>{
-              'Código': trayecto.codigo,
-              'Tipo': trayecto.tipoTraslado,
-              'Fecha': DateFormat('dd/MM/yyyy').format(trayecto.fecha),
-              'Hora': trayecto.horaProgramada,
+              'Código': trayecto.codigo ?? 'Sin código',
+              'Tipo': trayecto.tipoTraslado ?? 'Sin tipo',
+              if (trayecto.fecha != null)
+                'Fecha': DateFormat('dd/MM/yyyy').format(trayecto.fecha!),
+              if (trayecto.horaProgramada != null)
+                'Hora': DateFormat('HH:mm').format(trayecto.horaProgramada!),
               if (trayecto.origen != null && trayecto.origen!.isNotEmpty)
                 'Origen': trayecto.origen!,
               if (trayecto.destino != null && trayecto.destino!.isNotEmpty)
                 'Destino': trayecto.destino!,
-              'Estado': trayecto.estado.name.toUpperCase(),
+              'Estado': (EstadoTraslado.fromValue(trayecto.estado)?.label ?? trayecto.estado ?? 'Desconocido').toUpperCase(),
             },
             warningMessage: '⚠️ El trayecto será eliminado permanentemente de la base de datos.',
           );
@@ -1310,11 +1312,15 @@ class _TrayectosExcepcionesTabState extends State<_TrayectosExcepcionesTab>
     final List<TrasladoEntity> trayectosOrdenados = List<TrasladoEntity>.from(trayectos)
       ..sort((TrasladoEntity a, TrasladoEntity b) {
         // Primero ordenar por fecha
-        final int fechaComparison = a.fecha.compareTo(b.fecha);
+        final DateTime fechaA = a.fecha ?? DateTime(2000);
+        final DateTime fechaB = b.fecha ?? DateTime(2000);
+        final int fechaComparison = fechaA.compareTo(fechaB);
 
         // Si las fechas son iguales, ordenar por hora programada
         if (fechaComparison == 0) {
-          final int horaComparison = a.horaProgramada.compareTo(b.horaProgramada);
+          final DateTime horaA = a.horaProgramada ?? DateTime(2000);
+          final DateTime horaB = b.horaProgramada ?? DateTime(2000);
+          final int horaComparison = horaA.compareTo(horaB);
           return _sortAscending ? horaComparison : -horaComparison;
         }
 
@@ -1466,24 +1472,30 @@ class _TrayectosExcepcionesTabState extends State<_TrayectosExcepcionesTab>
           Expanded(
             flex: 2,
             child: _TrayectoDataCell(
-              DateFormat('dd/MM/yyyy').format(trayecto.fecha),
+              trayecto.fecha != null
+                  ? DateFormat('dd/MM/yyyy').format(trayecto.fecha!)
+                  : 'Sin fecha',
             ),
           ),
           // Estado
           Expanded(
             flex: 2,
-            child: _TrayectoStatusCell(trayecto.estado.name),
+            child: _TrayectoStatusCell(
+              EstadoTraslado.fromValue(trayecto.estado)?.label ?? trayecto.estado ?? 'Desconocido'
+            ),
           ),
           // Ida/Vuelta
           Expanded(
             child: _TrayectoIdaVueltaCell(
-              trayecto.tipoTraslado,
+              trayecto.tipoTraslado ?? 'Sin tipo',
             ),
           ),
           // Hora Programada
           Expanded(
             child: _TrayectoDataCell(
-              trayecto.horaProgramada,
+              trayecto.horaProgramada != null
+                  ? DateFormat('HH:mm').format(trayecto.horaProgramada!)
+                  : 'Sin hora',
               textAlign: TextAlign.center,
             ),
           ),
@@ -1982,10 +1994,10 @@ class _TrayectoAnalisisDialogState extends State<_TrayectoAnalisisDialog> {
                           child: _buildSection(
                             title: '📋 Información General',
                             children: <Widget>[
-                              _buildInfoRow('Estado', widget.trayecto.estado.name),
-                              _buildInfoRow('Tipo', widget.trayecto.tipoTraslado),
-                              _buildInfoRow('Fecha', dateFormat.format(widget.trayecto.fecha)),
-                              _buildInfoRow('Hora Programada', widget.trayecto.horaProgramada),
+                              _buildInfoRow('Estado', EstadoTraslado.fromValue(widget.trayecto.estado)?.label ?? widget.trayecto.estado ?? 'Desconocido'),
+                              _buildInfoRow('Tipo', widget.trayecto.tipoTraslado ?? 'Sin tipo'),
+                              _buildInfoRow('Fecha', widget.trayecto.fecha != null ? dateFormat.format(widget.trayecto.fecha!) : 'Sin fecha'),
+                              _buildInfoRow('Hora Programada', widget.trayecto.horaProgramada != null ? DateFormat('HH:mm').format(widget.trayecto.horaProgramada!) : 'Sin hora'),
                             ],
                           ),
                         ),
@@ -2148,8 +2160,10 @@ class _TrayectoAnalisisDialogState extends State<_TrayectoAnalisisDialog> {
                           _buildInfoRow('Fecha Envío', dateTimeFormat.format(widget.trayecto.fechaEnviado!.toLocal())),
                         if (widget.trayecto.usuarioCancelacion != null)
                           _buildInfoRow('Usuario Cancelación', widget.trayecto.usuarioCancelacion!),
-                        _buildInfoRow('Creado', dateTimeFormat.format(widget.trayecto.createdAt.toLocal())),
-                        _buildInfoRow('Actualizado', dateTimeFormat.format(widget.trayecto.updatedAt.toLocal())),
+                        if (widget.trayecto.createdAt != null)
+                          _buildInfoRow('Creado', dateTimeFormat.format(widget.trayecto.createdAt!.toLocal())),
+                        if (widget.trayecto.updatedAt != null)
+                          _buildInfoRow('Actualizado', dateTimeFormat.format(widget.trayecto.updatedAt!.toLocal())),
                         if (widget.trayecto.createdBy != null)
                           _buildInfoRow('Creado Por', widget.trayecto.createdBy!),
                         if (widget.trayecto.updatedBy != null)

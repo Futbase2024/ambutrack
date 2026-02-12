@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
@@ -54,13 +54,12 @@ class _TrayectoFormDialogState extends State<TrayectoFormDialog> {
   void initState() {
     super.initState();
     _observacionesController = TextEditingController(text: widget.trayecto.observaciones ?? '');
-    _fecha = widget.trayecto.fecha;
-    // Parsear horaProgramada desde String "HH:mm" o "HH:mm:ss" a TimeOfDay
-    final List<String> horaParts = widget.trayecto.horaProgramada.split(':');
-    _horaProgramada = TimeOfDay(
-            hour: int.tryParse(horaParts.isNotEmpty ? horaParts[0] : '0') ?? 0,
-            minute: int.tryParse(horaParts.length > 1 ? horaParts[1] : '0') ?? 0,
-          );
+    _fecha = widget.trayecto.fecha ?? DateTime.now();
+    // Parsear horaProgramada desde DateTime a TimeOfDay
+    final DateTime? horaProgramadaDateTime = widget.trayecto.horaProgramada;
+    _horaProgramada = horaProgramadaDateTime != null
+        ? TimeOfDay(hour: horaProgramadaDateTime.hour, minute: horaProgramadaDateTime.minute)
+        : TimeOfDay.now();
 
     // Inicializar origen - SIEMPRE con los valores del trayecto
     _tipoOrigen = widget.trayecto.tipoOrigen;
@@ -256,7 +255,7 @@ class _TrayectoFormDialogState extends State<TrayectoFormDialog> {
       // Crear trayecto actualizado
       final TrasladoEntity trayectoActualizado = widget.trayecto.copyWith(
         fecha: _fecha,
-        horaProgramada: nuevaHoraProgramada,
+        horaProgramada: DateTime.parse('${_fecha.toIso8601String().split('T')[0]}T$nuevaHoraProgramada'),
         tipoOrigen: _tipoOrigen,
         origen: _origenValue,
         tipoDestino: _tipoDestino,
@@ -267,22 +266,8 @@ class _TrayectoFormDialogState extends State<TrayectoFormDialog> {
         updatedAt: DateTime.now(),
       );
 
-      // Guardar en Supabase usando update con id y updates Map
-      await _trasladoDataSource.update(
-        id: widget.trayecto.id,
-        updates: <String, dynamic>{
-          'fecha': _fecha.toIso8601String(),
-          'hora_programada': nuevaHoraProgramada,
-          'tipo_origen': _tipoOrigen,
-          'origen': _origenValue,
-          'tipo_destino': _tipoDestino,
-          'destino': _destinoValue,
-          'observaciones': _observacionesController.text.trim().isNotEmpty
-              ? _observacionesController.text.trim()
-              : null,
-          'updated_at': DateTime.now().toIso8601String(),
-        },
-      );
+      // Guardar en Supabase usando update
+      await _trasladoDataSource.update(trayectoActualizado);
 
       if (mounted) {
         // Llamar callback onSave

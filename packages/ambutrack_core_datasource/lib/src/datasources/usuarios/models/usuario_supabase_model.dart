@@ -89,20 +89,24 @@ class UsuarioSupabaseModel {
         ? '$nombre $apellidos'.trim()
         : nombre ?? apellidos;
 
+    // Construir metadata con los campos adicionales
+    final Map<String, dynamic> metadata = <String, dynamic>{};
+    if (dni != null) metadata['dni'] = dni;
+    if (empresaId != null) metadata['empresaId'] = empresaId;
+    if (empresaNombre != null) metadata['empresaNombre'] = empresaNombre;
+
     return UserEntity(
-      uid: id,
+      id: id,
       email: email,
       displayName: displayName,
       photoUrl: fotoUrl,
       phoneNumber: telefono,
-      emailVerified: true, // Asumimos verificado si está en la BD
+      isEmailVerified: true, // Asumimos verificado si está en la BD
       createdAt: createdAt,
-      lastLoginAt: null, // Este campo viene de auth.users, no de usuarios
-      empresaId: empresaId,
-      empresaNombre: empresaNombre,
-      rol: rol,
-      activo: activo,
-      dni: dni,
+      updatedAt: updatedAt ?? createdAt,
+      metadata: metadata.isNotEmpty ? metadata : null,
+      roles: rol != null ? <String>[rol!] : const <String>[],
+      isActive: activo,
     );
   }
 
@@ -123,7 +127,7 @@ class UsuarioSupabaseModel {
     }
 
     return UsuarioSupabaseModel(
-      id: entity.uid,
+      id: entity.id,
       email: entity.email,
       dni: entity.dni,
       nombre: nombre,
@@ -135,7 +139,7 @@ class UsuarioSupabaseModel {
       empresaId: entity.empresaId,
       empresaNombre: entity.empresaNombre,
       createdAt: entity.createdAt,
-      updatedAt: DateTime.now(),
+      updatedAt: entity.updatedAt ?? DateTime.now(),
     );
   }
 

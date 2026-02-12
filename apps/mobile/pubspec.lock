@@ -35,7 +35,7 @@ packages:
   ambutrack_core_datasource:
     dependency: "direct main"
     description:
-      path: "../web/packages/ambutrack_core_datasource"
+      path: "../../packages/ambutrack_core_datasource"
       relative: true
     source: path
     version: "0.1.0"

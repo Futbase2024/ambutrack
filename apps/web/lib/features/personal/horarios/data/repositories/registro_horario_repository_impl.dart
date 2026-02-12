@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/personal/horarios/domain/repositories/registro_horario_repository.dart';
 import 'package:injectable/injectable.dart';
 

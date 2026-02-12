@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/cuadrante/bases/domain/repositories/bases_repository.dart';
 import 'package:ambutrack_web/features/cuadrante/bases/presentation/bloc/bases_event.dart';
 import 'package:ambutrack_web/features/cuadrante/bases/presentation/bloc/bases_state.dart';

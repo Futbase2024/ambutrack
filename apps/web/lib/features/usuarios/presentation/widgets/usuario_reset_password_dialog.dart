@@ -1,12 +1,12 @@
 import 'dart:math';
 
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
-import 'package:ambutrack_web/features/auth/domain/entities/user_entity.dart';
 import 'package:ambutrack_web/features/usuarios/presentation/bloc/usuarios_bloc.dart';
 import 'package:ambutrack_web/features/usuarios/presentation/bloc/usuarios_event.dart';
 import 'package:ambutrack_web/features/usuarios/presentation/bloc/usuarios_state.dart';

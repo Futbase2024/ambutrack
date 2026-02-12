@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
@@ -384,7 +384,7 @@ class _PacienteFormDialogState extends State<PacienteFormDialog>
 
     // Generar identificación automática si no existe
     String? identificacion = widget.paciente?.identificacion;
-    if (identificacion == null || identificacion.isEmpty) {
+    if (identificacion?.isEmpty ?? true) {
       // Generar identificación única usando los primeros 8 caracteres de UUID
       // Formato: PAC-XXXXXXXX (ejemplo: PAC-A3F2B891)
       final String uuid = const Uuid().v4().replaceAll('-', '').substring(0, 8).toUpperCase();

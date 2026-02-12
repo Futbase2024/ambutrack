@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:flutter/material.dart';
@@ -254,26 +254,26 @@ class _TrayectosExcepcionesPanelState
 
   Widget _buildTrayectoCard(TrasladoEntity trayecto) {
     final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
+    final DateFormat timeFormat = DateFormat('HH:mm');
 
     // Color según estado
-    Color estadoColor;
-    switch (trayecto.estado) {
-      case EstadoTraslado.pendiente:
-        estadoColor = AppColors.textSecondaryLight; // Gris
-      case EstadoTraslado.cancelado:
-        estadoColor = AppColors.error; // Rojo
-      case EstadoTraslado.asignado:
-      case EstadoTraslado.enviado:
-      case EstadoTraslado.recibido:
-      case EstadoTraslado.enOrigen:
-      case EstadoTraslado.saliendoOrigen:
-      case EstadoTraslado.enTransito:
-      case EstadoTraslado.enDestino:
-      case EstadoTraslado.finalizado:
-        estadoColor = AppColors.success; // Verde
-      case EstadoTraslado.noRealizado:
-        estadoColor = AppColors.warning; // Amarillo/naranja
-    }
+    final EstadoTraslado? estadoEnum = EstadoTraslado.fromValue(trayecto.estado);
+    final Color estadoColor = switch (estadoEnum) {
+      EstadoTraslado.pendiente => AppColors.textSecondaryLight, // Gris
+      EstadoTraslado.cancelado || EstadoTraslado.anulado => AppColors.error, // Rojo
+      EstadoTraslado.asignado ||
+      EstadoTraslado.enviado ||
+      EstadoTraslado.recibido ||
+      EstadoTraslado.recibidoConductor ||
+      EstadoTraslado.enOrigen ||
+      EstadoTraslado.saliendoOrigen ||
+      EstadoTraslado.enTransito ||
+      EstadoTraslado.enDestino ||
+      EstadoTraslado.finalizado =>
+        AppColors.success, // Verde
+      EstadoTraslado.noRealizado || EstadoTraslado.suspendido => AppColors.warning, // Amarillo/naranja
+      null => AppColors.gray500, // Default
+    };
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSizes.spacing),
@@ -291,7 +291,9 @@ class _TrayectosExcepcionesPanelState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               Text(
-                '${dateFormat.format(trayecto.fecha)} - ${trayecto.horaProgramada}',
+                trayecto.fecha != null
+                    ? '${dateFormat.format(trayecto.fecha!)} - ${trayecto.horaProgramada != null ? timeFormat.format(trayecto.horaProgramada!) : 'Sin hora'}'
+                    : 'Sin fecha',
                 style: const TextStyle(
                   fontSize: AppSizes.fontSmall,
                   fontWeight: FontWeight.w600,
@@ -306,7 +308,7 @@ class _TrayectosExcepcionesPanelState
                   border: Border.all(color: estadoColor.withValues(alpha: 0.3)),
                 ),
                 child: Text(
-                  trayecto.estado.name,
+                  estadoEnum?.label ?? trayecto.estado ?? 'Desconocido',
                   style: TextStyle(
                     fontSize: AppSizes.fontSmall,
                     color: estadoColor,

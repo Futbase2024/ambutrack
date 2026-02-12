@@ -1,11 +1,11 @@
 // ignore_for_file: implementation_imports, avoid_redundant_argument_values, use_build_context_synchronously
 import 'dart:async';
 
-import 'package:ambutrack_core/src/datasources/stock/entities/producto_entity.dart'
+import 'package:ambutrack_core_datasource/src/datasources/stock/entities/producto_entity.dart'
     as stock_entities;
-import 'package:ambutrack_core/src/datasources/stock/stock_contract.dart'
+import 'package:ambutrack_core_datasource/src/datasources/stock/stock_contract.dart'
     as legacy_stock;
-import 'package:ambutrack_core/src/datasources/stock/stock_factory.dart'
+import 'package:ambutrack_core_datasource/src/datasources/stock/stock_factory.dart'
     as legacy_stock;
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
