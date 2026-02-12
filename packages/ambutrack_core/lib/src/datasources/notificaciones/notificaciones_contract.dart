@@ -45,4 +45,18 @@ abstract class NotificacionesDataSource {
     String? entidadId,
     Map<String, dynamic> metadata,
   });
+
+  /// Notifica a los gestores de flota sobre incidencias de vehículos
+  ///
+  /// Roles notificados: admin, jefe_mantenimiento
+  /// [excluirUsuarioId] - ID del usuario a excluir de las notificaciones
+  Future<void> notificarGestoresFlota({
+    required String tipo,
+    required String titulo,
+    required String mensaje,
+    String? entidadTipo,
+    String? entidadId,
+    Map<String, dynamic> metadata,
+    String? excluirUsuarioId,
+  });
 }

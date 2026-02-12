@@ -204,6 +204,38 @@ class NotificacionesRepositoryImpl implements NotificacionesRepository {
   }
 
   @override
+  Future<void> notificarGestoresFlota({
+    required String tipo,
+    required String titulo,
+    required String mensaje,
+    String? entidadTipo,
+    String? entidadId,
+    Map<String, dynamic> metadata = const {},
+    String? excluirUsuarioId,
+  }) async {
+    debugPrint('🚗 [NotificacionesRepository] Notificando a gestores de flota: $titulo');
+    if (excluirUsuarioId != null) {
+      debugPrint('🚫 [NotificacionesRepository] Excluyendo usuario: $excluirUsuarioId');
+    }
+
+    try {
+      await _dataSource.notificarGestoresFlota(
+        tipo: tipo,
+        titulo: titulo,
+        mensaje: mensaje,
+        entidadTipo: entidadTipo,
+        entidadId: entidadId,
+        metadata: metadata,
+        excluirUsuarioId: excluirUsuarioId,
+      );
+      debugPrint('✅ [NotificacionesRepository] Notificación enviada a gestores de flota');
+    } catch (e) {
+      debugPrint('❌ [NotificacionesRepository] Error al notificar gestores: $e');
+      // No hacemos rethrow para no romper el flujo principal si falla la notificación
+    }
+  }
+
+  @override
   Future<void> dispose() async {
     debugPrint('🔌 [NotificacionesRepository] Cerrando conexiones Realtime');
     // El datasource del core maneja internamente el cierre de canales

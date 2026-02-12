@@ -68,6 +68,27 @@ abstract class NotificacionesRepository {
     Map<String, dynamic> metadata = const {},
   });
 
+  /// Notifica a los gestores de flota sobre incidencias de vehículos
+  ///
+  /// Envía notificaciones a usuarios con roles: admin, jefe_mantenimiento
+  ///
+  /// [tipo] - Tipo de notificación (ej: 'incidencia_vehiculo_reportada')
+  /// [titulo] - Título de la notificación
+  /// [mensaje] - Mensaje descriptivo de la notificación
+  /// [entidadTipo] - Tipo de entidad relacionada (ej: 'incidencia_vehiculo')
+  /// [entidadId] - ID de la entidad relacionada
+  /// [metadata] - Metadatos adicionales
+  /// [excluirUsuarioId] - ID del usuario a excluir (ej: el que reportó la incidencia)
+  Future<void> notificarGestoresFlota({
+    required String tipo,
+    required String titulo,
+    required String mensaje,
+    String? entidadTipo,
+    String? entidadId,
+    Map<String, dynamic> metadata = const {},
+    String? excluirUsuarioId,
+  });
+
   /// Cierra todos los canales Realtime activos
   Future<void> dispose();
 }

@@ -212,9 +212,9 @@ class _HomeAndroidPageState extends State<HomeAndroidPage> {
             padding: const EdgeInsets.all(8),
             child: Column(
               children: [
-                // Icono - 80% del espacio
+                // Icono - 70% del espacio
                 Expanded(
-                  flex: 80,
+                  flex: 70,
                   child: Center(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
@@ -244,17 +244,26 @@ class _HomeAndroidPageState extends State<HomeAndroidPage> {
                   ),
                 ),
 
-                // Título - 20% del espacio
+                // Título - 30% del espacio
                 Expanded(
-                  flex: 20,
-                  child: Center(
-                    child: Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
+                  flex: 30,
+                  child: Container(
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          height: 1.0,
+                          letterSpacing: -0.5,
+                        ),
                       ),
                     ),
                   ),

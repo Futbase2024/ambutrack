@@ -29,9 +29,36 @@ class RolePermissions {
     }
 
     final List<AppModule> allowedModules = getModulesForRole(role);
-    return allowedModules.any(
-      (AppModule module) => route.startsWith(module.route),
-    );
+
+    // Normalizar la ruta (quitar trailing slash para comparación consistente)
+    final String normalizedRoute = route.endsWith('/') && route != '/'
+        ? route.substring(0, route.length - 1)
+        : route;
+
+    return allowedModules.any((AppModule module) {
+      final String moduleRoute = module.route;
+
+      // Caso especial: Dashboard (/) solo debe coincidir exactamente con /
+      if (moduleRoute == '/') {
+        return normalizedRoute == '/';
+      }
+
+      // Para otras rutas: la ruta debe empezar con la ruta del módulo
+      // Y si no es exacta, debe tener un / después para evitar coincidencias parciales
+      if (normalizedRoute == moduleRoute) {
+        return true;
+      }
+
+      if (normalizedRoute.startsWith(moduleRoute)) {
+        // Verificar que sea un segmento completo
+        // Ej: /personal/formacion debe coincidir con /personal
+        // pero /personalx no debe coincidir
+        final String remaining = normalizedRoute.substring(moduleRoute.length);
+        return remaining.isEmpty || remaining.startsWith('/');
+      }
+
+      return false;
+    });
   }
 
   /// Mapa de rol → módulos permitidos

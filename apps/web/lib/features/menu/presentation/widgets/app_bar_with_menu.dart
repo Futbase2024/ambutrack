@@ -443,35 +443,6 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                   ],
                 ),
               ),
-              PopupMenuItem<String>(
-                value: '/configuracion/cuenta',
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: <Widget>[
-                    Container(
-                      padding: const EdgeInsets.all(8.0),
-                      decoration: BoxDecoration(
-                        color: AppColors.info.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      child: const Icon(
-                        Icons.manage_accounts_outlined,
-                        color: AppColors.info,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Configuración de Cuenta',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimaryLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               const PopupMenuDivider(height: 1),
               PopupMenuItem<String>(
                 value: '/logout',

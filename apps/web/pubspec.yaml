@@ -51,6 +51,8 @@ dependencies:
   # ===== CORE SHARED PACKAGE (Monorepo) =====
   ambutrack_core:
     path: ../../packages/ambutrack_core
+  ambutrack_core_datasource:
+    path: ../../packages/ambutrack_core_datasource
 
   # # Internacionalización (comentado temporalmente por conflicto con DS)
   # easy_localization: ^3.0.8

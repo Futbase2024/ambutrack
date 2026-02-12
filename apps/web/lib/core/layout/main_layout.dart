@@ -42,7 +42,7 @@ class MainLayout extends StatelessWidget {
       builder: (BuildContext context, AuthState authState) {
         // Solo proveer NotificacionBloc si el usuario está autenticado
         if (authState is! AuthAuthenticated) {
-          return _buildScaffold(context, isDev);
+          return _buildScaffold(context, isDev, isAuthenticated: false);
         }
 
         final String userId = authState.user.uid;
@@ -54,13 +54,42 @@ class MainLayout extends StatelessWidget {
             return getIt<NotificacionBloc>()
               ..add(NotificacionEvent.subscribeNotificaciones(userId));
           },
-          child: _buildScaffold(context, isDev),
+          child: _buildScaffold(context, isDev, isAuthenticated: true),
         );
       },
     );
   }
 
-  Widget _buildScaffold(BuildContext context, bool isDev) {
+  Widget _buildScaffold(BuildContext context, bool isDev, {required bool isAuthenticated}) {
+    final Widget scaffold = Scaffold(
+      appBar: AppBarWithMenu(
+        title: title,
+      ),
+      body: Stack(
+        children: <Widget>[
+          child,
+          // Banner DEBUG siempre visible en DEV
+          if (isDev)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: CustomPaint(
+                painter: _DebugBannerPainter(),
+                child: const SizedBox(
+                  width: 100,
+                  height: 100,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+
+    // Solo agregar BlocListener si el usuario está autenticado
+    if (!isAuthenticated) {
+      return scaffold;
+    }
+
     return BlocListener<NotificacionBloc, NotificacionState>(
       listenWhen: (NotificacionState previous, NotificacionState current) {
         // Obtener conteo anterior
@@ -93,34 +122,19 @@ class MainLayout extends StatelessWidget {
           },
         );
       },
-      child: Scaffold(
-        appBar: AppBarWithMenu(
-          title: title,
-        ),
-        body: Stack(
-          children: <Widget>[
-            child,
-            // Banner DEBUG siempre visible en DEV
-            if (isDev)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: CustomPaint(
-                  painter: _DebugBannerPainter(),
-                  child: const SizedBox(
-                    width: 100,
-                    height: 100,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+      child: scaffold,
     );
   }
 
   /// Muestra un diálogo de notificación cuando llega una nueva notificación
   void _mostrarDialogoNotificacion(BuildContext context, NotificacionEntity notificacion) {
+    // Si es una incidencia de vehículo, mostrar diálogo especializado
+    if (notificacion.tipo == NotificacionTipo.incidenciaVehiculoReportada) {
+      _mostrarDialogoIncidenciaVehiculo(context, notificacion);
+      return;
+    }
+
+    // Diálogo genérico para otros tipos de notificaciones
     showDialog<void>(
       context: context,
       builder: (BuildContext dialogContext) => Dialog(
@@ -214,6 +228,217 @@ class MainLayout extends StatelessWidget {
     );
   }
 
+  /// Muestra un diálogo especializado para incidencias de vehículos
+  void _mostrarDialogoIncidenciaVehiculo(BuildContext context, NotificacionEntity notificacion) {
+    // Extraer datos del metadata
+    final Map<String, dynamic> metadata = notificacion.metadata;
+
+    // Prioridad (puede venir como 'alta', 'media', 'baja', 'critica')
+    final String prioridadRaw = metadata['prioridad'] as String? ?? 'media';
+    final String prioridad = prioridadRaw[0].toUpperCase() + prioridadRaw.substring(1);
+
+    // Nombre del reportante (reportado_por_nombre es el campo correcto en IncidenciaVehiculoEntity)
+    final String tecnico = metadata['reportado_por_nombre'] as String? ??
+                          metadata['reportante_nombre'] as String? ??
+                          'Sin especificar';
+
+    // Título de la incidencia (avería) - campo 'titulo' en IncidenciaVehiculoEntity
+    final String averia = metadata['titulo'] as String? ??
+                         metadata['tipo'] as String? ??
+                         'Sin especificar';
+
+    // Descripción detallada (observaciones) - campo 'descripcion' en IncidenciaVehiculoEntity
+    final String observaciones = metadata['descripcion'] as String? ??
+                                notificacion.mensaje;
+
+    // Matrícula del vehículo
+    final String matricula = metadata['vehiculo_matricula'] as String? ??
+                            metadata['matricula'] as String? ??
+                            'Sin especificar';
+
+    // Kilometraje - campo 'kilometraje_reporte' en IncidenciaVehiculoEntity
+    final String kilometraje = metadata['kilometraje_reporte']?.toString() ??
+                              metadata['kilometraje']?.toString() ??
+                              '0';
+
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 450),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              // Icono
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.car_crash_outlined,
+                    size: 48,
+                    color: AppColors.error,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Título
+              const Center(
+                child: Text(
+                  'Nueva Incidencia de Vehículo',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.gray900,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Prioridad
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _getPrioridadColor(prioridad).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _getPrioridadColor(prioridad),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Text(
+                    'Prioridad $prioridad',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _getPrioridadColor(prioridad),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Técnico/Reportante
+              _InfoRow(
+                icon: Icons.person_outline,
+                label: 'Reportado por',
+                value: tecnico,
+              ),
+              const SizedBox(height: 12),
+
+              // Avería
+              _InfoRow(
+                icon: Icons.build_outlined,
+                label: 'Avería',
+                value: averia,
+              ),
+              const SizedBox(height: 12),
+
+              // Observaciones
+              _InfoRow(
+                icon: Icons.notes_outlined,
+                label: 'Observaciones',
+                value: observaciones,
+                maxLines: 3,
+              ),
+              const SizedBox(height: 16),
+
+              // Separador
+              const Divider(color: AppColors.gray300),
+              const SizedBox(height: 16),
+
+              // Matrícula y Kilometraje
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: _InfoCard(
+                      icon: Icons.directions_car_outlined,
+                      label: 'Vehículo',
+                      value: matricula,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _InfoCard(
+                      icon: Icons.speed_outlined,
+                      label: 'Kilometraje',
+                      value: '$kilometraje km',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Botón de cerrar
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    // Marcar como leída si no lo está
+                    if (!notificacion.leida) {
+                      context.read<NotificacionBloc>().add(
+                        NotificacionEvent.marcarComoLeida(notificacion.id),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Entendido',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Obtiene el color según la prioridad
+  Color _getPrioridadColor(String prioridad) {
+    switch (prioridad.toLowerCase()) {
+      case 'alta':
+      case 'high':
+        return AppColors.error;
+      case 'media':
+      case 'medium':
+        return AppColors.warning;
+      case 'baja':
+      case 'low':
+        return AppColors.info;
+      default:
+        return AppColors.gray600;
+    }
+  }
+
   /// Obtiene el color según el tipo de notificación
   Color _getColorByTipo(NotificacionTipo tipo) {
     switch (tipo) {
@@ -236,6 +461,8 @@ class MainLayout extends StatelessWidget {
         return AppColors.warning;
       case NotificacionTipo.checklistPendiente:
         return AppColors.warning;
+      case NotificacionTipo.incidenciaVehiculoReportada:
+        return AppColors.error;
       case NotificacionTipo.alerta:
         return AppColors.emergency;
       case NotificacionTipo.info:
@@ -269,11 +496,131 @@ class MainLayout extends StatelessWidget {
         return Icons.block_outlined;
       case NotificacionTipo.checklistPendiente:
         return Icons.checklist_outlined;
+      case NotificacionTipo.incidenciaVehiculoReportada:
+        return Icons.car_crash_outlined;
       case NotificacionTipo.alerta:
         return Icons.warning_amber_outlined;
       case NotificacionTipo.info:
         return Icons.info_outlined;
     }
+  }
+}
+
+/// Widget para mostrar una fila de información con icono, label y valor
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.maxLines = 1,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(
+          icon,
+          size: 20,
+          color: AppColors.gray600,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.gray600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.gray900,
+                  height: 1.3,
+                ),
+                maxLines: maxLines,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Widget para mostrar una tarjeta de información compacta
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.gray100,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.gray300,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(
+                icon,
+                size: 16,
+                color: AppColors.gray600,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.gray600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.gray900,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
   }
 }
 

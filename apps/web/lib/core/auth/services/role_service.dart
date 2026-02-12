@@ -1,7 +1,7 @@
 import 'package:ambutrack_web/core/auth/enums/app_module.dart';
 import 'package:ambutrack_web/core/auth/enums/user_role.dart';
 import 'package:ambutrack_web/core/auth/permissions/role_permissions.dart';
-import 'package:ambutrack_web/core/services/auth_service.dart';
+import 'package:ambutrack_web/features/auth/domain/repositories/auth_repository.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
 import 'package:ambutrack_web/features/personal/domain/repositories/personal_repository.dart';
 import 'package:flutter/foundation.dart';
@@ -10,9 +10,9 @@ import 'package:injectable/injectable.dart';
 /// Servicio para gestionar roles y permisos de usuarios
 @lazySingleton
 class RoleService {
-  RoleService(this._authService, this._personalRepository);
+  RoleService(this._authRepository, this._personalRepository);
 
-  final AuthService _authService;
+  final AuthRepository _authRepository;
   final PersonalRepository _personalRepository;
 
   PersonalEntity? _cachedPersonal;
@@ -30,7 +30,7 @@ class RoleService {
 
     try {
       // 1. Obtener UUID del usuario autenticado
-      final String? userId = _authService.currentUser?.id;
+      final String? userId = _authRepository.currentUser?.uid;
 
       if (userId == null) {
         debugPrint('🔐 RoleService: No hay usuario autenticado');
@@ -66,16 +66,16 @@ class RoleService {
 
   /// Obtiene el rol del usuario autenticado actual
   Future<UserRole> getCurrentUserRole() async {
-    final PersonalEntity? personal = await getCurrentPersonal();
+    // ✅ CORREGIDO: Obtener rol desde tabla usuarios (AuthService)
+    // NO desde tabla personal (que es solo para empleados)
+    final String? rolString = _authRepository.currentUser?.rol;
 
-    if (personal == null) {
-      debugPrint('🔐 RoleService: Sin Personal → Rol por defecto: operador');
+    if (rolString == null || rolString.isEmpty) {
+      debugPrint('🔐 RoleService: ⚠️ Usuario sin rol asignado → Rol por defecto: operador');
       return UserRole.operador;
     }
 
-    // Obtener rol desde campo 'rol' de PersonalEntity
-    // NOTA: Este campo debe agregarse a PersonalEntity
-    final UserRole role = UserRole.fromString(personal.categoria);
+    final UserRole role = UserRole.fromString(rolString);
 
     debugPrint('🔐 RoleService: Rol del usuario: ${role.label} (${role.value})');
 

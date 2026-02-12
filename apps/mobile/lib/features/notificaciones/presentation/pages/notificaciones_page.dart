@@ -571,6 +571,14 @@ class _NotificacionesViewState extends State<_NotificacionesView> {
         );
         break;
 
+      case NotificacionTipo.incidenciaVehiculoReportada:
+        // Las incidencias de vehículos se gestionan desde la aplicación web
+        _mostrarMensaje(
+          context,
+          'Las incidencias de vehículos se gestionan desde la aplicación web',
+        );
+        break;
+
       case NotificacionTipo.alerta:
       case NotificacionTipo.info:
         // Solo marcar como leída, sin navegación adicional

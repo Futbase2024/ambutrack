@@ -53,7 +53,7 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.mensaje),
-              backgroundColor: AppColors.success,
+              backgroundColor: AppColors.primary,
               duration: const Duration(seconds: 2),
             ),
           );

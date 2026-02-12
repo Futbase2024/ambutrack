@@ -1,43 +1,26 @@
+import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
+import 'package:ambutrack_web/features/home/presentation/bloc/home_bloc.dart';
+import 'package:ambutrack_web/features/home/presentation/bloc/home_event.dart';
+import 'package:ambutrack_web/features/home/presentation/bloc/home_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Página principal de AmbuTrack - Dashboard integral de gestión de ambulancias
 ///
 /// Esta página se renderiza dentro del MainLayout, por lo que NO incluye
 /// su propio Scaffold ni AppBar.
-class HomePageIntegral extends StatefulWidget {
+class HomePageIntegral extends StatelessWidget {
   const HomePageIntegral({super.key});
 
   @override
-  State<HomePageIntegral> createState() => _HomePageIntegralState();
-}
-
-class _HomePageIntegralState extends State<HomePageIntegral> {
-  @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        // Contenido principal del dashboard
-        const SafeArea(
-          child: _DashboardTab(),
-        ),
-        // FloatingActionButton posicionado manualmente
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: _buildFloatingActionButton(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFloatingActionButton() {
-    return FloatingActionButton(
-      onPressed: () {
-        // TODO(team): Acción rápida general
-      },
-      backgroundColor: AppColors.primary,
-      child: const Icon(Icons.add, color: Colors.white),
+    return BlocProvider<HomeBloc>(
+      create: (BuildContext context) => getIt<HomeBloc>()..add(const HomeStarted()),
+      child: const SafeArea(
+        child: _DashboardTab(),
+      ),
     );
   }
 }
@@ -48,38 +31,104 @@ class _DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SingleChildScrollView(
-      padding: EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          // Header de bienvenida
-          _WelcomeHeader(),
-          SizedBox(height: 24),
+    return BlocBuilder<HomeBloc, HomeState>(
+      builder: (BuildContext context, HomeState state) {
+        // Mostrar loading profesional mientras carga
+        if (state is HomeLoading) {
+          return const Center(
+            child: AppLoadingIndicator(
+              message: 'Cargando dashboard...',
+              size: 100,
+            ),
+          );
+        }
 
-          // Resumen operacional
-          _OperationalSummaryCard(),
-          SizedBox(height: 16),
+        if (state is HomeError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Error al cargar el dashboard',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    state.message,
+                    style: const TextStyle(color: AppColors.textSecondaryLight),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<HomeBloc>().add(const HomeRefreshed());
+                    },
+                    child: const Text('Reintentar'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
 
-          // Estadísticas del día
-          _DailyStatsCard(),
-          SizedBox(height: 16),
+        if (state is HomeLoaded) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                // Header de bienvenida
+                _WelcomeHeader(isConnected: state.isConnected),
+                const SizedBox(height: 24),
 
-          // Estado de la flota
-          _FleetStatusCard(),
-          SizedBox(height: 16),
+                // Resumen operacional
+                _OperationalSummaryCard(
+                  programadosActivos: state.serviciosProgramadosActivos,
+                  programadosCompletados: state.serviciosProgramadosCompletados,
+                  urgenciasActivos: state.serviciosUrgenciasActivos,
+                  urgenciasCompletados: state.serviciosUrgenciasCompletados,
+                ),
+                const SizedBox(height: 16),
 
-          // Próximas actividades
-          _UpcomingActivitiesCard(),
-        ],
-      ),
+                // Estadísticas del día
+                _DailyStatsCard(
+                  totalServicios: state.serviciosTotalesDia,
+                  completados: state.serviciosCompletadosDia,
+                  enProceso: state.serviciosEnProceso,
+                ),
+                const SizedBox(height: 16),
+
+                // Estado de la flota
+                _FleetStatusCard(
+                  urgenciasDisponibles: state.vehiculosUrgenciasDisponibles,
+                  urgenciasTotal: state.vehiculosUrgenciasTotal,
+                  programadosDisponibles: state.vehiculosProgramadosDisponibles,
+                  programadosTotal: state.vehiculosProgramadosTotal,
+                ),
+                const SizedBox(height: 16),
+
+                // Próximas actividades
+                const _UpcomingActivitiesCard(),
+              ],
+            ),
+          );
+        }
+
+        return const SizedBox.shrink();
+      },
     );
   }
 }
 
 /// Header de bienvenida
 class _WelcomeHeader extends StatelessWidget {
-  const _WelcomeHeader();
+  const _WelcomeHeader({required this.isConnected});
+
+  final bool isConnected;
 
   @override
   Widget build(BuildContext context) {
@@ -96,10 +145,10 @@ class _WelcomeHeader extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
+          const Text(
             '¡Bienvenido al Centro de Control AmbuTrack!',
             style: TextStyle(
               color: Colors.white,
@@ -107,32 +156,35 @@ class _WelcomeHeader extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 8),
-          Text(
+          const SizedBox(height: 8),
+          const Text(
             'Gestión integral: Transporte programado y servicios de urgencias',
             style: TextStyle(
               color: Colors.white,
               fontSize: 16,
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Row(
             children: <Widget>[
-              Icon(
+              const Icon(
                 Icons.access_time,
                 color: Colors.white,
                 size: 20,
               ),
-              SizedBox(width: 8),
-              Text(
+              const SizedBox(width: 8),
+              const Text(
                 'Sistema operativo las 24 horas',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 14,
                 ),
               ),
-              Spacer(),
-              _StatusBadge(text: 'Operativo', color: AppColors.secondary),
+              const Spacer(),
+              _StatusBadge(
+                text: isConnected ? 'Operativo' : 'Sin conexión',
+                color: isConnected ? AppColors.secondary : AppColors.error,
+              ),
             ],
           ),
         ],
@@ -170,7 +222,17 @@ class _StatusBadge extends StatelessWidget {
 
 /// Resumen operacional
 class _OperationalSummaryCard extends StatelessWidget {
-  const _OperationalSummaryCard();
+  const _OperationalSummaryCard({
+    required this.programadosActivos,
+    required this.programadosCompletados,
+    required this.urgenciasActivos,
+    required this.urgenciasCompletados,
+  });
+
+  final int programadosActivos;
+  final int programadosCompletados;
+  final int urgenciasActivos;
+  final int urgenciasCompletados;
 
   @override
   Widget build(BuildContext context) {
@@ -205,23 +267,23 @@ class _OperationalSummaryCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
-            const Row(
+            Row(
               children: <Widget>[
                 Expanded(
                   child: _ServiceSummaryItem(
                     title: 'Transporte Programado',
-                    active: '12',
-                    completed: '28',
+                    active: programadosActivos.toString(),
+                    completed: programadosCompletados.toString(),
                     color: AppColors.secondary,
                     icon: Icons.schedule,
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: _ServiceSummaryItem(
                     title: 'Servicios Urgencias',
-                    active: '3',
-                    completed: '15',
+                    active: urgenciasActivos.toString(),
+                    completed: urgenciasCompletados.toString(),
                     color: AppColors.emergency,
                     icon: Icons.emergency,
                   ),
@@ -333,30 +395,38 @@ class _MetricItem extends StatelessWidget {
 
 /// Estadísticas diarias
 class _DailyStatsCard extends StatelessWidget {
-  const _DailyStatsCard();
+  const _DailyStatsCard({
+    required this.totalServicios,
+    required this.completados,
+    required this.enProceso,
+  });
+
+  final int totalServicios;
+  final int completados;
+  final int enProceso;
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    return Card(
       child: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(
+            const Text(
               'Estadísticas del Día',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               children: <Widget>[
                 Expanded(
                   child: _StatItem(
                     title: 'Total Servicios',
-                    value: '43',
+                    value: totalServicios.toString(),
                     color: AppColors.primary,
                     icon: Icons.medical_services,
                   ),
@@ -364,7 +434,7 @@ class _DailyStatsCard extends StatelessWidget {
                 Expanded(
                   child: _StatItem(
                     title: 'Completados',
-                    value: '38',
+                    value: completados.toString(),
                     color: AppColors.success,
                     icon: Icons.check_circle,
                   ),
@@ -372,7 +442,7 @@ class _DailyStatsCard extends StatelessWidget {
                 Expanded(
                   child: _StatItem(
                     title: 'En Proceso',
-                    value: '5',
+                    value: enProceso.toString(),
                     color: AppColors.warning,
                     icon: Icons.pending,
                   ),
@@ -444,52 +514,67 @@ class _StatItem extends StatelessWidget {
 
 /// Estado de la flota
 class _FleetStatusCard extends StatelessWidget {
-  const _FleetStatusCard();
+  const _FleetStatusCard({
+    required this.urgenciasDisponibles,
+    required this.urgenciasTotal,
+    required this.programadosDisponibles,
+    required this.programadosTotal,
+  });
+
+  final int urgenciasDisponibles;
+  final int urgenciasTotal;
+  final int programadosDisponibles;
+  final int programadosTotal;
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    final int totalDisponibles = urgenciasDisponibles + programadosDisponibles;
+
+    return Card(
       child: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Row(
               children: <Widget>[
-                Icon(
+                const Icon(
                   Icons.local_hospital,
                   color: AppColors.secondary,
                   size: 24,
                 ),
-                SizedBox(width: 8),
-                Text(
+                const SizedBox(width: 8),
+                const Text(
                   'Estado de la Flota',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Spacer(),
-                _StatusBadge(text: '8 Disponibles', color: AppColors.secondary),
+                const Spacer(),
+                _StatusBadge(
+                  text: '$totalDisponibles Disponibles',
+                  color: AppColors.secondary,
+                ),
               ],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               children: <Widget>[
                 Expanded(
                   child: _FleetItem(
                     type: 'Urgencias',
-                    available: 3,
-                    total: 5,
+                    available: urgenciasDisponibles,
+                    total: urgenciasTotal,
                     color: AppColors.emergency,
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _FleetItem(
                     type: 'Programado',
-                    available: 5,
-                    total: 8,
+                    available: programadosDisponibles,
+                    total: programadosTotal,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -518,7 +603,7 @@ class _FleetItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double percentage = available / total;
+    final double percentage = total > 0 ? available / total : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(16),

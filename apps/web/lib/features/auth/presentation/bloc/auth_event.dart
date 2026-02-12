@@ -27,6 +27,20 @@ class AuthLoginRequested extends AuthEvent {
   List<Object?> get props => <Object?>[email, password];
 }
 
+/// Evento para iniciar sesión con DNI
+class AuthDniLoginRequested extends AuthEvent {
+  const AuthDniLoginRequested({
+    required this.dni,
+    required this.password,
+  });
+
+  final String dni;
+  final String password;
+
+  @override
+  List<Object?> get props => <Object?>[dni, password];
+}
+
 /// Evento para cerrar sesión
 class AuthLogoutRequested extends AuthEvent {
   const AuthLogoutRequested();

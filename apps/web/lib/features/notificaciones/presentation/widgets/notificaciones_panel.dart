@@ -56,17 +56,21 @@ class _NotificacionesContent extends StatelessWidget {
         case NotificacionTipo.vacacionAprobada:
         case NotificacionTipo.vacacionRechazada:
           // Navegar a vacaciones
-          context.go('/vacaciones');
+          context.go('/personal/vacaciones');
           break;
         case NotificacionTipo.ausenciaSolicitada:
         case NotificacionTipo.ausenciaAprobada:
         case NotificacionTipo.ausenciaRechazada:
           // Navegar a ausencias
-          context.go('/ausencias');
+          context.go('/personal/ausencias');
           break;
         case NotificacionTipo.cambioTurno:
           // Navegar a tráfico diario
           context.go('/trafico-diario');
+          break;
+        case NotificacionTipo.incidenciaVehiculoReportada:
+          // Navegar a historial de averías/incidencias
+          context.go('/flota/historial-averias');
           break;
         default:
           // Para otros tipos, quedarse en la página actual
@@ -385,7 +389,8 @@ class _FooterButtons extends StatelessWidget {
       notificacionBloc.add(
         NotificacionEvent.eliminarTodasNotificaciones(usuarioId),
       );
-      Navigator.of(context).pop();
+      // NO cerrar el panel - el stream se actualizará automáticamente
+      // y mostrará el estado vacío
     }
   }
 
@@ -432,7 +437,7 @@ class _FooterButtons extends StatelessWidget {
                       context.read<NotificacionBloc>().add(
                         NotificacionEvent.marcarTodasComoLeidas(authState.user.uid),
                       );
-                      Navigator.of(context).pop();
+                      // NO cerrar el panel - el stream se actualizará automáticamente
                     },
                     icon: const Icon(Icons.done_all, size: 18),
                     label: Text('Marcar $conteoNoLeidas leídas'),

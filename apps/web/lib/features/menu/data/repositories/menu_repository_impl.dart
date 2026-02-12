@@ -570,13 +570,6 @@ class MenuRepositoryImpl implements MenuRepository {
           color: AppColors.primary,
         ),
         MenuItem(
-          key: 'usuario_configuracion',
-          label: 'Configuración de Cuenta',
-          icon: Icons.manage_accounts,
-          route: '/configuracion/cuenta',
-          color: AppColors.info,
-        ),
-        MenuItem(
           key: 'usuario_logout',
           label: 'Cerrar Sesión',
           icon: Icons.logout,

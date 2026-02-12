@@ -1,32 +1,70 @@
+import 'package:ambutrack_web/core/auth/services/role_service.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/features/auth/domain/repositories/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Guard para proteger rutas que requieren autenticación
+/// Guard para proteger rutas que requieren autenticación y autorización
 class AuthGuard {
   static final AuthRepository _authRepository = getIt<AuthRepository>();
+  static final RoleService _roleService = getIt<RoleService>();
 
-  /// Verifica si el usuario está autenticado antes de navegar
-  static String? redirect(BuildContext context, GoRouterState state) {
+  /// Rutas que no requieren validación de permisos (accesibles por todos los usuarios autenticados)
+  static const List<String> _publicAuthenticatedRoutes = <String>[
+    '/',
+    '/dashboard',
+    '/perfil',
+    '/403',
+    '/logout',
+  ];
+
+  /// Verifica si el usuario está autenticado y tiene permisos antes de navegar
+  static Future<String?> redirect(BuildContext context, GoRouterState state) async {
     final bool isAuthenticated = _authRepository.isAuthenticated;
-    final bool isLoginRoute = state.matchedLocation == '/login';
+    final String currentRoute = state.matchedLocation;
+    final bool isLoginRoute = currentRoute == '/login';
 
-    debugPrint('AuthGuard - isAuthenticated: $isAuthenticated, route: ${state.matchedLocation}');
+    debugPrint('🔐 AuthGuard - Verificando ruta: $currentRoute');
+    debugPrint('🔐 AuthGuard - Autenticado: $isAuthenticated');
 
-    // Si el usuario NO está autenticado y NO está en login, redirigir a login
+    // 1. Verificar autenticación básica
     if (!isAuthenticated && !isLoginRoute) {
-      debugPrint('AuthGuard - Redirigiendo a /login');
+      debugPrint('❌ AuthGuard - No autenticado, redirigiendo a /login');
       return '/login';
     }
 
-    // Si el usuario SÍ está autenticado y está en login, redirigir a home
     if (isAuthenticated && isLoginRoute) {
-      debugPrint('AuthGuard - Usuario autenticado, redirigiendo a /');
+      debugPrint('✅ AuthGuard - Ya autenticado, redirigiendo a /');
       return '/';
     }
 
-    // En cualquier otro caso, permitir la navegación
+    // 2. Verificar permisos por rol (NUEVO)
+    // Solo si está autenticado y no es una ruta pública
+    if (isAuthenticated && !_isPublicRoute(currentRoute)) {
+      try {
+        debugPrint('🔍 AuthGuard - Validando permisos para: $currentRoute');
+
+        final bool hasAccess = await _roleService.hasAccessToRoute(currentRoute);
+
+        if (!hasAccess) {
+          debugPrint('🚫 AuthGuard - Usuario sin permisos para: $currentRoute');
+          return '/403';
+        }
+
+        debugPrint('✅ AuthGuard - Usuario tiene acceso a: $currentRoute');
+      } catch (e) {
+        debugPrint('❌ AuthGuard - Error al verificar permisos: $e');
+        // En caso de error, redirigir a 403 por seguridad
+        return '/403';
+      }
+    }
+
+    // 3. Permitir navegación
     return null;
+  }
+
+  /// Verifica si la ruta es pública (no requiere validación de permisos)
+  static bool _isPublicRoute(String route) {
+    return _publicAuthenticatedRoutes.any((String publicRoute) => route == publicRoute);
   }
 }

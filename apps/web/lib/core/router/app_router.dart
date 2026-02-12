@@ -19,9 +19,11 @@ import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/p
 import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/presentation/pages/cuadrante_visual_page.dart';
 import 'package:ambutrack_web/features/cuadrante/dotaciones/presentation/pages/dotaciones_page.dart';
 import 'package:ambutrack_web/features/cuadrante/excepciones_festivos/presentation/pages/excepciones_festivos_page.dart';
+import 'package:ambutrack_web/features/error/pages/forbidden_page.dart';
 import 'package:ambutrack_web/features/home/home_page_integral.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/pages/itv_revisiones_page.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/pages/mantenimiento_preventivo_page_v2.dart';
+import 'package:ambutrack_web/features/perfil/presentation/pages/perfil_page.dart';
 import 'package:ambutrack_web/features/personal/personal_page.dart';
 import 'package:ambutrack_web/features/personal/presentation/pages/documentacion_personal_page.dart';
 import 'package:ambutrack_web/features/personal/presentation/pages/equipamiento_personal_page.dart';
@@ -46,6 +48,7 @@ import 'package:ambutrack_web/features/tablas/tipos_traslado/presentation/pages/
 import 'package:ambutrack_web/features/tablas/tipos_vehiculo/presentation/pages/tipos_vehiculo_page.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/pages/planificar_servicios_page.dart';
 import 'package:ambutrack_web/features/turnos/presentation/pages/plantillas_turnos_page.dart';
+import 'package:ambutrack_web/features/usuarios/presentation/pages/usuarios_page.dart';
 import 'package:ambutrack_web/features/vacaciones/presentation/pages/vacaciones_page.dart';
 import 'package:ambutrack_web/features/vehiculos/consumo_km_page.dart';
 import 'package:ambutrack_web/features/vehiculos/documentacion_page.dart';
@@ -112,6 +115,17 @@ final GoRouter appRouter = GoRouter(
           _buildPageWithTransition(
         key: state.pageKey,
         child: const LoginPage(),
+      ),
+    ),
+
+    // Ruta de Error 403 - Acceso Denegado (sin MainLayout)
+    GoRoute(
+      path: '/403',
+      name: 'forbidden',
+      pageBuilder: (BuildContext context, GoRouterState state) =>
+          _buildPageWithTransition(
+        key: state.pageKey,
+        child: const ForbiddenPage(),
       ),
     ),
 
@@ -893,11 +907,7 @@ final GoRouter appRouter = GoRouter(
           name: 'administracion_usuarios',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Usuarios y Roles',
-          subtitle: 'Gestión de usuarios del sistema',
-          icon: Icons.people,
-        ),
+        child: const UsuariosPage(),
       ),
         ),
         // Permisos de Acceso
@@ -1012,23 +1022,7 @@ final GoRouter appRouter = GoRouter(
           name: 'perfil',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Mi Perfil',
-          subtitle: 'Gestión de perfil de usuario',
-          icon: Icons.person,
-        ),
-      ),
-        ),
-        GoRoute(
-          path: '/configuracion/cuenta',
-          name: 'configuracion_cuenta',
-          pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
-        key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Configuración de Cuenta',
-          subtitle: 'Configuración de cuenta de usuario',
-          icon: Icons.manage_accounts,
-        ),
+        child: const PerfilPage(),
       ),
         ),
 

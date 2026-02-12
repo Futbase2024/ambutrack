@@ -142,7 +142,11 @@ Future<void> configureDependencies() async {
 
   // BLoC (Factory para crear nueva instancia en cada página)
   getIt.registerFactory<IncidenciasBloc>(
-    () => IncidenciasBloc(getIt<IncidenciasRepository>()),
+    () => IncidenciasBloc(
+      getIt<IncidenciasRepository>(),
+      getIt<NotificacionesRepository>(),
+      getIt<AuthBloc>(),
+    ),
   );
 
   // ===== CHECKLIST VEHÍCULO =====

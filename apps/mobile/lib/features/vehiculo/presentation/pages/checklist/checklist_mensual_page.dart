@@ -309,7 +309,7 @@ class _ChecklistMensualViewState extends State<_ChecklistMensualView> {
                     context.pop(); // Volver a la página anterior
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.success,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     elevation: 0,

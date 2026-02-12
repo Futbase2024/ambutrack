@@ -51,7 +51,7 @@ export 'src/datasources/vehiculos/models/vehiculo_supabase_model.dart';
 
 export 'src/datasources/incidencias_vehiculo/entities/incidencia_vehiculo_entity.dart';
 export 'src/datasources/incidencias_vehiculo/incidencia_vehiculo_contract.dart';
-export 'src/datasources/incidencias_vehiculo/incidencia_vehiculo_factory.dart' show IncidenciaVehiculoDataSourceFactory;
+export 'src/datasources/incidencias_vehiculo/incidencia_vehiculo_factory.dart';
 export 'src/datasources/incidencias_vehiculo/implementations/supabase/supabase_incidencia_vehiculo_datasource.dart';
 export 'src/datasources/incidencias_vehiculo/models/incidencia_vehiculo_supabase_model.dart';
 

@@ -10,6 +10,8 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:ambutrack_core/ambutrack_core.dart' as _i40;
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart'
+    as _i1033;
 import 'package:ambutrack_web/core/auth/services/role_service.dart' as _i750;
 import 'package:ambutrack_web/core/di/locator.dart' as _i962;
 import 'package:ambutrack_web/core/network/network_info.dart' as _i321;
@@ -128,6 +130,12 @@ import 'package:ambutrack_web/features/notificaciones/domain/repositories/notifi
     as _i1037;
 import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_bloc.dart'
     as _i938;
+import 'package:ambutrack_web/features/perfil/data/repositories/perfil_repository_impl.dart'
+    as _i261;
+import 'package:ambutrack_web/features/perfil/domain/repositories/perfil_repository.dart'
+    as _i878;
+import 'package:ambutrack_web/features/perfil/presentation/bloc/perfil_bloc.dart'
+    as _i153;
 import 'package:ambutrack_web/features/personal/data/repositories/equipamiento_personal_repository_impl.dart'
     as _i517;
 import 'package:ambutrack_web/features/personal/data/repositories/historial_medico_repository_impl.dart'
@@ -284,6 +292,12 @@ import 'package:ambutrack_web/features/turnos/presentation/bloc/plantillas_turno
     as _i876;
 import 'package:ambutrack_web/features/turnos/presentation/bloc/turnos_bloc.dart'
     as _i467;
+import 'package:ambutrack_web/features/usuarios/data/repositories/usuarios_repository_impl.dart'
+    as _i894;
+import 'package:ambutrack_web/features/usuarios/domain/repositories/usuarios_repository.dart'
+    as _i66;
+import 'package:ambutrack_web/features/usuarios/presentation/bloc/usuarios_bloc.dart'
+    as _i1000;
 import 'package:ambutrack_web/features/vacaciones/data/repositories/vacaciones_repository_impl.dart'
     as _i108;
 import 'package:ambutrack_web/features/vacaciones/domain/repositories/vacaciones_repository.dart'
@@ -325,6 +339,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i40.LocalidadDataSource>(
       () => registerModule.localidadDataSource,
+    );
+    gh.lazySingleton<_i1033.UsuarioDataSource>(
+      () => registerModule.usuarioDataSource,
     );
     gh.lazySingleton<_i973.InternetConnectionChecker>(
       () => networkModule.connectionChecker,
@@ -449,6 +466,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i660.TrasladoRepository>(
       () => _i901.TrasladoRepositoryImpl(),
     );
+    gh.lazySingleton<_i66.UsuariosRepository>(
+      () => _i894.UsuariosRepositoryImpl(),
+    );
     gh.lazySingleton<_i22.DisponibilidadService>(
       () => _i518.DisponibilidadServiceImpl(),
     );
@@ -548,6 +568,12 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i373.PersonalRepository>(),
       ),
     );
+    gh.lazySingleton<_i750.RoleService>(
+      () => _i750.RoleService(
+        gh<_i707.AuthRepository>(),
+        gh<_i373.PersonalRepository>(),
+      ),
+    );
     gh.factory<_i87.ExcepcionesFestivosBloc>(
       () =>
           _i87.ExcepcionesFestivosBloc(gh<_i172.ExcepcionFestivoRepository>()),
@@ -570,8 +596,11 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i373.PersonalRepository>(),
       ),
     );
-    gh.factory<_i845.PersonalBloc>(
-      () => _i845.PersonalBloc(gh<_i373.PersonalRepository>()),
+    gh.factory<_i1000.UsuariosBloc>(
+      () => _i1000.UsuariosBloc(
+        gh<_i66.UsuariosRepository>(),
+        gh<_i750.RoleService>(),
+      ),
     );
     gh.factory<_i548.MotivoCancelacionBloc>(
       () =>
@@ -580,23 +609,8 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i753.IntercambioRepository>(
       () => _i326.IntercambioRepositoryImpl(gh<_i393.TurnosRepository>()),
     );
-    gh.factory<_i1042.VehiculosBloc>(
-      () => _i1042.VehiculosBloc(gh<_i145.VehiculoRepository>()),
-    );
     gh.factory<_i1015.StockEquipamientoBloc>(
       () => _i1015.StockEquipamientoBloc(gh<_i145.VehiculoRepository>()),
-    );
-    gh.lazySingleton<_i750.RoleService>(
-      () => _i750.RoleService(
-        gh<_i496.AuthService>(),
-        gh<_i373.PersonalRepository>(),
-      ),
-    );
-    gh.factory<_i848.HomeBloc>(
-      () => _i848.HomeBloc(
-        gh<_i321.NetworkInfo>(),
-        gh<_i145.VehiculoRepository>(),
-      ),
     );
     gh.factory<_i1007.MovimientoStockBloc>(
       () => _i1007.MovimientoStockBloc(gh<_i408.MovimientoStockRepository>()),
@@ -627,8 +641,11 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i940.CentroHospitalarioRepository>(),
       ),
     );
-    gh.factory<_i79.ServiciosBloc>(
-      () => _i79.ServiciosBloc(repository: gh<_i450.ServicioRepository>()),
+    gh.lazySingleton<_i878.PerfilRepository>(
+      () => _i261.PerfilRepositoryImpl(
+        gh<_i496.AuthService>(),
+        gh<_i707.AuthRepository>(),
+      ),
     );
     gh.factory<_i100.CategoriaVehiculoBloc>(
       () =>
@@ -643,6 +660,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i245.DotacionesBloc>(
       () => _i245.DotacionesBloc(gh<_i5.DotacionesRepository>()),
     );
+    gh.factory<_i153.PerfilBloc>(
+      () => _i153.PerfilBloc(gh<_i878.PerfilRepository>()),
+    );
     gh.factory<_i117.BasesBloc>(
       () => _i117.BasesBloc(gh<_i1055.BasesRepository>()),
     );
@@ -653,6 +673,31 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i728.AusenciasBloc(
         gh<_i829.AusenciaRepository>(),
         gh<_i682.TipoAusenciaRepository>(),
+      ),
+    );
+    gh.factory<_i845.PersonalBloc>(
+      () => _i845.PersonalBloc(
+        gh<_i373.PersonalRepository>(),
+        gh<_i750.RoleService>(),
+      ),
+    );
+    gh.factory<_i1042.VehiculosBloc>(
+      () => _i1042.VehiculosBloc(
+        gh<_i145.VehiculoRepository>(),
+        gh<_i750.RoleService>(),
+      ),
+    );
+    gh.factory<_i79.ServiciosBloc>(
+      () => _i79.ServiciosBloc(
+        gh<_i450.ServicioRepository>(),
+        gh<_i750.RoleService>(),
+      ),
+    );
+    gh.factory<_i848.HomeBloc>(
+      () => _i848.HomeBloc(
+        gh<_i321.NetworkInfo>(),
+        gh<_i145.VehiculoRepository>(),
+        gh<_i660.TrasladoRepository>(),
       ),
     );
     return this;

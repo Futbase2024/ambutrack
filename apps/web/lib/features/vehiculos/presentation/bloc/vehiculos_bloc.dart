@@ -1,6 +1,10 @@
 import 'dart:async';
 
 import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_web/core/auth/enums/app_module.dart';
+import 'package:ambutrack_web/core/auth/enums/user_role.dart';
+import 'package:ambutrack_web/core/auth/permissions/crud_permissions.dart';
+import 'package:ambutrack_web/core/auth/services/role_service.dart';
 import 'package:ambutrack_web/features/vehiculos/domain/repositories/vehiculo_repository.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_event.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_state.dart';
@@ -9,10 +13,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 
 /// BLoC para gestionar el estado de vehículos
-/// Factory para evitar conflictos entre páginas
+///
+/// ⚠️ PERMISOS CRUD:
+/// - Admin: CRUD completo
+/// - Jefe Tráfico: Create, Read, Update (NO Delete)
+/// - Gestor: Read, Update (mantenimiento)
+/// - Técnico: Read, Update (solo mantenimiento)
+/// - Coordinador, Administrativo: Solo Read
 @injectable
 class VehiculosBloc extends Bloc<VehiculosEvent, VehiculosState> {
-  VehiculosBloc(this._vehiculoRepository) : super(const VehiculosInitial()) {
+  VehiculosBloc(this._vehiculoRepository, this._roleService)
+      : super(const VehiculosInitial()) {
     on<VehiculosLoadRequested>(_onLoadRequested);
     on<VehiculosRefreshRequested>(_onRefreshRequested);
     on<VehiculosSubscribeRequested>(_onSubscribeRequested);
@@ -23,6 +34,7 @@ class VehiculosBloc extends Bloc<VehiculosEvent, VehiculosState> {
   }
 
   final VehiculoRepository _vehiculoRepository;
+  final RoleService _roleService;
   StreamSubscription<List<VehiculoEntity>>? _vehiculosSubscription;
 
   Future<void> _onLoadRequested(
@@ -212,6 +224,17 @@ class VehiculosBloc extends Bloc<VehiculosEvent, VehiculosState> {
     Emitter<VehiculosState> emit,
   ) async {
     try {
+      // ✅ VALIDAR PERMISOS: Admin, Jefe Tráfico, Gestor, Técnico
+      final UserRole role = await _roleService.getCurrentUserRole();
+      if (!CrudPermissions.canUpdate(role, AppModule.vehiculos)) {
+        debugPrint('🚫 VehiculosBloc: Usuario sin permisos para actualizar vehículos');
+        emit(const VehiculosError(
+          message: 'No tienes permisos para actualizar vehículos.\n'
+              'Solo usuarios autorizados pueden editar vehículos.',
+        ));
+        return;
+      }
+
       debugPrint('🚗 VehiculosBloc: Actualizando vehículo ${event.vehiculo.id}...');
 
       await _vehiculoRepository.update(event.vehiculo);
@@ -249,6 +272,17 @@ class VehiculosBloc extends Bloc<VehiculosEvent, VehiculosState> {
     Emitter<VehiculosState> emit,
   ) async {
     try {
+      // ✅ VALIDAR PERMISOS: Solo Admin puede eliminar vehículos
+      final UserRole role = await _roleService.getCurrentUserRole();
+      if (!CrudPermissions.canDelete(role, AppModule.vehiculos)) {
+        debugPrint('🚫 VehiculosBloc: Usuario sin permisos para eliminar vehículos');
+        emit(const VehiculosError(
+          message: 'No tienes permisos para eliminar vehículos.\n'
+              'Solo usuarios con rol Administrador pueden eliminar vehículos.',
+        ));
+        return;
+      }
+
       debugPrint('🚗 VehiculosBloc: Eliminando vehículo ${event.vehiculoId}...');
 
       await _vehiculoRepository.delete(event.vehiculoId);

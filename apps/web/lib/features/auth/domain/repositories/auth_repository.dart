@@ -11,9 +11,18 @@ abstract class AuthRepository {
   /// Indica si hay un usuario autenticado
   bool get isAuthenticated;
 
+  /// Refresca los datos del usuario actual desde la base de datos
+  Future<UserEntity?> refreshCurrentUser();
+
   /// Iniciar sesión con email y contraseña
   Future<UserEntity> signInWithEmailAndPassword({
     required String email,
+    required String password,
+  });
+
+  /// Iniciar sesión con DNI y contraseña
+  Future<UserEntity> signInWithDniAndPassword({
+    required String dni,
     required String password,
   });
 

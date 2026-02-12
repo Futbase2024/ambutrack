@@ -778,8 +778,39 @@ class SupabaseTrasladosDataSource implements TrasladoDataSource {
   }
 
   @override
-  Future<List<TrasladoEntity>> getEnCurso() {
-    throw UnimplementedError('getEnCurso() no implementado aún para mobile');
+  Future<List<TrasladoEntity>> getEnCurso() async {
+    debugPrint('📦 [TrasladosDataSource] Obteniendo traslados en curso (activos)');
+
+    try {
+      // Estados activos (que están en curso)
+      const List<String> estadosActivos = <String>[
+        'pendiente',
+        'asignado',
+        'enviado',
+        'recibido_conductor',
+        'en_origen',
+        'saliendo_origen',
+        'en_transito',
+        'en_destino',
+      ];
+
+      final List<Map<String, dynamic>> data = await _client
+          .from(_tableName)
+          .select()
+          .inFilter('estado', estadosActivos)
+          .order('fecha', ascending: true)
+          .order('hora_programada', ascending: true);
+
+      debugPrint('✅ [TrasladosDataSource] Encontrados ${data.length} traslados en curso');
+
+      return data
+          .map((Map<String, dynamic> json) =>
+              TrasladoSupabaseModel.fromJson(json).toEntity())
+          .toList();
+    } on Exception catch (e) {
+      debugPrint('❌ [TrasladosDataSource] Error al obtener traslados en curso: $e');
+      rethrow;
+    }
   }
 
   @override

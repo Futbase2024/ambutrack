@@ -12,6 +12,9 @@ import '../../../../auth/presentation/bloc/auth_state.dart';
 import '../../bloc/incidencias/incidencias_bloc.dart';
 import '../../bloc/incidencias/incidencias_event.dart';
 import '../../bloc/incidencias/incidencias_state.dart';
+import '../../bloc/vehiculo_asignado/vehiculo_asignado_bloc.dart';
+import '../../bloc/vehiculo_asignado/vehiculo_asignado_event.dart';
+import '../../bloc/vehiculo_asignado/vehiculo_asignado_state.dart';
 
 /// Página para reportar una nueva incidencia del vehículo.
 class ReportarIncidenciaPage extends StatelessWidget {
@@ -19,8 +22,25 @@ class ReportarIncidenciaPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => getIt<IncidenciasBloc>(),
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! AuthAuthenticated) {
+      return const Scaffold(
+        body: Center(child: Text('Error: Usuario no autenticado')),
+      );
+    }
+
+    final userId = authState.personal?.id ?? authState.user.id;
+
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) => getIt<IncidenciasBloc>(),
+        ),
+        BlocProvider(
+          create: (context) => VehiculoAsignadoBloc(userId: userId)
+            ..add(const LoadVehiculoAsignado()),
+        ),
+      ],
       child: const _ReportarIncidenciaView(),
     );
   }
@@ -79,6 +99,23 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
       return;
     }
 
+    // Obtener el vehículo asignado del estado
+    final vehiculoAsignadoState = context.read<VehiculoAsignadoBloc>().state;
+    if (vehiculoAsignadoState is! VehiculoAsignadoLoaded) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: No tienes un vehículo asignado para hoy'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    final vehiculo = vehiculoAsignadoState.vehiculo;
+    final vehiculoId = vehiculo.id;
+    final empresaId = vehiculo.empresaId; // Obtener empresaId del vehículo
+
     // Si es prioridad crítica, mostrar diálogo de confirmación
     if (_prioridadSeleccionada == PrioridadIncidencia.critica) {
       final confirm = await _mostrarDialogoConfirmacionCritica();
@@ -87,25 +124,36 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
       }
     }
 
-    // TODO: Obtener vehiculoId del usuario autenticado
-    // Por ahora usamos un UUID de ejemplo
-    const vehiculoId = '00000000-0000-0000-0000-000000000000';
+    // Obtener nombre del reportante
+    final nombreReportante = authState.personal?.nombreCompleto ??
+        authState.user.nombreCompleto ??
+        authState.user.email;
+
+    // Validar kilometraje (obligatorio)
+    final kilometraje = double.tryParse(_kilometrajeController.text.trim());
+    if (kilometraje == null || kilometraje <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El kilometraje es obligatorio y debe ser mayor a 0'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     final incidencia = IncidenciaVehiculoEntity(
       id: const Uuid().v4(),
       vehiculoId: vehiculoId,
       reportadoPor: authState.user.id,
-      reportadoPorNombre: authState.user.email
-          .toUpperCase(), // TODO: Usar nombre completo cuando esté disponible
+      reportadoPorNombre: nombreReportante.toUpperCase(),
       fechaReporte: DateTime.now(),
       tipo: _tipoSeleccionado!,
       prioridad: _prioridadSeleccionada,
       estado: EstadoIncidencia.reportada,
       titulo: _tituloController.text.trim(),
       descripcion: _descripcionController.text.trim(),
-      kilometrajeReporte: _kilometrajeController.text.trim().isEmpty
-          ? null
-          : double.tryParse(_kilometrajeController.text.trim()),
+      kilometrajeReporte: kilometraje,
       fotosUrls: null,
       ubicacionReporte: null,
       asignadoA: null,
@@ -114,8 +162,7 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
       solucionAplicada: null,
       costoReparacion: null,
       tallerResponsable: null,
-      empresaId: authState.user
-          .id, // TODO: Usar empresaId del usuario cuando esté disponible
+      empresaId: empresaId,
       createdAt: DateTime.now(),
       updatedAt: null,
     );
@@ -146,13 +193,13 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.error_outline,
                   size: 48,
-                  color: AppColors.error,
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: 20),
@@ -236,7 +283,7 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
         backgroundColor: AppColors.backgroundLight,
         appBar: AppBar(
           title: const Text('Reportar Incidencia'),
-          backgroundColor: AppColors.error,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
         ),
@@ -263,13 +310,13 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppColors.error.withValues(alpha: 0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
                             Icons.warning_amber_rounded,
                             size: 48,
-                            color: AppColors.error,
+                            color: AppColors.primary,
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -301,7 +348,7 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
                               Navigator.of(context).pop();
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.error,
+                              backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               elevation: 0,
@@ -332,16 +379,176 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
               );
             }
           },
-          child: BlocBuilder<IncidenciasBloc, IncidenciasState>(
-            builder: (context, state) {
-              final isLoading = state is IncidenciasLoading;
+          child: BlocBuilder<VehiculoAsignadoBloc, VehiculoAsignadoState>(
+            builder: (context, vehiculoState) {
+              // Si está cargando el vehículo, mostrar loading
+              if (vehiculoState is VehiculoAsignadoLoading ||
+                  vehiculoState is VehiculoAsignadoInitial) {
+                return const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Cargando vehículo asignado...'),
+                    ],
+                  ),
+                );
+              }
 
-              return Form(
-                key: _formKey,
-                child: ListView(
-                  padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                  children: [
-                    // Tipo de incidencia
+              // Si no hay vehículo asignado, mostrar mensaje
+              if (vehiculoState is VehiculoAsignadoEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 64,
+                          color: AppColors.gray400,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'No tienes un vehículo asignado',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.gray900,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'No tienes un turno activo hoy con un vehículo asignado. Contacta con tu coordinador.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.gray600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              // Si hay error, mostrar mensaje
+              if (vehiculoState is VehiculoAsignadoError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: AppColors.error,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Error al cargar vehículo',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.gray900,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          vehiculoState.message,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.gray600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            context
+                                .read<VehiculoAsignadoBloc>()
+                                .add(const RefreshVehiculoAsignado());
+                          },
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Reintentar'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              // Si hay vehículo asignado, mostrar formulario
+              final vehiculo = (vehiculoState as VehiculoAsignadoLoaded).vehiculo;
+
+              return BlocBuilder<IncidenciasBloc, IncidenciasState>(
+                builder: (context, incidenciasState) {
+                  final isLoading = incidenciasState is IncidenciasLoading;
+
+                  return Form(
+                    key: _formKey,
+                    child: ListView(
+                      padding: const EdgeInsets.all(AppSizes.paddingMedium),
+                      children: [
+                        // Card con información del vehículo
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius:
+                                BorderRadius.circular(AppSizes.radiusMedium),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.directions_car,
+                                color: AppColors.primary,
+                                size: 32,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Vehículo Asignado',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.gray600,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      vehiculo.matricula,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.gray900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: AppSizes.spacingMedium),
+
+                        // Tipo de incidencia
                     _buildFieldLabel('Tipo de Incidencia', required: true),
                     const SizedBox(height: AppSizes.spacingSmall),
                     DropdownButtonFormField<TipoIncidencia>(
@@ -363,7 +570,7 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
                           borderRadius:
                               BorderRadius.circular(AppSizes.radiusMedium),
                           borderSide: const BorderSide(
-                              color: AppColors.error, width: 2),
+                              color: AppColors.primary, width: 2),
                         ),
                         filled: true,
                         fillColor: Colors.white,
@@ -419,7 +626,7 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
                           borderRadius:
                               BorderRadius.circular(AppSizes.radiusMedium),
                           borderSide: const BorderSide(
-                              color: AppColors.error, width: 2),
+                              color: AppColors.primary, width: 2),
                         ),
                         filled: true,
                         fillColor: Colors.white,
@@ -463,7 +670,7 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
                           borderRadius:
                               BorderRadius.circular(AppSizes.radiusMedium),
                           borderSide: const BorderSide(
-                              color: AppColors.error, width: 2),
+                              color: AppColors.primary, width: 2),
                         ),
                         filled: true,
                         fillColor: Colors.white,
@@ -482,7 +689,7 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
                     const SizedBox(height: AppSizes.spacingMedium),
 
                     // Kilometraje
-                    _buildFieldLabel('Kilometraje Actual'),
+                    _buildFieldLabel('Kilometraje Actual', required: true),
                     const SizedBox(height: AppSizes.spacingSmall),
                     TextFormField(
                       controller: _kilometrajeController,
@@ -508,11 +715,24 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
                           borderRadius:
                               BorderRadius.circular(AppSizes.radiusMedium),
                           borderSide: const BorderSide(
-                              color: AppColors.error, width: 2),
+                              color: AppColors.primary, width: 2),
                         ),
                         filled: true,
                         fillColor: Colors.white,
                       ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'El kilometraje es obligatorio';
+                        }
+                        final km = double.tryParse(value.trim());
+                        if (km == null) {
+                          return 'Ingresa un kilometraje válido';
+                        }
+                        if (km <= 0) {
+                          return 'El kilometraje debe ser mayor a 0';
+                        }
+                        return null;
+                      },
                     ),
 
                     const SizedBox(height: AppSizes.spacingXLarge),
@@ -523,7 +743,7 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
                       child: ElevatedButton(
                         onPressed: isLoading ? null : _reportarIncidencia,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.error,
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           disabledBackgroundColor: AppColors.gray300,
                           shape: RoundedRectangleBorder(
@@ -553,6 +773,8 @@ class _ReportarIncidenciaViewState extends State<_ReportarIncidenciaView> {
                     ),
                   ],
                 ),
+              );
+                },
               );
             },
           ),

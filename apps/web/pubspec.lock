@@ -24,6 +24,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ambutrack_core_datasource:
+    dependency: "direct main"
+    description:
+      path: "../../packages/ambutrack_core_datasource"
+      relative: true
+    source: path
+    version: "1.0.0"
   analyzer:
     dependency: transitive
     description:

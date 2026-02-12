@@ -1,6 +1,7 @@
 import 'package:ambutrack_core/ambutrack_core.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_bloc.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_event.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_state.dart';
@@ -37,37 +38,45 @@ class HomePage extends StatelessWidget {
               ),
             ],
           ),
-          body: const SingleChildScrollView(
-            padding: EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                // Header de bienvenida
-                _WelcomeHeader(),
-                SizedBox(height: 24),
+          body: BlocBuilder<HomeBloc, HomeState>(
+            builder: (BuildContext context, HomeState state) {
+              // Mostrar loading profesional mientras carga
+              if (state is HomeLoading) {
+                return const Center(
+                  child: AppLoadingIndicator(
+                    message: 'Cargando dashboard...',
+                    size: 100,
+                  ),
+                );
+              }
 
-                // Estado de emergencias activas
-                _ActiveEmergenciesCard(),
-                SizedBox(height: 16),
+              return const SingleChildScrollView(
+                padding: EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    // Header de bienvenida
+                    _WelcomeHeader(),
+                    SizedBox(height: 24),
 
-                // Acciones rápidas
-                _QuickActionsGrid(),
-                SizedBox(height: 16),
+                    // Estado de emergencias activas
+                    _ActiveEmergenciesCard(),
+                    SizedBox(height: 16),
 
-                // Estadísticas del día
-                _DailyStatsCard(),
-                SizedBox(height: 16),
+                    // Acciones rápidas
+                    _QuickActionsGrid(),
+                    SizedBox(height: 16),
 
-                // Ambulancias disponibles
-                _AvailableAmbulancesCard(),
-              ],
-            ),
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              // TODO(team): Nueva emergencia
+                    // Estadísticas del día
+                    _DailyStatsCard(),
+                    SizedBox(height: 16),
+
+                    // Ambulancias disponibles
+                    _AvailableAmbulancesCard(),
+                  ],
+                ),
+              );
             },
-            child: const Icon(Icons.add_call),
           ),
         ),
       ),
@@ -143,78 +152,223 @@ class _ActiveEmergenciesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
+    return BlocBuilder<HomeBloc, HomeState>(
+      builder: (BuildContext context, HomeState state) {
+        int serviciosActivos = 0;
+
+        if (state is HomeLoaded) {
+          serviciosActivos = state.totalServicios;
+        }
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.emergency.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.emergency,
-                    color: AppColors.emergency,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Emergencias Activas',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.gray400,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    '0',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
+                Row(
                   children: <Widget>[
-                    Icon(
-                      Icons.check_circle_outline,
-                      size: 48,
-                      color: AppColors.success.withValues(alpha: 0.5),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.emergency.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.emergency,
+                        color: AppColors.emergency,
+                        size: 24,
+                      ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(width: 12),
                     const Text(
-                      'No hay emergencias activas',
+                      'Servicios Activos',
                       style: TextStyle(
-                        color: AppColors.textSecondaryLight,
-                        fontSize: 14,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: serviciosActivos > 0 ? AppColors.emergency : AppColors.gray400,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        serviciosActivos.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 16),
+                if (serviciosActivos == 0)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        children: <Widget>[
+                          Icon(
+                            Icons.check_circle_outline,
+                            size: 48,
+                            color: AppColors.success.withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'No hay servicios activos',
+                            style: TextStyle(
+                              color: AppColors.textSecondaryLight,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  _ServiciosActivosLista(
+                    servicios: state is HomeLoaded ? state.serviciosActivos : <TrasladoEntity>[],
+                  ),
+              ],
             ),
-          ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Widget que muestra la lista de servicios activos
+class _ServiciosActivosLista extends StatelessWidget {
+  const _ServiciosActivosLista({
+    required this.servicios,
+  });
+
+  final List<TrasladoEntity> servicios;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: servicios.take(5).map((TrasladoEntity servicio) {
+        return _ServicioActivoItem(servicio: servicio);
+      }).toList(),
+    );
+  }
+}
+
+/// Widget para mostrar un servicio activo individual
+class _ServicioActivoItem extends StatelessWidget {
+  const _ServicioActivoItem({
+    required this.servicio,
+  });
+
+  final TrasladoEntity servicio;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color estadoColor = _getEstadoColor(servicio.estado);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: estadoColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: estadoColor.withValues(alpha: 0.3),
         ),
       ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: estadoColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.local_hospital,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  servicio.codigo,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                if (servicio.pacienteNombre != null)
+                  Text(
+                    servicio.pacienteNombre!,
+                    style: const TextStyle(
+                      color: AppColors.textSecondaryLight,
+                      fontSize: 14,
+                    ),
+                  ),
+                Text(
+                  '${servicio.origen ?? 'Sin origen'} → ${servicio.destino ?? 'Sin destino'}',
+                  style: const TextStyle(
+                    color: AppColors.textSecondaryLight,
+                    fontSize: 12,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: estadoColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              servicio.estado.label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
+  }
+
+  Color _getEstadoColor(EstadoTraslado estado) {
+    switch (estado) {
+      case EstadoTraslado.pendiente:
+        return AppColors.warning;
+      case EstadoTraslado.asignado:
+        return AppColors.info;
+      case EstadoTraslado.enviado:
+      case EstadoTraslado.recibido:
+        return AppColors.primary;
+      case EstadoTraslado.enOrigen:
+      case EstadoTraslado.saliendoOrigen:
+      case EstadoTraslado.enTransito:
+      case EstadoTraslado.enDestino:
+        return AppColors.secondary;
+      case EstadoTraslado.finalizado:
+        return AppColors.success;
+      case EstadoTraslado.cancelado:
+      case EstadoTraslado.noRealizado:
+        return AppColors.error;
+    }
   }
 }
 
@@ -505,14 +659,7 @@ class _AvailableAmbulancesCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                if (state is HomeLoading)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                else if (disponibles.isEmpty)
+                if (disponibles.isEmpty)
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.all(24.0),

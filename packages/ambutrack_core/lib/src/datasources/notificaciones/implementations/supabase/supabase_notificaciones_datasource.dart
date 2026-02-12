@@ -272,20 +272,42 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
       _log('🗑️ deleteAll - Eliminando todas las notificaciones');
       _log('🗑️ deleteAll - Usuario ID: $usuarioId');
       _log('🗑️ deleteAll - Usuario autenticado: ${currentUser.id}');
-      _log('🗑️ deleteAll - Tabla: $_tableName');
 
-      final response = await _client
-          .from(_tableName)
-          .delete()
-          .eq('usuario_destino_id', usuarioId)
-          .select();
+      // Usar función PostgreSQL con SECURITY DEFINER (bypass RLS)
+      final response = await _client.rpc(
+        'eliminar_todas_notificaciones_usuario',
+        params: {'p_usuario_id': usuarioId},
+      );
 
-      _log('🗑️ deleteAll - Respuesta: ${response.length} filas afectadas');
+      _log('🗑️ deleteAll - Respuesta de función: $response');
 
-      if (response.isEmpty) {
-        _log('ℹ️ deleteAll - No hay notificaciones para eliminar');
+      // Validar respuesta
+      if (response is Map<String, dynamic>) {
+        final success = response['success'] as bool? ?? false;
+        final deletedCount = response['deleted_count'] as int? ?? 0;
+
+        if (!success) {
+          final errorMsg = response['error'] as String? ?? 'Error desconocido';
+          _log('❌ deleteAll - Error en función: $errorMsg');
+          throw DataSourceException(
+            message: 'Error al eliminar notificaciones: $errorMsg',
+            code: 'RPC_ERROR',
+          );
+        }
+
+        _log('✅ deleteAll - $deletedCount notificaciones eliminadas correctamente');
       } else {
-        _log('✅ deleteAll - ${response.length} notificaciones eliminadas');
+        _log('⚠️ deleteAll - Respuesta inesperada: $response');
+      }
+
+      // ⚡ CRÍTICO: Forzar actualización del stream
+      // Las funciones RPC NO activan triggers de Realtime, por lo que
+      // debemos actualizar manualmente el stream
+      _log('🔄 deleteAll - Forzando actualización del stream...');
+      final notificaciones = await getByUsuario(usuarioId);
+      if (!_notificacionesController.isClosed) {
+        _notificacionesController.add(notificaciones);
+        _log('✅ deleteAll - Stream actualizado con ${notificaciones.length} notificaciones');
       }
     } catch (e, stackTrace) {
       if (e is DataSourceException) rethrow;
@@ -311,30 +333,59 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
         );
       }
 
+      if (ids.isEmpty) {
+        _log('ℹ️ deleteMultiple - No hay IDs para eliminar');
+        return;
+      }
+
       _log('🗑️ deleteMultiple - Eliminando ${ids.length} notificaciones');
       _log('🗑️ deleteMultiple - Usuario autenticado: ${currentUser.id}');
       _log('🗑️ deleteMultiple - IDs: $ids');
-      _log('🗑️ deleteMultiple - Tabla: $_tableName');
 
-      final response = await _client
-          .from(_tableName)
-          .delete()
-          .inFilter('id', ids)
-          .select();
+      // Obtener el usuario destino antes de eliminar
+      final String usuarioId = currentUser.id;
 
-      _log('🗑️ deleteMultiple - Respuesta: ${response.length} filas afectadas de ${ids.length} solicitadas');
+      // Usar función PostgreSQL con SECURITY DEFINER (bypass RLS)
+      final response = await _client.rpc(
+        'eliminar_notificaciones_usuario',
+        params: {'p_notification_ids': ids},
+      );
 
-      if (response.isEmpty) {
-        _log('⚠️ deleteMultiple - No se eliminó ninguna fila');
-        throw DataSourceException(
-          message: 'No se pudieron eliminar las notificaciones. Es posible que no tengas permisos o que no existan.',
-          code: 'RLS_BLOCKED',
-        );
-      } else if (response.length < ids.length) {
-        _log('⚠️ deleteMultiple - Solo se eliminaron ${response.length} de ${ids.length} notificaciones');
+      _log('🗑️ deleteMultiple - Respuesta de función: $response');
+
+      // Validar respuesta
+      if (response is Map<String, dynamic>) {
+        final success = response['success'] as bool? ?? false;
+        final deletedCount = response['deleted_count'] as int? ?? 0;
+        final requestedCount = response['requested_count'] as int? ?? ids.length;
+
+        if (!success) {
+          final errorMsg = response['error'] as String? ?? 'Error desconocido';
+          _log('❌ deleteMultiple - Error en función: $errorMsg');
+          throw DataSourceException(
+            message: 'Error al eliminar notificaciones: $errorMsg',
+            code: 'RPC_ERROR',
+          );
+        }
+
+        if (deletedCount < requestedCount) {
+          _log('⚠️ deleteMultiple - Solo se eliminaron $deletedCount de $requestedCount notificaciones');
+        }
+
+        _log('✅ deleteMultiple - $deletedCount notificaciones eliminadas correctamente');
+      } else {
+        _log('⚠️ deleteMultiple - Respuesta inesperada: $response');
       }
 
-      _log('✅ deleteMultiple - ${response.length} notificaciones eliminadas');
+      // ⚡ CRÍTICO: Forzar actualización del stream
+      // Las funciones RPC NO activan triggers de Realtime, por lo que
+      // debemos actualizar manualmente el stream
+      _log('🔄 deleteMultiple - Forzando actualización del stream...');
+      final notificaciones = await getByUsuario(usuarioId);
+      if (!_notificacionesController.isClosed) {
+        _notificacionesController.add(notificaciones);
+        _log('✅ deleteMultiple - Stream actualizado con ${notificaciones.length} notificaciones');
+      }
     } catch (e, stackTrace) {
       if (e is DataSourceException) rethrow;
       _log('❌ deleteMultiple - Error: $e');
@@ -468,6 +519,44 @@ class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
       _log('❌ notificarJefesPersonal - Error: $e');
       throw DataSourceException(
         message: 'Error al notificar jefes de personal: $e',
+        code: 'NOTIFY_ERROR',
+      );
+    }
+  }
+
+  @override
+  Future<void> notificarGestoresFlota({
+    required String tipo,
+    required String titulo,
+    required String mensaje,
+    String? entidadTipo,
+    String? entidadId,
+    Map<String, dynamic> metadata = const {},
+    String? excluirUsuarioId,
+  }) async {
+    try {
+      _log('🚗 notificarGestoresFlota - Llamando función PostgreSQL');
+      _log('🚗 Tipo: $tipo, Título: $titulo');
+      if (excluirUsuarioId != null) {
+        _log('🚫 Excluyendo usuario: $excluirUsuarioId');
+      }
+
+      // Usar función PostgreSQL con SECURITY DEFINER (bypass RLS)
+      await _client.rpc('crear_notificacion_gestores_flota', params: {
+        'p_tipo': tipo,
+        'p_titulo': titulo,
+        'p_mensaje': mensaje,
+        'p_entidad_tipo': entidadTipo,
+        'p_entidad_id': entidadId,
+        'p_metadata': metadata,
+        'p_excluir_usuario_id': excluirUsuarioId,
+      });
+
+      _log('✅ notificarGestoresFlota - Notificaciones creadas exitosamente');
+    } catch (e) {
+      _log('❌ notificarGestoresFlota - Error: $e');
+      throw DataSourceException(
+        message: 'Error al notificar gestores de flota: $e',
         code: 'NOTIFY_ERROR',
       );
     }

@@ -75,6 +75,47 @@ class AuthService {
     }
   }
 
+  /// Iniciar sesión con DNI y contraseña
+  /// Busca el email asociado al DNI y luego hace login con email/password
+  Future<AuthResult<AuthResponse>> signInWithDniAndPassword({
+    required String dni,
+    required String password,
+  }) async {
+    try {
+      debugPrint('🔑 AuthService: Intentando signIn con DNI $dni');
+
+      // 1. Llamar a función SQL para obtener email desde DNI
+      final String email = await Supabase.instance.client
+          .rpc<String>('get_email_by_dni', params: <String, dynamic>{'dni_input': dni});
+
+      if (email.isEmpty) {
+        debugPrint('❌ AuthService: No se encontró usuario con DNI $dni');
+        return const AuthResult<AuthResponse>.failure(
+          SupabaseAuthException(
+            'dni_not_found',
+            'No existe un usuario con este DNI o está inactivo',
+          ),
+        );
+      }
+
+      debugPrint('✅ AuthService: DNI $dni → Email: $email');
+
+      // 2. Hacer login normal con email + password
+      return await signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on AuthException catch (e) {
+      debugPrint('❌ AuthService: AuthException en DNI login - [${e.statusCode}] ${e.message}');
+      return AuthResult<AuthResponse>.failure(
+        SupabaseAuthException(e.statusCode ?? 'unknown', e.message),
+      );
+    } catch (e) {
+      debugPrint('❌ AuthService: Exception genérica en DNI login - $e');
+      return AuthResult<AuthResponse>.failure(Exception(e.toString()));
+    }
+  }
+
   /// Registrar nuevo usuario con email y contraseña
   Future<AuthResult<AuthResponse>> signUpWithEmailAndPassword({
     required String email,
@@ -102,13 +143,18 @@ class AuthService {
   /// Cerrar sesión
   Future<AuthResult<void>> signOut() async {
     try {
-      await _supabaseAuth.signOut();
+      debugPrint('🚪 AuthService: Cerrando sesión...');
+      // Usar scope 'global' para limpiar todas las sesiones y tokens
+      await _supabaseAuth.signOut(scope: SignOutScope.global);
+      debugPrint('✅ AuthService: Sesión cerrada correctamente');
       return const AuthResult<void>.success(null);
     } on AuthException catch (e) {
+      debugPrint('❌ AuthService: Error al cerrar sesión - [${e.statusCode}] ${e.message}');
       return AuthResult<void>.failure(
         SupabaseAuthException(e.statusCode ?? 'unknown', e.message),
       );
     } catch (e) {
+      debugPrint('❌ AuthService: Exception genérica al cerrar sesión - $e');
       return AuthResult<void>.failure(Exception(e.toString()));
     }
   }

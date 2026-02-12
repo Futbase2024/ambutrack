@@ -14,12 +14,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc(this._authRepository) : super(const AuthInitial()) {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<AuthLoginRequested>(_onLoginRequested);
+    on<AuthDniLoginRequested>(_onDniLoginRequested);
     on<AuthLogoutRequested>(_onLogoutRequested);
     on<AuthSignUpRequested>(_onSignUpRequested);
     on<AuthResetPasswordRequested>(_onResetPasswordRequested);
 
     // Suscribirse a cambios de estado de autenticación
     _authStateSubscription = _authRepository.authStateChanges.listen((UserEntity? user) {
+      debugPrint('🔄 AuthBloc: Auth state changed - User: ${user?.email ?? "null"}');
       add(const AuthCheckRequested());
     });
   }
@@ -67,6 +69,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       debugPrint('   🆔 UID: ${user.uid}');
       debugPrint('   🏢 Empresa ID: ${user.empresaId ?? "NO ASIGNADA"}');
       debugPrint('   👤 Nombre: ${user.displayName ?? "Sin nombre"}');
+      debugPrint('   🔑 Rol: ${user.rol ?? "Sin rol"}');
+      debugPrint('   ✅ Activo: ${user.activo ?? false}');
       debugPrint('═══════════════════════════════════════════════════════');
       emit(AuthAuthenticated(user: user));
     } on Exception catch (e) {
@@ -75,17 +79,71 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  Future<void> _onLogoutRequested(
-    AuthLogoutRequested event,
+  Future<void> _onDniLoginRequested(
+    AuthDniLoginRequested event,
     Emitter<AuthState> emit,
   ) async {
     emit(const AuthLoading());
 
     try {
-      await _authRepository.signOut();
-      emit(const AuthUnauthenticated());
+      debugPrint('🔐 AuthBloc: Intentando login con DNI ${event.dni}');
+      final UserEntity user = await _authRepository.signInWithDniAndPassword(
+        dni: event.dni,
+        password: event.password,
+      );
+
+      debugPrint('═══════════════════════════════════════════════════════');
+      debugPrint('✅ LOGIN CON DNI EXITOSO');
+      debugPrint('═══════════════════════════════════════════════════════');
+      debugPrint('   🆔 DNI: ${event.dni}');
+      debugPrint('   📧 Email: ${user.email}');
+      debugPrint('   🆔 UID: ${user.uid}');
+      debugPrint('   🏢 Empresa ID: ${user.empresaId ?? "NO ASIGNADA"}');
+      debugPrint('   👤 Nombre: ${user.displayName ?? "Sin nombre"}');
+      debugPrint('   🔑 Rol: ${user.rol ?? "Sin rol"}');
+      debugPrint('   ✅ Activo: ${user.activo ?? false}');
+      debugPrint('═══════════════════════════════════════════════════════');
+      emit(AuthAuthenticated(user: user));
     } on Exception catch (e) {
+      debugPrint('❌ AuthBloc: Error en login con DNI - $e');
       emit(AuthError(message: _getErrorMessage(e)));
+    }
+  }
+
+  Future<void> _onLogoutRequested(
+    AuthLogoutRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    debugPrint('🚪 AuthBloc: Procesando logout...');
+    emit(const AuthLoading());
+
+    try {
+      // Pausar temporalmente el listener para evitar auto-login
+      await _authStateSubscription?.cancel();
+      debugPrint('⏸️ AuthBloc: Listener de auth pausado');
+
+      // Realizar logout
+      await _authRepository.signOut();
+      debugPrint('✅ AuthBloc: Logout exitoso');
+
+      // Emitir estado no autenticado
+      emit(const AuthUnauthenticated());
+
+      // Reactivar el listener después de un breve delay
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      _authStateSubscription = _authRepository.authStateChanges.listen((UserEntity? user) {
+        debugPrint('🔄 AuthBloc: Auth state changed - User: ${user?.email ?? "null"}');
+        add(const AuthCheckRequested());
+      });
+      debugPrint('▶️ AuthBloc: Listener de auth reactivado');
+    } on Exception catch (e) {
+      debugPrint('❌ AuthBloc: Error en logout - $e');
+      emit(AuthError(message: _getErrorMessage(e)));
+
+      // Asegurar que el listener esté activo incluso si hay error
+      _authStateSubscription ??= _authRepository.authStateChanges.listen((UserEntity? user) {
+        add(const AuthCheckRequested());
+      });
     }
   }
 
@@ -128,11 +186,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   String _getErrorMessage(Object error) {
     final String errorString = error.toString().toLowerCase();
 
+    // DNI errors
+    if (errorString.contains('dni_not_found')) {
+      return 'No existe un usuario con este DNI o está inactivo';
+    }
+
     // Supabase Auth error codes
     if (errorString.contains('invalid_credentials') || errorString.contains('invalid login credentials')) {
-      return 'Correo electrónico o contraseña incorrectos';
+      return 'DNI/Email o contraseña incorrectos';
     } else if (errorString.contains('user_not_found') || errorString.contains('user not found')) {
-      return 'No existe una cuenta con este correo electrónico';
+      return 'No existe una cuenta con este DNI/Email';
     } else if (errorString.contains('email_not_confirmed')) {
       return 'Por favor confirma tu correo electrónico antes de iniciar sesión';
     } else if (errorString.contains('user_already_exists') || errorString.contains('already registered')) {

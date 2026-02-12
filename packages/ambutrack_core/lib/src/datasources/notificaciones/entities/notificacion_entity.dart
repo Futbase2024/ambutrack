@@ -23,6 +23,9 @@ enum NotificacionTipo {
   // Checklist
   checklistPendiente('checklist_pendiente', 'Checklist Pendiente'),
 
+  // Incidencias de vehículos
+  incidenciaVehiculoReportada('incidencia_vehiculo_reportada', 'Incidencia de Vehículo Reportada'),
+
   // Generales
   alerta('alerta', 'Alerta'),
   info('info', 'Información');
