@@ -141,7 +141,7 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
       // Obtener datos del personal
       final PersonalEntity personal = await _personalRepository.getById(vacacion.idPersonal);
 
-      final String nombrePersonal = '${personal.nombre} ${personal.apellidos ?? ''}'.trim();
+      final String nombrePersonal = '${personal.nombre} ${personal.apellidos}'.trim();
       final String fechaInicioStr = '${vacacion.fechaInicio.day}/${vacacion.fechaInicio.month}/${vacacion.fechaInicio.year}';
       final String fechaFinStr = '${vacacion.fechaFin.day}/${vacacion.fechaFin.month}/${vacacion.fechaFin.year}';
 

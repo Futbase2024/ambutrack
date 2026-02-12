@@ -1,4 +1,5 @@
 // Imports del core datasource (sistema nuevo de almacén - importación directa)
+// ignore: implementation_imports
 import 'package:ambutrack_core_datasource/src/datasources/almacen/entities/movimiento_stock_entity.dart';
 import 'package:equatable/equatable.dart';
 

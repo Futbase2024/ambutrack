@@ -173,6 +173,14 @@ class UserEntity extends BaseEntity {
   /// Nombre de la empresa (extraído del metadata)
   String? get empresaNombre => metadata?['empresaNombre'] as String?;
 
+  /// Nombre completo del usuario (alias de displayName)
+  /// Compatibilidad con código que usa nombreCompleto
+  String? get nombreCompleto => displayName;
+
+  /// Avatar URL del usuario (alias de photoUrl)
+  /// Compatibilidad con código que usa avatarUrl
+  String? get avatarUrl => photoUrl;
+
   @override
   String toString() {
     return 'UserEntity('

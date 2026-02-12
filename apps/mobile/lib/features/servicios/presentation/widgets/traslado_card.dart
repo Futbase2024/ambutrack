@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import '../../../../core/theme/app_colors.dart';
 
 /// Card responsivo para mostrar un traslado en la lista

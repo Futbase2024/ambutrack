@@ -98,13 +98,13 @@ class _TrayectosExcepcionesPanelState
                 // Datos cargados
                 final List<TrasladoEntity> todosTrayectos = snapshot.data!;
                 // Estados considerados "en curso"
-                const Set<EstadoTraslado> estadosEnCurso = <EstadoTraslado>{
-                  EstadoTraslado.pendiente,
-                  EstadoTraslado.asignado,
-                  EstadoTraslado.recibido,
-                  EstadoTraslado.enOrigen,
-                  EstadoTraslado.saliendoOrigen,
-                  EstadoTraslado.enDestino,
+                const Set<String> estadosEnCurso = <String>{
+                  'pendiente',
+                  'asignado',
+                  'recibido_conductor',
+                  'en_origen',
+                  'saliendo_origen',
+                  'en_destino',
                 };
                 final List<TrasladoEntity> trayectosActivos =
                     todosTrayectos.where((TrasladoEntity t) => estadosEnCurso.contains(t.estado)).toList();

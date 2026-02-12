@@ -1,5 +1,5 @@
 import 'dart:async';
-// ignore: avoid_web_libraries_in_flutter
+// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
 
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';

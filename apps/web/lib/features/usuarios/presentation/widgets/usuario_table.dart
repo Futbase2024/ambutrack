@@ -472,11 +472,13 @@ class _UsuarioTableState extends State<UsuarioTable> {
 
       // Capturar contexto y bloc antes del async gap
       final BuildContext currentContext = context;
+      // ignore: use_build_context_synchronously
       final UsuariosBloc bloc = currentContext.read<UsuariosBloc>();
 
       // Mostrar loading overlay (Future sin await es intencional)
       // ignore: unawaited_futures
       showDialog<void>(
+        // ignore: use_build_context_synchronously
         context: currentContext,
         barrierDismissible: false,
         builder: (BuildContext dialogContext) {

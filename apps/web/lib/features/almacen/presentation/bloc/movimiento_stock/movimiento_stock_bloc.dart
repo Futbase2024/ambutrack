@@ -1,6 +1,7 @@
 import 'dart:async';
 
 // Imports del core datasource (sistema nuevo de almacén - importación directa)
+// ignore: implementation_imports
 import 'package:ambutrack_core_datasource/src/datasources/almacen/entities/movimiento_stock_entity.dart';
 import 'package:ambutrack_web/features/almacen/domain/repositories/movimiento_stock_repository.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/movimiento_stock/movimiento_stock_event.dart';

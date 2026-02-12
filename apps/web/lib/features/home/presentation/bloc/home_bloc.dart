@@ -82,7 +82,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final List<TrasladoEntity> programadosCompletados = trasladosDelDia
           .where((TrasladoEntity t) =>
               t.tipoTraslado != 'urgencia' &&
-              t.estado == EstadoTraslado.finalizado)
+              t.estado == EstadoTraslado.finalizado.value)
           .toList();
 
       // Servicios de urgencias
@@ -92,13 +92,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final List<TrasladoEntity> urgenciasCompletadas = trasladosDelDia
           .where((TrasladoEntity t) =>
               t.tipoTraslado == 'urgencia' &&
-              t.estado == EstadoTraslado.finalizado)
+              t.estado == EstadoTraslado.finalizado.value)
           .toList();
 
       // Estadísticas del día
       final int serviciosTotalesDia = trasladosDelDia.length;
       final int serviciosCompletadosDia = trasladosDelDia
-          .where((TrasladoEntity t) => t.estado == EstadoTraslado.finalizado)
+          .where((TrasladoEntity t) => t.estado == EstadoTraslado.finalizado.value)
           .length;
       final int serviciosEnProceso = serviciosActivos.length;
 
@@ -181,7 +181,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final List<TrasladoEntity> programadosCompletados = trasladosDelDia
           .where((TrasladoEntity t) =>
               t.tipoTraslado != 'urgencia' &&
-              t.estado == EstadoTraslado.finalizado)
+              t.estado == EstadoTraslado.finalizado.value)
           .toList();
 
       // Servicios de urgencias
@@ -191,13 +191,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final List<TrasladoEntity> urgenciasCompletadas = trasladosDelDia
           .where((TrasladoEntity t) =>
               t.tipoTraslado == 'urgencia' &&
-              t.estado == EstadoTraslado.finalizado)
+              t.estado == EstadoTraslado.finalizado.value)
           .toList();
 
       // Estadísticas del día
       final int serviciosTotalesDia = trasladosDelDia.length;
       final int serviciosCompletadosDia = trasladosDelDia
-          .where((TrasladoEntity t) => t.estado == EstadoTraslado.finalizado)
+          .where((TrasladoEntity t) => t.estado == EstadoTraslado.finalizado.value)
           .length;
       final int serviciosEnProceso = serviciosActivos.length;
 

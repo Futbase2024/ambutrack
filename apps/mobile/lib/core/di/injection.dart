@@ -1,6 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
@@ -54,8 +54,8 @@ Future<void> configureDependencies() async {
   );
 
   // DataSources
-  getIt.registerLazySingleton<PersonalDataSource>(
-    () => PersonalDataSourceFactory.createSupabase(),
+  getIt.registerLazySingleton<UsuarioDataSource>(
+    () => UsuarioDataSourceFactory.createSupabase(),
   );
 
   // ===== AUTH =====
@@ -69,7 +69,7 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<AuthBloc>(
     () => AuthBloc(
       authRepository: getIt<AuthRepository>(),
-      personalDataSource: getIt<PersonalDataSource>(),
+      usuarioDataSource: getIt<UsuarioDataSource>(),
     ),
   );
 

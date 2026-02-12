@@ -320,6 +320,34 @@ class TrasladoEntity extends Equatable {
   /// Devuelve null por compatibilidad. Cargar desde ServicioEntity asociado
   bool? get requiereAcompanante => null;
 
+  /// Indica si requiere equipamiento especial (propiedad del servicio, no del traslado)
+  /// Devuelve null por compatibilidad. Cargar desde ServicioEntity asociado
+  bool? get requiereEquipamientoEspecial => null;
+
+  /// Origen completo (alias de origen)
+  /// Para compatibilidad con código legacy
+  String? get origenCompleto => origen;
+
+  /// Población de origen (extraída del origen si es posible)
+  /// Devuelve null si no se puede determinar
+  String? get poblacionOrigen => null;
+
+  /// Destino completo (alias de destino)
+  /// Para compatibilidad con código legacy
+  String? get destinoCompleto => destino;
+
+  /// Población de destino (extraída del destino si es posible)
+  /// Devuelve null si no se puede determinar
+  String? get poblacionDestino => null;
+
+  /// Tipo de ambulancia (propiedad del vehículo, no del traslado)
+  /// Devuelve null por compatibilidad. Cargar desde VehiculoEntity asociado
+  String? get tipoAmbulancia => null;
+
+  /// Población del paciente (propiedad del paciente, no del traslado)
+  /// Devuelve null por compatibilidad. Cargar desde PacienteEntity asociado
+  String? get poblacionPaciente => null;
+
   /// Método copyWith para crear copias inmutables
   TrasladoEntity copyWith({
     String? id,

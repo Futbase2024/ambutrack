@@ -1,4 +1,5 @@
 // Imports específicos para almacén (evitando conflicto con stock de vehículos)
+// ignore: implementation_imports
 import 'package:ambutrack_core_datasource/src/datasources/almacen/entities/movimiento_stock_entity.dart';
 
 /// Repositorio para operaciones de Movimientos de Stock

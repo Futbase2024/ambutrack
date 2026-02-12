@@ -1511,7 +1511,9 @@ class TrasladoRowBuilder {
 
   Color _getEstatusColor(TrasladoEntity traslado) {
     final EstadoTraslado? estadoEnum = EstadoTraslado.fromValue(traslado.estado);
-    if (estadoEnum == null) return AppColors.gray500;
+    if (estadoEnum == null) {
+      return AppColors.gray500;
+    }
 
     switch (estadoEnum) {
       // Rojo: Estados finales negativos

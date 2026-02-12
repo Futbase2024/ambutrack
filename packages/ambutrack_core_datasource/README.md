@@ -2,8 +2,15 @@
 
 [![pub package](https://img.shields.io/pub/v/ambutrack_core_datasource.svg)](https://pub.dev/packages/ambutrack_core_datasource)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-ACTIVE-success.svg)](README.md)
+
+> ⚠️ **IMPORTANTE**: Este es el paquete **OFICIAL Y ACTIVO**. NO usar `ambutrack_core` (deprecado).
 
 Infraestructura base para la capa de datos en aplicaciones Flutter empresariales. Este paquete proporciona interfaces estándar, entidades base y utilidades para implementar datasources consistentes que siguen los principios de Clean Architecture.
+
+## ✅ Paquete Oficial
+
+Este paquete reemplaza y depreca completamente a `ambutrack_core`. Si encuentras código que importa desde `package:ambutrack_core/...`, debe ser migrado a este paquete.
 
 ## 🚀 Características
 

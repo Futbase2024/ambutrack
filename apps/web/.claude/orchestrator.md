@@ -4,6 +4,28 @@
 
 ---
 
+## ⚠️ Reglas Críticas del Proyecto
+
+### PAQUETES - PROHIBICIONES ABSOLUTAS
+
+| Regla | Acción |
+|-------|--------|
+| **`ambutrack_core`** | ❌ **PROHIBIDO** - Paquete DEPRECADO y obsoleto |
+| **`ambutrack_core_datasource`** | ✅ **OBLIGATORIO** - Paquete oficial y activo |
+
+**Imports correctos**:
+```dart
+// ❌ NUNCA
+import 'package:ambutrack_core/...';
+
+// ✅ SIEMPRE
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+```
+
+**Documentación**: Ver `packages/README.md` y `packages/ambutrack_core/DEPRECATION.md`
+
+---
+
 ## Arquitectura del Proyecto
 
 **Backend:** Supabase (PostgreSQL + Auth + Storage + Real-Time)

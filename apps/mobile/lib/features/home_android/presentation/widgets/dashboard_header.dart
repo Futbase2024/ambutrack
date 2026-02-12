@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import '../../../../core/theme/app_colors.dart';
 
 /// Header del dashboard con información del usuario
@@ -13,7 +13,7 @@ class DashboardHeader extends StatelessWidget {
     super.key,
   });
 
-  final AuthUserEntity user;
+  final UserEntity user;
 
   String _getGreeting() {
     final hour = DateTime.now().hour;

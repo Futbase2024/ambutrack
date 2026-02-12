@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -15,9 +15,9 @@ import 'auth_state.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc({
     required AuthRepository authRepository,
-    required PersonalDataSource personalDataSource,
+    required UsuarioDataSource usuarioDataSource,
   })  : _authRepository = authRepository,
-        _personalDataSource = personalDataSource,
+        _usuarioDataSource = usuarioDataSource,
         super(const AuthInitial()) {
     // Registrar handlers de eventos
     on<AuthCheckRequested>(_onAuthCheckRequested);
@@ -35,7 +35,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   final AuthRepository _authRepository;
-  final PersonalDataSource _personalDataSource;
+  final UsuarioDataSource _usuarioDataSource;
   StreamSubscription? _authStateSubscription;
 
   /// Handler para verificar sesión existente al iniciar
@@ -52,7 +52,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         debugPrint('✅ [AuthBloc] Sesión encontrada: ${user.email}');
 
         // Cargar datos de personal
-        final personal = await _personalDataSource.getByUsuarioId(user.id);
+        final personal = await _usuarioDataSource.getById(user.id);
 
         if (personal != null) {
           debugPrint('✅ [AuthBloc] Datos de personal cargados: ${personal.nombreCompleto}');
@@ -88,7 +88,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       debugPrint('✅ [AuthBloc] Login exitoso: ${user.email}');
 
       // Cargar datos de personal
-      final personal = await _personalDataSource.getByUsuarioId(user.id);
+      final personal = await _usuarioDataSource.getById(user.id);
 
       if (personal != null) {
         debugPrint('✅ [AuthBloc] Datos de personal cargados: ${personal.nombreCompleto}');
@@ -135,7 +135,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       debugPrint('✅ [AuthBloc] Login exitoso: ${user.email}');
 
       // Cargar datos de personal
-      final personal = await _personalDataSource.getByUsuarioId(user.id);
+      final personal = await _usuarioDataSource.getById(user.id);
 
       if (personal != null) {
         debugPrint('✅ [AuthBloc] Datos de personal cargados: ${personal.nombreCompleto}');
@@ -180,7 +180,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       debugPrint('🔄 [AuthBloc] Estado cambiado: Autenticado');
 
       // Cargar datos de personal
-      final personal = await _personalDataSource.getByUsuarioId(event.user!.id);
+      final personal = await _usuarioDataSource.getById(event.user!.id);
 
       if (personal != null) {
         debugPrint('✅ [AuthBloc] Datos de personal cargados: ${personal.nombreCompleto}');

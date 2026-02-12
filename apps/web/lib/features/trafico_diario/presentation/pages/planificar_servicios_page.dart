@@ -248,7 +248,9 @@ class _PlanificarServiciosViewState extends State<_PlanificarServiciosView> {
                 );
 
                 trasladosPendientes = traslados.where((TrasladoEntity traslado) {
-                  if (traslado.fecha == null) return false;
+                  if (traslado.fecha == null) {
+                    return false;
+                  }
                   final DateTime trasladoKey = DateTime(
                     traslado.fecha!.year,
                     traslado.fecha!.month,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Badge para mostrar el estado de un traslado
 /// Ajusta automáticamente su ancho al contenido (usando IntrinsicWidth)

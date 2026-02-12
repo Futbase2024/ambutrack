@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Estados del AuthBloc
 sealed class AuthState extends Equatable {
@@ -26,7 +26,7 @@ class AuthAuthenticated extends AuthState {
     this.personal,
   });
 
-  final AuthUserEntity user;
+  final UserEntity user;
   final PersonalEntity? personal;
 
   @override

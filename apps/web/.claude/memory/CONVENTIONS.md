@@ -4,6 +4,20 @@
 
 ---
 
+## ⚠️ REGLAS CRÍTICAS - PAQUETES
+
+### ❌ PAQUETE DEPRECADO
+- **NUNCA** usar `ambutrack_core` - Paquete deprecado y obsoleto
+- **NUNCA** importar `package:ambutrack_core/...`
+
+### ✅ PAQUETE ACTUAL
+- **SIEMPRE** usar `ambutrack_core_datasource` - Paquete activo y mantenido
+- **SIEMPRE** importar `package:ambutrack_core_datasource/...`
+
+**Razón**: `ambutrack_core` está siendo migrado a `ambutrack_core_datasource`. Usar el paquete deprecado causará conflictos de dependencias y errores de compilación.
+
+---
+
 ## 1. Arquitectura Clean
 
 ```

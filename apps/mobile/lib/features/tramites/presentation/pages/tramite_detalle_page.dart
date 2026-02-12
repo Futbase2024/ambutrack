@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -30,7 +30,7 @@ class TramiteDetallePage extends StatefulWidget {
 }
 
 class _TramiteDetallePageState extends State<TramiteDetallePage> {
-  final _personalDataSource = PersonalDataSourceFactory.createSupabase();
+  final _personalDataSource = UsuarioDataSourceFactory.createSupabase();
   String? _nombreSolicitante;
   bool _cargandoNombre = false;
 

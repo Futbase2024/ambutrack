@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Repositorio para gestionar los tipos de ausencias.
 /// Interfaz que define las operaciones disponibles para tipos de ausencias.

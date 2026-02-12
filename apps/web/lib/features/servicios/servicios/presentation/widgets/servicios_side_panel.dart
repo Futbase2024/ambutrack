@@ -876,13 +876,13 @@ class _TrayectosExcepcionesTabState extends State<_TrayectosExcepcionesTab>
       }
 
       // Estados considerados "en curso" (activos)
-      const Set<EstadoTraslado> estadosEnCurso = <EstadoTraslado>{
-        EstadoTraslado.pendiente,
-        EstadoTraslado.asignado,
-        EstadoTraslado.recibido,
-        EstadoTraslado.enOrigen,
-        EstadoTraslado.saliendoOrigen,
-        EstadoTraslado.enDestino,
+      const Set<String> estadosEnCurso = <String>{
+        'pendiente',
+        'asignado',
+        'recibido_conductor',
+        'en_origen',
+        'saliendo_origen',
+        'en_destino',
       };
       final List<TrasladoEntity> activos = trayectos.where((TrasladoEntity t) => estadosEnCurso.contains(t.estado)).toList();
       final List<TrasladoEntity> historico = trayectos.where((TrasladoEntity t) => !estadosEnCurso.contains(t.estado)).toList();
@@ -1697,9 +1697,9 @@ class _TrayectoAccionesCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Determinar estado del trayecto
-    final bool estaCancelado = trayecto.estado == EstadoTraslado.cancelado;
-    final bool estaAnulado = trayecto.estado == EstadoTraslado.noRealizado;
-    final bool estaFinalizado = trayecto.estado == EstadoTraslado.finalizado;
+    final bool estaCancelado = trayecto.estado == EstadoTraslado.cancelado.value;
+    final bool estaAnulado = trayecto.estado == EstadoTraslado.noRealizado.value;
+    final bool estaFinalizado = trayecto.estado == EstadoTraslado.finalizado.value;
 
     // Estado inactivo: cancelado o anulado
     final bool estaInactivo = estaCancelado || estaAnulado;

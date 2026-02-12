@@ -79,6 +79,39 @@ enum EstadoTraslado {
     return this == EstadoTraslado.pendiente;
   }
 
+  /// Retorna el color hexadecimal asociado al estado
+  String get colorHex {
+    switch (this) {
+      case EstadoTraslado.pendiente:
+        return '#FFA500'; // Naranja
+      case EstadoTraslado.asignado:
+        return '#4169E1'; // Azul
+      case EstadoTraslado.enviado:
+        return '#1E90FF'; // Azul claro
+      case EstadoTraslado.recibidoConductor:
+      case EstadoTraslado.recibido:
+        return '#00CED1'; // Turquesa
+      case EstadoTraslado.enOrigen:
+        return '#9370DB'; // Morado claro
+      case EstadoTraslado.saliendoOrigen:
+        return '#8A2BE2'; // Morado
+      case EstadoTraslado.enTransito:
+        return '#FFD700'; // Dorado
+      case EstadoTraslado.enDestino:
+        return '#32CD32'; // Verde lima
+      case EstadoTraslado.finalizado:
+        return '#228B22'; // Verde oscuro
+      case EstadoTraslado.cancelado:
+        return '#DC143C'; // Rojo
+      case EstadoTraslado.suspendido:
+        return '#FF8C00'; // Naranja oscuro
+      case EstadoTraslado.noRealizado:
+        return '#8B0000'; // Rojo oscuro
+      case EstadoTraslado.anulado:
+        return '#696969'; // Gris oscuro
+    }
+  }
+
   @override
   String toString() => label;
 }

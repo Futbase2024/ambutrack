@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -30,7 +30,7 @@ class HistorialTimelineWidget extends StatefulWidget {
 }
 
 class _HistorialTimelineWidgetState extends State<HistorialTimelineWidget> {
-  final _personalDataSource = PersonalDataSourceFactory.createSupabase();
+  final _personalDataSource = UsuarioDataSourceFactory.createSupabase();
   String? _nombreAprobador;
   bool _cargandoNombre = false;
 
