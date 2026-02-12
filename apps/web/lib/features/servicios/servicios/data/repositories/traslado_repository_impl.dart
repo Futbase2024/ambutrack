@@ -86,8 +86,12 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
 
   @override
   Future<List<TrasladoEntity>> getByEstado(String estado) async {
-    // El datasource espera String directamente, no enum
-    return _dataSource.getByEstado(estado);
+    // Convertir String a EstadoTraslado enum que espera el datasource
+    final EstadoTraslado? estadoEnum = EstadoTraslado.fromValue(estado);
+    if (estadoEnum == null) {
+      throw ArgumentError('Estado inválido: $estado');
+    }
+    return _dataSource.getByEstado(estado: estadoEnum);
   }
 
   @override
@@ -105,7 +109,10 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
     required DateTime desde,
     required DateTime hasta,
   }) async {
-    return _dataSource.getByRangoFechas(desde: desde, hasta: hasta);
+    return _dataSource.getByRangoFechas(
+      fechaInicio: desde,
+      fechaFin: hasta,
+    );
   }
 
   @override
@@ -133,8 +140,38 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
 
   @override
   Future<TrasladoEntity> update(TrasladoEntity traslado) async {
-    // Pass-through directo al datasource
-    return _dataSource.update(traslado);
+    debugPrint('📦 TrasladoRepository: Actualizando traslado: ${traslado.id}');
+    // Construir Map con los campos de la entidad
+    final Map<String, dynamic> updates = <String, dynamic>{
+      if (traslado.codigo != null) 'codigo': traslado.codigo,
+      if (traslado.idServicioRecurrente != null) 'id_servicio_recurrente': traslado.idServicioRecurrente,
+      if (traslado.idServicio != null) 'id_servicio': traslado.idServicio,
+      if (traslado.idMotivoTraslado != null) 'id_motivo_traslado': traslado.idMotivoTraslado,
+      if (traslado.idPaciente != null) 'id_paciente': traslado.idPaciente,
+      if (traslado.tipoTraslado != null) 'tipo_traslado': traslado.tipoTraslado,
+      if (traslado.fecha != null) 'fecha': traslado.fecha!.toIso8601String(),
+      if (traslado.horaProgramada != null) 'hora_programada': traslado.horaProgramada!.toIso8601String(),
+      if (traslado.estado != null) 'estado': traslado.estado,
+      if (traslado.idPersonalConductor != null) 'id_personal_conductor': traslado.idPersonalConductor,
+      if (traslado.idPersonalEnfermero != null) 'id_personal_enfermero': traslado.idPersonalEnfermero,
+      if (traslado.idPersonalMedico != null) 'id_personal_medico': traslado.idPersonalMedico,
+      if (traslado.idVehiculo != null) 'id_vehiculo': traslado.idVehiculo,
+      if (traslado.matriculaVehiculo != null) 'matricula_vehiculo': traslado.matriculaVehiculo,
+      if (traslado.tipoOrigen != null) 'tipo_origen': traslado.tipoOrigen,
+      if (traslado.origen != null) 'origen': traslado.origen,
+      if (traslado.tipoDestino != null) 'tipo_destino': traslado.tipoDestino,
+      if (traslado.destino != null) 'destino': traslado.destino,
+      if (traslado.observaciones != null) 'observaciones': traslado.observaciones,
+      if (traslado.observacionesInternas != null) 'observaciones_internas': traslado.observacionesInternas,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    final TrasladoEntity actualizado = await _dataSource.update(
+      id: traslado.id,
+      updates: updates,
+    );
+    debugPrint('📦 TrasladoRepository: ✅ Traslado actualizado exitosamente');
+    return actualizado;
   }
 
   @override

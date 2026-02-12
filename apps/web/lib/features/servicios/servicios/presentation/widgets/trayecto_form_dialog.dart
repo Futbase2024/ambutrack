@@ -266,8 +266,22 @@ class _TrayectoFormDialogState extends State<TrayectoFormDialog> {
         updatedAt: DateTime.now(),
       );
 
-      // Guardar en Supabase usando update
-      await _trasladoDataSource.update(trayectoActualizado);
+      // Guardar en Supabase usando update con Map
+      await _trasladoDataSource.update(
+        id: widget.trayecto.id,
+        updates: <String, dynamic>{
+          'fecha': _fecha.toIso8601String(),
+          'hora_programada': DateTime.parse('${_fecha.toIso8601String().split('T')[0]}T$nuevaHoraProgramada').toIso8601String(),
+          'tipo_origen': _tipoOrigen,
+          'origen': _origenValue,
+          'tipo_destino': _tipoDestino,
+          'destino': _destinoValue,
+          'observaciones': _observacionesController.text.trim().isNotEmpty
+              ? _observacionesController.text.trim()
+              : null,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+      );
 
       if (mounted) {
         // Llamar callback onSave
