@@ -52,6 +52,11 @@ export 'src/datasources/usuarios/entities/usuario_entity.dart';
 export 'src/datasources/usuarios/usuarios_contract.dart';
 export 'src/datasources/usuarios/usuarios_factory.dart' show UsuarioDataSourceFactory;
 
+// TPersonal (tabla legacy de personal)
+export 'src/datasources/tpersonal/entities/tpersonal_entity.dart';
+export 'src/datasources/tpersonal/tpersonal_contract.dart';
+export 'src/datasources/tpersonal/tpersonal_factory.dart' show TPersonalDataSourceFactory;
+
 export 'src/datasources/vehiculos/entities/vehiculos_entity.dart';
 export 'src/datasources/vehiculos/vehiculos_contract.dart';
 export 'src/datasources/vehiculos/vehiculos_factory.dart' show VehiculoDataSourceFactory;

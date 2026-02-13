@@ -15,9 +15,9 @@ import 'auth_state.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc({
     required AuthRepository authRepository,
-    required UsuarioDataSource usuarioDataSource,
+    required TPersonalDataSource tpersonalDataSource,
   })  : _authRepository = authRepository,
-        _usuarioDataSource = usuarioDataSource,
+        _tpersonalDataSource = tpersonalDataSource,
         super(const AuthInitial()) {
     // Registrar handlers de eventos
     on<AuthCheckRequested>(_onAuthCheckRequested);
@@ -35,7 +35,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   final AuthRepository _authRepository;
-  final UsuarioDataSource _usuarioDataSource;
+  final TPersonalDataSource _tpersonalDataSource;
   StreamSubscription? _authStateSubscription;
 
   /// Handler para verificar sesión existente al iniciar
@@ -51,8 +51,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (user != null) {
         debugPrint('✅ [AuthBloc] Sesión encontrada: ${user.email}');
 
-        // Cargar datos de personal
-        final personal = await _usuarioDataSource.getById(user.id);
+        // Cargar datos de personal desde tpersonal
+        final personal = await _tpersonalDataSource.getByUsuarioId(user.id);
 
         if (personal != null) {
           debugPrint('✅ [AuthBloc] Datos de personal cargados: ${personal.nombreCompleto}');
@@ -88,7 +88,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       debugPrint('✅ [AuthBloc] Login exitoso: ${user.email}');
 
       // Cargar datos de personal
-      final personal = await _usuarioDataSource.getById(user.id);
+      final personal = await _tpersonalDataSource.getByUsuarioId(user.id);
 
       if (personal != null) {
         debugPrint('✅ [AuthBloc] Datos de personal cargados: ${personal.nombreCompleto}');
@@ -135,7 +135,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       debugPrint('✅ [AuthBloc] Login exitoso: ${user.email}');
 
       // Cargar datos de personal
-      final personal = await _usuarioDataSource.getById(user.id);
+      final personal = await _tpersonalDataSource.getByUsuarioId(user.id);
 
       if (personal != null) {
         debugPrint('✅ [AuthBloc] Datos de personal cargados: ${personal.nombreCompleto}');
@@ -179,8 +179,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     if (event.user != null) {
       debugPrint('🔄 [AuthBloc] Estado cambiado: Autenticado');
 
-      // Cargar datos de personal
-      final personal = await _usuarioDataSource.getById(event.user!.id);
+      // Cargar datos de personal desde tpersonal
+      final personal = await _tpersonalDataSource.getByUsuarioId(event.user!.id);
 
       if (personal != null) {
         debugPrint('✅ [AuthBloc] Datos de personal cargados: ${personal.nombreCompleto}');

@@ -54,8 +54,8 @@ Future<void> configureDependencies() async {
   );
 
   // DataSources
-  getIt.registerLazySingleton<UsuarioDataSource>(
-    () => UsuarioDataSourceFactory.createSupabase(),
+  getIt.registerLazySingleton<TPersonalDataSource>(
+    () => TPersonalDataSourceFactory.createSupabase(),
   );
 
   // ===== AUTH =====
@@ -69,7 +69,7 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<AuthBloc>(
     () => AuthBloc(
       authRepository: getIt<AuthRepository>(),
-      usuarioDataSource: getIt<UsuarioDataSource>(),
+      tpersonalDataSource: getIt<TPersonalDataSource>(),
     ),
   );
 

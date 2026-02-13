@@ -98,6 +98,8 @@ class RegistroHorarioBloc
         return;
       }
 
+      debugPrint('🔑 [RegistroHorarioBloc] Usando personalId: $personalId');
+
       // Crear registro de entrada
       final registro = RegistroHorarioEntity(
         id: _uuid.v4(),
