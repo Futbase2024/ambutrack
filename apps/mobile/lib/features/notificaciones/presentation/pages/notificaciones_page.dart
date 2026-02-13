@@ -579,6 +579,12 @@ class _NotificacionesViewState extends State<_NotificacionesView> {
         );
         break;
 
+      case NotificacionTipo.alertaCaducidad:
+        // Navegar a control de caducidades
+        debugPrint('📍 [Notificaciones] Navegando a Caducidades');
+        context.push('/caducidades');
+        break;
+
       case NotificacionTipo.alerta:
       case NotificacionTipo.info:
         // Solo marcar como leída, sin navegación adicional

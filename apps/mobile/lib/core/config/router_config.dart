@@ -2,12 +2,18 @@ import 'dart:async';
 
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/checklist_ambulancia/presentation/bloc/checklist_bloc.dart';
 import '../../features/checklist_ambulancia/presentation/pages/checklist_ambulancia_page.dart';
+import '../../features/checklist_ambulancia/presentation/pages/nuevo_checklist_page.dart';
+import '../../features/checklist_ambulancia/presentation/pages/detalle_checklist_page.dart';
+import '../../features/caducidades/presentation/pages/caducidades_page.dart';
+import '../di/injection.dart';
 import '../../features/home_android/presentation/pages/home_android_page.dart';
 import '../../features/incidencias/presentation/pages/incidencias_page.dart';
 import '../../features/partes_diarios/presentation/pages/partes_diarios_page.dart';
@@ -21,7 +27,6 @@ import '../../features/tramites/presentation/pages/tramites_page.dart';
 import '../../features/vehiculo/presentation/pages/vehiculo_page.dart';
 import '../../features/vehiculo/presentation/pages/incidencias/reportar_incidencia_page.dart';
 import '../../features/vehiculo/presentation/pages/checklist/checklist_mensual_page.dart';
-import '../../features/vehiculo/presentation/pages/caducidades/caducidades_page.dart';
 import '../../features/vehiculo/presentation/pages/historial/historial_page.dart';
 import '../../features/vestuario/presentation/pages/vestuario_page.dart';
 import '../../features/ambulancias/presentation/pages/ambulancias_page.dart';
@@ -126,6 +131,40 @@ GoRouter createAppRouter(AuthBloc authBloc) {
             child: const ChecklistAmbulanciaPage(),
           );
         },
+        routes: [
+          // Nuevo checklist
+          GoRoute(
+            path: 'nuevo',
+            name: 'nuevo-checklist',
+            pageBuilder: (BuildContext context, GoRouterState state) {
+              final vehiculoId = state.uri.queryParameters['vehiculoId']!;
+              return _buildPageWithTransition(
+                context: context,
+                state: state,
+                child: BlocProvider(
+                  create: (context) => ChecklistBloc(repository: getIt()),
+                  child: NuevoChecklistPage(vehiculoId: vehiculoId),
+                ),
+              );
+            },
+          ),
+          // Detalle de checklist
+          GoRoute(
+            path: ':id',
+            name: 'detalle-checklist',
+            pageBuilder: (BuildContext context, GoRouterState state) {
+              final checklistId = state.pathParameters['id']!;
+              return _buildPageWithTransition(
+                context: context,
+                state: state,
+                child: BlocProvider(
+                  create: (context) => ChecklistBloc(repository: getIt()),
+                  child: DetalleChecklistPage(checklistId: checklistId),
+                ),
+              );
+            },
+          ),
+        ],
       ),
 
       // Partes Diarios
@@ -310,7 +349,7 @@ GoRouter createAppRouter(AuthBloc authBloc) {
               return _buildPageWithTransition(
                 context: context,
                 state: state,
-                child: const CaducidadesPage(),
+                child: const CaducidadesPage(), // Nueva feature de caducidades
               );
             },
           ),

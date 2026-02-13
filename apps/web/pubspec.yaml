@@ -47,6 +47,10 @@ dependencies:
   table_calendar: ^3.1.2
   shared_preferences: ^2.3.3
 
+  # Maps (para visualización de fichajes con GPS)
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
   # Core Datasource (paquete local del proyecto)
   # ===== CORE SHARED PACKAGE (Monorepo) =====
   # ambutrack_core:  # ← DEPRECADO: Migrado a ambutrack_core_datasource

@@ -53,3 +53,10 @@ class FicharSalida extends RegistroHorarioEvent {
 class RefrescarHistorial extends RegistroHorarioEvent {
   const RefrescarHistorial();
 }
+
+/// Evento para obtener contexto completo del turno
+///
+/// Carga registros + información contextual (vehículo, compañero, próximo turno)
+class ObtenerContextoTurno extends RegistroHorarioEvent {
+  const ObtenerContextoTurno();
+}

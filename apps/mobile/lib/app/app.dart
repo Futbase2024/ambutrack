@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 import '../core/config/router_config.dart';
 import '../core/di/injection.dart';
@@ -74,7 +75,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   }
 
   /// Muestra la notificación in-app (diálogo en medio de la pantalla)
-  void _mostrarNotificacionInApp(notificacion) {
+  void _mostrarNotificacionInApp(NotificacionEntity notificacion) {
     // Reproducir sonido de notificación usando el servicio
     _notificationsService.reproducirSonido();
 
@@ -92,10 +93,14 @@ class _AppState extends State<App> with WidgetsBindingObserver {
               NotificacionesEvent.marcarComoLeida(notificacion.id),
             );
 
-            // Navegar a Mis Servicios (no a notificaciones)
-            _router.push('/servicios');
+            // Navegar según el tipo de notificación
+            final rutaDestino = notificacion.tipo == NotificacionTipo.alertaCaducidad
+                ? '/caducidades'
+                : '/servicios';
 
-            debugPrint('📍 [App] Notificación marcada como leída y navegando a Mis Servicios');
+            _router.push(rutaDestino);
+
+            debugPrint('📍 [App] Notificación marcada como leída y navegando a $rutaDestino');
           },
         ),
       );

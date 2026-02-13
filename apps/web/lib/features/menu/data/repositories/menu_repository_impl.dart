@@ -221,6 +221,12 @@ class MenuRepositoryImpl implements MenuRepository {
           icon: Icons.inventory_2,
           route: '/personal/stock-vestuario',
         ),
+        MenuItem(
+          key: 'personal_fichajes',
+          label: 'Fichajes GPS',
+          icon: Icons.location_on,
+          route: '/personal/fichajes',
+        ),
       ],
     ),
 

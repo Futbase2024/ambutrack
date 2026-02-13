@@ -16,7 +16,7 @@ class SupabaseRegistroHorarioDataSource
 
   SupabaseRegistroHorarioDataSource({
     SupabaseClient? supabase,
-    String tableName = 'registro_horarios',
+    String tableName = 'registros_horarios',
   })  : _supabase = supabase ?? Supabase.instance.client,
         _tableName = tableName;
 
@@ -238,6 +238,10 @@ class SupabaseRegistroHorarioDataSource
     DateTime fechaFin,
   ) async {
     try {
+      print('🔍 [DataSource] Consultando tabla: $_tableName');
+      print('   Desde: ${fechaInicio.toIso8601String()}');
+      print('   Hasta: ${fechaFin.toIso8601String()}');
+
       final response = await _supabase
           .from(_tableName)
           .select()
@@ -245,10 +249,20 @@ class SupabaseRegistroHorarioDataSource
           .lte('fecha_hora', fechaFin.toIso8601String())
           .order('fecha_hora', ascending: false);
 
+      print('   Registros encontrados: ${(response as List).length}');
+
+      if ((response as List).isNotEmpty && (response as List).length <= 3) {
+        print('   Muestra de registros:');
+        for (final json in (response as List)) {
+          print('   - ${json['nombre_personal']} (${json['tipo']}) - ${json['fecha_hora']}');
+        }
+      }
+
       return (response as List)
           .map((json) => RegistroHorarioSupabaseModel.fromJson(json).toEntity())
           .toList();
     } catch (e) {
+      print('❌ [DataSource] Error: $e');
       throw Exception('Error al obtener registros por rango: $e');
     }
   }

@@ -13,7 +13,7 @@ import '../bloc/vehiculo_asignado/vehiculo_asignado_state.dart';
 ///
 /// Menú con acceso a:
 /// - Reportar incidencias del vehículo
-/// - Checklist mensual (protocolo A2)
+/// - Checklists de ambulancia (Pre-Servicio, Post-Servicio, Mensual)
 /// - Control de caducidades
 /// - Historial de revisiones
 class VehiculoPage extends StatelessWidget {
@@ -226,98 +226,102 @@ class _VehiculoPageContent extends StatelessWidget {
       crossAxisCount: 2,
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 1.1,
+      childAspectRatio: 1.0, // Cuadrados como en home
       children: [
         _buildMenuCard(
-          emoji: '⚠️',
-          title: 'Reportar Incidencia',
-          subtitle: 'Problemas del vehículo',
+          context: context,
+          icon: Icons.warning_amber_rounded,
+          iconColor: AppColors.error,
+          title: 'Reportar\nIncidencia',
           onTap: () => context.push('/vehiculo/reportar-incidencia'),
         ),
         _buildMenuCard(
-          emoji: '✅',
-          title: 'Checklist Mensual',
-          subtitle: 'Protocolo A2',
-          onTap: () => context.push('/vehiculo/checklist'),
+          context: context,
+          icon: Icons.checklist_rounded,
+          iconColor: AppColors.success,
+          title: 'Checklists',
+          onTap: () => context.push('/checklist-ambulancia'),
         ),
         _buildMenuCard(
-          emoji: '📅',
+          context: context,
+          icon: Icons.event_available_rounded,
+          iconColor: AppColors.warning,
           title: 'Caducidades',
-          subtitle: 'Material sanitario',
           onTap: () => context.push('/vehiculo/caducidades'),
         ),
         _buildMenuCard(
-          emoji: '📋',
+          context: context,
+          icon: Icons.history_rounded,
+          iconColor: AppColors.info,
           title: 'Historial',
-          subtitle: 'Revisiones previas',
           onTap: () => context.push('/vehiculo/historial'),
         ),
       ],
     );
   }
 
-  /// Card individual del menú con emoji y título
+  /// Card individual del menú - Estilo de Home Page
   Widget _buildMenuCard({
-    required String emoji,
+    required BuildContext context,
+    required IconData icon,
+    required Color iconColor,
     required String title,
-    required String subtitle,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
+    return Card(
+      elevation: 2,
+      color: Colors.grey[100],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.gray200,
-              width: 1,
-            ),
-          ),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Emoji ocupa 80% del espacio visual
+              // Icono - 70% del espacio
               Expanded(
-                flex: 8,
+                flex: 70,
                 child: Center(
-                  child: Text(
-                    emoji,
-                    style: const TextStyle(fontSize: 48),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      // El icono ocupará el 70% del espacio disponible
+                      final iconSize = constraints.maxHeight * 0.7;
+                      return Icon(
+                        icon,
+                        size: iconSize,
+                        color: iconColor,
+                      );
+                    },
                   ),
                 ),
               ),
-              // Título y subtítulo
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.gray900,
+
+              // Título - 30% del espacio
+              Expanded(
+                flex: 30,
+                child: Container(
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                        height: 1.0,
+                        letterSpacing: -0.5,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.gray600,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                ),
               ),
             ],
           ),

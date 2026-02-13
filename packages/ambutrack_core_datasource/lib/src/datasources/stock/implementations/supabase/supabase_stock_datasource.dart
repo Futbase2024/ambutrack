@@ -378,7 +378,7 @@ class SupabaseStockDataSource implements StockDataSource {
       final model = StockVehiculoSupabaseModel.fromEntity(stock);
       final response = await _supabase
           .from('stock_vehiculo')
-          .update(model.toJson())
+          .update(model.toJsonForUpdate())
           .eq('id', stock.id)
           .select()
           .single();

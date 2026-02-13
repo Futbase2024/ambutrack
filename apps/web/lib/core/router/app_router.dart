@@ -24,6 +24,7 @@ import 'package:ambutrack_web/features/home/home_page_integral.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/pages/itv_revisiones_page.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/pages/mantenimiento_preventivo_page_v2.dart';
 import 'package:ambutrack_web/features/perfil/presentation/pages/perfil_page.dart';
+import 'package:ambutrack_web/features/personal/horarios/presentation/pages/fichajes_page.dart';
 import 'package:ambutrack_web/features/personal/personal_page.dart';
 import 'package:ambutrack_web/features/personal/presentation/pages/documentacion_personal_page.dart';
 import 'package:ambutrack_web/features/personal/presentation/pages/equipamiento_personal_page.dart';
@@ -457,6 +458,16 @@ final GoRouter appRouter = GoRouter(
         key: state.pageKey,
         child: const HorariosPage(),
       ),
+        ),
+        // Fichajes con ubicaciones GPS
+        GoRoute(
+          path: '/personal/fichajes',
+          name: 'personal_fichajes',
+          pageBuilder: (BuildContext context, GoRouterState state) =>
+              _buildPageWithTransition(
+            key: state.pageKey,
+            child: const FichajesPage(),
+          ),
         ),
         // Excepciones y Festivos
         GoRoute(

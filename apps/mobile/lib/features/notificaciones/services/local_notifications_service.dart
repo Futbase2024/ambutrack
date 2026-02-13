@@ -134,6 +134,17 @@ class LocalNotificationsService {
       showBadge: true,
     );
 
+    // Canal para caducidades (alta prioridad)
+    const caducidadesChannel = AndroidNotificationChannel(
+      'caducidades_v5',
+      'Caducidades',
+      description: 'Alertas de productos próximos a caducar',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+      showBadge: true,
+    );
+
     // Canal para información general (normal)
     const infoChannel = AndroidNotificationChannel(
       'info_v5',
@@ -163,6 +174,10 @@ class LocalNotificationsService {
     await _plugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(trasladosChannel);
+
+    await _plugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(caducidadesChannel);
 
     await _plugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
@@ -317,6 +332,8 @@ class LocalNotificationsService {
       case NotificacionTipo.trasladoFinalizado:
       case NotificacionTipo.trasladoCancelado:
         return 'traslados_v5';
+      case NotificacionTipo.alertaCaducidad:
+        return 'caducidades_v5';
       default:
         return 'info_v5';
     }
@@ -329,6 +346,8 @@ class LocalNotificationsService {
         return 'Emergencias';
       case 'traslados_v5':
         return 'Traslados';
+      case 'caducidades_v5':
+        return 'Caducidades';
       default:
         return 'Información';
     }
@@ -341,6 +360,8 @@ class LocalNotificationsService {
         return 'Notificaciones críticas de emergencias';
       case 'traslados_v5':
         return 'Nuevos traslados asignados y cambios de estado';
+      case 'caducidades_v5':
+        return 'Alertas de productos próximos a caducar';
       default:
         return 'Notificaciones informativas generales';
     }
@@ -353,6 +374,7 @@ class LocalNotificationsService {
         return Importance.max;
       case NotificacionTipo.trasladoAsignado:
       case NotificacionTipo.trasladoDesadjudicado:
+      case NotificacionTipo.alertaCaducidad:
         return Importance.high;
       default:
         return Importance.defaultImportance;
@@ -366,6 +388,7 @@ class LocalNotificationsService {
         return Priority.max;
       case NotificacionTipo.trasladoAsignado:
       case NotificacionTipo.trasladoDesadjudicado:
+      case NotificacionTipo.alertaCaducidad:
         return Priority.high;
       default:
         return Priority.defaultPriority;
@@ -382,6 +405,9 @@ class LocalNotificationsService {
       case NotificacionTipo.trasladoDesadjudicado:
         // Patrón distintivo para traslados
         return Int64List.fromList([0, 300, 200, 300]);
+      case NotificacionTipo.alertaCaducidad:
+        // Patrón para caducidades: vibración doble corta
+        return Int64List.fromList([0, 250, 100, 250]);
       default:
         // Patrón suave para info
         return Int64List.fromList([0, 200]);
@@ -424,6 +450,7 @@ class LocalNotificationsService {
         return InterruptionLevel.critical;
       case NotificacionTipo.trasladoAsignado:
       case NotificacionTipo.trasladoDesadjudicado:
+      case NotificacionTipo.alertaCaducidad:
         return InterruptionLevel.timeSensitive;
       default:
         return InterruptionLevel.active;

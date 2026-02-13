@@ -15,6 +15,12 @@ abstract class RegistroHorarioRepository {
     DateTime fechaFin,
   );
 
+  /// Obtiene TODOS los registros horarios en un rango de fechas (sin filtro de personal)
+  Future<List<RegistroHorarioEntity>> getByDateRange(
+    DateTime fechaInicio,
+    DateTime fechaFin,
+  );
+
   /// Obtiene el último registro de un personal
   Future<RegistroHorarioEntity?> getUltimoRegistro(String personalId);
 

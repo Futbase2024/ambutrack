@@ -26,6 +26,9 @@ enum NotificacionTipo {
   // Incidencias de vehículos
   incidenciaVehiculoReportada('incidencia_vehiculo_reportada', 'Incidencia de Vehículo Reportada'),
 
+  // Caducidades
+  alertaCaducidad('alerta_caducidad', 'Alerta de Caducidad'),
+
   // Generales
   alerta('alerta', 'Alerta'),
   info('info', 'Información');

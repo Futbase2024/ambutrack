@@ -322,6 +322,33 @@ class SupabaseChecklistVehiculoDataSource
         });
   }
 
+  @override
+  Future<String?> getVehiculoAsignadoHoy(String personalId) async {
+    try {
+      final hoy = DateTime.now();
+      final fechaHoy = DateTime(hoy.year, hoy.month, hoy.day);
+
+      // Buscar en tabla turnos por idPersonal y fecha actual
+      final response = await _supabase
+          .from('turnos')
+          .select('idVehiculo')
+          .eq('idPersonal', personalId)
+          .gte('fechaInicio', fechaHoy.toIso8601String())
+          .lte('fechaFin', fechaHoy.add(const Duration(days: 1)).toIso8601String())
+          .eq('activo', true)
+          .maybeSingle();
+
+      if (response != null && response['idVehiculo'] != null) {
+        return response['idVehiculo'] as String;
+      }
+
+      return null;
+    } catch (e) {
+      print('Error al obtener vehículo asignado: $e');
+      return null;
+    }
+  }
+
   /// Helper para obtener un checklist con sus items
   Future<ChecklistVehiculoEntity> _getChecklistWithItems(
       Map<String, dynamic> checklistJson) async {

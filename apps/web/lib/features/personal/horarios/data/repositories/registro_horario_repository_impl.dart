@@ -31,6 +31,14 @@ class RegistroHorarioRepositoryImpl implements RegistroHorarioRepository {
   }
 
   @override
+  Future<List<RegistroHorarioEntity>> getByDateRange(
+    DateTime fechaInicio,
+    DateTime fechaFin,
+  ) {
+    return _dataSource.getByDateRange(fechaInicio, fechaFin);
+  }
+
+  @override
   Future<RegistroHorarioEntity?> getUltimoRegistro(String personalId) {
     return _dataSource.getUltimoRegistro(personalId);
   }

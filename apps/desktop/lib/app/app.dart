@@ -1,12 +1,12 @@
 import 'package:ambutrack_desktop/app/flavors.dart';
+import 'package:ambutrack_desktop/core/di/locator.dart';
 import 'package:ambutrack_desktop/core/router/app_router_simple.dart';
 import 'package:ambutrack_desktop/core/theme/app_theme.dart';
+import 'package:ambutrack_desktop/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ambutrack_desktop/features/auth/presentation/bloc/auth_event.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-
-// TODO(dev): Descomentar cuando AuthBloc esté disponible
-// import 'package:ambutrack_desktop/features/auth/presentation/bloc/auth_bloc.dart';
-// import 'package:ambutrack_desktop/features/auth/presentation/bloc/auth_event.dart';
 
 /// Widget principal de la aplicación Desktop
 ///
@@ -17,13 +17,10 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO(dev): Descomentar cuando AuthBloc esté disponible
-    // return BlocProvider<AuthBloc>(
-    //   create: (BuildContext context) => getIt<AuthBloc>()..add(const AuthCheckRequested()),
-    //   child: _buildMaterialApp(),
-    // );
-
-    return _buildMaterialApp();
+    return BlocProvider<AuthBloc>(
+      create: (BuildContext context) => getIt<AuthBloc>()..add(const AuthCheckRequested()),
+      child: _buildMaterialApp(),
+    );
   }
 
   Widget _buildMaterialApp() {

@@ -111,6 +111,24 @@ class StockVehiculoSupabaseModel {
   /// Convierte a JSON para Supabase
   Map<String, dynamic> toJson() => _$StockVehiculoSupabaseModelToJson(this);
 
+  /// Convierte a JSON para actualizar en Supabase
+  /// Solo incluye campos que existen en la tabla stock_vehiculo
+  /// Excluye campos calculados/de vista como cantidad_minima, matricula, etc.
+  Map<String, dynamic> toJsonForUpdate() {
+    return {
+      'id': id,
+      'vehiculo_id': vehiculoId,
+      'producto_id': productoId,
+      'cantidad_actual': cantidadActual,
+      if (fechaCaducidad != null) 'fecha_caducidad': fechaCaducidad!.toIso8601String(),
+      'lote': lote,
+      'ubicacion': ubicacion,
+      'observaciones': observaciones,
+      'updated_at': updatedAt.toIso8601String(),
+      if (updatedBy != null) 'updated_by': updatedBy,
+    };
+  }
+
   /// Convierte el modelo a entidad de dominio
   StockVehiculoEntity toEntity() {
     return StockVehiculoEntity(

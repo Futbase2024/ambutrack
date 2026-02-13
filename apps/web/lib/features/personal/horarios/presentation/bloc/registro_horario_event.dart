@@ -149,3 +149,18 @@ class LoadEstadisticas extends RegistroHorarioEvent {
   @override
   List<Object?> get props => <Object?>[fechaInicio, fechaFin];
 }
+
+/// Evento para cargar TODOS los fichajes (sin filtro de personal específico)
+/// Se usa en la página de fichajes globales con visualización de mapas GPS
+class LoadAllRegistros extends RegistroHorarioEvent {
+  const LoadAllRegistros({
+    this.fechaInicio,
+    this.fechaFin,
+  });
+
+  final DateTime? fechaInicio;
+  final DateTime? fechaFin;
+
+  @override
+  List<Object?> get props => <Object?>[fechaInicio, fechaFin];
+}

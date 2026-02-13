@@ -32,4 +32,7 @@ abstract class ChecklistVehiculoDataSource {
 
   /// Stream en tiempo real de checklists de un vehículo
   Stream<List<ChecklistVehiculoEntity>> watchByVehiculoId(String vehiculoId);
+
+  /// Obtiene el vehículo asignado al personal en la fecha actual
+  Future<String?> getVehiculoAsignadoHoy(String personalId);
 }

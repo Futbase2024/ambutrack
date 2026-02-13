@@ -35,8 +35,7 @@ class MainLayout extends StatelessWidget {
         return 'AmbuTrack';
       case '/registro-horario':
         return 'Registro Horario';
-      case '/checklist-ambulancia':
-        return 'Checklist Ambulancia';
+      // Checklist Ambulancia se accede desde Mi Vehículo
       case '/partes-diarios':
         return 'Partes Diarios';
       case '/incidencias':
@@ -198,13 +197,7 @@ class MainLayout extends StatelessWidget {
                 route: '/registro-horario',
                 isSelected: currentLocation == '/registro-horario',
               ),
-              _buildDrawerItem(
-                context,
-                icon: AppIcons.checklist,
-                title: 'Checklist Ambulancia',
-                route: '/checklist-ambulancia',
-                isSelected: currentLocation == '/checklist-ambulancia',
-              ),
+              // Checklist Ambulancia ahora está dentro de "Mi Vehículo"
               _buildDrawerItem(
                 context,
                 icon: AppIcons.assignment,

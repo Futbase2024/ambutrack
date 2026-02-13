@@ -465,6 +465,8 @@ class MainLayout extends StatelessWidget {
         return AppColors.error;
       case NotificacionTipo.alerta:
         return AppColors.emergency;
+      case NotificacionTipo.alertaCaducidad:
+        return AppColors.warning;
       case NotificacionTipo.info:
         return AppColors.info;
     }
@@ -500,6 +502,8 @@ class MainLayout extends StatelessWidget {
         return Icons.car_crash_outlined;
       case NotificacionTipo.alerta:
         return Icons.warning_amber_outlined;
+      case NotificacionTipo.alertaCaducidad:
+        return Icons.event_busy_outlined;
       case NotificacionTipo.info:
         return Icons.info_outlined;
     }

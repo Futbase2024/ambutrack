@@ -11,26 +11,26 @@ enum TipoChecklist {
 
 /// Extension para TipoChecklist
 extension TipoChecklistExtension on TipoChecklist {
-  /// Convierte el enum a String para Supabase
+  /// Convierte el enum a String para Supabase (camelCase)
   String toJson() {
     switch (this) {
       case TipoChecklist.mensual:
         return 'mensual';
       case TipoChecklist.preServicio:
-        return 'pre_servicio';
+        return 'preServicio';
       case TipoChecklist.postServicio:
-        return 'post_servicio';
+        return 'postServicio';
     }
   }
 
-  /// Convierte desde String de Supabase
+  /// Convierte desde String de Supabase (camelCase)
   static TipoChecklist fromJson(String value) {
     switch (value) {
       case 'mensual':
         return TipoChecklist.mensual;
-      case 'pre_servicio':
+      case 'preServicio':
         return TipoChecklist.preServicio;
-      case 'post_servicio':
+      case 'postServicio':
         return TipoChecklist.postServicio;
       default:
         throw ArgumentError('Tipo de checklist no válido: $value');

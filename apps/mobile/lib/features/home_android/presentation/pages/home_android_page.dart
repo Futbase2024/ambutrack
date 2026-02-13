@@ -8,6 +8,7 @@ import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../registro_horario/presentation/bloc/registro_horario_bloc.dart';
 import '../../../registro_horario/presentation/bloc/registro_horario_event.dart';
 import '../../../registro_horario/presentation/bloc/registro_horario_state.dart';
+import '../widgets/alertas_caducidad_section.dart';
 
 /// Página Home de AmbuTrack Mobile
 ///
@@ -62,6 +63,11 @@ class _HomeAndroidPageState extends State<HomeAndroidPage> {
                   children: [
                     // Tarjeta del usuario
                     _buildUserCard(user, personal),
+
+                    const SizedBox(height: 24),
+
+                    // Alertas de caducidad (solo si el usuario tiene vehículo asignado)
+                    const AlertasCaducidadHomeSection(),
 
                     const SizedBox(height: 24),
 

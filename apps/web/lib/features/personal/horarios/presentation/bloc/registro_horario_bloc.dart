@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/personal/horarios/domain/repositories/registro_horario_repository.dart';
 import 'package:bloc/bloc.dart';
+import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 
 import 'registro_horario_event.dart';
@@ -18,6 +19,7 @@ class RegistroHorarioBloc extends Bloc<RegistroHorarioEvent, RegistroHorarioStat
     on<LoadRegistrosByDate>(_onLoadRegistrosByDate);
     on<LoadRegistrosByDateRange>(_onLoadRegistrosByDateRange);
     on<LoadEstadisticas>(_onLoadEstadisticas);
+    on<LoadAllRegistros>(_onLoadAllRegistros);
   }
 
   final RegistroHorarioRepository _repository;
@@ -378,6 +380,50 @@ class RegistroHorarioBloc extends Bloc<RegistroHorarioEvent, RegistroHorarioStat
 
       await Future<void>.delayed(const Duration(seconds: 2));
       emit(currentState);
+    }
+  }
+
+  /// Handler para cargar TODOS los fichajes (página de fichajes globales)
+  Future<void> _onLoadAllRegistros(
+    LoadAllRegistros event,
+    Emitter<RegistroHorarioState> emit,
+  ) async {
+    debugPrint('📊 [RegistroHorarioBloc] Cargando todos los fichajes...');
+    emit(const RegistroHorarioLoading());
+
+    try {
+      // Calcular fechas de consulta
+      final DateTime fechaInicio = event.fechaInicio ?? DateTime.now().subtract(const Duration(days: 30));
+      final DateTime fechaFin = event.fechaFin ?? DateTime.now().add(const Duration(days: 1));
+
+      debugPrint('📅 [RegistroHorarioBloc] Rango de consulta:');
+      debugPrint('   Desde: ${fechaInicio.toIso8601String()}');
+      debugPrint('   Hasta: ${fechaFin.toIso8601String()}');
+
+      // Obtener todos los registros por rango de fechas (sin filtro de personal)
+      final List<RegistroHorarioEntity> registros = await _repository.getByDateRange(
+        fechaInicio,
+        fechaFin,
+      );
+
+      debugPrint('✅ [RegistroHorarioBloc] ${registros.length} fichajes cargados');
+
+      // Mostrar detalles de los primeros registros si existen
+      if (registros.isNotEmpty) {
+        debugPrint('📋 Primeros registros:');
+        for (int i = 0; i < (registros.length > 3 ? 3 : registros.length); i++) {
+          final RegistroHorarioEntity r = registros[i];
+          debugPrint('   ${i + 1}. ${r.nombrePersonal} - ${r.tipo} - ${r.fechaHora}');
+        }
+      }
+
+      emit(RegistroHorarioFichajesLoaded(
+        registros: registros,
+      ));
+    } catch (e, stackTrace) {
+      debugPrint('❌ [RegistroHorarioBloc] Error: $e');
+      debugPrint('StackTrace: $stackTrace');
+      emit(RegistroHorarioError(message: 'Error al cargar fichajes: $e'));
     }
   }
 }

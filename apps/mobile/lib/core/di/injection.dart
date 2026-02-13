@@ -25,7 +25,8 @@ import '../../features/vehiculo/domain/repositories/incidencias_repository.dart'
 import '../../features/vehiculo/presentation/bloc/incidencias/incidencias_bloc.dart';
 import '../../features/vehiculo/data/repositories/checklist_vehiculo_repository_impl.dart';
 import '../../features/vehiculo/domain/repositories/checklist_vehiculo_repository.dart';
-import '../../features/vehiculo/presentation/bloc/checklist/checklist_bloc.dart';
+import '../../features/vehiculo/presentation/bloc/checklist/checklist_bloc.dart'
+    as vehiculo_checklist;
 import '../../features/vehiculo/presentation/bloc/vehiculo_asignado/vehiculo_asignado_bloc.dart';
 import '../../features/ambulancias/data/repositories/ambulancias_repository_impl.dart';
 import '../../features/ambulancias/domain/repositories/ambulancias_repository.dart';
@@ -33,7 +34,14 @@ import '../../features/ambulancias/presentation/bloc/ambulancias_bloc.dart';
 import '../../features/ambulancias/presentation/bloc/revisiones_bloc.dart';
 import '../../features/vehiculo/data/repositories/stock_repository_impl.dart';
 import '../../features/vehiculo/domain/repositories/stock_repository.dart';
-import '../../features/vehiculo/presentation/bloc/caducidades/caducidades_bloc.dart';
+import '../../features/vehiculo/presentation/bloc/caducidades/caducidades_bloc.dart'
+    as vehiculo_caducidades;
+import '../../features/caducidades/data/repositories/caducidades_repository_impl.dart';
+import '../../features/caducidades/domain/repositories/caducidades_repository.dart';
+import '../../features/caducidades/presentation/bloc/caducidades_bloc.dart';
+import '../../features/checklist_ambulancia/data/repositories/checklist_repository_impl.dart';
+import '../../features/checklist_ambulancia/domain/repositories/checklist_repository.dart';
+import '../../features/checklist_ambulancia/presentation/bloc/checklist_bloc.dart';
 import '../../features/notificaciones/data/repositories/notificaciones_repository_impl.dart';
 import '../../features/notificaciones/domain/repositories/notificaciones_repository.dart';
 import '../../features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
@@ -157,8 +165,8 @@ Future<void> configureDependencies() async {
   );
 
   // BLoC (Factory para crear nueva instancia en cada página)
-  getIt.registerFactory<ChecklistBloc>(
-    () => ChecklistBloc(
+  getIt.registerFactory<vehiculo_checklist.ChecklistBloc>(
+    () => vehiculo_checklist.ChecklistBloc(
       getIt<ChecklistVehiculoRepository>(),
       getIt<AuthBloc>(),
     ),
@@ -203,9 +211,37 @@ Future<void> configureDependencies() async {
     () => StockRepositoryImpl(),
   );
 
+  // BLoC antiguo de caducidades (vehiculo feature)
+  getIt.registerFactory<vehiculo_caducidades.CaducidadesBloc>(
+    () => vehiculo_caducidades.CaducidadesBloc(
+      stockRepository: getIt<StockRepository>(),
+    ),
+  );
+
+  // ===== CADUCIDADES (Nueva feature) =====
+
+  // Repository
+  getIt.registerLazySingleton<CaducidadesRepository>(
+    () => CaducidadesRepositoryImpl(),
+  );
+
   // BLoC (Factory para crear nueva instancia en cada página)
   getIt.registerFactory<CaducidadesBloc>(
-    () => CaducidadesBloc(stockRepository: getIt<StockRepository>()),
+    () => CaducidadesBloc(
+      repository: getIt<CaducidadesRepository>(),
+    ),
+  );
+
+  // ===== CHECKLIST AMBULANCIA =====
+
+  // Repository
+  getIt.registerLazySingleton<ChecklistRepository>(
+    () => ChecklistRepositoryImpl(),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<ChecklistBloc>(
+    () => ChecklistBloc(repository: getIt<ChecklistRepository>()),
   );
 
   // ===== NOTIFICACIONES =====

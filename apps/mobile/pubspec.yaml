@@ -53,6 +53,10 @@ dependencies:
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
 
+  # ===== MAPS (Mobile Only) =====
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
   # ===== UTILS =====
   intl: ^0.20.1
   uuid: ^4.5.1

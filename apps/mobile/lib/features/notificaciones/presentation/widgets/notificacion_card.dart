@@ -239,6 +239,9 @@ class _NotificationIcon extends StatelessWidget {
       case NotificacionTipo.incidenciaVehiculoReportada:
         return (Icons.build_circle_rounded, Colors.orange);
 
+      case NotificacionTipo.alertaCaducidad:
+        return (Icons.warning_amber_rounded, Colors.orange);
+
       case NotificacionTipo.info:
         return (Icons.info_rounded, colorScheme.primary);
     }

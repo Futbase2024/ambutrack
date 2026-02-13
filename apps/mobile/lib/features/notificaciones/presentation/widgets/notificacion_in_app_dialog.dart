@@ -175,6 +175,12 @@ class NotificacionInAppDialog extends StatelessWidget {
           color: AppColors.primary, // ✅ Azul (era error/rojo)
         );
 
+      case NotificacionTipo.alertaCaducidad:
+        return _NotificationConfig(
+          icon: Icons.warning_amber_rounded,
+          color: AppColors.warning,
+        );
+
       default:
         return _NotificationConfig(
           icon: Icons.notifications_rounded,
