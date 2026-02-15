@@ -821,7 +821,9 @@ class _RutasTecnicosViewState extends State<_RutasTecnicosView> {
   }
 
   void _calcularRuta() {
-    if (_tecnicoSeleccionadoId == null) return;
+    if (_tecnicoSeleccionadoId == null) {
+      return;
+    }
 
     context.read<RutasBloc>().add(
           RutasEvent.cargarRutaRequested(

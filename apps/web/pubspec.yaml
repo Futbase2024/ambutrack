@@ -21,6 +21,7 @@ dependencies:
   # State Management
   bloc: ^9.0.1
   flutter_bloc: ^9.1.1
+  bloc_concurrency: ^0.3.0
   equatable: ^2.0.5
   dartz: ^0.10.1
 

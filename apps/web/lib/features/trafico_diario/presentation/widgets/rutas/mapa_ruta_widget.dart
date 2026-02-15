@@ -83,8 +83,11 @@ class _MapaRutaWidgetState extends State<MapaRutaWidget> {
                 ),
 
                 // Polilínea de la ruta
+                // ignore: always_specify_types
                 PolylineLayer(
+                  // ignore: always_specify_types
                   polylines: <Polyline>[
+                    // ignore: always_specify_types
                     Polyline(
                       points: puntos,
                       strokeWidth: 3.0,

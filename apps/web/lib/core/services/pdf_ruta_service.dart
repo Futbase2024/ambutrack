@@ -18,6 +18,7 @@ class PdfRutaService {
   }) async {
     final pw.Document pdf = pw.Document();
 
+    // ignore: cascade_invocations
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,

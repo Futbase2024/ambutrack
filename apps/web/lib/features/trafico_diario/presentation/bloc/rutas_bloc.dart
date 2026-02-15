@@ -268,7 +268,9 @@ class RutasBloc extends Bloc<RutasEvent, RutasState> {
     final List<TrasladoEntity> trasladosTecnico = todosTraslados
         .where((TrasladoEntity t) {
           // Filtrar por conductor
-          if (t.idPersonalConductor != tecnicoId) return false;
+          if (t.idPersonalConductor != tecnicoId) {
+            return false;
+          }
 
           // Filtrar por fecha (comparar solo día, mes y año)
           if (t.fecha != null) {
@@ -289,9 +291,15 @@ class RutasBloc extends Bloc<RutasEvent, RutasState> {
 
     // Ordenar por hora programada
     trasladosTecnico.sort((TrasladoEntity a, TrasladoEntity b) {
-      if (a.horaProgramada == null && b.horaProgramada == null) return 0;
-      if (a.horaProgramada == null) return 1;
-      if (b.horaProgramada == null) return -1;
+      if (a.horaProgramada == null && b.horaProgramada == null) {
+        return 0;
+      }
+      if (a.horaProgramada == null) {
+        return 1;
+      }
+      if (b.horaProgramada == null) {
+        return -1;
+      }
       return a.horaProgramada!.compareTo(b.horaProgramada!);
     });
 
@@ -301,7 +309,9 @@ class RutasBloc extends Bloc<RutasEvent, RutasState> {
   /// Filtra traslados por turno basándose en la hora programada
   List<TrasladoEntity> _filtrarPorTurno(List<TrasladoEntity> traslados, String turno) {
     return traslados.where((TrasladoEntity t) {
-      if (t.horaProgramada == null) return false;
+      if (t.horaProgramada == null) {
+        return false;
+      }
 
       final int hora = t.horaProgramada!.hour;
 
@@ -442,10 +452,21 @@ class RutasBloc extends Bloc<RutasEvent, RutasState> {
     try {
       debugPrint('🌍 Obteniendo coordenadas para: "$nombreUbicacion"');
 
-      // Usar geocodificación real con Nominatim
+      // Extraer contexto del nombre si está disponible
+      String? contexto;
+      if (nombreUbicacion.toUpperCase().contains('BÁRBATE') ||
+          nombreUbicacion.toUpperCase().contains('BARBATE')) {
+        contexto = 'Bárbate';
+      } else if (tipo == 'hospital' || tipo == 'centro salud') {
+        // Para hospitales, añadir contexto de la provincia
+        contexto = 'Cádiz';
+      }
+
+      // Usar geocodificación real con Nominatim y contexto
       final Map<String, double> coordenadas =
           await _geocodingService.obtenerCoordenadas(
         query: nombreUbicacion,
+        contexto: contexto,
           );
 
       return PuntoUbicacion(

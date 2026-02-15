@@ -2,6 +2,9 @@ import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
+import 'package:ambutrack_web/features/alertas_caducidad/presentation/widgets/alertas_dashboard_card.dart';
+import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_bloc.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_event.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_state.dart';
@@ -69,6 +72,10 @@ class HomePage extends StatelessWidget {
 
                     // Estadísticas del día
                     _DailyStatsCard(),
+                    SizedBox(height: 16),
+
+                    // Alertas de caducidad
+                    _AlertasCaducidadCard(),
                     SizedBox(height: 16),
 
                     // Ambulancias disponibles
@@ -792,6 +799,25 @@ class _AmbulanceItem extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+/// Card de alertas de caducidad para el dashboard
+class _AlertasCaducidadCard extends StatelessWidget {
+  const _AlertasCaducidadCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (BuildContext context, AuthState state) {
+        if (state is! AuthAuthenticated) {
+          return const SizedBox.shrink();
+        }
+
+        final String userId = state.user.uid;
+
+        return AlertasDashboardCard(usuarioId: userId);
+      },
     );
   }
 }

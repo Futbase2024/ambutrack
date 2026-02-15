@@ -75,7 +75,9 @@ class RutaService {
 
   /// Calcula la distancia total de una ruta (suma de distancias entre puntos consecutivos)
   double calcularDistanciaTotal(List<PuntoUbicacion> puntos) {
-    if (puntos.length < 2) return 0.0;
+    if (puntos.length < 2) {
+      return 0.0;
+    }
 
     double distanciaTotal = 0.0;
     for (int i = 0; i < puntos.length - 1; i++) {
@@ -187,18 +189,27 @@ class RutaService {
     required List<TrasladoConRutaInfo> traslados,
     bool respetarHorarios = true,
   }) {
-    if (traslados.length <= 1) return traslados;
+    if (traslados.length <= 1) {
+      return traslados;
+    }
 
     if (respetarHorarios) {
       // Si respetamos horarios, solo ordenar por hora programada
       debugPrint('🔄 Optimizando ruta respetando horarios programados');
       final List<TrasladoConRutaInfo> trasladosOrdenados = List<TrasladoConRutaInfo>.from(traslados);
+      // ignore: cascade_invocations
       trasladosOrdenados.sort((TrasladoConRutaInfo a, TrasladoConRutaInfo b) {
         final DateTime? horaA = a.traslado.horaProgramada;
         final DateTime? horaB = b.traslado.horaProgramada;
-        if (horaA == null && horaB == null) return 0;
-        if (horaA == null) return 1;
-        if (horaB == null) return -1;
+        if (horaA == null && horaB == null) {
+          return 0;
+        }
+        if (horaA == null) {
+          return 1;
+        }
+        if (horaB == null) {
+          return -1;
+        }
         return horaA.compareTo(horaB);
       });
       return trasladosOrdenados;

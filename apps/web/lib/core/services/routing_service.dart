@@ -21,8 +21,8 @@ class RutaPunto {
     return LatLng(latitud, longitud);
   }
 
-  /// Convierte a formato lon,lat para OpenRouteService
-  String toORSFormat() {
+  /// Convierte a formato lon,lat para OSRM
+  String toOSRMFormat() {
     return '$longitud,$latitud';
   }
 }
@@ -77,10 +77,17 @@ class RoutingError implements Exception {
   String toString() => 'RoutingError: $message';
 }
 
-/// Servicio para calcular rutas reales por carretera usando OpenRouteService
+/// Servicio para calcular rutas reales por carretera usando OSRM
 ///
-/// OpenRouteService es una API gratuita basada en OpenStreetMap
-/// Documentación: https://openrouteservice.org/dev/#/api-docs/v2/directions
+/// OSRM (Open Source Routing Machine) es un motor de routing de código abierto
+/// Documentación: http://project-osrm.org/docs/v5.24.0/api/
+/// API pública gratuita: https://router.project-osrm.org
+///
+/// Ventajas sobre OpenRouteService:
+/// - Sin restricciones CORS para aplicaciones web
+/// - No requiere API key
+/// - Respuestas más rápidas
+/// - Soporte nativo para múltiples waypoints
 @lazySingleton
 class RoutingService {
   RoutingService() {
@@ -89,18 +96,16 @@ class RoutingService {
 
   late final http.Client _client;
 
-  /// API endpoints de OpenRouteService
-  static const String _orsApiUrl = 'api.openrouteservice.org';
-  static const String _directionsEndpoint = '/v2/directions/driving-car';
+  /// API endpoints de OSRM (más amigable para web que ORS)
+  static const String _osrmApiUrl = 'router.project-osrm.org';
+  static const String _routeEndpoint = '/route/v1/driving';
 
-  /// Headers obligatorios para OpenRouteService
+  /// Headers para OSRM
   static const Map<String, String> _headers = <String, String>{
-    'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
-    'Authorization': '', // API key opcional para uso básico
-    'Content-Type': 'application/json; charset=utf-8',
+    'Accept': 'application/json, application/geo+json',
   };
 
-  /// Calcula una ruta real por carretera entre dos puntos
+  /// Calcula una ruta real por carretera entre dos puntos usando OSRM
   ///
   /// Parámetros:
   /// - [origen]: Punto de origen (latitud, longitud)
@@ -115,31 +120,35 @@ class RoutingService {
     required RutaPunto destino,
   }) async {
     try {
-      debugPrint('🚗 Calculando ruta por carretera...');
-      debugPrint('📍 Origen: ${origen.latitud}, ${origen.longitud}');
-      debugPrint('📍 Destino: ${destino.latitud}, ${destino.longitud}');
+      debugPrint('🚗 Calculando ruta por carretera con OSRM...');
+      debugPrint('📍 Origen: ${origen.latitud}, ${origen.longitud} (${origen.nombre})');
+      debugPrint('📍 Destino: ${destino.latitud}, ${destino.longitud} (${destino.nombre})');
 
-      // Construir URL para OpenRouteService
+      // Construir URL para OSRM
+      // Formato: /route/v1/driving/lon1,lat1;lon2,lat2?overview=full&geometries=geojson
+      final String coordenadas = '${origen.toOSRMFormat()};${destino.toOSRMFormat()}';
+
       final Uri uri = Uri.https(
-        _orsApiUrl,
-        _directionsEndpoint,
+        _osrmApiUrl,
+        '$_routeEndpoint/$coordenadas',
         <String, String>{
-          'start': origen.toORSFormat(),
-          'end': destino.toORSFormat(),
+          'overview': 'full', // Geometría completa
+          'geometries': 'geojson', // Formato GeoJSON
+          'steps': 'false', // No necesitamos pasos detallados
         },
       );
 
-      debugPrint('🌐 URL ORS: $uri');
+      debugPrint('🌐 URL OSRM: $uri');
 
       // Hacer request GET
       final http.Response response = await _client.get(uri, headers: _headers);
 
-      debugPrint('📡 Status ORS: ${response.statusCode}');
+      debugPrint('📡 Status OSRM: ${response.statusCode}');
 
       // Verificar status code
       if (response.statusCode != 200) {
         throw RoutingError(
-          'Error en API OpenRouteService: ${response.statusCode}',
+          'Error en API OSRM: ${response.statusCode} - ${response.body}',
         );
       }
 
@@ -148,29 +157,44 @@ class RoutingService {
         response.body,
       ) as Map<String, dynamic>;
 
-      // Extraer datos de la ruta
-      final Map<String, dynamic>? feature =
-          (jsonData['features'] as List<dynamic>).firstOrNull as Map<String, dynamic>?;
-
-      if (feature == null) {
-        throw const RoutingError(
-          'No se pudo calcular la ruta entre los puntos especificados',
+      // Verificar que hay ruta
+      final String? code = jsonData['code'] as String?;
+      if (code != 'Ok') {
+        throw RoutingError(
+          'OSRM returned error: $code',
         );
       }
 
-      // Extraer propiedades
-      final Map<String, dynamic> properties =
-          feature['properties'] as Map<String, dynamic>;
+      // Extraer ruta
+      final List<dynamic>? routes = jsonData['routes'] as List<dynamic>?;
+      if (routes == null || routes.isEmpty) {
+        throw const RoutingError(
+          'No se encontraron rutas entre los puntos especificados',
+        );
+      }
 
-      final double distancia = (properties['summary']['distance'] as num).toDouble() / 1000; // m a km
-      final double duracion = (properties['summary']['duration'] as num).toDouble() / 60; // seg a min
+      final Map<String, dynamic> route = routes.first as Map<String, dynamic>;
 
-      debugPrint('✅ Distancia: ${distancia.toStringAsFixed(2)} km');
-      debugPrint('⏱️ Duración: ${duracion.toStringAsFixed(1)} min');
+      // Extraer distancia (en metros) y duración (en segundos)
+      final double distanciaMetros = (route['distance'] as num).toDouble();
+      final double duracionSegundos = (route['duration'] as num).toDouble();
+
+      final double distanciaKm = distanciaMetros / 1000;
+      final double duracionMinutos = duracionSegundos / 60;
+
+      debugPrint('✅ Distancia: ${distanciaKm.toStringAsFixed(2)} km');
+      debugPrint('⏱️ Duración: ${duracionMinutos.toStringAsFixed(1)} min');
 
       // Extraer geometría (polyline completo)
       final Map<String, dynamic> geometry =
-          feature['geometry'] as Map<String, dynamic>;
+          route['geometry'] as Map<String, dynamic>;
+
+      final String geoJsonType = geometry['type'] as String;
+      if (geoJsonType != 'LineString') {
+        throw RoutingError(
+          'Tipo de geometría no soportado: $geoJsonType',
+        );
+      }
 
       final List<dynamic> coordinates =
           geometry['coordinates'] as List<dynamic>;
@@ -178,7 +202,7 @@ class RoutingService {
       final List<LatLng> puntosGeometria = <LatLng>[];
       for (final dynamic coord in coordinates) {
         final List<dynamic> c = coord as List<dynamic>;
-        // ORS devuelve [lon, lat], LatLng necesita [lat, lon]
+        // OSRM devuelve [lon, lat], LatLng necesita [lat, lon]
         puntosGeometria.add(
           LatLng(c[1] as double, c[0] as double),
         );
@@ -187,8 +211,8 @@ class RoutingService {
       debugPrint('📍 Puntos en geometría: ${puntosGeometria.length}');
 
       return RutaCalculada(
-        distanciaKm: distancia,
-        duracionMinutos: duracion,
+        distanciaKm: distanciaKm,
+        duracionMinutos: duracionMinutos,
         puntos: <RutaPunto>[origen, destino],
         geometria: puntosGeometria,
       );
@@ -204,7 +228,7 @@ class RoutingService {
     }
   }
 
-  /// Calcula una ruta con múltiples waypoints
+  /// Calcula una ruta con múltiples waypoints usando OSRM
   ///
   /// Útil para rutas con múltiples paradas
   Future<RutaCalculada> calcularRutaConWaypoints({
@@ -212,35 +236,36 @@ class RoutingService {
     required List<RutaPunto> waypoints,
     required RutaPunto destino,
   }) async {
-    // NOTA: La versión gratuita de ORS tiene limitaciones
-    // Para múltiples waypoints, necesitamos hacer múltiples requests
-    // o usar la API de pago
-
     try {
       debugPrint('🚗 Calculando ruta con ${waypoints.length} waypoints...');
 
-      // Construir lista de coordenadas para ORS
+      // Construir lista de coordenadas para OSRM
+      // Formato: lon1,lat1;lon2,lat2;lon3,lat3;...
       final List<String> coordenadas = <String>[
-        origen.toORSFormat(),
-        ...waypoints.map((RutaPunto p) => p.toORSFormat()),
-        destino.toORSFormat(),
+        origen.toOSRMFormat(),
+        ...waypoints.map((RutaPunto p) => p.toOSRMFormat()),
+        destino.toOSRMFormat(),
       ];
 
+      final String coordenadasStr = coordenadas.join(';');
+
       final Uri uri = Uri.https(
-        _orsApiUrl,
-        _directionsEndpoint,
+        _osrmApiUrl,
+        '$_routeEndpoint/$coordenadasStr',
         <String, String>{
-          'coordinates': coordenadas.join(';'),
+          'overview': 'full',
+          'geometries': 'geojson',
+          'steps': 'false',
         },
       );
 
-      debugPrint('🌐 URL ORS: $uri');
+      debugPrint('🌐 URL OSRM: $uri');
 
       final http.Response response = await _client.get(uri, headers: _headers);
 
       if (response.statusCode != 200) {
         throw RoutingError(
-          'Error en API OpenRouteService: ${response.statusCode}',
+          'Error en API OSRM: ${response.statusCode} - ${response.body}',
         );
       }
 
@@ -248,21 +273,26 @@ class RoutingService {
         response.body,
       ) as Map<String, dynamic>;
 
-      final Map<String, dynamic>? feature =
-          (jsonData['features'] as List<dynamic>).firstOrNull as Map<String, dynamic>?;
+      final String? code = jsonData['code'] as String?;
+      if (code != 'Ok') {
+        throw RoutingError('OSRM returned error: $code');
+      }
 
-      if (feature == null) {
+      final List<dynamic>? routes = jsonData['routes'] as List<dynamic>?;
+      if (routes == null || routes.isEmpty) {
         throw const RoutingError('No se pudo calcular la ruta con waypoints');
       }
 
-      final Map<String, dynamic> properties =
-          feature['properties'] as Map<String, dynamic>;
+      final Map<String, dynamic> route = routes.first as Map<String, dynamic>;
 
-      final double distancia = (properties['summary']['distance'] as num).toDouble() / 1000;
-      final double duracion = (properties['summary']['duration'] as num).toDouble() / 60;
+      final double distanciaMetros = (route['distance'] as num).toDouble();
+      final double duracionSegundos = (route['duration'] as num).toDouble();
+
+      final double distanciaKm = distanciaMetros / 1000;
+      final double duracionMinutos = duracionSegundos / 60;
 
       final Map<String, dynamic> geometry =
-          feature['geometry'] as Map<String, dynamic>;
+          route['geometry'] as Map<String, dynamic>;
 
       final List<dynamic> coordinates =
           geometry['coordinates'] as List<dynamic>;
@@ -276,12 +306,12 @@ class RoutingService {
       }
 
       debugPrint('✅ Ruta con waypoints calculada');
-      debugPrint('📊 Distancia: ${distancia.toStringAsFixed(2)} km');
-      debugPrint('⏱️ Duración: ${duracion.toStringAsFixed(1)} min');
+      debugPrint('📊 Distancia: ${distanciaKm.toStringAsFixed(2)} km');
+      debugPrint('⏱️ Duración: ${duracionMinutos.toStringAsFixed(1)} min');
 
       return RutaCalculada(
-        distanciaKm: distancia,
-        duracionMinutos: duracion,
+        distanciaKm: distanciaKm,
+        duracionMinutos: duracionMinutos,
         puntos: <RutaPunto>[origen, ...waypoints, destino],
         geometria: puntosGeometria,
       );

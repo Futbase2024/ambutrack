@@ -1,6 +1,8 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/app/flavors.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/features/alertas_caducidad/presentation/bloc/alertas_caducidad_bloc.dart';
+import 'package:ambutrack_web/features/alertas_caducidad/presentation/bloc/alertas_caducidad_state.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_event.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
@@ -135,7 +137,7 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                         ),
                       ),
 
-                      // Sección derecha: Configuración + Notificaciones + Usuario
+                      // Sección derecha: Configuración + Notificaciones (incluye alertas) + Usuario
                       if (isWideScreen) ...<Widget>[
                         _buildConfigurationButton(context),
                         const SizedBox(width: 12),
@@ -206,7 +208,7 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  /// Botón de notificaciones
+  /// Botón de notificaciones (incluye alertas críticas)
   Widget _buildNotificationButton(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (BuildContext context, AuthState authState) {
@@ -214,83 +216,101 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
           return const SizedBox.shrink();
         }
 
-        // Usar el NotificacionBloc provisto por MainLayout
-        return BlocBuilder<NotificacionBloc, NotificacionState>(
-            builder: (BuildContext context, NotificacionState state) {
-              int conteoNoLeidas = 0;
+        return BlocBuilder<AlertasCaducidadBloc, AlertasCaducidadState>(
+          builder: (BuildContext context, AlertasCaducidadState alertasState) {
+            int alertasCriticasCount = 0;
+            alertasState.maybeWhen(
+              loaded: (List<AlertaCaducidadEntity> alertas, _, _, _, _) {
+                alertasCriticasCount = alertas.where((AlertaCaducidadEntity a) => a.esCritica == true).length;
+              },
+              orElse: () {},
+            );
 
-              // Obtener conteo de notificaciones no leídas
-              state.whenOrNull(
-                loaded: (List<NotificacionEntity> notificaciones, int conteo) {
-                  conteoNoLeidas = conteo;
-                  debugPrint('🔔 Badge: Actualizando badge con $conteoNoLeidas no leídas');
-                },
-              ) ?? debugPrint('🔔 Badge: Estado no es loaded, es ${state.runtimeType}');
+            return BlocBuilder<NotificacionBloc, NotificacionState>(
+              builder: (BuildContext context, NotificacionState notifState) {
+                int conteoNoLeidas = 0;
+                notifState.whenOrNull(
+                  loaded: (List<NotificacionEntity> notificaciones, int conteo) {
+                    conteoNoLeidas = conteo;
+                  },
+                );
 
-              return Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12.0),
-                onTap: () {
-                  _mostrarPanelNotificaciones(context);
-                },
-                child: Stack(
-                  children: <Widget>[
-                    Container(
-                      padding: const EdgeInsets.all(10.0),
-                      decoration: BoxDecoration(
-                        color: AppColors.backgroundLight.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12.0),
-                        border: Border.all(
-                          color: AppColors.backgroundLight.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.notifications_outlined,
-                        color: AppColors.backgroundLight,
-                        size: 20,
-                      ),
-                    ),
-                    // Badge de notificaciones
-                    if (conteoNoLeidas > 0)
-                      Positioned(
-                        right: 6,
-                        top: 6,
-                        child: Container(
-                          padding: const EdgeInsets.all(3.0),
+                // Conteo combinado: notificaciones no leídas + alertas críticas
+                final int conteoTotal = conteoNoLeidas + alertasCriticasCount;
+
+                return Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12.0),
+                    onTap: () {
+                      _mostrarPanelNotificaciones(context);
+                    },
+                    child: Stack(
+                      children: <Widget>[
+                        Container(
+                          padding: const EdgeInsets.all(10.0),
                           decoration: BoxDecoration(
-                            color: AppColors.emergency,
-                            shape: BoxShape.circle,
+                            color: AppColors.backgroundLight.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12.0),
                             border: Border.all(
-                              color: AppColors.backgroundLight,
-                              width: 1.5,
+                              color: AppColors.backgroundLight.withValues(alpha: 0.2),
                             ),
-                            boxShadow: const <BoxShadow>[
-                              BoxShadow(
-                                color: Color.fromRGBO(220, 38, 38, 0.4),
-                                blurRadius: 4,
-                                offset: Offset(0, 1),
-                              ),
-                            ],
                           ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: Text(
-                            conteoNoLeidas > 9 ? '9+' : '$conteoNoLeidas',
-                            style: GoogleFonts.inter(
-                              color: AppColors.backgroundLight,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            textAlign: TextAlign.center,
+                          child: Icon(
+                            // Cambiar icono si hay alertas críticas
+                            alertasCriticasCount > 0
+                                ? Icons.warning_amber_rounded
+                                : Icons.notifications_outlined,
+                            color: alertasCriticasCount > 0
+                                ? AppColors.warning
+                                : AppColors.backgroundLight,
+                            size: 20,
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
+                        // Badge combinado
+                        if (conteoTotal > 0)
+                          Positioned(
+                            right: 6,
+                            top: 6,
+                            child: Container(
+                              padding: const EdgeInsets.all(3.0),
+                              decoration: BoxDecoration(
+                                color: alertasCriticasCount > 0
+                                    ? AppColors.warning
+                                    : AppColors.emergency,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.backgroundLight,
+                                  width: 1.5,
+                                ),
+                                boxShadow: const <BoxShadow>[
+                                  BoxShadow(
+                                    color: Color.fromRGBO(251, 191, 36, 0.4),
+                                    blurRadius: 4,
+                                    offset: Offset(0, 1),
+                                  ),
+                                ],
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                conteoTotal > 9 ? '9+' : '$conteoTotal',
+                                style: GoogleFonts.inter(
+                                  color: AppColors.backgroundLight,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             );
           },
         );

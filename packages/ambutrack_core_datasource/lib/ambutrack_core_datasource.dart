@@ -254,6 +254,25 @@ export 'src/datasources/stock_vestuario/entities/stock_vestuario_entity.dart';
 export 'src/datasources/stock_vestuario/stock_vestuario_contract.dart';
 export 'src/datasources/stock_vestuario/stock_vestuario_factory.dart' show StockVestuarioDataSourceFactory;
 
+// Formación y Certificaciones
+export 'src/datasources/certificaciones/entities/certificacion_entity.dart';
+export 'src/datasources/certificaciones/certificacion_contract.dart';
+export 'src/datasources/certificaciones/certificacion_factory.dart' show CertificacionDataSourceFactory;
+export 'src/datasources/certificaciones/implementations/supabase/supabase_certificacion_datasource.dart';
+export 'src/datasources/certificaciones/models/certificacion_supabase_model.dart';
+
+export 'src/datasources/cursos/entities/curso_entity.dart';
+export 'src/datasources/cursos/curso_contract.dart';
+export 'src/datasources/cursos/curso_factory.dart' show CursoDataSourceFactory;
+export 'src/datasources/cursos/implementations/supabase/supabase_curso_datasource.dart';
+export 'src/datasources/cursos/models/curso_supabase_model.dart';
+
+export 'src/datasources/formacion_personal/entities/formacion_personal_entity.dart';
+export 'src/datasources/formacion_personal/formacion_personal_contract.dart';
+export 'src/datasources/formacion_personal/formacion_personal_factory.dart' show FormacionPersonalDataSourceFactory;
+export 'src/datasources/formacion_personal/implementations/supabase/supabase_formacion_personal_datasource.dart';
+export 'src/datasources/formacion_personal/models/formacion_personal_supabase_model.dart';
+
 // ✅ STOCK VEHÍCULOS - Para caducidades y control de equipamiento por vehículo
 export 'src/datasources/stock/entities/categoria_equipamiento_entity.dart';
 export 'src/datasources/stock/entities/vehiculo_stock_resumen_entity.dart';
@@ -357,6 +376,24 @@ export 'src/datasources/notificaciones/notificaciones_contract.dart';
 export 'src/datasources/notificaciones/notificaciones_factory.dart' show NotificacionesDataSourceFactory;
 export 'src/datasources/notificaciones/implementations/supabase/supabase_notificaciones_datasource.dart';
 export 'src/datasources/notificaciones/models/notificacion_supabase_model.dart';
+
+// Documentación de Vehículos
+export 'src/datasources/documentacion_vehiculos/entities/tipo_documento_entity.dart';
+export 'src/datasources/documentacion_vehiculos/entities/documentacion_vehiculo_entity.dart';
+export 'src/datasources/documentacion_vehiculos/tipo_documento_datasource_contract.dart';
+export 'src/datasources/documentacion_vehiculos/documentacion_vehiculo_datasource_contract.dart';
+export 'src/datasources/documentacion_vehiculos/documentacion_vehiculos_datasource_factory.dart'
+    show DocumentacionVehiculosDataSourceFactory;
+export 'src/datasources/documentacion_vehiculos/models/tipo_documento_supabase_model.dart';
+export 'src/datasources/documentacion_vehiculos/models/documentacion_vehiculo_supabase_model.dart';
+
+// Alertas de Caducidad
+export 'src/datasources/alertas_caducidad/entities/alerta_caducidad_entity.dart';
+export 'src/datasources/alertas_caducidad/alertas_caducidad_contract.dart';
+export 'src/datasources/alertas_caducidad/alertas_caducidad_factory.dart'
+    show AlertasCaducidadDataSourceFactory;
+export 'src/datasources/alertas_caducidad/implementations/supabase/supabase_alertas_caducidad_datasource.dart';
+export 'src/datasources/alertas_caducidad/models/alerta_caducidad_supabase_model.dart';
 
 // Utils - Utilidades públicas
 export 'src/utils/exceptions/datasource_exception.dart';

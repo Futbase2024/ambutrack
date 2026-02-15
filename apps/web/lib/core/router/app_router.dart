@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:ambutrack_web/app/app.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/layout/main_layout.dart';
 import 'package:ambutrack_web/core/router/auth_guard.dart';
@@ -26,6 +27,8 @@ import 'package:ambutrack_web/features/mantenimiento/presentation/pages/mantenim
 import 'package:ambutrack_web/features/perfil/presentation/pages/perfil_page.dart';
 import 'package:ambutrack_web/features/personal/horarios/presentation/pages/fichajes_page.dart';
 import 'package:ambutrack_web/features/personal/personal_page.dart';
+import 'package:ambutrack_web/features/personal/presentation/pages/certificaciones_catalogo_page.dart';
+import 'package:ambutrack_web/features/personal/presentation/pages/cursos_catalogo_page.dart';
 import 'package:ambutrack_web/features/personal/presentation/pages/documentacion_personal_page.dart';
 import 'package:ambutrack_web/features/personal/presentation/pages/equipamiento_personal_page.dart';
 import 'package:ambutrack_web/features/personal/presentation/pages/evaluaciones_page.dart';
@@ -53,7 +56,7 @@ import 'package:ambutrack_web/features/turnos/presentation/pages/plantillas_turn
 import 'package:ambutrack_web/features/usuarios/presentation/pages/usuarios_page.dart';
 import 'package:ambutrack_web/features/vacaciones/presentation/pages/vacaciones_page.dart';
 import 'package:ambutrack_web/features/vehiculos/consumo_km_page.dart';
-import 'package:ambutrack_web/features/vehiculos/documentacion_page.dart';
+import 'package:ambutrack_web/features/vehiculos/documentacion/presentation/pages/documentacion_vehiculos_page.dart';
 import 'package:ambutrack_web/features/vehiculos/geolocalizacion_page.dart';
 import 'package:ambutrack_web/features/vehiculos/historial_averias_page.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/pages/stock_equipamiento_page.dart';
@@ -106,6 +109,7 @@ Page<T> _buildPageWithTransition<T>({
 /// Incluye protección de autenticación mediante AuthGuard.
 /// Todas las páginas usan transición profesional Fade + Scale.
 final GoRouter appRouter = GoRouter(
+  navigatorKey: appNavigatorKey,
   redirect: AuthGuard.redirect,
   refreshListenable: GoRouterRefreshStream(getIt<AuthRepository>().authStateChanges),
   routes: <RouteBase>[
@@ -418,6 +422,26 @@ final GoRouter appRouter = GoRouter(
         child: const FormacionPage(),
       ),
         ),
+        // Catálogo de Certificaciones
+        GoRoute(
+          path: '/personal/formacion/certificaciones',
+          name: 'personal_formacion_certificaciones',
+          pageBuilder: (BuildContext context, GoRouterState state) =>
+          _buildPageWithTransition(
+        key: state.pageKey,
+        child: const CertificacionesCatalogoPage(),
+      ),
+        ),
+        // Catálogo de Cursos
+        GoRoute(
+          path: '/personal/formacion/cursos',
+          name: 'personal_formacion_cursos',
+          pageBuilder: (BuildContext context, GoRouterState state) =>
+          _buildPageWithTransition(
+        key: state.pageKey,
+        child: const CursosCatalogoPage(),
+      ),
+        ),
         // Documentación
         GoRoute(
           path: '/personal/documentacion',
@@ -640,7 +664,7 @@ final GoRouter appRouter = GoRouter(
           pageBuilder: (BuildContext context, GoRouterState state) =>
           _buildPageWithTransition(
         key: state.pageKey,
-        child: const DocumentacionPage(),
+        child: const DocumentacionVehiculosPage(),
       ),
         ),
         // Geolocalización

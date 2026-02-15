@@ -218,8 +218,11 @@ class UbicacionFichajeMapDialog extends StatelessWidget {
                     ),
 
                     // Círculo de precisión GPS
+                    // ignore: always_specify_types
                     CircleLayer(
+                      // ignore: always_specify_types
                       circles: <CircleMarker>[
+                        // ignore: always_specify_types
                         CircleMarker(
                           point: latLng,
                           radius: precision,

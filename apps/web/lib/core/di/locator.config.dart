@@ -19,6 +19,12 @@ import 'package:ambutrack_web/core/services/geocoding_service.dart' as _i1071;
 import 'package:ambutrack_web/core/services/pdf_ruta_service.dart' as _i30;
 import 'package:ambutrack_web/core/services/routing_service.dart' as _i1033;
 import 'package:ambutrack_web/core/services/ruta_service.dart' as _i686;
+import 'package:ambutrack_web/features/alertas_caducidad/data/repositories/alerta_caducidad_repository_impl.dart'
+    as _i910;
+import 'package:ambutrack_web/features/alertas_caducidad/domain/repositories/alerta_caducidad_repository.dart'
+    as _i410;
+import 'package:ambutrack_web/features/alertas_caducidad/presentation/bloc/alertas_caducidad_bloc.dart'
+    as _i661;
 import 'package:ambutrack_web/features/almacen/data/repositories/almacen_repository_impl.dart'
     as _i704;
 import 'package:ambutrack_web/features/almacen/data/repositories/mantenimiento_electromedicina_repository_impl.dart'
@@ -139,16 +145,28 @@ import 'package:ambutrack_web/features/perfil/domain/repositories/perfil_reposit
     as _i878;
 import 'package:ambutrack_web/features/perfil/presentation/bloc/perfil_bloc.dart'
     as _i153;
+import 'package:ambutrack_web/features/personal/data/repositories/certificacion_repository_impl.dart'
+    as _i82;
+import 'package:ambutrack_web/features/personal/data/repositories/curso_repository_impl.dart'
+    as _i27;
 import 'package:ambutrack_web/features/personal/data/repositories/equipamiento_personal_repository_impl.dart'
     as _i517;
+import 'package:ambutrack_web/features/personal/data/repositories/formacion_personal_repository_impl.dart'
+    as _i200;
 import 'package:ambutrack_web/features/personal/data/repositories/historial_medico_repository_impl.dart'
     as _i711;
 import 'package:ambutrack_web/features/personal/data/repositories/personal_repository_impl.dart'
     as _i901;
 import 'package:ambutrack_web/features/personal/data/repositories/vestuario_repository_impl.dart'
     as _i321;
+import 'package:ambutrack_web/features/personal/domain/repositories/certificacion_repository.dart'
+    as _i1002;
+import 'package:ambutrack_web/features/personal/domain/repositories/curso_repository.dart'
+    as _i534;
 import 'package:ambutrack_web/features/personal/domain/repositories/equipamiento_personal_repository.dart'
     as _i153;
+import 'package:ambutrack_web/features/personal/domain/repositories/formacion_personal_repository.dart'
+    as _i846;
 import 'package:ambutrack_web/features/personal/domain/repositories/historial_medico_repository.dart'
     as _i645;
 import 'package:ambutrack_web/features/personal/domain/repositories/personal_repository.dart'
@@ -163,6 +181,8 @@ import 'package:ambutrack_web/features/personal/horarios/presentation/bloc/regis
     as _i504;
 import 'package:ambutrack_web/features/personal/presentation/bloc/equipamiento_personal_bloc.dart'
     as _i391;
+import 'package:ambutrack_web/features/personal/presentation/bloc/formacion/formacion_bloc.dart'
+    as _i335;
 import 'package:ambutrack_web/features/personal/presentation/bloc/historial_medico_bloc.dart'
     as _i762;
 import 'package:ambutrack_web/features/personal/presentation/bloc/personal_bloc.dart'
@@ -313,6 +333,16 @@ import 'package:ambutrack_web/features/vehiculos/data/repositories/incidencia_ve
     as _i308;
 import 'package:ambutrack_web/features/vehiculos/data/repositories/vehiculo_repository_impl.dart'
     as _i814;
+import 'package:ambutrack_web/features/vehiculos/documentacion/data/repositories/documentacion_vehiculo_repository_impl.dart'
+    as _i616;
+import 'package:ambutrack_web/features/vehiculos/documentacion/data/repositories/tipo_documento_repository_impl.dart'
+    as _i153;
+import 'package:ambutrack_web/features/vehiculos/documentacion/domain/repositories/documentacion_vehiculo_repository.dart'
+    as _i535;
+import 'package:ambutrack_web/features/vehiculos/documentacion/domain/repositories/tipo_documento_repository.dart'
+    as _i453;
+import 'package:ambutrack_web/features/vehiculos/documentacion/presentation/bloc/documentacion_vehiculos_bloc.dart'
+    as _i316;
 import 'package:ambutrack_web/features/vehiculos/domain/repositories/incidencia_vehiculo_repository.dart'
     as _i818;
 import 'package:ambutrack_web/features/vehiculos/domain/repositories/vehiculo_repository.dart'
@@ -366,14 +396,15 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i973.InternetConnectionChecker>(
       () => networkModule.connectionChecker,
     );
+    gh.lazySingleton<_i1071.GeocodingService>(() => _i1071.GeocodingService());
     gh.lazySingleton<_i496.AuthService>(() => _i496.AuthService());
     gh.lazySingleton<_i686.RutaService>(() => _i686.RutaService());
-    gh.lazySingleton<_i30.PdfRutaService>(() => _i30.PdfRutaService());
-    gh.lazySingleton<_i1071.GeocodingService>(() => _i1071.GeocodingService());
     gh.lazySingleton<_i1033.RoutingService>(() => _i1033.RoutingService());
+    gh.lazySingleton<_i30.PdfRutaService>(() => _i30.PdfRutaService());
     gh.lazySingleton<_i961.PlantillaTurnoRepository>(
       () => _i60.PlantillaTurnoRepositoryImpl(),
     );
+    gh.lazySingleton<_i534.CursoRepository>(() => _i27.CursoRepositoryImpl());
     gh.lazySingleton<_i769.VacacionesRepository>(
       () => _i108.VacacionesRepositoryImpl(),
     );
@@ -409,6 +440,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i223.CuadranteAsignacionRepository>(
       () => _i396.CuadranteAsignacionRepositoryImpl(),
     );
+    gh.lazySingleton<_i453.TipoDocumentoRepository>(
+      () => _i153.TipoDocumentoRepositoryImpl(),
+    );
     gh.lazySingleton<_i829.AusenciaRepository>(
       () => _i847.AusenciaRepositoryImpl(),
     );
@@ -417,6 +451,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i707.AuthRepository>(
       () => _i822.AuthRepositoryImpl(gh<_i496.AuthService>()),
+    );
+    gh.lazySingleton<_i535.DocumentacionVehiculoRepository>(
+      () => _i616.DocumentacionVehiculoRepositoryImpl(),
     );
     gh.lazySingleton<_i145.VehiculoRepository>(
       () => _i814.VehiculoRepositoryImpl(),
@@ -432,6 +469,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i940.CentroHospitalarioRepository>(
       () => _i719.CentroHospitalarioRepositoryImpl(),
+    );
+    gh.lazySingleton<_i1002.CertificacionRepository>(
+      () => _i82.CertificacionRepositoryImpl(),
     );
     gh.lazySingleton<_i836.ItvRevisionRepository>(
       () => _i662.ItvRevisionRepositoryImpl(),
@@ -468,11 +508,17 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1023.EspecialidadRepository>(
       () => _i53.EspecialidadRepositoryImpl(),
     );
+    gh.lazySingleton<_i846.FormacionPersonalRepository>(
+      () => _i200.FormacionPersonalRepositoryImpl(),
+    );
     gh.lazySingleton<_i408.MovimientoStockRepository>(
       () => _i221.MovimientoStockRepositoryImpl(),
     );
     gh.lazySingleton<_i134.MantenimientoElectromedicinaRepository>(
       () => _i804.MantenimientoElectromedicinaRepositoryImpl(),
+    );
+    gh.lazySingleton<_i410.AlertaCaducidadRepository>(
+      () => _i910.AlertaCaducidadRepositoryImpl(),
     );
     gh.lazySingleton<_i36.MotivoTrasladoRepository>(
       () => _i1073.MotivoTrasladoRepositoryImpl(),
@@ -548,6 +594,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i682.TipoAusenciaRepository>(
       () => _i30.TipoAusenciaRepositoryImpl(),
     );
+    gh.factory<_i335.FormacionBloc>(
+      () => _i335.FormacionBloc(gh<_i846.FormacionPersonalRepository>()),
+    );
     gh.factory<_i947.FacultativoBloc>(
       () => _i947.FacultativoBloc(gh<_i931.FacultativoRepository>()),
     );
@@ -592,6 +641,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i321.NetworkInfo>(
       () => _i321.NetworkInfoImpl(gh<_i973.InternetConnectionChecker>()),
+    );
+    gh.lazySingleton<_i661.AlertasCaducidadBloc>(
+      () => _i661.AlertasCaducidadBloc(gh<_i410.AlertaCaducidadRepository>()),
     );
     gh.factory<_i101.VacacionesBloc>(
       () => _i101.VacacionesBloc(
@@ -664,6 +716,11 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i516.CuadranteBloc(
         gh<_i440.CuadranteRepository>(),
         gh<_i145.VehiculoRepository>(),
+      ),
+    );
+    gh.factory<_i316.DocumentacionVehiculosBloc>(
+      () => _i316.DocumentacionVehiculosBloc(
+        gh<_i535.DocumentacionVehiculoRepository>(),
       ),
     );
     gh.factory<_i1032.ContratoBloc>(
