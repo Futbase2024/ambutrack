@@ -128,6 +128,11 @@ export 'src/datasources/comunidades_autonomas/comunidad_autonoma_contract.dart';
 export 'src/datasources/comunidades_autonomas/comunidad_autonoma_factory.dart' show ComunidadAutonomaDataSourceFactory;
 export 'src/datasources/comunidades_autonomas/implementations/supabase/supabase_comunidad_autonoma_datasource.dart';
 
+export 'src/datasources/consumo_combustible/entities/consumo_combustible_entity.dart';
+export 'src/datasources/consumo_combustible/consumo_combustible_contract.dart';
+export 'src/datasources/consumo_combustible/consumo_combustible_factory.dart' show ConsumoCombustibleDataSourceFactory;
+export 'src/datasources/consumo_combustible/models/consumo_combustible_supabase_model.dart';
+
 export 'src/datasources/localidades/entities/localidad_entity.dart';
 export 'src/datasources/localidades/localidad_contract.dart';
 export 'src/datasources/localidades/localidad_factory.dart' show LocalidadDataSourceFactory;

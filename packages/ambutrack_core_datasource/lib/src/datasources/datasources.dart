@@ -7,6 +7,7 @@ export 'ausencias/ausencias.dart';
 export 'bases/bases.dart';
 export 'certificaciones/certificaciones.dart';
 export 'comunidades_autonomas/comunidades_autonomas.dart';
+export 'consumo_combustible/consumo_combustible.dart';
 export 'contratos/contratos.dart';
 export 'cursos/cursos.dart';
 export 'documentacion_vehiculos/documentacion_vehiculos.dart';

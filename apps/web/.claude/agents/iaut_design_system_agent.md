@@ -90,3 +90,152 @@ class DSThemeConfig {
     return baseTheme;
   }
 }
+```
+
+### 3. PAGEHEADER - ESTÁNDAR OBLIGATORIO PARA AMBUTRACK
+
+**⚠️ REGLA CRÍTICA**: Todas las páginas de AmbuTrack DEBEN usar `PageHeader` para el header de página.
+
+**Ubicación**: `lib/core/widgets/headers/page_header.dart`
+
+#### Estructura de PageHeader
+
+```dart
+import 'package:ambutrack_web/core/widgets/headers/page_header.dart';
+
+PageHeader(
+  config: PageHeaderConfig(
+    icon: Icons.icono_del_modulo,
+    title: 'Título de la Página',
+    subtitle: 'Descripción breve de la funcionalidad',
+    stats: <HeaderStat>[
+      HeaderStat(
+        value: 'valor + unidad',
+        icon: Icons.icono_estadistica,
+      ),
+      // ... más estadísticas
+    ],
+    onAdd: () => _showCreateDialog(context),
+    addButtonLabel: 'Agregar',
+  ),
+)
+```
+
+#### Estándares Visuales Obligatorios
+
+1. **Color del icono del título**: `AppColors.primary.withValues(alpha: 0.1)` (fondo)
+2. **Color del icono**: `AppColors.primary`
+3. **Botón de agregar**: Usar `AppButton` con color `AppColors.primary`
+4. **Estadísticas**: Usar `HeaderStat` con color `AppColors.primary` por defecto
+
+#### Ejemplo Completo de Uso
+
+```dart
+class MiPage extends StatelessWidget {
+  const MiPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: AppColors.backgroundLight,
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSizes.paddingXl,
+            AppSizes.paddingXl,
+            AppSizes.paddingXl,
+            AppSizes.paddingLarge,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              // PageHeader OBLIGATORIO
+              BlocBuilder<MiBloc, MiState>(
+                builder: (BuildContext context, MiState state) {
+                  return PageHeader(
+                    config: PageHeaderConfig(
+                      icon: Icons.inventory_2,
+                      title: 'Gestión de Productos',
+                      subtitle: 'Administra el catálogo de productos',
+                      stats: _buildHeaderStats(state),
+                      onAdd: () => _showCreateDialog(context),
+                      addButtonLabel: 'Nuevo Producto',
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: AppSizes.spacingXl),
+
+              // Resto del contenido (filtros, tabla, etc.)
+              // ...
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<HeaderStat> _buildHeaderStats(MiState state) {
+    String total = '0';
+    String activos = '0';
+
+    if (state is MiLoaded) {
+      total = state.items.length.toString();
+      activos = state.items.where((i) => i.activo).length.toString();
+    }
+
+    return <HeaderStat>[
+      HeaderStat(
+        value: '$total Total',
+        icon: Icons.inventory,
+      ),
+      HeaderStat(
+        value: '$activos Activos',
+        icon: Icons.check_circle,
+      ),
+    ];
+  }
+}
+```
+
+#### ❌ PROHIBIDO - Headers Personalizados
+
+```dart
+// ❌ NO HACER ESTO - Header personalizado
+Row(
+  children: <Widget>[
+    Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(...), // ❌ No usar gradientes personalizados
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(Icons.icono, color: Colors.white),
+    ),
+    Text('Título'), // ❌ No usar Text directo
+    FilledButton.icon(...), // ❌ No usar botones fuera del estándar
+  ],
+)
+```
+
+#### ✅ CORRECTO - PageHeader Estándar
+
+```dart
+// ✅ SIEMPRE HACER ESTO - PageHeader
+PageHeader(
+  config: PageHeaderConfig(
+    icon: Icons.icono,
+    title: 'Título',
+    subtitle: 'Subtítulo descriptivo',
+    stats: <HeaderStat>[...],
+    onAdd: () => _showDialog(),
+  ),
+)
+```
+
+#### Layout Responsive Automático
+
+`PageHeader` es automáticamente responsive:
+- **Desktop** (>1024px): Título, estadísticas y botón en fila horizontal
+- **Tablet** (600-1024px): Título y botón arriba, estadísticas abajo
+- **Mobile** (<600px): Todo en columna vertical

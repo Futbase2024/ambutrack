@@ -329,6 +329,8 @@ import 'package:ambutrack_web/features/vacaciones/domain/repositories/vacaciones
     as _i769;
 import 'package:ambutrack_web/features/vacaciones/presentation/bloc/vacaciones_bloc.dart'
     as _i101;
+import 'package:ambutrack_web/features/vehiculos/data/repositories/consumo_combustible_repository_impl.dart'
+    as _i961;
 import 'package:ambutrack_web/features/vehiculos/data/repositories/incidencia_vehiculo_repository_impl.dart'
     as _i308;
 import 'package:ambutrack_web/features/vehiculos/data/repositories/vehiculo_repository_impl.dart'
@@ -343,10 +345,14 @@ import 'package:ambutrack_web/features/vehiculos/documentacion/domain/repositori
     as _i453;
 import 'package:ambutrack_web/features/vehiculos/documentacion/presentation/bloc/documentacion_vehiculos_bloc.dart'
     as _i316;
+import 'package:ambutrack_web/features/vehiculos/domain/repositories/consumo_combustible_repository.dart'
+    as _i764;
 import 'package:ambutrack_web/features/vehiculos/domain/repositories/incidencia_vehiculo_repository.dart'
     as _i818;
 import 'package:ambutrack_web/features/vehiculos/domain/repositories/vehiculo_repository.dart'
     as _i145;
+import 'package:ambutrack_web/features/vehiculos/presentation/bloc/consumo_combustible/consumo_combustible_bloc.dart'
+    as _i256;
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/incidencia_vehiculo/incidencia_vehiculo_bloc.dart'
     as _i1050;
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_bloc.dart'
@@ -416,6 +422,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i818.IncidenciaVehiculoRepository>(
       () => _i308.IncidenciaVehiculoRepositoryImpl(),
+    );
+    gh.lazySingleton<_i764.ConsumoCombustibleRepository>(
+      () => _i961.ConsumoCombustibleRepositoryImpl(),
     );
     gh.lazySingleton<_i681.ServicioRecurrenteRepository>(
       () => _i820.ServicioRecurrenteRepositoryImpl(),
@@ -543,6 +552,12 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i660.TrasladoRepository>(
       () => _i901.TrasladoRepositoryImpl(),
+    );
+    gh.factory<_i256.ConsumoCombustibleBloc>(
+      () => _i256.ConsumoCombustibleBloc(
+        gh<_i764.ConsumoCombustibleRepository>(),
+        gh<_i145.VehiculoRepository>(),
+      ),
     );
     gh.lazySingleton<_i66.UsuariosRepository>(
       () => _i894.UsuariosRepositoryImpl(),
