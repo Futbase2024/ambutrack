@@ -1,12 +1,19 @@
+import 'dart:async';
+// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
+import 'dart:html' as html;
+
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
 import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:ambutrack_web/core/widgets/forms/app_text_field.dart';
+import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Diálogo de formulario para crear/editar Documentación de Vehículo
 class DocumentacionFormDialog extends StatefulWidget {
@@ -36,10 +43,16 @@ class _DocumentacionFormDialogState extends State<DocumentacionFormDialog> {
   String? _tipoDocumentoId;
   DateTime? _fechaEmision;
   DateTime? _fechaVencimiento;
-  DateTime? _fechaProximoVencimiento;
   String _estado = 'vigente';
   bool _requiereRenovacion = false;
   int _diasAlerta = 30;
+  bool _isSaving = false;
+
+  // Variables para manejo de archivos
+  PlatformFile? _archivoSeleccionado1;
+  PlatformFile? _archivoSeleccionado2;
+  String? _nombreArchivoExistente1;
+  String? _nombreArchivoExistente2;
 
   bool get _isEditing => widget.documento != null;
 
@@ -61,7 +74,6 @@ class _DocumentacionFormDialogState extends State<DocumentacionFormDialog> {
     _companiaController.text = doc.compania;
     _fechaEmision = doc.fechaEmision;
     _fechaVencimiento = doc.fechaVencimiento;
-    _fechaProximoVencimiento = doc.fechaProximoVencimiento;
     _estado = doc.estado;
     _requiereRenovacion = doc.requiereRenovacion;
     _diasAlerta = doc.diasAlerta;
@@ -72,6 +84,9 @@ class _DocumentacionFormDialogState extends State<DocumentacionFormDialog> {
     if (doc.observaciones != null) {
       _observacionesController.text = doc.observaciones!;
     }
+    // Cargar URLs de documentos existentes
+    _nombreArchivoExistente1 = doc.documentoUrl;
+    _nombreArchivoExistente2 = doc.documentoUrl2;
   }
 
   @override
@@ -115,39 +130,95 @@ class _DocumentacionFormDialogState extends State<DocumentacionFormDialog> {
       setState(() {
         if (_fechaEmision == null) {
           _fechaEmision = picked;
-        } else if (_fechaVencimiento == null) {
-          _fechaVencimiento = picked;
         } else {
-          _fechaProximoVencimiento = picked;
+          _fechaVencimiento = picked;
         }
       });
     }
   }
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      final DocumentacionVehiculoEntity documento = DocumentacionVehiculoEntity(
-        id: _isEditing ? widget.documento!.id : '',
-        vehiculoId: widget.vehiculoId,
-        tipoDocumentoId: _tipoDocumentoId!,
-        numeroPoliza: _numeroPolizaController.text.trim(),
-        compania: _companiaController.text.trim(),
-        fechaEmision: _fechaEmision!,
-        fechaVencimiento: _fechaVencimiento!,
-        fechaProximoVencimiento: _fechaProximoVencimiento,
-        estado: _estado,
-        costeAnual: _costeAnualController.text.isEmpty
-            ? null
-            : double.tryParse(_costeAnualController.text),
-        observaciones: _observacionesController.text.trim().isEmpty
-            ? null
-            : _observacionesController.text.trim(),
-        requiereRenovacion: _requiereRenovacion,
-        diasAlerta: _diasAlerta,
-        createdAt: _isEditing ? widget.documento!.createdAt : DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
+    setState(() {
+      _isSaving = true;
+    });
+
+    // Mostrar loading overlay
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) {
+          return AppLoadingOverlay(
+            message: _isEditing ? 'Actualizando documento...' : 'Guardando documento...',
+            color: _isEditing ? AppColors.secondary : AppColors.primary,
+            icon: _isEditing ? Icons.edit : Icons.add_circle_outline,
+          );
+        },
+      ),
+    );
+
+    // Subir archivos a Supabase Storage si hay archivos nuevos seleccionados
+    String? documentoUrl;
+    String? documentoUrl2;
+
+    if (_archivoSeleccionado1 != null) {
+      documentoUrl = await _subirArchivoStorage(_archivoSeleccionado1!, 1);
+      if (documentoUrl == null) {
+        if (mounted) {
+          Navigator.of(context).pop(); // Cerrar loading
+          setState(() {
+            _isSaving = false;
+          });
+        }
+        return;
+      }
+    } else if (_isEditing && widget.documento!.documentoUrl != null) {
+      documentoUrl = widget.documento!.documentoUrl;
+    }
+
+    if (_archivoSeleccionado2 != null) {
+      documentoUrl2 = await _subirArchivoStorage(_archivoSeleccionado2!, 2);
+      if (documentoUrl2 == null) {
+        if (mounted) {
+          Navigator.of(context).pop(); // Cerrar loading
+          setState(() {
+            _isSaving = false;
+          });
+        }
+        return;
+      }
+    } else if (_isEditing && widget.documento!.documentoUrl2 != null) {
+      documentoUrl2 = widget.documento!.documentoUrl2;
+    }
+
+    final DocumentacionVehiculoEntity documento = DocumentacionVehiculoEntity(
+      id: _isEditing ? widget.documento!.id : '',
+      vehiculoId: widget.vehiculoId,
+      tipoDocumentoId: _tipoDocumentoId!,
+      numeroPoliza: _numeroPolizaController.text.trim(),
+      compania: _companiaController.text.trim(),
+      fechaEmision: _fechaEmision!,
+      fechaVencimiento: _fechaVencimiento!,
+      estado: _estado,
+      costeAnual: _costeAnualController.text.isEmpty
+          ? null
+          : double.tryParse(_costeAnualController.text),
+      observaciones: _observacionesController.text.trim().isEmpty
+          ? null
+          : _observacionesController.text.trim(),
+      documentoUrl: documentoUrl,
+      documentoUrl2: documentoUrl2,
+      requiereRenovacion: _requiereRenovacion,
+      diasAlerta: _diasAlerta,
+      createdAt: _isEditing ? widget.documento!.createdAt : DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    if (mounted) {
       Navigator.of(context).pop(documento);
     }
   }
@@ -155,12 +226,17 @@ class _DocumentacionFormDialogState extends State<DocumentacionFormDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      clipBehavior: Clip.none, // Evita que se corte el contenido del Dialog
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
       ),
       child: Container(
-        width: 600,
-        constraints: const BoxConstraints(maxWidth: 600),
+        width: 700,
+        constraints: const BoxConstraints(
+          maxWidth: 700,
+          minWidth: 650,
+          maxHeight: 800, // Altura máxima para el Dialog
+        ),
         padding: const EdgeInsets.all(AppSizes.paddingXl),
         child: Form(
           key: _formKey,
@@ -173,8 +249,9 @@ class _DocumentacionFormDialogState extends State<DocumentacionFormDialog> {
               const SizedBox(height: AppSizes.spacingXl),
 
               // Form fields
-              Flexible(
+              Expanded(
                 child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 8, top: 16), // Padding superior mayor para el label flotante
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
@@ -195,6 +272,8 @@ class _DocumentacionFormDialogState extends State<DocumentacionFormDialog> {
                       _buildRenovacionField(),
                       const SizedBox(height: AppSizes.spacing),
                       _buildObservacionesField(),
+                      const SizedBox(height: AppSizes.spacing),
+                      _buildDocumentosSection(),
                     ],
                   ),
                 ),
@@ -384,12 +463,6 @@ class _DocumentacionFormDialogState extends State<DocumentacionFormDialog> {
               ),
             ),
           ],
-        ),
-        const SizedBox(height: AppSizes.paddingMedium),
-        _buildDateField(
-          label: 'Próximo Vencimiento (opcional)',
-          date: _fechaProximoVencimiento,
-          onTap: () => _selectDate(context, _fechaProximoVencimiento),
         ),
       ],
     );
@@ -590,6 +663,135 @@ class _DocumentacionFormDialogState extends State<DocumentacionFormDialog> {
     );
   }
 
+  Widget _buildDocumentosSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            const Icon(Icons.attach_file, size: 16, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Text(
+              'Documentos Escaneados',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimaryLight,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Documento 1
+        _buildDocumentoSelector(1),
+        const SizedBox(height: AppSizes.spacing),
+        // Documento 2
+        _buildDocumentoSelector(2),
+      ],
+    );
+  }
+
+  Widget _buildDocumentoSelector(int numero) {
+    final PlatformFile? archivoSeleccionado = numero == 1 ? _archivoSeleccionado1 : _archivoSeleccionado2;
+    final String? nombreArchivoExistente = numero == 1 ? _nombreArchivoExistente1 : _nombreArchivoExistente2;
+    final bool tieneArchivo = archivoSeleccionado != null || nombreArchivoExistente != null;
+    final String nombreArchivo = archivoSeleccionado?.name ?? nombreArchivoExistente ?? '';
+    final int? tamanoBytes = archivoSeleccionado?.size;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingMedium),
+      decoration: BoxDecoration(
+        color: tieneArchivo ? AppColors.primary.withValues(alpha: 0.05) : AppColors.gray100,
+        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+        border: Border.all(
+          color: tieneArchivo ? AppColors.primary : AppColors.gray300,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(
+                tieneArchivo ? Icons.insert_drive_file : Icons.attachment,
+                color: tieneArchivo ? AppColors.primary : AppColors.textSecondaryLight,
+                size: 20,
+              ),
+              const SizedBox(width: AppSizes.spacingSmall),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      tieneArchivo ? 'Documento $numero: $nombreArchivo' : 'Documento $numero: Sin archivo',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: tieneArchivo ? FontWeight.w500 : FontWeight.w400,
+                        color: tieneArchivo ? AppColors.primary : AppColors.textSecondaryLight,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (tamanoBytes != null) ...<Widget>[
+                      const SizedBox(height: 2),
+                      Text(
+                        '${(tamanoBytes / 1024).toStringAsFixed(2)} KB',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (tieneArchivo) ...<Widget>[
+                // Botón ver documento (solo si es archivo existente con URL)
+                if (nombreArchivoExistente != null && nombreArchivoExistente.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.visibility, size: 18),
+                    color: AppColors.info,
+                    onPressed: () => _verDocumento(nombreArchivoExistente),
+                    tooltip: 'Ver documento',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                  ),
+                // Botón eliminar archivo
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  color: AppColors.error,
+                  onPressed: _isSaving ? null : () => _eliminarArchivo(numero),
+                  tooltip: 'Eliminar archivo',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: AppSizes.spacingSmall),
+          OutlinedButton.icon(
+            onPressed: _isSaving ? null : () => _seleccionarArchivo(numero),
+            icon: const Icon(Icons.upload_file, size: 18),
+            label: Text(
+              tieneArchivo ? 'Cambiar documento $numero' : 'Seleccionar documento $numero',
+              style: GoogleFonts.inter(fontSize: 13),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActions() {
     return Row(
       children: <Widget>[
@@ -597,7 +799,7 @@ class _DocumentacionFormDialogState extends State<DocumentacionFormDialog> {
           child: AppButton(
             label: 'Cancelar',
             variant: AppButtonVariant.outline,
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
           ),
         ),
         const SizedBox(width: AppSizes.paddingMedium),
@@ -607,11 +809,146 @@ class _DocumentacionFormDialogState extends State<DocumentacionFormDialog> {
             variant: _isEditing
                 ? AppButtonVariant.secondary
                 : AppButtonVariant.primary,
-            onPressed: _submitForm,
+            onPressed: _isSaving ? null : _submitForm,
             icon: _isEditing ? Icons.save : Icons.add,
           ),
         ),
       ],
     );
+  }
+
+  /// Seleccionar archivo (imagen o documento)
+  Future<void> _seleccionarArchivo(int numero) async {
+    try {
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: <String>['jpg', 'jpeg', 'png', 'pdf'],
+        withData: true, // Importante para Flutter Web
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final PlatformFile file = result.files.first;
+
+        // Validar tamaño (máximo 10 MB)
+        if (file.size > 10 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('⚠️ El archivo no debe superar los 10 MB'),
+                backgroundColor: AppColors.warning,
+              ),
+            );
+          }
+          return;
+        }
+
+        setState(() {
+          if (numero == 1) {
+            _archivoSeleccionado1 = file;
+          } else {
+            _archivoSeleccionado2 = file;
+          }
+        });
+        debugPrint('📎 Archivo $numero seleccionado: ${file.name} (${(file.size / 1024).toStringAsFixed(2)} KB)');
+      }
+    } catch (e) {
+      debugPrint('❌ Error al seleccionar archivo: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al seleccionar archivo: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Eliminar archivo seleccionado
+  void _eliminarArchivo(int numero) {
+    setState(() {
+      if (numero == 1) {
+        _archivoSeleccionado1 = null;
+        _nombreArchivoExistente1 = null;
+      } else {
+        _archivoSeleccionado2 = null;
+        _nombreArchivoExistente2 = null;
+      }
+    });
+    debugPrint('🗑️ Archivo $numero eliminado');
+  }
+
+  /// Ver documento existente en nueva pestaña
+  void _verDocumento(String? url) {
+    if (url != null && url.isNotEmpty) {
+      html.window.open(url, '_blank');
+      debugPrint('👁️ Abriendo documento: $url');
+    }
+  }
+
+  /// Sube el archivo seleccionado a Supabase Storage
+  Future<String?> _subirArchivoStorage(PlatformFile file, int numero) async {
+    try {
+      final String vehiculoId = widget.vehiculoId;
+      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final String extension = file.name.split('.').last;
+
+      // Ruta del archivo en Storage: documentacion_vehiculos/{vehiculoId}/{documento}_{numero}_{timestamp}.{extension}
+      final String filePath = 'documentacion_vehiculos/$vehiculoId/doc${numero}_$timestamp.$extension';
+
+      debugPrint('📤 Subiendo archivo $numero a Supabase Storage: $filePath');
+
+      // Subir archivo a Supabase Storage bucket 'documentos'
+      final String uploadedPath = await Supabase.instance.client.storage
+          .from('documentos')
+          .uploadBinary(
+            filePath,
+            file.bytes!,
+            fileOptions: FileOptions(
+              contentType: _getMimeType(extension),
+            ),
+          );
+
+      debugPrint('✅ Archivo $numero subido exitosamente: $uploadedPath');
+
+      // Obtener URL pública del archivo
+      final String publicUrl = Supabase.instance.client.storage
+          .from('documentos')
+          .getPublicUrl(filePath);
+
+      debugPrint('🔗 URL pública: $publicUrl');
+
+      return publicUrl;
+    } catch (e) {
+      debugPrint('❌ Error al subir archivo $numero a Storage: $e');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error al subir el archivo $numero: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+
+      return null;
+    }
+  }
+
+  /// Obtiene el MIME type según la extensión del archivo
+  String _getMimeType(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      default:
+        return 'application/octet-stream';
+    }
   }
 }
