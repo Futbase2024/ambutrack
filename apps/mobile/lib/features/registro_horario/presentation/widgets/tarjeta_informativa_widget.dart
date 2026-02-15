@@ -14,6 +14,7 @@ class TarjetaInformativaWidget extends StatelessWidget {
     required this.valor,
     this.subtitulo,
     this.onTap,
+    this.actionIcon,
     super.key,
   });
 
@@ -23,6 +24,7 @@ class TarjetaInformativaWidget extends StatelessWidget {
   final String? subtitulo;
   final String valor;
   final VoidCallback? onTap;
+  final IconData? actionIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +92,15 @@ class TarjetaInformativaWidget extends StatelessWidget {
               ],
             ),
           ),
+          // Icono de acción si está disponible
+          if (actionIcon != null) ...[
+            const SizedBox(width: 8),
+            Icon(
+              actionIcon,
+              size: 20,
+              color: AppColors.primary,
+            ),
+          ],
         ],
       ),
     );

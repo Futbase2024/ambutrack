@@ -65,10 +65,11 @@ class _BotonRegistroCircularWidgetState
         return;
       }
 
-      // Obtener ubicación actual con alta precisión
+      // Obtener ubicación actual con máxima precisión
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
+          accuracy: LocationAccuracy.bestForNavigation,
+          timeLimit: Duration(seconds: 15), // Dar tiempo al GPS para mejorar
         ),
       );
 
@@ -102,20 +103,6 @@ class _BotonRegistroCircularWidgetState
         message:
             'Esperando señal GPS. Asegúrate de estar en un lugar con buena cobertura.',
         icon: Icons.gps_off,
-        iconColor: AppColors.warning,
-      );
-      return;
-    }
-
-    // Validar precisión GPS (máximo 50 metros)
-    const precisionMaxima = 50.0;
-    if (_currentPosition!.accuracy > precisionMaxima) {
-      await showProfessionalResultDialog(
-        context,
-        title: 'Precisión GPS Baja',
-        message:
-            'La precisión GPS es baja (${_currentPosition!.accuracy.toStringAsFixed(1)}m). Intenta moverte a un lugar con mejor señal.',
-        icon: Icons.gps_not_fixed,
         iconColor: AppColors.warning,
       );
       return;
@@ -273,31 +260,27 @@ class _BotonRegistroCircularWidgetState
         const SizedBox(height: 16),
         // Información de precisión GPS
         if (_currentPosition != null && !_isLoadingLocation)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.success.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.gps_fixed,
-                  size: 16,
-                  color: AppColors.success,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Precisión: ${_currentPosition!.accuracy.toStringAsFixed(1)}m',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.gray700,
-                    fontWeight: FontWeight.w600,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _IndicadorPrecisionGPS(precision: _currentPosition!.accuracy),
+              // Botón de refrescar si la precisión es baja
+              if (_currentPosition!.accuracy > 50) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: _obtenerUbicacion,
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Mejorar precisión GPS'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.warning,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                   ),
                 ),
               ],
-            ),
+            ],
           )
         else if (!_isLoadingLocation)
           TextButton.icon(
@@ -310,5 +293,79 @@ class _BotonRegistroCircularWidgetState
           ),
       ],
     );
+  }
+}
+
+/// Widget que muestra un indicador de precisión GPS con colores dinámicos
+///
+/// Colores:
+/// - Verde: ≤20m (Excelente)
+/// - Amarillo: 21-50m (Buena)
+/// - Naranja: >50m (Baja)
+class _IndicadorPrecisionGPS extends StatelessWidget {
+  const _IndicadorPrecisionGPS({required this.precision});
+
+  final double precision;
+
+  @override
+  Widget build(BuildContext context) {
+    final config = _getConfiguracion();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: config.color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: config.color.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            config.icono,
+            size: 16,
+            color: config.color,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'GPS: ${precision.toStringAsFixed(1)}m - ${config.etiqueta}',
+            style: TextStyle(
+              fontSize: 12,
+              color: config.color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Obtiene la configuración de color e icono según la precisión
+  ({Color color, IconData icono, String etiqueta}) _getConfiguracion() {
+    if (precision <= 20) {
+      // Excelente: ≤20m
+      return (
+        color: AppColors.success,
+        icono: Icons.gps_fixed,
+        etiqueta: 'Excelente',
+      );
+    } else if (precision <= 50) {
+      // Buena: 21-50m
+      return (
+        color: const Color(0xFFF59E0B), // Amarillo/Ámbar
+        icono: Icons.gps_fixed,
+        etiqueta: 'Buena',
+      );
+    } else {
+      // Baja: >50m
+      return (
+        color: AppColors.error,
+        icono: Icons.gps_not_fixed,
+        etiqueta: 'Baja',
+      );
+    }
   }
 }

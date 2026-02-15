@@ -23,6 +23,9 @@ class RegistroHorarioRepositoryImpl implements RegistroHorarioRepository {
         ubicacion: registro.ubicacion,
         latitud: registro.latitud,
         longitud: registro.longitud,
+        precisionGps: registro.precisionGps,
+        vehiculoId: registro.vehiculoId,
+        vehiculoMatricula: registro.vehiculoMatricula,
         notas: registro.notas,
       );
     } else {
@@ -32,6 +35,9 @@ class RegistroHorarioRepositoryImpl implements RegistroHorarioRepository {
         ubicacion: registro.ubicacion,
         latitud: registro.latitud,
         longitud: registro.longitud,
+        precisionGps: registro.precisionGps,
+        vehiculoId: registro.vehiculoId,
+        vehiculoMatricula: registro.vehiculoMatricula,
         notas: registro.notas,
       );
     }

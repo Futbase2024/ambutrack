@@ -16,6 +16,8 @@ class SeccionTarjetasInfoWidget extends StatelessWidget {
     this.companero,
     this.ultimoRegistro,
     this.proximoTurno,
+    this.estadoActual,
+    this.onCambiarVehiculo,
     super.key,
   });
 
@@ -23,6 +25,8 @@ class SeccionTarjetasInfoWidget extends StatelessWidget {
   final PersonalContexto? companero;
   final RegistroHorarioEntity? ultimoRegistro;
   final TurnoContexto? proximoTurno;
+  final EstadoFichaje? estadoActual;
+  final VoidCallback? onCambiarVehiculo;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +43,13 @@ class SeccionTarjetasInfoWidget extends StatelessWidget {
                 titulo: 'Vehículo Asignado',
                 valor: vehiculo?.matricula ?? 'Sin asignar',
                 subtitulo: vehiculo?.modelo,
+                // Solo permitir cambio si está en turno y tiene vehículo
+                onTap: (estadoActual == EstadoFichaje.dentro && vehiculo != null && onCambiarVehiculo != null)
+                    ? onCambiarVehiculo
+                    : null,
+                actionIcon: (estadoActual == EstadoFichaje.dentro && vehiculo != null)
+                    ? Icons.swap_horiz
+                    : null,
               ),
             ),
             const SizedBox(width: 12),

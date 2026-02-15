@@ -129,6 +129,12 @@ class MenuRepositoryImpl implements MenuRepository {
           route: '/servicios/planificar',
         ),
         MenuItem(
+          key: 'servicios_rutas',
+          label: 'Rutas de Técnicos',
+          icon: Icons.route,
+          route: '/servicios/rutas',
+        ),
+        MenuItem(
           key: 'servicios_urgentes',
           label: 'Servicios Urgentes en Tiempo Real',
           icon: Icons.emergency,

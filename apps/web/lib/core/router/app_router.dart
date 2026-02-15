@@ -48,6 +48,7 @@ import 'package:ambutrack_web/features/tablas/tipos_paciente/presentation/pages/
 import 'package:ambutrack_web/features/tablas/tipos_traslado/presentation/pages/tipos_traslado_page.dart';
 import 'package:ambutrack_web/features/tablas/tipos_vehiculo/presentation/pages/tipos_vehiculo_page.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/pages/planificar_servicios_page.dart';
+import 'package:ambutrack_web/features/trafico_diario/presentation/pages/rutas_tecnicos_page.dart';
 import 'package:ambutrack_web/features/turnos/presentation/pages/plantillas_turnos_page.dart';
 import 'package:ambutrack_web/features/usuarios/presentation/pages/usuarios_page.dart';
 import 'package:ambutrack_web/features/vacaciones/presentation/pages/vacaciones_page.dart';
@@ -332,6 +333,15 @@ final GoRouter appRouter = GoRouter(
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
         child: const PlanificarServiciosPage(),
+      ),
+        ),
+        // Rutas de Técnicos
+        GoRoute(
+          path: '/servicios/rutas',
+          name: 'servicios_rutas',
+          pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
+        key: state.pageKey,
+        child: const RutasTecnicosPage(),
       ),
         ),
         // Servicios Urgentes

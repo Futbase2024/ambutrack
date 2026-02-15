@@ -332,6 +332,9 @@ class _EditarCaducidadDialogState extends State<EditarCaducidadDialog> {
                             onPressed: _isProcessing ? null : () => Navigator.of(context).pop(),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                             child: const Text('Cancelar'),
                           ),
@@ -344,6 +347,9 @@ class _EditarCaducidadDialogState extends State<EditarCaducidadDialog> {
                               backgroundColor: AppColors.secondary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                             child: const Text('Guardar'),
                           ),

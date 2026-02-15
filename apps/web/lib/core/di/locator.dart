@@ -36,6 +36,18 @@ abstract class RegisterModule {
   /// Registro de UsuarioDataSource usando factory
   @lazySingleton
   UsuarioDataSource get usuarioDataSource => UsuarioDataSourceFactory.createSupabase();
+
+  /// Registro de TrasladoDataSource usando factory
+  @lazySingleton
+  TrasladoDataSource get trasladoDataSource => TrasladoDataSourceFactory.createSupabase();
+
+  /// Registro de TPersonalDataSource usando factory
+  @lazySingleton
+  TPersonalDataSource get tpersonalDataSource => TPersonalDataSourceFactory.createSupabase();
+
+  /// Registro de VehiculoDataSource usando factory
+  @lazySingleton
+  VehiculoDataSource get vehiculoDataSource => VehiculoDataSourceFactory.createSupabase();
 }
 
 /// Configuración de la inyección de dependencias

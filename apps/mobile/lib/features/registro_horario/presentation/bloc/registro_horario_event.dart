@@ -60,3 +60,27 @@ class RefrescarHistorial extends RegistroHorarioEvent {
 class ObtenerContextoTurno extends RegistroHorarioEvent {
   const ObtenerContextoTurno();
 }
+
+/// Evento para cambiar de vehículo durante el turno
+///
+/// 1. Cierra turno actual (salida) con vehículo actual
+/// 2. Actualiza asignación en tabla turnos
+/// 3. Abre nuevo turno (entrada) con nuevo vehículo
+class CambiarVehiculo extends RegistroHorarioEvent {
+  const CambiarVehiculo({
+    required this.nuevoVehiculoId,
+    required this.latitud,
+    required this.longitud,
+    required this.precisionGps,
+    this.observaciones,
+  });
+
+  final String nuevoVehiculoId;
+  final double latitud;
+  final double longitud;
+  final double precisionGps;
+  final String? observaciones;
+
+  @override
+  List<Object?> get props => [nuevoVehiculoId, latitud, longitud, precisionGps, observaciones];
+}

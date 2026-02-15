@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../registro_horario_contract.dart';
@@ -73,11 +74,23 @@ class SupabaseRegistroHorarioDataSource
       data.remove('created_at');
       data.remove('updated_at');
 
+      // Debug: Ver qué datos se envían a Supabase
+      debugPrint('🔍 [DataSource] Datos a insertar en Supabase:');
+      debugPrint('   - vehiculo_id: ${data['vehiculo_id']}');
+      debugPrint('   - vehiculo_matricula: ${data['vehiculo_matricula']}');
+      debugPrint('   - precision_gps: ${data['precision_gps']}');
+      debugPrint('   - tipo: ${data['tipo']}');
+
       final response = await _supabase
           .from(_tableName)
           .insert(data)
           .select()
           .single();
+
+      debugPrint('🔍 [DataSource] Respuesta de Supabase:');
+      debugPrint('   - vehiculo_id: ${response['vehiculo_id']}');
+      debugPrint('   - vehiculo_matricula: ${response['vehiculo_matricula']}');
+      debugPrint('   - precision_gps: ${response['precision_gps']}');
 
       return RegistroHorarioSupabaseModel.fromJson(response).toEntity();
     } catch (e) {
@@ -238,31 +251,61 @@ class SupabaseRegistroHorarioDataSource
     DateTime fechaFin,
   ) async {
     try {
-      print('🔍 [DataSource] Consultando tabla: $_tableName');
-      print('   Desde: ${fechaInicio.toIso8601String()}');
-      print('   Hasta: ${fechaFin.toIso8601String()}');
+      // Convertir a UTC para comparación correcta con Supabase
+      final DateTime fechaInicioUtc = fechaInicio.toUtc();
+      final DateTime fechaFinUtc = fechaFin.toUtc();
 
+      print('🔍 [DataSource] Consultando tabla: $_tableName');
+      print('   Desde (local): ${fechaInicio.toIso8601String()}');
+      print('   Desde (UTC):   ${fechaInicioUtc.toIso8601String()}');
+      print('   Hasta (local): ${fechaFin.toIso8601String()}');
+      print('   Hasta (UTC):   ${fechaFinUtc.toIso8601String()}');
+
+      // Consultar con filtro de fecha en UTC
+      // TODO: Agregar JOIN con tvehiculos cuando exista la foreign key
       final response = await _supabase
           .from(_tableName)
           .select()
-          .gte('fecha_hora', fechaInicio.toIso8601String())
-          .lte('fecha_hora', fechaFin.toIso8601String())
+          .gte('fecha_hora', fechaInicioUtc.toIso8601String())
+          .lte('fecha_hora', fechaFinUtc.toIso8601String())
           .order('fecha_hora', ascending: false);
 
-      print('   Registros encontrados: ${(response as List).length}');
+      print('   Registros encontrados con filtro: ${(response as List).length}');
 
-      if ((response as List).isNotEmpty && (response as List).length <= 3) {
-        print('   Muestra de registros:');
-        for (final json in (response as List)) {
-          print('   - ${json['nombre_personal']} (${json['tipo']}) - ${json['fecha_hora']}');
+      if ((response as List).isNotEmpty) {
+        print('   Muestra de registros (hasta 5):');
+        final int limit = (response as List).length > 5 ? 5 : (response as List).length;
+        for (int i = 0; i < limit; i++) {
+          final json = (response as List)[i];
+          print('   ${i + 1}. ${json['nombre_personal'] ?? 'SIN NOMBRE'} (${json['tipo']}) - ${json['fecha_hora']}');
+        }
+      } else {
+        print('   ⚠️  No se encontraron registros con filtro de fecha');
+        print('   📅 Consultando últimos 10 registros sin filtro para diagnóstico...');
+
+        final allResponse = await _supabase
+            .from(_tableName)
+            .select()
+            .order('fecha_hora', ascending: false)
+            .limit(10);
+
+        if ((allResponse as List).isNotEmpty) {
+          print('   📊 Total de registros encontrados sin filtro: ${(allResponse as List).length}');
+          print('   📅 Últimos registros en la tabla:');
+          for (final json in (allResponse as List)) {
+            print('   - ${json['nombre_personal'] ?? 'SIN NOMBRE'} (${json['tipo']}) - ${json['fecha_hora']}');
+          }
+        } else {
+          print('   ⚠️  La tabla está completamente vacía');
         }
       }
 
       return (response as List)
           .map((json) => RegistroHorarioSupabaseModel.fromJson(json).toEntity())
           .toList();
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ [DataSource] Error: $e');
+      print('   StackTrace: $stackTrace');
       throw Exception('Error al obtener registros por rango: $e');
     }
   }

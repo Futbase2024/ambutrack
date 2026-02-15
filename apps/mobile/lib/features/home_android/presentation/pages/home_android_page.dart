@@ -20,12 +20,34 @@ class HomeAndroidPage extends StatefulWidget {
   State<HomeAndroidPage> createState() => _HomeAndroidPageState();
 }
 
-class _HomeAndroidPageState extends State<HomeAndroidPage> {
+class _HomeAndroidPageState extends State<HomeAndroidPage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Cargar el estado del turno al iniciar
-    context.read<RegistroHorarioBloc>().add(const CargarRegistrosHorario());
+    _cargarEstadoTurno();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Cuando la app vuelve a primer plano, recargar estado
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('🏠 [HomeAndroidPage] App resumed, recargando estado del turno...');
+      _cargarEstadoTurno();
+    }
+  }
+
+  /// Carga el estado del turno
+  void _cargarEstadoTurno() {
+    debugPrint('🏠 [HomeAndroidPage] Cargando estado del turno...');
+    context.read<RegistroHorarioBloc>().add(const ObtenerContextoTurno());
   }
 
   @override
@@ -52,41 +74,55 @@ class _HomeAndroidPageState extends State<HomeAndroidPage> {
 
           return BlocBuilder<RegistroHorarioBloc, RegistroHorarioState>(
             builder: (context, registroState) {
-              // Determinar si el turno está activo
-              final bool turnoActivo = registroState is RegistroHorarioLoaded &&
-                  registroState.estadoActual == EstadoFichaje.dentro;
+              // Determinar si el turno está activo (soportar ambos estados)
+              final bool turnoActivo =
+                  (registroState is RegistroHorarioLoaded &&
+                      registroState.estadoActual == EstadoFichaje.dentro) ||
+                  (registroState is RegistroHorarioLoadedWithContext &&
+                      registroState.estadoActual == EstadoFichaje.dentro);
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Tarjeta del usuario
-                    _buildUserCard(user, personal),
+              debugPrint('🏠 [HomeAndroidPage] Estado del turno: turnoActivo=$turnoActivo, state=${registroState.runtimeType}');
 
-                    const SizedBox(height: 24),
+              return RefreshIndicator(
+                onRefresh: () async {
+                  debugPrint('🏠 [HomeAndroidPage] Pull-to-refresh activado');
+                  _cargarEstadoTurno();
+                  await Future.delayed(const Duration(milliseconds: 500));
+                },
+                color: AppColors.primary,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Tarjeta del usuario
+                      _buildUserCard(user, personal),
 
-                    // Alertas de caducidad (solo si el usuario tiene vehículo asignado)
-                    const AlertasCaducidadHomeSection(),
+                      const SizedBox(height: 24),
 
-                    const SizedBox(height: 24),
+                      // Alertas de caducidad (solo si el usuario tiene vehículo asignado)
+                      const AlertasCaducidadHomeSection(),
 
-                    // Título de sección
-                    Text(
-                      'Funcionalidades',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[800],
+                      const SizedBox(height: 24),
+
+                      // Título de sección
+                      Text(
+                        'Funcionalidades',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[800],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Cuadrícula de botones de funcionalidades
-                    _buildFunctionalityGrid(context, turnoActivo),
+                      // Cuadrícula de botones de funcionalidades
+                      _buildFunctionalityGrid(context, turnoActivo),
 
-                    const SizedBox(height: 24),
-                  ],
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               );
             },

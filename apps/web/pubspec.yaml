@@ -39,6 +39,7 @@ dependencies:
 
   # Network
   internet_connection_checker: ^3.0.1
+  http: ^1.2.2
 
   # Utilities
   uuid: ^4.5.1
@@ -46,6 +47,10 @@ dependencies:
   file_picker: ^8.1.4
   table_calendar: ^3.1.2
   shared_preferences: ^2.3.3
+
+  # PDF
+  pdf: ^3.11.1
+  printing: ^5.13.2
 
   # Maps (para visualización de fichajes con GPS)
   flutter_map: ^7.0.2

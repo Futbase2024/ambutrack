@@ -246,6 +246,9 @@ class _SolicitudReposicionDialogState extends State<SolicitudReposicionDialog> {
                           : () => Navigator.of(context).pop(false),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       child: const Text('Cancelar'),
                     ),
@@ -258,6 +261,9 @@ class _SolicitudReposicionDialogState extends State<SolicitudReposicionDialog> {
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       child: _isProcessing
                           ? const SizedBox(

@@ -92,6 +92,65 @@ final onSurfaceVariant = colorScheme.onSurfaceVariant;
 | `FMExpansionTile` | Tile expandible |
 | `FMPlayerCard` | Card de jugador |
 
+### 🎨 Estándar de Diseño de Diálogos (OBLIGATORIO)
+
+> **Docs completa**: [`docs/DIALOGS_DESIGN_STANDARD.md`](../../docs/DIALOGS_DESIGN_STANDARD.md)
+
+**BorderRadius estandarizado para TODOS los diálogos:**
+
+| Elemento | BorderRadius |
+|----------|--------------|
+| Dialog principal | `16` |
+| Botones (Outlined/Elevated) | `10` |
+| Elementos internos | `8` (AppSizes.radiusSmall) |
+
+**Template mínimo:**
+```dart
+Dialog(
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(16), // ✅ OBLIGATORIO
+  ),
+  child: Container(
+    padding: const EdgeInsets.all(24),
+    child: Column(
+      children: [
+        // Contenido
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10), // ✅ OBLIGATORIO
+                  ),
+                ),
+                child: const Text('Cancelar'),
+              ),
+            ),
+            Expanded(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10), // ✅ OBLIGATORIO
+                  ),
+                ),
+                child: const Text('Confirmar'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  ),
+)
+```
+
+**Diálogos de referencia:**
+- `lib/core/widgets/dialogs/professional_confirm_dialog.dart`
+- `lib/core/widgets/dialogs/professional_result_dialog.dart`
+
+---
+
 ### Sistema de Colores Monocromático (OBLIGATORIO)
 
 **Regla:** Toda la UI usa SOLO `colorScheme.primary` con diferentes opacidades para crear jerarquía visual.

@@ -64,7 +64,9 @@ abstract class RegistroHorarioDataSource extends BaseDatasource<RegistroHorarioE
   /// [ubicacion] - Ubicación del fichaje
   /// [latitud] - Latitud GPS (opcional)
   /// [longitud] - Longitud GPS (opcional)
+  /// [precisionGps] - Precisión GPS en metros (opcional)
   /// [vehiculoId] - ID del vehículo asignado (opcional)
+  /// [vehiculoMatricula] - Matrícula del vehículo (opcional, desnormalizado)
   /// [turno] - Turno al que pertenece (opcional)
   /// [notas] - Notas adicionales (opcional)
   /// Devuelve la entidad creada
@@ -74,7 +76,9 @@ abstract class RegistroHorarioDataSource extends BaseDatasource<RegistroHorarioE
     String? ubicacion,
     double? latitud,
     double? longitud,
+    double? precisionGps,
     String? vehiculoId,
+    String? vehiculoMatricula,
     String? turno,
     String? notas,
   });
@@ -85,6 +89,9 @@ abstract class RegistroHorarioDataSource extends BaseDatasource<RegistroHorarioE
   /// [ubicacion] - Ubicación del fichaje
   /// [latitud] - Latitud GPS (opcional)
   /// [longitud] - Longitud GPS (opcional)
+  /// [precisionGps] - Precisión GPS en metros (opcional)
+  /// [vehiculoId] - ID del vehículo asignado (opcional)
+  /// [vehiculoMatricula] - Matrícula del vehículo (opcional, desnormalizado)
   /// [notas] - Notas adicionales (opcional)
   /// Devuelve la entidad creada
   Future<RegistroHorarioEntity> registrarSalida({
@@ -93,6 +100,9 @@ abstract class RegistroHorarioDataSource extends BaseDatasource<RegistroHorarioE
     String? ubicacion,
     double? latitud,
     double? longitud,
+    double? precisionGps,
+    String? vehiculoId,
+    String? vehiculoMatricula,
     String? notas,
   });
 

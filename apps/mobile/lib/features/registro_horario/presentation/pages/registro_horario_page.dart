@@ -10,6 +10,7 @@ import '../bloc/registro_horario_bloc.dart';
 import '../bloc/registro_horario_event.dart';
 import '../bloc/registro_horario_state.dart';
 import '../widgets/boton_registro_circular_widget.dart';
+import '../widgets/cambiar_vehiculo_dialog.dart';
 import '../widgets/estado_registro_badge.dart';
 import '../widgets/historial_fichajes_widget.dart';
 import '../widgets/reloj_digital_widget.dart';
@@ -135,6 +136,13 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
                         companero: state.companero,
                         ultimoRegistro: state.ultimoRegistro,
                         proximoTurno: state.proximoTurno,
+                        estadoActual: state.estadoActual,
+                        onCambiarVehiculo: state.vehiculo != null
+                            ? () => _mostrarDialogoCambioVehiculo(
+                                  context,
+                                  state.vehiculo!,
+                                )
+                            : null,
                       ),
                       const SizedBox(height: 24),
 
@@ -218,6 +226,20 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
             ),
           );
     }
+  }
+
+  /// Muestra el diálogo para cambiar de vehículo
+  void _mostrarDialogoCambioVehiculo(
+    BuildContext context,
+    VehiculoEntity vehiculoActual,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => CambiarVehiculoDialog(
+        vehiculoActual: vehiculoActual,
+      ),
+    );
   }
 }
 

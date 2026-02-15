@@ -65,8 +65,8 @@ class _FichajesTableState extends State<FichajesTable> {
           comparison = aValue.compareTo(bValue);
           break;
         case 4: // Vehiculo
-          final String aValue = a.vehiculoId ?? '';
-          final String bValue = b.vehiculoId ?? '';
+          final String aValue = a.vehiculoMatricula ?? '';
+          final String bValue = b.vehiculoMatricula ?? '';
           comparison = aValue.compareTo(bValue);
           break;
         case 5: // Precision GPS
@@ -216,7 +216,7 @@ class _FichajesTableState extends State<FichajesTable> {
           child: Text(
               DateFormat('dd/MM/yyyy HH:mm').format(registro.fechaHora))),
       DataGridCell(child: Text(registro.ubicacion ?? 'No especificada')),
-      DataGridCell(child: Text(registro.vehiculoId ?? '-')),
+      DataGridCell(child: Text(registro.vehiculoMatricula ?? 'Sin asignar')),
       DataGridCell(child: _buildPrecisionBadge(registro)),
     ];
   }

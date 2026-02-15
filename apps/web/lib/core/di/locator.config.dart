@@ -9,13 +9,16 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart' as _i40;
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart'
     as _i1033;
 import 'package:ambutrack_web/core/auth/services/role_service.dart' as _i750;
 import 'package:ambutrack_web/core/di/locator.dart' as _i962;
 import 'package:ambutrack_web/core/network/network_info.dart' as _i321;
 import 'package:ambutrack_web/core/services/auth_service.dart' as _i496;
+import 'package:ambutrack_web/core/services/geocoding_service.dart' as _i1071;
+import 'package:ambutrack_web/core/services/pdf_ruta_service.dart' as _i30;
+import 'package:ambutrack_web/core/services/routing_service.dart' as _i1033;
+import 'package:ambutrack_web/core/services/ruta_service.dart' as _i686;
 import 'package:ambutrack_web/features/almacen/data/repositories/almacen_repository_impl.dart'
     as _i704;
 import 'package:ambutrack_web/features/almacen/data/repositories/mantenimiento_electromedicina_repository_impl.dart'
@@ -258,6 +261,8 @@ import 'package:ambutrack_web/features/tablas/tipos_vehiculo/domain/repositories
     as _i308;
 import 'package:ambutrack_web/features/tablas/tipos_vehiculo/presentation/bloc/tipo_vehiculo_bloc.dart'
     as _i402;
+import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/rutas_bloc.dart'
+    as _i281;
 import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/trafico_diario_bloc.dart'
     as _i136;
 import 'package:ambutrack_web/features/turnos/data/repositories/intercambio_repository_impl.dart'
@@ -334,25 +339,38 @@ extension GetItInjectableX on _i174.GetIt {
     final registerModule = _$RegisterModule();
     final networkModule = _$NetworkModule();
     gh.lazySingleton<_i454.SupabaseClient>(() => registerModule.supabaseClient);
-    gh.lazySingleton<_i40.ContratoDataSource>(
+    gh.lazySingleton<_i1033.ContratoDataSource>(
       () => registerModule.contratoDataSource,
     );
-    gh.lazySingleton<_i40.ProvinciaDataSource>(
+    gh.lazySingleton<_i1033.ProvinciaDataSource>(
       () => registerModule.provinciaDataSource,
     );
-    gh.lazySingleton<_i40.ComunidadAutonomaDataSource>(
+    gh.lazySingleton<_i1033.ComunidadAutonomaDataSource>(
       () => registerModule.comunidadAutonomaDataSource,
     );
-    gh.lazySingleton<_i40.LocalidadDataSource>(
+    gh.lazySingleton<_i1033.LocalidadDataSource>(
       () => registerModule.localidadDataSource,
     );
     gh.lazySingleton<_i1033.UsuarioDataSource>(
       () => registerModule.usuarioDataSource,
     );
+    gh.lazySingleton<_i1033.TrasladoDataSource>(
+      () => registerModule.trasladoDataSource,
+    );
+    gh.lazySingleton<_i1033.TPersonalDataSource>(
+      () => registerModule.tpersonalDataSource,
+    );
+    gh.lazySingleton<_i1033.VehiculoDataSource>(
+      () => registerModule.vehiculoDataSource,
+    );
     gh.lazySingleton<_i973.InternetConnectionChecker>(
       () => networkModule.connectionChecker,
     );
     gh.lazySingleton<_i496.AuthService>(() => _i496.AuthService());
+    gh.lazySingleton<_i686.RutaService>(() => _i686.RutaService());
+    gh.lazySingleton<_i30.PdfRutaService>(() => _i30.PdfRutaService());
+    gh.lazySingleton<_i1071.GeocodingService>(() => _i1071.GeocodingService());
+    gh.lazySingleton<_i1033.RoutingService>(() => _i1033.RoutingService());
     gh.lazySingleton<_i961.PlantillaTurnoRepository>(
       () => _i60.PlantillaTurnoRepositoryImpl(),
     );
@@ -504,9 +522,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i645.HistorialMedicoRepository>(
       () => _i711.HistorialMedicoRepositoryImpl(),
     );
-    gh.lazySingleton<_i922.ContratoRepository>(
-      () => _i552.ContratoRepositoryImpl(gh<_i40.ContratoDataSource>()),
-    );
     gh.lazySingleton<_i1037.NotificacionesRepository>(
       () => _i12.NotificacionesRepositoryImpl(),
     );
@@ -565,6 +580,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i699.ItvRevisionBloc>(
       () => _i699.ItvRevisionBloc(gh<_i836.ItvRevisionRepository>()),
     );
+    gh.lazySingleton<_i922.ContratoRepository>(
+      () => _i552.ContratoRepositoryImpl(gh<_i1033.ContratoDataSource>()),
+    );
     gh.factory<_i91.PacientesBloc>(
       () => _i91.PacientesBloc(gh<_i229.PacienteRepository>()),
     );
@@ -622,6 +640,16 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i753.IntercambioRepository>(
       () => _i326.IntercambioRepositoryImpl(gh<_i393.TurnosRepository>()),
+    );
+    gh.factory<_i281.RutasBloc>(
+      () => _i281.RutasBloc(
+        trasladoDataSource: gh<_i1033.TrasladoDataSource>(),
+        personalDataSource: gh<_i1033.TPersonalDataSource>(),
+        vehiculoDataSource: gh<_i1033.VehiculoDataSource>(),
+        rutaService: gh<_i686.RutaService>(),
+        geocodingService: gh<_i1071.GeocodingService>(),
+        routingService: gh<_i1033.RoutingService>(),
+      ),
     );
     gh.factory<_i1015.StockEquipamientoBloc>(
       () => _i1015.StockEquipamientoBloc(gh<_i145.VehiculoRepository>()),

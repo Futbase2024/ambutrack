@@ -28,7 +28,7 @@ class UbicacionFichajeDialog extends StatelessWidget {
     if (registro.latitud == null || registro.longitud == null) {
       return Dialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -66,6 +66,9 @@ class UbicacionFichajeDialog extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.gray700,
                     foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   child: const Text('Cerrar'),
                 ),
@@ -81,7 +84,7 @@ class UbicacionFichajeDialog extends StatelessWidget {
 
     return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Container(
         constraints: const BoxConstraints(
@@ -312,8 +315,7 @@ class UbicacionFichajeDialog extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppSizes.radiusMedium),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                       child: const Text(

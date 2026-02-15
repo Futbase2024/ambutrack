@@ -12,11 +12,13 @@ class RegistroHorarioSupabaseModel {
   final String? ubicacion;
   final double? latitud;
   final double? longitud;
+  final double? precisionGps;
   final String? notas;
   final String estado;
   final bool esManual;
   final String? usuarioManualId;
   final String? vehiculoId;
+  final String? vehiculoMatricula;
   final String? turno;
   final double? horasTrabajadas;
   final bool activo;
@@ -32,11 +34,13 @@ class RegistroHorarioSupabaseModel {
     this.ubicacion,
     this.latitud,
     this.longitud,
+    this.precisionGps,
     this.notas,
     this.estado = 'normal',
     this.esManual = false,
     this.usuarioManualId,
     this.vehiculoId,
+    this.vehiculoMatricula,
     this.turno,
     this.horasTrabajadas,
     this.activo = true,
@@ -46,6 +50,12 @@ class RegistroHorarioSupabaseModel {
 
   /// Convierte desde JSON de Supabase
   factory RegistroHorarioSupabaseModel.fromJson(Map<String, dynamic> json) {
+    // Extraer matrícula: primero del campo directo, si no del join con tvehiculos
+    String? vehiculoMatricula = json['vehiculo_matricula'] as String?;
+    if (vehiculoMatricula == null && json['tvehiculos'] != null && json['tvehiculos'] is Map) {
+      vehiculoMatricula = (json['tvehiculos'] as Map<String, dynamic>)['matricula'] as String?;
+    }
+
     return RegistroHorarioSupabaseModel(
       id: json['id'] as String,
       personalId: json['personal_id'] as String,
@@ -55,11 +65,13 @@ class RegistroHorarioSupabaseModel {
       ubicacion: json['ubicacion'] as String?,
       latitud: json['latitud'] != null ? (json['latitud'] as num).toDouble() : null,
       longitud: json['longitud'] != null ? (json['longitud'] as num).toDouble() : null,
+      precisionGps: json['precision_gps'] != null ? (json['precision_gps'] as num).toDouble() : null,
       notas: json['notas'] as String?,
       estado: json['estado'] as String? ?? 'normal',
       esManual: json['es_manual'] as bool? ?? false,
       usuarioManualId: json['usuario_manual_id'] as String?,
       vehiculoId: json['vehiculo_id'] as String?,
+      vehiculoMatricula: vehiculoMatricula,
       turno: json['turno'] as String?,
       horasTrabajadas: json['horas_trabajadas'] != null
           ? (json['horas_trabajadas'] as num).toDouble()
@@ -81,11 +93,13 @@ class RegistroHorarioSupabaseModel {
       'ubicacion': ubicacion,
       'latitud': latitud,
       'longitud': longitud,
+      'precision_gps': precisionGps,
       'notas': notas,
       'estado': estado,
       'es_manual': esManual,
       'usuario_manual_id': usuarioManualId,
       'vehiculo_id': vehiculoId,
+      'vehiculo_matricula': vehiculoMatricula,
       'turno': turno,
       'horas_trabajadas': horasTrabajadas,
       'activo': activo,
@@ -105,11 +119,13 @@ class RegistroHorarioSupabaseModel {
       ubicacion: ubicacion,
       latitud: latitud,
       longitud: longitud,
+      precisionGps: precisionGps,
       notas: notas,
       estado: estado,
       esManual: esManual,
       usuarioManualId: usuarioManualId,
       vehiculoId: vehiculoId,
+      vehiculoMatricula: vehiculoMatricula,
       turno: turno,
       horasTrabajadas: horasTrabajadas,
       activo: activo,
@@ -129,11 +145,13 @@ class RegistroHorarioSupabaseModel {
       ubicacion: entity.ubicacion,
       latitud: entity.latitud,
       longitud: entity.longitud,
+      precisionGps: entity.precisionGps,
       notas: entity.notas,
       estado: entity.estado,
       esManual: entity.esManual,
       usuarioManualId: entity.usuarioManualId,
       vehiculoId: entity.vehiculoId,
+      vehiculoMatricula: entity.vehiculoMatricula,
       turno: entity.turno,
       horasTrabajadas: entity.horasTrabajadas,
       activo: entity.activo,

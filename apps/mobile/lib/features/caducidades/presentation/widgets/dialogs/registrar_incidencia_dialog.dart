@@ -235,6 +235,9 @@ class _RegistrarIncidenciaDialogState extends State<RegistrarIncidenciaDialog> {
                           : () => Navigator.of(context).pop(false),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       child: const Text('Cancelar'),
                     ),
@@ -247,6 +250,9 @@ class _RegistrarIncidenciaDialogState extends State<RegistrarIncidenciaDialog> {
                         backgroundColor: AppColors.error,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       child: _isProcessing
                           ? const SizedBox(

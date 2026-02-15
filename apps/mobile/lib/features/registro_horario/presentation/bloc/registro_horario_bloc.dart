@@ -27,6 +27,7 @@ class RegistroHorarioBloc
     on<FicharSalida>(_onFicharSalida);
     on<RefrescarHistorial>(_onRefrescarHistorial);
     on<ObtenerContextoTurno>(_onObtenerContextoTurno);
+    on<CambiarVehiculo>(_onCambiarVehiculo);
   }
 
   final RegistroHorarioRepository _registroHorarioRepository;
@@ -102,6 +103,22 @@ class RegistroHorarioBloc
 
       debugPrint('🔑 [RegistroHorarioBloc] Usando personalId: $personalId');
 
+      // Obtener vehículo asignado (si existe)
+      VehiculoEntity? vehiculoAsignado;
+      try {
+        final asignacion = await _obtenerAsignacionHoy(personalId);
+        if (asignacion != null && asignacion['id_vehiculo'] != null) {
+          final vehiculoDs = VehiculoDataSourceFactory.createSupabase();
+          vehiculoAsignado = await vehiculoDs.getById(asignacion['id_vehiculo']);
+          debugPrint('🚗 [RegistroHorarioBloc] Vehículo asignado: ${vehiculoAsignado?.matricula}');
+        } else {
+          debugPrint('⚠️ [RegistroHorarioBloc] Sin vehículo asignado');
+        }
+      } catch (e) {
+        debugPrint('⚠️ [RegistroHorarioBloc] Error al obtener vehículo: $e');
+        // No es crítico, continuamos sin vehículo
+      }
+
       // Crear registro de entrada
       final registro = RegistroHorarioEntity(
         id: _uuid.v4(),
@@ -111,10 +128,19 @@ class RegistroHorarioBloc
         latitud: event.latitud,
         longitud: event.longitud,
         precisionGps: event.precisionGps,
+        vehiculoId: vehiculoAsignado?.id,
+        vehiculoMatricula: vehiculoAsignado?.matricula,
         notas: event.observaciones,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
+
+      // Debug: Ver valores del Entity ANTES de enviar al Repository
+      debugPrint('📋 [RegistroHorarioBloc] Entity creado:');
+      debugPrint('   - vehiculoId: ${registro.vehiculoId}');
+      debugPrint('   - vehiculoMatricula: ${registro.vehiculoMatricula}');
+      debugPrint('   - precisionGps: ${registro.precisionGps}');
+      debugPrint('   - tipo: ${registro.tipo}');
 
       await _registroHorarioRepository.crear(registro);
 
@@ -123,8 +149,8 @@ class RegistroHorarioBloc
       // Emitir success temporal
       emit(const RegistroHorarioSuccess('Entrada fichada correctamente'));
 
-      // Recargar datos
-      add(const CargarRegistrosHorario());
+      // Recargar datos con contexto completo
+      add(const ObtenerContextoTurno());
     } catch (e) {
       debugPrint('❌ [RegistroHorarioBloc] Error al fichar entrada: $e');
       emit(RegistroHorarioError('Error al fichar entrada: $e'));
@@ -147,6 +173,22 @@ class RegistroHorarioBloc
         return;
       }
 
+      // Obtener vehículo asignado (si existe)
+      VehiculoEntity? vehiculoAsignado;
+      try {
+        final asignacion = await _obtenerAsignacionHoy(personalId);
+        if (asignacion != null && asignacion['id_vehiculo'] != null) {
+          final vehiculoDs = VehiculoDataSourceFactory.createSupabase();
+          vehiculoAsignado = await vehiculoDs.getById(asignacion['id_vehiculo']);
+          debugPrint('🚗 [RegistroHorarioBloc] Vehículo asignado: ${vehiculoAsignado?.matricula}');
+        } else {
+          debugPrint('⚠️ [RegistroHorarioBloc] Sin vehículo asignado');
+        }
+      } catch (e) {
+        debugPrint('⚠️ [RegistroHorarioBloc] Error al obtener vehículo: $e');
+        // No es crítico, continuamos sin vehículo
+      }
+
       // Crear registro de salida
       final registro = RegistroHorarioEntity(
         id: _uuid.v4(),
@@ -156,10 +198,19 @@ class RegistroHorarioBloc
         latitud: event.latitud,
         longitud: event.longitud,
         precisionGps: event.precisionGps,
+        vehiculoId: vehiculoAsignado?.id,
+        vehiculoMatricula: vehiculoAsignado?.matricula,
         notas: event.observaciones,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
+
+      // Debug: Ver valores del Entity ANTES de enviar al Repository
+      debugPrint('📋 [RegistroHorarioBloc] Entity creado:');
+      debugPrint('   - vehiculoId: ${registro.vehiculoId}');
+      debugPrint('   - vehiculoMatricula: ${registro.vehiculoMatricula}');
+      debugPrint('   - precisionGps: ${registro.precisionGps}');
+      debugPrint('   - tipo: ${registro.tipo}');
 
       await _registroHorarioRepository.crear(registro);
 
@@ -168,8 +219,8 @@ class RegistroHorarioBloc
       // Emitir success temporal
       emit(const RegistroHorarioSuccess('Salida fichada correctamente'));
 
-      // Recargar datos
-      add(const CargarRegistrosHorario());
+      // Recargar datos con contexto completo
+      add(const ObtenerContextoTurno());
     } catch (e) {
       debugPrint('❌ [RegistroHorarioBloc] Error al fichar salida: $e');
       emit(RegistroHorarioError('Error al fichar salida: $e'));
@@ -181,8 +232,107 @@ class RegistroHorarioBloc
     RefrescarHistorial event,
     Emitter<RegistroHorarioState> emit,
   ) async {
-    // Simplemente recarga los datos
-    add(const CargarRegistrosHorario());
+    // Recarga los datos con contexto completo
+    add(const ObtenerContextoTurno());
+  }
+
+  /// Handler para cambiar de vehículo durante el turno
+  ///
+  /// Flujo:
+  /// 1. Registra salida con vehículo actual
+  /// 2. Actualiza asignación de vehículo en tabla turnos
+  /// 3. Registra entrada con nuevo vehículo
+  Future<void> _onCambiarVehiculo(
+    CambiarVehiculo event,
+    Emitter<RegistroHorarioState> emit,
+  ) async {
+    try {
+      debugPrint('🔄 [RegistroHorarioBloc] Iniciando cambio de vehículo...');
+      emit(const RegistroHorarioFichando());
+
+      final personalId = _personalId;
+      if (personalId == null) {
+        debugPrint('❌ [RegistroHorarioBloc] No hay personal autenticado');
+        emit(const RegistroHorarioError('No hay sesión activa'));
+        return;
+      }
+
+      // 1. Obtener vehículo actual
+      VehiculoEntity? vehiculoActual;
+      try {
+        final asignacion = await _obtenerAsignacionHoy(personalId);
+        if (asignacion != null && asignacion['id_vehiculo'] != null) {
+          final vehiculoDs = VehiculoDataSourceFactory.createSupabase();
+          vehiculoActual = await vehiculoDs.getById(asignacion['id_vehiculo']);
+          debugPrint('🚗 [RegistroHorarioBloc] Vehículo actual: ${vehiculoActual?.matricula}');
+        }
+      } catch (e) {
+        debugPrint('⚠️ [RegistroHorarioBloc] Error al obtener vehículo actual: $e');
+      }
+
+      // 2. Registrar salida con vehículo actual
+      final registroSalida = RegistroHorarioEntity(
+        id: _uuid.v4(),
+        personalId: personalId,
+        tipo: 'salida',
+        fechaHora: DateTime.now(),
+        latitud: event.latitud,
+        longitud: event.longitud,
+        precisionGps: event.precisionGps,
+        vehiculoId: vehiculoActual?.id,
+        vehiculoMatricula: vehiculoActual?.matricula,
+        notas: event.observaciones ?? 'Cambio de vehículo',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await _registroHorarioRepository.crear(registroSalida);
+      debugPrint('✅ [RegistroHorarioBloc] Salida registrada con vehículo actual');
+
+      // 3. Actualizar asignación en tabla turnos
+      await _actualizarAsignacionVehiculo(personalId, event.nuevoVehiculoId);
+      debugPrint('✅ [RegistroHorarioBloc] Asignación de vehículo actualizada');
+
+      // 4. Obtener datos del nuevo vehículo
+      VehiculoEntity? nuevoVehiculo;
+      try {
+        final vehiculoDs = VehiculoDataSourceFactory.createSupabase();
+        nuevoVehiculo = await vehiculoDs.getById(event.nuevoVehiculoId);
+        debugPrint('🚗 [RegistroHorarioBloc] Nuevo vehículo: ${nuevoVehiculo?.matricula}');
+      } catch (e) {
+        debugPrint('⚠️ [RegistroHorarioBloc] Error al obtener nuevo vehículo: $e');
+      }
+
+      // 5. Registrar entrada con nuevo vehículo
+      final registroEntrada = RegistroHorarioEntity(
+        id: _uuid.v4(),
+        personalId: personalId,
+        tipo: 'entrada',
+        fechaHora: DateTime.now(),
+        latitud: event.latitud,
+        longitud: event.longitud,
+        precisionGps: event.precisionGps,
+        vehiculoId: nuevoVehiculo?.id,
+        vehiculoMatricula: nuevoVehiculo?.matricula,
+        notas: event.observaciones ?? 'Cambio de vehículo',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await _registroHorarioRepository.crear(registroEntrada);
+      debugPrint('✅ [RegistroHorarioBloc] Entrada registrada con nuevo vehículo');
+
+      // Emitir success
+      emit(RegistroHorarioSuccess(
+        'Vehículo cambiado: ${vehiculoActual?.matricula ?? 'N/A'} → ${nuevoVehiculo?.matricula ?? 'N/A'}',
+      ));
+
+      // Recargar datos con contexto completo
+      add(const ObtenerContextoTurno());
+    } catch (e) {
+      debugPrint('❌ [RegistroHorarioBloc] Error al cambiar vehículo: $e');
+      emit(RegistroHorarioError('Error al cambiar vehículo: $e'));
+    }
   }
 
   /// Determina el estado actual basado en el último fichaje
@@ -392,6 +542,50 @@ class RegistroHorarioBloc
       debugPrint(
           '⚠️ [RegistroHorarioBloc] Error al obtener próximo turno: $e');
       return null;
+    }
+  }
+
+  /// Actualiza la asignación de vehículo en la tabla turnos
+  ///
+  /// Cambia el vehículo asignado en el turno actual del personal
+  Future<void> _actualizarAsignacionVehiculo(
+    String personalId,
+    String nuevoVehiculoId,
+  ) async {
+    final supabase = Supabase.instance.client;
+    final hoy = DateTime.now();
+    final fechaHoy = DateTime(hoy.year, hoy.month, hoy.day);
+
+    try {
+      debugPrint('🔄 [RegistroHorarioBloc] Actualizando asignación de vehículo');
+      debugPrint('   - personalId: $personalId');
+      debugPrint('   - nuevoVehiculoId: $nuevoVehiculoId');
+
+      // Buscar turno activo de hoy
+      final turnoActual = await supabase
+          .from('turnos')
+          .select('id')
+          .eq('idPersonal', personalId)
+          .gte('fechaInicio', fechaHoy.toIso8601String())
+          .lte('fechaFin', fechaHoy.add(const Duration(days: 1)).toIso8601String())
+          .eq('activo', true)
+          .maybeSingle();
+
+      if (turnoActual == null) {
+        debugPrint('⚠️ [RegistroHorarioBloc] No se encontró turno activo para hoy');
+        return;
+      }
+
+      // Actualizar vehículo en el turno
+      await supabase
+          .from('turnos')
+          .update({'idVehiculo': nuevoVehiculoId})
+          .eq('id', turnoActual['id']);
+
+      debugPrint('✅ [RegistroHorarioBloc] Vehículo actualizado en turno');
+    } catch (e) {
+      debugPrint('❌ [RegistroHorarioBloc] Error al actualizar asignación: $e');
+      rethrow;
     }
   }
 }

@@ -114,6 +114,123 @@ class MyScreen extends StatelessWidget {
 | `FMExpansionTile` | Tile expandible |
 | `FMPlayerCard` | Card de jugador |
 
+---
+
+## 🎨 ESTÁNDAR DE DISEÑO DE DIÁLOGOS (OBLIGATORIO)
+
+> **Documentación completa**: [`docs/DIALOGS_DESIGN_STANDARD.md`](../../docs/DIALOGS_DESIGN_STANDARD.md)
+
+### 📐 BorderRadius Estandarizado
+
+**TODOS los diálogos deben cumplir estas reglas:**
+
+| Elemento | BorderRadius | Ejemplo |
+|----------|--------------|---------|
+| **Dialog principal** | `16` | `BorderRadius.circular(16)` |
+| **Botones (OutlinedButton/ElevatedButton)** | `10` | `BorderRadius.circular(10)` |
+| **Elementos internos** | `8` | `AppSizes.radiusSmall` |
+
+### ✅ Template de Dialog Estándar
+
+```dart
+Dialog(
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(16), // ✅ OBLIGATORIO
+  ),
+  child: Container(
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Contenido
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10), // ✅ OBLIGATORIO
+                  ),
+                ),
+                child: const Text('Cancelar'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10), // ✅ OBLIGATORIO
+                  ),
+                ),
+                child: const Text('Confirmar'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  ),
+)
+```
+
+### ❌ Anti-Patrones de Diálogos
+
+```dart
+// ❌ PROHIBIDO: borderRadius 20 (demasiado redondeado)
+Dialog(
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(20), // ❌ INCORRECTO
+  ),
+)
+
+// ❌ PROHIBIDO: borderRadius 12 en botones (ovalados)
+OutlinedButton(
+  style: OutlinedButton.styleFrom(
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12), // ❌ INCORRECTO
+    ),
+  ),
+)
+
+// ❌ PROHIBIDO: Sin shape explícito en botones
+OutlinedButton(
+  style: OutlinedButton.styleFrom(
+    padding: const EdgeInsets.symmetric(vertical: 14),
+    // ❌ FALTA: shape con borderRadius: 10
+  ),
+)
+```
+
+### 📋 Checklist de Validación de Diálogos
+
+Antes de considerar un diálogo completo:
+
+- [ ] Dialog tiene `borderRadius: BorderRadius.circular(16)`
+- [ ] Container interno tiene `borderRadius: BorderRadius.circular(16)`
+- [ ] **TODOS** los OutlinedButton tienen `shape` con `borderRadius: 10`
+- [ ] **TODOS** los ElevatedButton tienen `shape` con `borderRadius: 10`
+- [ ] `flutter analyze` → 0 warnings relacionados
+
+### 📚 Diálogos de Referencia
+
+**Core** (templates base):
+- `lib/core/widgets/dialogs/professional_confirm_dialog.dart`
+- `lib/core/widgets/dialogs/professional_result_dialog.dart`
+
+**Features** (ejemplos actualizados):
+- `lib/features/notificaciones/presentation/widgets/notificacion_in_app_dialog.dart`
+- `lib/features/registro_horario/presentation/widgets/cambiar_vehiculo_dialog.dart`
+- `lib/features/caducidades/presentation/widgets/dialogs/editar_caducidad_dialog.dart`
+
+---
+
 ### ❌ NUNCA Textos Hardcodeados
 
 ```dart

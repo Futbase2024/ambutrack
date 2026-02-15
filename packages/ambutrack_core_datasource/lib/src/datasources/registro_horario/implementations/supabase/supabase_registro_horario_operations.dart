@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../entities/registro_horario_entity.dart';
@@ -18,7 +19,9 @@ mixin SupabaseRegistroHorarioOperations {
     String? ubicacion,
     double? latitud,
     double? longitud,
+    double? precisionGps,
     String? vehiculoId,
+    String? vehiculoMatricula,
     String? turno,
     String? notas,
   }) async {
@@ -32,7 +35,9 @@ mixin SupabaseRegistroHorarioOperations {
         'ubicacion': ubicacion,
         'latitud': latitud,
         'longitud': longitud,
+        'precision_gps': precisionGps,
         'vehiculo_id': vehiculoId,
+        'vehiculo_matricula': vehiculoMatricula,
         'turno': turno,
         'notas': notas,
         'estado': 'normal',
@@ -40,11 +45,22 @@ mixin SupabaseRegistroHorarioOperations {
         'activo': true,
       };
 
+      // Debug: Ver qué datos se envían a Supabase
+      debugPrint('🔍 [DataSource] Datos a insertar en Supabase (entrada):');
+      debugPrint('   - vehiculo_id: ${data['vehiculo_id']}');
+      debugPrint('   - vehiculo_matricula: ${data['vehiculo_matricula']}');
+      debugPrint('   - precision_gps: ${data['precision_gps']}');
+
       final response = await supabase
           .from(tableName)
           .insert(data)
           .select()
           .single();
+
+      debugPrint('🔍 [DataSource] Respuesta de Supabase (entrada):');
+      debugPrint('   - vehiculo_id: ${response['vehiculo_id']}');
+      debugPrint('   - vehiculo_matricula: ${response['vehiculo_matricula']}');
+      debugPrint('   - precision_gps: ${response['precision_gps']}');
 
       return RegistroHorarioSupabaseModel.fromJson(response).toEntity();
     } catch (e) {
@@ -58,6 +74,9 @@ mixin SupabaseRegistroHorarioOperations {
     String? ubicacion,
     double? latitud,
     double? longitud,
+    double? precisionGps,
+    String? vehiculoId,
+    String? vehiculoMatricula,
     String? notas,
   }) async {
     try {
@@ -70,17 +89,31 @@ mixin SupabaseRegistroHorarioOperations {
         'ubicacion': ubicacion,
         'latitud': latitud,
         'longitud': longitud,
+        'precision_gps': precisionGps,
+        'vehiculo_id': vehiculoId,
+        'vehiculo_matricula': vehiculoMatricula,
         'notas': notas,
         'estado': 'normal',
         'es_manual': false,
         'activo': true,
       };
 
+      // Debug: Ver qué datos se envían a Supabase
+      debugPrint('🔍 [DataSource] Datos a insertar en Supabase (salida):');
+      debugPrint('   - vehiculo_id: ${data['vehiculo_id']}');
+      debugPrint('   - vehiculo_matricula: ${data['vehiculo_matricula']}');
+      debugPrint('   - precision_gps: ${data['precision_gps']}');
+
       final response = await supabase
           .from(tableName)
           .insert(data)
           .select()
           .single();
+
+      debugPrint('🔍 [DataSource] Respuesta de Supabase (salida):');
+      debugPrint('   - vehiculo_id: ${response['vehiculo_id']}');
+      debugPrint('   - vehiculo_matricula: ${response['vehiculo_matricula']}');
+      debugPrint('   - precision_gps: ${response['precision_gps']}');
 
       return RegistroHorarioSupabaseModel.fromJson(response).toEntity();
     } catch (e) {

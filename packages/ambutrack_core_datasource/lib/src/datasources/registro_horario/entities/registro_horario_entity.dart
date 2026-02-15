@@ -47,6 +47,9 @@ class RegistroHorarioEntity extends BaseEntity {
   /// ID del vehículo/ambulancia asignado (si aplica)
   final String? vehiculoId;
 
+  /// Matrícula del vehículo asignado (si aplica)
+  final String? vehiculoMatricula;
+
   /// Turno al que pertenece este fichaje
   final String? turno;
 
@@ -74,6 +77,7 @@ class RegistroHorarioEntity extends BaseEntity {
     this.esManual = false,
     this.usuarioManualId,
     this.vehiculoId,
+    this.vehiculoMatricula,
     this.turno,
     this.horasTrabajadas,
     this.activo = true,
@@ -96,6 +100,7 @@ class RegistroHorarioEntity extends BaseEntity {
       'esManual': esManual,
       'usuarioManualId': usuarioManualId,
       'vehiculoId': vehiculoId,
+      'vehiculoMatricula': vehiculoMatricula,
       'turno': turno,
       'horasTrabajadas': horasTrabajadas,
       'activo': activo,
@@ -127,6 +132,7 @@ class RegistroHorarioEntity extends BaseEntity {
       esManual: json['esManual'] as bool? ?? false,
       usuarioManualId: json['usuarioManualId'] as String?,
       vehiculoId: json['vehiculoId'] as String?,
+      vehiculoMatricula: json['vehiculoMatricula'] as String?,
       turno: json['turno'] as String?,
       horasTrabajadas: json['horasTrabajadas'] != null
           ? (json['horasTrabajadas'] as num).toDouble()
@@ -171,6 +177,7 @@ class RegistroHorarioEntity extends BaseEntity {
     bool? esManual,
     String? usuarioManualId,
     String? vehiculoId,
+    String? vehiculoMatricula,
     String? turno,
     double? horasTrabajadas,
     bool? activo,
@@ -192,6 +199,7 @@ class RegistroHorarioEntity extends BaseEntity {
       esManual: esManual ?? this.esManual,
       usuarioManualId: usuarioManualId ?? this.usuarioManualId,
       vehiculoId: vehiculoId ?? this.vehiculoId,
+      vehiculoMatricula: vehiculoMatricula ?? this.vehiculoMatricula,
       turno: turno ?? this.turno,
       horasTrabajadas: horasTrabajadas ?? this.horasTrabajadas,
       activo: activo ?? this.activo,
@@ -216,6 +224,7 @@ class RegistroHorarioEntity extends BaseEntity {
         esManual,
         usuarioManualId,
         vehiculoId,
+        vehiculoMatricula,
         turno,
         horasTrabajadas,
         activo,
