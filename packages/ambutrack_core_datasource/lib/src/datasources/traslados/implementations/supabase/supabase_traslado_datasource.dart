@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../entities/estado_traslado.dart';
+import '../../entities/evento_traslado_type.dart';
 import '../../entities/historial_estado_entity.dart';
 import '../../entities/traslado_entity.dart';
 import '../../entities/traslado_evento_entity.dart';
@@ -22,17 +25,18 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   Future<List<TrasladoEntity>> getAll() async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo todos los traslados...',
+        '📦 SupabaseTrasladoDataSource: Obteniendo todos los traslados (con paciente y motivo embebidos)...',
       );
 
+      // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos
       final response = await _supabase
           .from(_tableName)
-          .select()
+          .select('*, pacientes(*), tmotivos_traslado(*)')
           .order('fecha', ascending: false)
           .order('hora_programada', ascending: true);
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos',
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos con paciente y motivo',
       );
 
       return (response as List)
@@ -62,6 +66,16 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
 
       debugPrint('📦 SupabaseTrasladoDataSource: ✅ Traslado obtenido');
 
+      // 🔍 LOGGING: Verificar si viene con paciente embebido
+      final tienePaciente = response.containsKey('pacientes') && response['pacientes'] != null;
+      debugPrint('🔍 [getById] id_paciente=${response['id_paciente']}, tienePaciente=$tienePaciente');
+      if (tienePaciente) {
+        final pacienteJson = response['pacientes'] as Map<String, dynamic>?;
+        debugPrint('   👤 Paciente embebido: nombre=${pacienteJson?['nombre']}, apellido1=${pacienteJson?['primer_apellido']}');
+      } else {
+        debugPrint('   ⚠️  Paciente NO embebido (pacientes=null o clave no existe)');
+      }
+
       return TrasladoSupabaseModel.fromJson(response).toEntity();
     } catch (e) {
       debugPrint(
@@ -77,18 +91,19 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   ) async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo traslados del servicio: $idServicioRecurrente',
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados del servicio: $idServicioRecurrente (con paciente y motivo embebidos)',
       );
 
+      // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos
       final response = await _supabase
           .from(_tableName)
-          .select()
+          .select('*, pacientes(*), tmotivos_traslado(*)')
           .eq('id_servicio_recurrente', idServicioRecurrente)
           .order('fecha', ascending: false)
           .order('hora_programada', ascending: true);
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos',
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos con paciente y motivo',
       );
 
       return (response as List)
@@ -110,19 +125,20 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   ) async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo traslados de ${idsServiciosRecurrentes.length} servicios',
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados de ${idsServiciosRecurrentes.length} servicios (con paciente y motivo embebidos)',
       );
       debugPrint('   IDs de servicios buscados: $idsServiciosRecurrentes');
 
+      // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos
       final response = await _supabase
           .from(_tableName)
-          .select()
+          .select('*, pacientes(*), tmotivos_traslado(*)')
           .inFilter('id_servicio', idsServiciosRecurrentes)
           .order('fecha', ascending: false)
           .order('hora_programada', ascending: true);
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos',
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos con paciente y motivo',
       );
 
       if (response.isEmpty) {
@@ -198,18 +214,19 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   ) async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo traslados del servicio padre: $servicioId',
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados del servicio padre: $servicioId (con paciente y motivo embebidos)',
       );
 
+      // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos
       final response = await _supabase
           .from(_tableName)
-          .select()
+          .select('*, pacientes(*), tmotivos_traslado(*)')
           .eq('id_servicio', servicioId)
           .order('fecha', ascending: false)
           .order('hora_programada', ascending: true);
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos',
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos con paciente y motivo',
       );
 
       return (response as List)
@@ -229,18 +246,19 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   Future<List<TrasladoEntity>> getByPaciente(String idPaciente) async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo traslados del paciente: $idPaciente',
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados del paciente: $idPaciente (con paciente y motivo embebidos)',
       );
 
+      // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos
       final response = await _supabase
           .from(_tableName)
-          .select()
+          .select('*, pacientes(*), tmotivos_traslado(*)')
           .eq('id_paciente', idPaciente)
           .order('fecha', ascending: false)
           .order('hora_programada', ascending: true);
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos',
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos con paciente y motivo',
       );
 
       return (response as List)
@@ -260,18 +278,19 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   Future<List<TrasladoEntity>> getByConductor(String idConductor) async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo traslados del conductor: $idConductor',
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados del conductor: $idConductor (con paciente y motivo embebidos)',
       );
 
+      // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos
       final response = await _supabase
           .from(_tableName)
-          .select()
+          .select('*, pacientes(*), tmotivos_traslado(*)')
           .eq('id_conductor', idConductor)
           .order('fecha', ascending: false)
           .order('hora_programada', ascending: true);
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos',
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos con paciente y motivo',
       );
 
       return (response as List)
@@ -299,7 +318,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   ) async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo traslados activos del conductor: $idConductor',
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados activos del conductor: $idConductor (con paciente y motivo embebidos)',
       );
 
       // Estados activos (en curso)
@@ -313,17 +332,31 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
         'en_destino',
       ];
 
+      // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos
       final response = await _supabase
           .from(_tableName)
-          .select()
+          .select('*, pacientes(*), tmotivos_traslado(*)')
           .eq('id_conductor', idConductor)
           .inFilter('estado', estadosActivos)
           .order('fecha', ascending: false)
           .order('hora_programada', ascending: true);
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados activos obtenidos',
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados activos obtenidos con paciente y motivo',
       );
+
+      // 🔍 LOGGING: Inspeccionar qué devuelve Supabase para diagnosticar
+      for (var i = 0; i < (response as List).length; i++) {
+        final trasladoJson = response[i];
+        final tienePaciente = trasladoJson.containsKey('pacientes') && trasladoJson['pacientes'] != null;
+        debugPrint('🔍 [Traslado $i] id=${trasladoJson['id']}, id_paciente=${trasladoJson['id_paciente']}, tienePaciente=$tienePaciente');
+        if (tienePaciente) {
+          final pacienteJson = trasladoJson['pacientes'] as Map<String, dynamic>?;
+          debugPrint('   👤 Paciente embebido: nombre=${pacienteJson?['nombre']}, apellido1=${pacienteJson?['primer_apellido']}');
+        } else {
+          debugPrint('   ⚠️  Paciente NO embebido (pacientes=null o clave no existe)');
+        }
+      }
 
       return (response as List)
           .map((json) => TrasladoSupabaseModel.fromJson(
@@ -342,18 +375,19 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   Future<List<TrasladoEntity>> getByVehiculo(String idVehiculo) async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo traslados del vehículo: $idVehiculo',
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados del vehículo: $idVehiculo (con paciente y motivo embebidos)',
       );
 
+      // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos
       final response = await _supabase
           .from(_tableName)
-          .select()
+          .select('*, pacientes(*), tmotivos_traslado(*)')
           .eq('id_vehiculo', idVehiculo)
           .order('fecha', ascending: false)
           .order('hora_programada', ascending: true);
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos',
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos con paciente y motivo',
       );
 
       return (response as List)
@@ -376,12 +410,13 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   }) async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo traslados con estado: ${estado.value}${idConductor != null ? ' para conductor: $idConductor' : ''}',
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados con estado: ${estado.value}${idConductor != null ? ' para conductor: $idConductor' : ''} (con paciente y motivo embebidos)',
       );
 
+      // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos
       var query = _supabase
           .from(_tableName)
-          .select()
+          .select('*, pacientes(*), tmotivos_traslado(*)')
           .eq('estado', estado.value);
 
       if (idConductor != null) {
@@ -393,7 +428,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
           .order('hora_programada', ascending: true);
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos',
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos con paciente y motivo',
       );
 
       return (response as List)
@@ -453,12 +488,13 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
       final hastaStr = fechaFin.toIso8601String().split('T').first;
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo traslados entre $desdeStr y $hastaStr${idConductor != null ? ' para conductor: $idConductor' : ''}',
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados entre $desdeStr y $hastaStr${idConductor != null ? ' para conductor: $idConductor' : ''} (con paciente y motivo embebidos)',
       );
 
+      // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos
       var query = _supabase
           .from(_tableName)
-          .select()
+          .select('*, pacientes(*), tmotivos_traslado(*)')
           .gte('fecha', desdeStr)
           .lte('fecha', hastaStr);
 
@@ -471,7 +507,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
           .order('hora_programada', ascending: true);
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos',
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados obtenidos con paciente y motivo',
       );
 
       return (response as List)
@@ -491,7 +527,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   Future<List<TrasladoEntity>> getEnCurso() async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo traslados en curso...',
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados en curso (con paciente y motivo embebidos)...',
       );
 
       // Estados EN CURSO: pendiente, asignado, enviado, recibido_conductor,
@@ -507,15 +543,16 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
         'en_destino',
       ];
 
+      // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos
       final response = await _supabase
           .from(_tableName)
-          .select()
+          .select('*, pacientes(*), tmotivos_traslado(*)')
           .inFilter('estado', estadosEnCurso)
           .order('fecha', ascending: false)
           .order('hora_programada', ascending: true);
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados en curso',
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados en curso con paciente y motivo',
       );
 
       return (response as List)
@@ -535,19 +572,20 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   Future<List<TrasladoEntity>> getRequierenAsignacion() async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Obteniendo traslados que requieren asignación...',
+        '📦 SupabaseTrasladoDataSource: Obteniendo traslados que requieren asignación (con paciente y motivo embebidos)...',
       );
 
+      // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos
       final response = await _supabase
           .from(_tableName)
-          .select()
+          .select('*, pacientes(*), tmotivos_traslado(*)')
           .eq('estado', 'pendiente')
           .or('id_conductor.is.null,id_vehiculo.is.null')
           .order('fecha', ascending: false)
           .order('hora_programada', ascending: true);
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados pendientes de asignación',
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados pendientes de asignación con paciente y motivo',
       );
 
       return (response as List)
@@ -567,22 +605,23 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   Future<List<TrasladoEntity>> searchByCodigo(String query) async {
     try {
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: Buscando traslados con código: "$query"',
+        '📦 SupabaseTrasladoDataSource: Buscando traslados con código: "$query" (con paciente y motivo embebidos)',
       );
 
       if (query.isEmpty) {
         return getAll();
       }
 
+      // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos
       final response = await _supabase
           .from(_tableName)
-          .select()
+          .select('*, pacientes(*), tmotivos_traslado(*)')
           .ilike('codigo', '%$query%')
           .order('fecha', ascending: false)
           .order('hora_programada', ascending: true);
 
       debugPrint(
-        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados encontrados',
+        '📦 SupabaseTrasladoDataSource: ✅ ${response.length} traslados encontrados con paciente y motivo',
       );
 
       return (response as List)
@@ -696,11 +735,11 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
 
       // Registrar en historial de estados
       await _supabase.from('historial_estados_traslado').insert({
-        'traslado_id': idTraslado,
+        'id_traslado': idTraslado,
         'estado_anterior': estadoAnterior,
         'estado_nuevo': nuevoEstado.value,
         'fecha_cambio': DateTime.now().toIso8601String(),
-        'usuario_id': idUsuario,
+        'id_usuario': idUsuario,
         if (ubicacion != null) 'ubicacion': ubicacion.toJson(),
         if (observaciones != null) 'observaciones': observaciones,
       });
@@ -730,7 +769,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
       final response = await _supabase
           .from('historial_estados_traslado')
           .select()
-          .eq('traslado_id', idTraslado)
+          .eq('id_traslado', idTraslado)
           .order('fecha_cambio', ascending: false);
 
       debugPrint(
@@ -1117,14 +1156,12 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   @override
   Stream<List<TrasladoEntity>> watchAll() {
     debugPrint(
-      '📦 SupabaseTrasladoDataSource: Iniciando stream de traslados...',
+      '📦 SupabaseTrasladoDataSource: Iniciando stream de traslados (con paciente y motivo embebidos)...',
     );
 
     return _supabase
         .from(_tableName)
         .stream(primaryKey: ['id'])
-        .order('fecha', ascending: false)
-        .order('hora_programada', ascending: true)
         .map((data) {
           debugPrint(
             '📦 SupabaseTrasladoDataSource: 🔄 Stream actualizó ${data.length} traslados',
@@ -1157,7 +1194,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
     String idServicioRecurrente,
   ) {
     debugPrint(
-      '📦 SupabaseTrasladoDataSource: Iniciando stream de traslados del servicio: $idServicioRecurrente',
+      '📦 SupabaseTrasladoDataSource: Iniciando stream de traslados del servicio: $idServicioRecurrente (con paciente y motivo embebidos)',
     );
 
     return _supabase
@@ -1165,7 +1202,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
         .stream(primaryKey: ['id'])
         .map((data) {
           debugPrint(
-            '📦 SupabaseTrasladoDataSource: 🔄 Stream actualizó ${data.length} traslados',
+            '📦 SupabaseTrasladoDataSource: 🔄 Stream actualizó ${data.length} traslados con paciente y motivo',
           );
           // Filtrar y ordenar en la transformación del stream
           final filtrados = data
@@ -1186,7 +1223,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   @override
   Stream<List<TrasladoEntity>> watchByConductor(String idConductor) {
     debugPrint(
-      '📦 SupabaseTrasladoDataSource: Iniciando stream de traslados del conductor: $idConductor',
+      '📦 SupabaseTrasladoDataSource: Iniciando stream de traslados del conductor: $idConductor (con paciente y motivo embebidos)',
     );
 
     return _supabase
@@ -1194,7 +1231,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
         .stream(primaryKey: ['id'])
         .map((data) {
           debugPrint(
-            '📦 SupabaseTrasladoDataSource: 🔄 Stream actualizó ${data.length} traslados',
+            '📦 SupabaseTrasladoDataSource: 🔄 Stream actualizó ${data.length} traslados del conductor con paciente y motivo',
           );
           // Filtrar y ordenar en la transformación del stream
           final filtrados = data
@@ -1215,7 +1252,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   @override
   Stream<List<TrasladoEntity>> watchEnCurso() {
     debugPrint(
-      '📦 SupabaseTrasladoDataSource: Iniciando stream de traslados en curso...',
+      '📦 SupabaseTrasladoDataSource: Iniciando stream de traslados en curso (con paciente y motivo embebidos)...',
     );
 
     final estadosEnCurso = [
@@ -1234,7 +1271,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
         .stream(primaryKey: ['id'])
         .map((data) {
           debugPrint(
-            '📦 SupabaseTrasladoDataSource: 🔄 Stream actualizó ${data.length} traslados en curso',
+            '📦 SupabaseTrasladoDataSource: 🔄 Stream actualizó ${data.length} traslados en curso con paciente y motivo',
           );
           // Filtrar por estados en curso y ordenar en la transformación del stream
           final filtrados = data
@@ -1255,7 +1292,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   @override
   Stream<List<TrasladoEntity>> watchByIds(List<String> ids) {
     debugPrint(
-      '📦 SupabaseTrasladoDataSource: Iniciando stream de ${ids.length} traslados específicos...',
+      '📦 SupabaseTrasladoDataSource: Iniciando stream de ${ids.length} traslados específicos (con paciente y motivo embebidos)...',
     );
 
     if (ids.isEmpty) {
@@ -1268,7 +1305,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
         .eq('id', ids.first) // Supabase stream doesn't support .in() directly
         .map((data) {
           debugPrint(
-            '📦 SupabaseTrasladoDataSource: 🔄 Stream actualizó ${data.length} traslados',
+            '📦 SupabaseTrasladoDataSource: 🔄 Stream actualizó ${data.length} traslados con paciente y motivo',
           );
           // Filtrar por los IDs solicitados
           final filtrados = data
@@ -1285,7 +1322,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
     String idConductor,
   ) {
     debugPrint(
-      '📦 SupabaseTrasladoDataSource: Iniciando stream de traslados activos del conductor: $idConductor',
+      '📦 SupabaseTrasladoDataSource: Iniciando stream de traslados activos del conductor: $idConductor (con paciente y motivo embebidos)',
     );
 
     // Estados activos (en curso)
@@ -1299,12 +1336,13 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
       'en_destino',
     ];
 
+    // Incluir JOINs con pacientes y tmotivos_traslado en el stream
     return _supabase
         .from(_tableName)
         .stream(primaryKey: ['id'])
         .map((data) {
           debugPrint(
-            '📦 SupabaseTrasladoDataSource: 🔄 Stream actualizó traslados activos',
+            '📦 SupabaseTrasladoDataSource: 🔄 Stream actualizó ${data.length} traslados con paciente y motivo',
           );
           // Filtrar por conductor y estados activos
           final filtrados = data
@@ -1325,14 +1363,153 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
   }
 
   @override
-  Stream<TrasladoEventoEntity> streamEventosConductor() {
+  Stream<TrasladoEventoEntity> streamEventosConductor([String? idConductor]) {
     debugPrint(
       '📦 SupabaseTrasladoDataSource: Iniciando stream de eventos para conductor',
     );
 
-    // TODO: Implementar stream de eventos desde tabla de eventos
-    // Por ahora retorna un stream vacío
-    return const Stream.empty();
+    final miId = idConductor ?? _supabase.auth.currentUser?.id;
+    if (miId == null) {
+      debugPrint('⚠️ [TrasladosDataSource] No hay ID de conductor disponible, retornando stream vacío');
+      return const Stream.empty();
+    }
+
+    debugPrint('✅ [TrasladosDataSource] ID del conductor: $miId (origen: ${idConductor != null ? "parámetro" : "auth"})');
+
+    // Crear canal Realtime para escuchar cambios en la tabla traslados
+    // Usar un ID único para el canal basado en si recibimos parámetro o no
+    final sourceIndicator = idConductor != null ? 'param' : 'auth';
+    final channelName = 'traslados_eventos_conductor_${miId}_$sourceIndicator';
+    debugPrint('📡 [TrasladosDataSource] Creando canal: $channelName');
+
+    final channel = _supabase.channel(channelName);
+
+    // Stream controller para emitir eventos con callback de cancelación
+    // Declarar como nullable para poder referenciarlo en onCancel
+    StreamController<TrasladoEventoEntity>? streamController;
+    streamController = StreamController<TrasladoEventoEntity>(
+      onCancel: () {
+        debugPrint('🔌 [TrasladosDataSource] Cancelando stream de eventos');
+        _supabase.removeChannel(channel);
+        streamController?.close();
+      },
+    );
+
+    // Contador para generar IDs únicos de eventos temporales
+    var eventoCounter = 0;
+
+    // Suscribirse a cambios en la tabla traslados (INSERT, UPDATE, DELETE)
+    // ⚠️ NOTA: No usamos filtro Realtime porque tiene problemas de confiabilidad
+    // En su lugar, escuchamos TODOS los cambios y filtramos en el callback
+    debugPrint('📡 [TrasladosDataSource] Suscribiendo a TODOS los cambios en tabla $_tableName');
+    debugPrint('   - Filtrado por cliente: id_conductor == $miId');
+
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: _tableName,
+          callback: (payload, [ref]) {
+            debugPrint('📦 [TrasladosDataSource] ⭐⭐⭐ CAMBIO DETECTADO EN TRASLADOS ⭐⭐⭐');
+            debugPrint('   - Event type: ${payload.eventType}');
+            debugPrint('   - Old: ${payload.oldRecord}');
+            debugPrint('   - New: ${payload.newRecord}');
+
+            final oldRecord = payload.oldRecord as Map<String, dynamic>?;
+            final newRecord = payload.newRecord as Map<String, dynamic>?;
+
+            // Determinar el tipo de evento basado en el cambio
+            EventoTrasladoType? eventType;
+            String? trasladoId;
+            String? oldConductorId;
+            String? newConductorId;
+            String? oldEstado;
+            String? newEstado;
+
+            if (newRecord != null) {
+              trasladoId = newRecord['id'] as String?;
+              newConductorId = newRecord['id_conductor'] as String?;
+              newEstado = newRecord['estado'] as String?;
+            }
+
+            if (oldRecord != null) {
+              oldConductorId = oldRecord['id_conductor'] as String?;
+              oldEstado = oldRecord['estado'] as String?;
+            }
+
+            if (trasladoId == null) {
+              debugPrint('⚠️ [TrasladosDataSource] No se pudo determinar trasladoId');
+              return;
+            }
+
+            debugPrint('   - Traslado ID: $trasladoId');
+            debugPrint('   - Mi ID: $miId');
+            debugPrint('   - Old conductor: $oldConductorId');
+            debugPrint('   - New conductor: $newConductorId');
+
+            // Analizar el tipo de evento basado en el eventType del payload
+            final eventTypeStr = payload.eventType.toString();
+
+            if (eventTypeStr.contains('insert')) {
+              // Si se inserta un traslado con mi conductor, es una asignación
+              if (newConductorId == miId) {
+                eventType = EventoTrasladoType.assigned;
+                debugPrint('✅ [TrasladosDataSource] INSERT: Traslado asignado a mí');
+              }
+            } else if (eventTypeStr.contains('update')) {
+              // Cambio de conductor
+              if (oldConductorId != newConductorId) {
+                if (newConductorId == miId) {
+                  eventType = EventoTrasladoType.reassigned;
+                  debugPrint('✅ [TrasladosDataSource] UPDATE: Traslado reasignado a mí');
+                } else if (oldConductorId == miId) {
+                  eventType = EventoTrasladoType.unassigned;
+                  debugPrint('✅ [TrasladosDataSource] UPDATE: Traslado desasignado de mí');
+                }
+              }
+              // Cambio de estado (mismo conductor)
+              else if (oldEstado != newEstado && newConductorId == miId) {
+                eventType = EventoTrasladoType.statusChanged;
+                debugPrint('✅ [TrasladosDataSource] UPDATE: Estado cambió de $oldEstado a $newEstado');
+              }
+            } else if (eventTypeStr.contains('delete')) {
+              // Traslado eliminado
+              if (oldConductorId == miId) {
+                eventType = EventoTrasladoType.cancelled;
+                debugPrint('✅ [TrasladosDataSource] DELETE: Traslado cancelado');
+              }
+            }
+
+            // Si determinamos un tipo de evento, emitirlo
+            if (eventType != null) {
+              eventoCounter++;
+              final evento = TrasladoEventoEntity(
+                // Generar ID temporal único para el evento Realtime
+                id: 'evt_${DateTime.now().millisecondsSinceEpoch}_$eventoCounter',
+                trasladoId: trasladoId,
+                eventType: eventType,
+                timestamp: DateTime.now(),
+                conductorId: newConductorId ?? oldConductorId,
+                estadoAnterior: oldEstado,
+                estadoNuevo: newEstado,
+              );
+              streamController!.add(evento);
+              debugPrint('📤 [TrasladosDataSource] ✅✅✅ EVENTO EMITIDO: ${eventType.label} ✅✅✅');
+            } else {
+              debugPrint('⚠️ [TrasladosDataSource] Evento NO procesado (no coincide con mi ID)');
+            }
+          },
+        )
+        .subscribe((status, [error]) {
+          debugPrint('📡 [TrasladosDataSource] Estado del canal: $status');
+          if (error != null) {
+            debugPrint('❌ [TrasladosDataSource] Error en suscripción: $error');
+          }
+        });
+
+    debugPrint('✅ [TrasladosDataSource] Stream de eventos iniciado correctamente');
+
+    return streamController.stream;
   }
 
   @override

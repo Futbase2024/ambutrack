@@ -169,7 +169,10 @@ abstract class TrasladoDataSource {
   Stream<List<TrasladoEntity>> watchActivosByIdConductor(String idConductor);
 
   /// Stream que emite eventos de traslados para el conductor actual
-  Stream<TrasladoEventoEntity> streamEventosConductor();
+  ///
+  /// [idConductor] ID del conductor cuyo stream se quiere escuchar.
+  /// Si es null, usa el ID del usuario autenticado actual.
+  Stream<TrasladoEventoEntity> streamEventosConductor([String? idConductor]);
 
   /// Libera los canales de Realtime
   Future<void> disposeRealtimeChannels();

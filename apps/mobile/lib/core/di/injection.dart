@@ -257,6 +257,8 @@ Future<void> configureDependencies() async {
   );
 
   // BLoC (Factory para crear nueva instancia en cada página)
+  // Esto es necesario porque el BLoC necesita el usuario autenticado
+  // para configurar los streams Realtime correctamente
   getIt.registerFactory<NotificacionesBloc>(
     () => NotificacionesBloc(
       repository: getIt<NotificacionesRepository>(),

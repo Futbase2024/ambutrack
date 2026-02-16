@@ -11,6 +11,8 @@ import 'package:ambutrack_web/features/alertas_caducidad/presentation/widgets/al
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_event.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
+import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_bloc.dart';
+import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_event.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -31,48 +33,54 @@ class App extends StatelessWidget {
       create: (BuildContext context) => getIt<AuthBloc>()..add(const AuthCheckRequested()),
       child: RepositoryProvider<AlertasCaducidadBloc>.value(
         value: getIt<AlertasCaducidadBloc>(),
-        child: BlocListener<AlertasCaducidadBloc, AlertasCaducidadState>(
-          listener: (BuildContext context, AlertasCaducidadState state) {
-            // Listener vacío para mantener suscripción activa al BLoC
-          },
-          child: BlocListener<AuthBloc, AuthState>(
-            listener: (BuildContext context, AuthState authState) {
-              // Escuchar cambios de autenticación para cargar alertas críticas
-              if (authState is AuthAuthenticated) {
-                final String usuarioId = authState.user.uid;
-                context.read<AlertasCaducidadBloc>().add(
-                  AlertasCaducidadEvent.loadAlertasCriticas(usuarioId: usuarioId),
-                );
-              }
+        child: RepositoryProvider<StockEquipamientoBloc>.value(
+          value: getIt<StockEquipamientoBloc>(),
+          child: BlocListener<AlertasCaducidadBloc, AlertasCaducidadState>(
+            listener: (BuildContext context, AlertasCaducidadState state) {
+              // Listener vacío para mantener suscripción activa al BLoC
             },
-            child: ContextMenuBlocker(
-              child: MaterialApp.router(
-                title: F.title,
-                debugShowCheckedModeBanner: false,
+            child: BlocListener<AuthBloc, AuthState>(
+              listener: (BuildContext context, AuthState authState) {
+                // Escuchar cambios de autenticación para cargar alertas críticas y stock
+                if (authState is AuthAuthenticated) {
+                  final String usuarioId = authState.user.uid;
+                  context.read<AlertasCaducidadBloc>().add(
+                    AlertasCaducidadEvent.loadAlertasCriticas(usuarioId: usuarioId),
+                  );
+                  context.read<StockEquipamientoBloc>().add(
+                    const StockEquipamientoLoadRequested(),
+                  );
+                }
+              },
+              child: ContextMenuBlocker(
+                child: MaterialApp.router(
+                  title: F.title,
+                  debugShowCheckedModeBanner: false,
 
-                // Configuración de localización
-                locale: const Locale('es', 'ES'),
-                localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
-                  GlobalMaterialLocalizations.delegate,
-                  GlobalWidgetsLocalizations.delegate,
-                  GlobalCupertinoLocalizations.delegate,
-                ],
-                supportedLocales: const <Locale>[
-                  Locale('es', 'ES'),
-                  Locale('en', 'US'),
-                ],
+                  // Configuración de localización
+                  locale: const Locale('es', 'ES'),
+                  localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+                    GlobalMaterialLocalizations.delegate,
+                    GlobalWidgetsLocalizations.delegate,
+                    GlobalCupertinoLocalizations.delegate,
+                  ],
+                  supportedLocales: const <Locale>[
+                    Locale('es', 'ES'),
+                    Locale('en', 'US'),
+                  ],
 
-                // Configuración de tema personalizado AmbuTrack
-                theme: AppTheme.lightTheme,
-                darkTheme: AppTheme.darkTheme,
+                  // Configuración de tema personalizado AmbuTrack
+                  theme: AppTheme.lightTheme,
+                  darkTheme: AppTheme.darkTheme,
 
-                // Builder para mostrar el diálogo de alertas críticas
-                builder: (BuildContext context, Widget? child) {
-                  return _AlertasDialogListener(child: child!);
-                },
+                  // Builder para mostrar el diálogo de alertas críticas
+                  builder: (BuildContext context, Widget? child) {
+                    return _AlertasDialogListener(child: child!);
+                  },
 
-                // Configuración del router
-                routerConfig: appRouter,
+                  // Configuración del router
+                  routerConfig: appRouter,
+                ),
               ),
             ),
           ),

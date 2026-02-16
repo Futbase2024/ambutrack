@@ -63,6 +63,10 @@ class TrasladoEntity extends Equatable {
     this.updatedAt,
     this.createdBy,
     this.updatedBy,
+    this.requiereSillaRuedas,
+    this.requiereCamilla,
+    this.requiereAyuda,
+    this.requiereAcompanante,
   });
 
   // IDENTIFICACIÓN ÚNICA
@@ -172,6 +176,12 @@ class TrasladoEntity extends Equatable {
   final String? createdBy;
   final String? updatedBy;
 
+  // REQUISITOS DEL SERVICIO (campos denormalizados)
+  final bool? requiereSillaRuedas;
+  final bool? requiereCamilla;
+  final bool? requiereAyuda;
+  final bool? requiereAcompanante;
+
   /// Getter para verificar si el traslado está en curso
   bool get estaEnCurso {
     if (estado == null) return false;
@@ -245,16 +255,34 @@ class TrasladoEntity extends Equatable {
   /// Nombre completo del paciente (si está disponible)
   /// Requiere que el paciente esté cargado en la relación
   String? get pacienteNombre {
-    if (paciente == null) return null;
+    if (paciente == null) {
+      // Debug logging para diagnosticar problema
+      // ignore: avoid_print
+      print('⚠️ [TrasladoEntity] pacienteNombre: paciente es null para traslado $id');
+      return null;
+    }
     final String nombre = paciente!.nombre ?? '';
     final String apellido1 = paciente!.primerApellido ?? '';
     final String? apellido2 = paciente!.segundoApellido;
 
-    if (nombre.isEmpty && apellido1.isEmpty) return null;
+    // Debug logging
+    // ignore: avoid_print
+    print('📋 [TrasladoEntity] pacienteNombre: id=$id, nombre="$nombre", apellido1="$apellido1", apellido2=$apellido2');
 
-    return apellido2 != null && apellido2.isNotEmpty
+    if (nombre.isEmpty && apellido1.isEmpty) {
+      // ignore: avoid_print
+      print('⚠️ [TrasladoEntity] pacienteNombre: nombre y apellido1 están vacíos para traslado $id');
+      return null;
+    }
+
+    final resultado = apellido2 != null && apellido2.isNotEmpty
         ? '$nombre $apellido1 $apellido2'.trim()
         : '$nombre $apellido1'.trim();
+
+    // ignore: avoid_print
+    print('✅ [TrasladoEntity] pacienteNombre: "$resultado" para traslado $id');
+
+    return resultado;
   }
 
   /// Alias para idPersonalConductor (compatibilidad)
@@ -303,22 +331,6 @@ class TrasladoEntity extends Equatable {
   /// Nombre del usuario que canceló (no disponible en esta entidad)
   /// Devuelve null por compatibilidad. Cargar desde UsuarioDataSource
   String? get usuarioCancelacion => null;
-
-  /// Indica si requiere silla de ruedas (propiedad del servicio, no del traslado)
-  /// Devuelve null por compatibilidad. Cargar desde ServicioEntity asociado
-  bool? get requiereSillaRuedas => null;
-
-  /// Indica si requiere camilla (propiedad del servicio, no del traslado)
-  /// Devuelve null por compatibilidad. Cargar desde ServicioEntity asociado
-  bool? get requiereCamilla => null;
-
-  /// Indica si requiere ayuda (propiedad del servicio, no del traslado)
-  /// Devuelve null por compatibilidad. Cargar desde ServicioEntity asociado
-  bool? get requiereAyuda => null;
-
-  /// Indica si requiere acompañante (propiedad del servicio, no del traslado)
-  /// Devuelve null por compatibilidad. Cargar desde ServicioEntity asociado
-  bool? get requiereAcompanante => null;
 
   /// Indica si requiere equipamiento especial (propiedad del servicio, no del traslado)
   /// Devuelve null por compatibilidad. Cargar desde ServicioEntity asociado
@@ -409,6 +421,10 @@ class TrasladoEntity extends Equatable {
     DateTime? updatedAt,
     String? createdBy,
     String? updatedBy,
+    bool? requiereSillaRuedas,
+    bool? requiereCamilla,
+    bool? requiereAyuda,
+    bool? requiereAcompanante,
   }) {
     return TrasladoEntity(
       id: id ?? this.id,
@@ -466,6 +482,10 @@ class TrasladoEntity extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       createdBy: createdBy ?? this.createdBy,
       updatedBy: updatedBy ?? this.updatedBy,
+      requiereSillaRuedas: requiereSillaRuedas ?? this.requiereSillaRuedas,
+      requiereCamilla: requiereCamilla ?? this.requiereCamilla,
+      requiereAyuda: requiereAyuda ?? this.requiereAyuda,
+      requiereAcompanante: requiereAcompanante ?? this.requiereAcompanante,
     );
   }
 
@@ -526,5 +546,9 @@ class TrasladoEntity extends Equatable {
         updatedAt,
         createdBy,
         updatedBy,
+        requiereSillaRuedas,
+        requiereCamilla,
+        requiereAyuda,
+        requiereAcompanante,
       ];
 }

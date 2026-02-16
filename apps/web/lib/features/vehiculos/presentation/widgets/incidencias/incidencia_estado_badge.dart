@@ -5,12 +5,7 @@ import 'package:flutter/material.dart';
 
 /// Badge visual para mostrar el estado de una incidencia
 ///
-/// Muestra el estado con colores diferenciados según el tipo:
-/// - Reportada: Azul (info)
-/// - En Revisión: Naranja (warning)
-/// - En Reparación: Amarillo (secondary)
-/// - Resuelta: Verde (success)
-/// - Cerrada: Gris (gray600)
+/// Muestra el estado con tonos de azul consistentes con el proyecto
 class IncidenciaEstadoBadge extends StatelessWidget {
   const IncidenciaEstadoBadge({
     required this.estado,
@@ -21,7 +16,8 @@ class IncidenciaEstadoBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final BadgeConfig config = _getConfig(estado);
+    final Color backgroundColor = _getBackgroundColor(estado);
+    final Color textColor = _getTextColor(estado);
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -29,71 +25,50 @@ class IncidenciaEstadoBadge extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: config.color.withValues(alpha: 0.1),
+            color: backgroundColor,
             borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+            border: Border.all(color: textColor.withValues(alpha: 0.3)),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(
-                config.icon,
-                size: 14,
-                color: config.color,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                estado.nombre,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: config.color,
-                ),
-              ),
-            ],
+          child: Text(
+            estado.nombre,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: textColor,
+            ),
           ),
         ),
       ),
     );
   }
 
-  BadgeConfig _getConfig(EstadoIncidencia estado) {
+  Color _getBackgroundColor(EstadoIncidencia estado) {
     switch (estado) {
       case EstadoIncidencia.reportada:
-        return const BadgeConfig(
-          color: AppColors.info,
-          icon: Icons.report_problem,
-        );
+        return AppColors.primary.withValues(alpha: 0.05);
       case EstadoIncidencia.enRevision:
-        return const BadgeConfig(
-          color: AppColors.warning,
-          icon: Icons.search,
-        );
+        return AppColors.primary.withValues(alpha: 0.1);
       case EstadoIncidencia.enReparacion:
-        return const BadgeConfig(
-          color: AppColors.secondary,
-          icon: Icons.build,
-        );
+        return AppColors.primary.withValues(alpha: 0.15);
       case EstadoIncidencia.resuelta:
-        return const BadgeConfig(
-          color: AppColors.success,
-          icon: Icons.check_circle,
-        );
+        return AppColors.primary.withValues(alpha: 0.2);
       case EstadoIncidencia.cerrada:
-        return const BadgeConfig(
-          color: AppColors.gray600,
-          icon: Icons.archive,
-        );
+        return AppColors.gray100;
     }
   }
-}
 
-/// Configuración de colores e iconos para el badge
-class BadgeConfig {
-  const BadgeConfig({
-    required this.color,
-    required this.icon,
-  });
-
-  final Color color;
-  final IconData icon;
+  Color _getTextColor(EstadoIncidencia estado) {
+    switch (estado) {
+      case EstadoIncidencia.reportada:
+        return AppColors.primary.withValues(alpha: 0.7);
+      case EstadoIncidencia.enRevision:
+        return AppColors.primary;
+      case EstadoIncidencia.enReparacion:
+        return AppColors.primary.withValues(alpha: 0.9);
+      case EstadoIncidencia.resuelta:
+        return AppColors.primary;
+      case EstadoIncidencia.cerrada:
+        return AppColors.gray700;
+    }
+  }
 }

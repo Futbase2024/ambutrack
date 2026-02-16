@@ -101,9 +101,9 @@ class TrasladosRepositoryImpl implements TrasladosRepository {
   }
 
   @override
-  Stream<TrasladoEventoEntity> streamEventosConductor() {
-    debugPrint('🔔 [TrasladosRepository] Iniciando stream de eventos de traslados');
-    return _dataSource.streamEventosConductor();
+  Stream<TrasladoEventoEntity> streamEventosConductor([String? idConductor]) {
+    debugPrint('🔔 [TrasladosRepository] Iniciando stream de eventos de traslados${idConductor != null ? " para conductor: $idConductor" : ""}');
+    return _dataSource.streamEventosConductor(idConductor);
   }
 
   @override

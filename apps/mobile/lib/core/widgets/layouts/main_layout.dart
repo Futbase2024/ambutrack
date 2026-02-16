@@ -6,10 +6,8 @@ import '../../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../../features/auth/presentation/bloc/auth_event.dart';
 import '../../../features/auth/presentation/bloc/auth_state.dart';
 import '../../../features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
-import '../../../features/notificaciones/presentation/bloc/notificaciones_event.dart';
 import '../../../features/notificaciones/presentation/bloc/notificaciones_state.dart';
 import '../../../features/notificaciones/presentation/widgets/notificacion_badge.dart';
-import '../../di/injection.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_icons.dart';
 
@@ -84,9 +82,10 @@ class MainLayout extends StatelessWidget {
         title: Text(_getPageTitle()),
         actions: <Widget>[
           // Badge de notificaciones
-          BlocProvider(
-            create: (_) => getIt<NotificacionesBloc>()
-              ..add(const NotificacionesEvent.started()),
+          // Nota: Usamos BlocProvider.value para compartir la instancia creada en app.dart
+          // que ya está inicializada después de la autenticación.
+          BlocProvider.value(
+            value: context.read<NotificacionesBloc>(),
             child: BlocBuilder<NotificacionesBloc, NotificacionesState>(
               builder: (context, state) {
                 final conteoNoLeidas = state.maybeWhen(

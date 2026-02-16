@@ -32,18 +32,50 @@ class NotificacionesBloc extends Bloc<NotificacionesEvent, NotificacionesState> 
   Future<void> _onEvent(
     NotificacionesEvent event,
     Emitter<NotificacionesState> emit,
-  ) {
-    return event.when(
-      started: () => _onStarted(emit),
-      loadRequested: () => _onLoadRequested(emit),
-      refreshRequested: () => _onRefreshRequested(emit),
-      marcarComoLeida: (id) => _onMarcarComoLeida(emit, id),
-      marcarTodasLeidas: () => _onMarcarTodasLeidas(emit),
-      eliminar: (id) => _onEliminar(emit, id),
-      eliminarTodas: () => _onEliminarTodas(emit),
-      eliminarSeleccionadas: (ids) => _onEliminarSeleccionadas(emit, ids),
-      realtimeReceived: (notificacion) => _onRealtimeReceived(emit, notificacion),
-      conteoChanged: (conteo) async => _onConteoChanged(emit, conteo),
+  ) async {
+    debugPrint('📨 [NotificacionesBloc] Evento recibido: ${event.runtimeType}');
+
+    await event.when(
+      started: () async {
+        debugPrint('📨 [NotificacionesBloc] Procesando evento: started');
+        await _onStarted(emit);
+      },
+      loadRequested: () async {
+        debugPrint('📨 [NotificacionesBloc] Procesando evento: loadRequested');
+        await _onLoadRequested(emit);
+      },
+      refreshRequested: () async {
+        debugPrint('📨 [NotificacionesBloc] Procesando evento: refreshRequested');
+        await _onRefreshRequested(emit);
+      },
+      marcarComoLeida: (id) async {
+        debugPrint('📨 [NotificacionesBloc] Procesando evento: marcarComoLeida ($id)');
+        await _onMarcarComoLeida(emit, id);
+      },
+      marcarTodasLeidas: () async {
+        debugPrint('📨 [NotificacionesBloc] Procesando evento: marcarTodasLeidas');
+        await _onMarcarTodasLeidas(emit);
+      },
+      eliminar: (id) async {
+        debugPrint('📨 [NotificacionesBloc] Procesando evento: eliminar ($id)');
+        await _onEliminar(emit, id);
+      },
+      eliminarTodas: () async {
+        debugPrint('📨 [NotificacionesBloc] Procesando evento: eliminarTodas');
+        await _onEliminarTodas(emit);
+      },
+      eliminarSeleccionadas: (ids) async {
+        debugPrint('📨 [NotificacionesBloc] Procesando evento: eliminarSeleccionadas (${ids.length})');
+        await _onEliminarSeleccionadas(emit, ids);
+      },
+      realtimeReceived: (notificacion) async {
+        debugPrint('📨 [NotificacionesBloc] Procesando evento: realtimeReceived');
+        await _onRealtimeReceived(emit, notificacion);
+      },
+      conteoChanged: (conteo) async {
+        debugPrint('📨 [NotificacionesBloc] Procesando evento: conteoChanged ($conteo)');
+        _onConteoChanged(emit, conteo);
+      },
     );
   }
 
@@ -81,25 +113,34 @@ class NotificacionesBloc extends Bloc<NotificacionesEvent, NotificacionesState> 
     _notificacionesSubscription = _repository.watchNotificaciones().listen(
       (notificaciones) {
         debugPrint('📨 [NotificacionesBloc] Recibidas ${notificaciones.length} notificaciones desde Realtime');
+        debugPrint('   Estado actual: ${state.runtimeType}');
 
         // Si hay una nueva notificación (comparar con estado actual)
         state.maybeWhen(
           loaded: (notificacionesActuales, conteo, isRefreshing) {
+            debugPrint('   - Notificaciones actuales: ${notificacionesActuales.length}');
+            debugPrint('   - ¿Hay nuevas?: ${notificaciones.length > notificacionesActuales.length}');
+
             if (notificaciones.length > notificacionesActuales.length) {
               // Hay notificaciones nuevas, mostrar la más reciente
               final nuevas = notificaciones
                   .where((n) => !notificacionesActuales.any((actual) => actual.id == n.id))
                   .toList();
 
+              debugPrint('   - ✅ ${nuevas.length} notificaciones NUEVAS detectadas');
               for (final nueva in nuevas) {
+                debugPrint('   - 🔔 Procesando notificación: ${nueva.titulo}');
                 add(NotificacionesEvent.realtimeReceived(nueva));
               }
+            } else {
+              debugPrint('   - ❌ No hay notificaciones nuevas (mismo número o menos)');
             }
 
             // Actualizar lista en el estado
             add(const NotificacionesEvent.loadRequested());
           },
           orElse: () {
+            debugPrint('   - ⚠️ Estado no es "loaded", recargando...');
             // En estado inicial o loading, solo recargar
             add(const NotificacionesEvent.loadRequested());
           },
@@ -261,18 +302,26 @@ class NotificacionesBloc extends Bloc<NotificacionesEvent, NotificacionesState> 
     Emitter<NotificacionesState> emit,
     NotificacionEntity notificacion,
   ) async {
-    debugPrint('📨 [NotificacionesBloc] Nueva notificación en tiempo real: ${notificacion.titulo}');
+    debugPrint('📨 [NotificacionesBloc] ========================================');
+    debugPrint('📨 [NotificacionesBloc] 🔔 NUEVA NOTIFICACIÓN EN TIEMPO REAL');
+    debugPrint('📨 [NotificacionesBloc] Título: ${notificacion.titulo}');
+    debugPrint('📨 [NotificacionesBloc] Tipo: ${notificacion.tipo.value}');
+    debugPrint('📨 [NotificacionesBloc] Leída: ${notificacion.leida}');
+    debugPrint('📨 [NotificacionesBloc] ========================================');
 
     // Mostrar notificación local solo si no está leída
     if (!notificacion.leida) {
+      debugPrint('📨 [NotificacionesBloc] Mostrando notificación local...');
       try {
         await _localNotificationsService.mostrarNotificacion(
           notificacion: notificacion,
         );
-        debugPrint('🔔 [NotificacionesBloc] Notificación local mostrada');
+        debugPrint('📨 [NotificacionesBloc] ✅ Notificación local mostrada');
       } catch (e) {
-        debugPrint('❌ [NotificacionesBloc] Error al mostrar notificación local: $e');
+        debugPrint('📨 [NotificacionesBloc] ❌ Error al mostrar notificación local: $e');
       }
+    } else {
+      debugPrint('📨 [NotificacionesBloc] ⚠️ Notificación ya leída, no se muestra');
     }
   }
 

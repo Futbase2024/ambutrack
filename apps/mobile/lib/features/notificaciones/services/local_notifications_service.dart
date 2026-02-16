@@ -223,12 +223,18 @@ class LocalNotificationsService {
   Future<void> mostrarNotificacion({
     required NotificacionEntity notificacion,
   }) async {
+    debugPrint('🔔 [LocalNotifications] ========================================');
     debugPrint('🔔 [LocalNotifications] Mostrando notificación: ${notificacion.titulo}');
+    debugPrint('🔔 [LocalNotifications] Tipo: ${notificacion.tipo.value}');
+    debugPrint('🔔 [LocalNotifications] App en primer plano: $_isAppInForeground');
+    debugPrint('🔔 [LocalNotifications] Callback configurado: ${onShowInAppNotification != null}');
+    debugPrint('🔔 [LocalNotifications] ========================================');
 
     // Si la app está en primer plano, mostrar notificación in-app
     if (_isAppInForeground) {
       debugPrint('📱 [LocalNotifications] App en primer plano - mostrando diálogo in-app');
       onShowInAppNotification?.call(notificacion);
+      debugPrint('📱 [LocalNotifications] Callback llamado');
       return;
     }
 

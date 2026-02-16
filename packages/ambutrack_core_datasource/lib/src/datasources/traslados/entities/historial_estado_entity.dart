@@ -55,11 +55,11 @@ class HistorialEstadoEntity extends Equatable {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'id': id,
-      'traslado_id': trasladoId,
+      'id_traslado': trasladoId,
       if (estadoAnterior != null) 'estado_anterior': estadoAnterior,
       'estado_nuevo': estadoNuevo,
       'fecha_cambio': fechaCambio.toIso8601String(),
-      if (usuarioId != null) 'usuario_id': usuarioId,
+      if (usuarioId != null) 'id_usuario': usuarioId,
       if (usuarioNombre != null) 'usuario_nombre': usuarioNombre,
       if (motivo != null) 'motivo': motivo,
       if (observaciones != null) 'observaciones': observaciones,
@@ -72,11 +72,11 @@ class HistorialEstadoEntity extends Equatable {
   factory HistorialEstadoEntity.fromJson(Map<String, dynamic> json) {
     return HistorialEstadoEntity(
       id: json['id'] as String,
-      trasladoId: json['traslado_id'] as String,
+      trasladoId: json['id_traslado'] as String,
       estadoAnterior: json['estado_anterior'] as String?,
       estadoNuevo: json['estado_nuevo'] as String,
       fechaCambio: DateTime.parse(json['fecha_cambio'] as String),
-      usuarioId: json['usuario_id'] as String?,
+      usuarioId: json['id_usuario'] as String?,
       usuarioNombre: json['usuario_nombre'] as String?,
       motivo: json['motivo'] as String?,
       observaciones: json['observaciones'] as String?,

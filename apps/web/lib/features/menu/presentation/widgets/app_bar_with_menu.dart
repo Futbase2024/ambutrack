@@ -10,6 +10,7 @@ import 'package:ambutrack_web/features/menu/presentation/widgets/app_menu.dart';
 import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_bloc.dart';
 import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_state.dart';
 import 'package:ambutrack_web/features/notificaciones/presentation/widgets/notificaciones_panel.dart';
+import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -324,8 +325,9 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
     final Offset offset = button.localToGlobal(Offset.zero);
     final Size size = button.size;
 
-    // Capturar el bloc antes de showDialog para pasarlo al nuevo contexto
+    // Capturar los blocs antes de showDialog para pasarlos al nuevo contexto
     final NotificacionBloc notificacionBloc = context.read<NotificacionBloc>();
+    final StockEquipamientoBloc stockBloc = context.read<StockEquipamientoBloc>();
 
     showDialog<void>(
       context: context,
@@ -359,9 +361,12 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                             ),
                           ],
                         ),
-                        // Proporcionar el bloc al diálogo usando BlocProvider.value
-                        child: BlocProvider<NotificacionBloc>.value(
-                          value: notificacionBloc,
+                        // Proporcionar los blocs al diálogo usando BlocProvider.value
+                        child: MultiBlocProvider(
+                          providers: <BlocProvider<dynamic>>[
+                            BlocProvider<NotificacionBloc>.value(value: notificacionBloc),
+                            BlocProvider<StockEquipamientoBloc>.value(value: stockBloc),
+                          ],
                           child: const NotificacionesPanel(),
                         ),
                       ),

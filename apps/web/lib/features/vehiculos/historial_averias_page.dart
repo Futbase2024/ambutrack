@@ -1,7 +1,9 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
+import 'package:ambutrack_web/core/widgets/headers/page_header.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/incidencia_vehiculo/incidencia_vehiculo_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/incidencia_vehiculo/incidencia_vehiculo_event.dart';
@@ -11,7 +13,6 @@ import 'package:ambutrack_web/features/vehiculos/presentation/widgets/incidencia
 import 'package:ambutrack_web/features/vehiculos/presentation/widgets/incidencias/incidencia_form_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Página de Historial de Averías
 class HistorialAveriasPage extends StatelessWidget {
@@ -32,123 +33,51 @@ class _HistorialAveriasView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: _buildHeader(context),
-            ),
-            Expanded(
-              child: BlocBuilder<IncidenciaVehiculoBloc, IncidenciaVehiculoState>(
-                builder: (BuildContext context, IncidenciaVehiculoState state) {
-                  return state.when(
-                    initial: () => const Center(
-                      child: AppLoadingIndicator(
-                        message: 'Cargando incidencias...',
-                      ),
-                    ),
-                    loading: () => const Center(
-                      child: AppLoadingIndicator(
-                        message: 'Cargando incidencias...',
-                      ),
-                    ),
-                    loaded: (
-                      List<IncidenciaVehiculoEntity> incidencias,
-                      int currentPage,
-                      int totalPages,
-                      EstadoIncidencia? filtroEstado,
-                      PrioridadIncidencia? filtroPrioridad,
-                      TipoIncidencia? filtroTipo,
-                    ) =>
-                        _buildLoadedContent(
-                      context: context,
-                      incidencias: incidencias,
-                      currentPage: currentPage,
-                      totalPages: totalPages,
-                      filtroEstado: filtroEstado,
-                      filtroPrioridad: filtroPrioridad,
-                      filtroTipo: filtroTipo,
-                    ),
-                    error: (String message) => _buildError(context, message),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: <Color>[AppColors.emergency, AppColors.averia],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: AppColors.emergency.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: AppColors.backgroundLight,
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSizes.paddingXl,
+            AppSizes.paddingXl,
+            AppSizes.paddingXl,
+            AppSizes.paddingLarge,
           ),
-        ],
-      ),
-      child: Row(
-        children: <Widget>[
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.error, color: Colors.white, size: 40),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Historial de Averías',
-                  style: GoogleFonts.inter(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+          child: BlocBuilder<IncidenciaVehiculoBloc, IncidenciaVehiculoState>(
+            builder: (BuildContext context, IncidenciaVehiculoState state) {
+              return state.when(
+                initial: () => const Center(
+                  child: AppLoadingIndicator(
+                    message: 'Cargando incidencias...',
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Registro y seguimiento de averías y reparaciones',
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    color: Colors.white.withValues(alpha: 0.9),
+                loading: () => const Center(
+                  child: AppLoadingIndicator(
+                    message: 'Cargando incidencias...',
                   ),
                 ),
-              ],
-            ),
+                loaded: (
+                  List<IncidenciaVehiculoEntity> incidencias,
+                  int currentPage,
+                  int totalPages,
+                  EstadoIncidencia? filtroEstado,
+                  PrioridadIncidencia? filtroPrioridad,
+                  TipoIncidencia? filtroTipo,
+                ) =>
+                    _buildLoadedContent(
+                  context: context,
+                  incidencias: incidencias,
+                  currentPage: currentPage,
+                  totalPages: totalPages,
+                  filtroEstado: filtroEstado,
+                  filtroPrioridad: filtroPrioridad,
+                  filtroTipo: filtroTipo,
+                ),
+                error: (String message) => _buildError(context, message),
+              );
+            },
           ),
-          ElevatedButton.icon(
-            onPressed: () => _showFormModal(context),
-            icon: const Icon(Icons.add),
-            label: const Text('Reportar Avería'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.emergency,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -163,7 +92,19 @@ class _HistorialAveriasView extends StatelessWidget {
     required TipoIncidencia? filtroTipo,
   }) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        PageHeader(
+          config: PageHeaderConfig(
+            icon: Icons.report_problem,
+            title: 'Historial de Averías',
+            subtitle: 'Registro y seguimiento de averías y reparaciones',
+            stats: _buildHeaderStats(incidencias),
+            addButtonLabel: 'Reportar Avería',
+            onAdd: () => _showFormModal(context),
+          ),
+        ),
+        const SizedBox(height: AppSizes.spacingXl),
         IncidenciaFilters(
           filtroEstado: filtroEstado,
           filtroPrioridad: filtroPrioridad,
@@ -189,31 +130,70 @@ class _HistorialAveriasView extends StatelessWidget {
                 .add(const IncidenciaVehiculoEvent.clearFilters());
           },
         ),
+        const SizedBox(height: AppSizes.spacing),
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: IncidenciaDataTable(
-              incidencias: incidencias,
-              onView: (IncidenciaVehiculoEntity incidencia) {
-                // Nota: Modal de detalle se implementará en el futuro
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Ver detalle: ${incidencia.titulo}'),
-                  ),
-                );
-              },
-              onEdit: (IncidenciaVehiculoEntity incidencia) {
-                _showFormModal(context, incidencia: incidencia);
-              },
-              onDelete: (IncidenciaVehiculoEntity incidencia) {
-                _showDeleteConfirmation(context, incidencia);
-              },
-            ),
+          child: IncidenciaDataTable(
+            incidencias: incidencias,
+            onView: (IncidenciaVehiculoEntity incidencia) {
+              // Nota: Modal de detalle se implementará en el futuro
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Ver detalle: ${incidencia.titulo}'),
+                ),
+              );
+            },
+            onEdit: (IncidenciaVehiculoEntity incidencia) {
+              _showFormModal(context, incidencia: incidencia);
+            },
+            onDelete: (IncidenciaVehiculoEntity incidencia) {
+              _showDeleteConfirmation(context, incidencia);
+            },
           ),
         ),
         _buildPagination(context, currentPage, totalPages),
       ],
     );
+  }
+
+  List<HeaderStat> _buildHeaderStats(List<IncidenciaVehiculoEntity> incidencias) {
+    final int total = incidencias.length;
+    final int pendientes = incidencias
+        .where((IncidenciaVehiculoEntity i) =>
+            i.estado == EstadoIncidencia.reportada ||
+            i.estado == EstadoIncidencia.enRevision)
+        .length;
+    final int enProceso = incidencias
+        .where((IncidenciaVehiculoEntity i) =>
+            i.estado == EstadoIncidencia.enReparacion)
+        .length;
+    final int resueltas = incidencias
+        .where((IncidenciaVehiculoEntity i) =>
+            i.estado == EstadoIncidencia.resuelta ||
+            i.estado == EstadoIncidencia.cerrada)
+        .length;
+
+    return <HeaderStat>[
+      HeaderStat(
+        value: '$total',
+        icon: Icons.format_list_numbered,
+        color: AppColors.primary,
+      ),
+      HeaderStat(
+        value: '$pendientes',
+        icon: Icons.pending,
+        color: AppColors.warning,
+      ),
+      HeaderStat(
+        value: '$enProceso',
+        icon: Icons.build,
+        color: AppColors.info,
+      ),
+      HeaderStat(
+        value: '$resueltas',
+        icon: Icons.check_circle,
+        color: AppColors.success,
+      ),
+    ];
   }
 
   Widget _buildError(BuildContext context, String message) {
@@ -227,9 +207,9 @@ class _HistorialAveriasView extends StatelessWidget {
             color: AppColors.error,
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'Error al cargar incidencias',
-            style: GoogleFonts.inter(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
               color: AppColors.gray900,
@@ -238,7 +218,7 @@ class _HistorialAveriasView extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             message,
-            style: GoogleFonts.inter(
+            style: const TextStyle(
               fontSize: 14,
               color: AppColors.gray600,
             ),
@@ -294,7 +274,7 @@ class _HistorialAveriasView extends StatelessWidget {
             ),
             child: Text(
               'Página $currentPage de $totalPages',
-              style: GoogleFonts.inter(
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: AppColors.primary,

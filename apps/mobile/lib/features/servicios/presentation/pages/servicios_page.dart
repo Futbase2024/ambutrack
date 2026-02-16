@@ -5,11 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+import '../../../../core/di/injection.dart';
 import '../../../../core/realtime/connection_status_indicator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart' show AuthAuthenticated;
-import '../../data/repositories/traslados_repository_impl.dart';
 import '../bloc/traslados_bloc.dart';
 import '../bloc/traslados_event.dart';
 import '../bloc/traslados_state.dart';
@@ -21,21 +21,10 @@ class ServiciosPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) {
-        final repository = TrasladosRepositoryImpl();
-        final bloc = TrasladosBloc(repository);
-
-        // Obtener ID del conductor desde AuthBloc
-        final authState = context.read<AuthBloc>().state;
-        if (authState is AuthAuthenticated && authState.personal != null) {
-          final idConductor = authState.personal!.id;
-          // Iniciar Event Ledger: Realtime sin polling
-          bloc.add(IniciarStreamEventos(idConductor));
-        }
-
-        return bloc;
-      },
+    // Usar BlocProvider.value con el BLoC singleton de getIt
+    // Esto evita recrear el BLoC cada vez que se reconstruye la página
+    return BlocProvider.value(
+      value: getIt<TrasladosBloc>(),
       child: const _ServiciosPageContent(),
     );
   }
@@ -55,6 +44,44 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
 
   // Flag para evitar múltiples cambios de estado simultáneos
   bool _cambiandoEstado = false;
+
+  // Flag para asegurar que el stream se inicie solo una vez
+  bool _streamIniciado = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Iniciar el stream de eventos cuando la página se crea por primera vez
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_streamIniciado) {
+        _iniciarStreamEventos();
+      }
+    });
+  }
+
+  /// Inicia el stream de eventos Realtime para el conductor actual
+  void _iniciarStreamEventos() {
+    // Obtener ID del conductor desde AuthBloc
+    final authBloc = context.read<AuthBloc>();
+    final authState = authBloc.state;
+
+    if (authState is AuthAuthenticated) {
+      debugPrint('👤 [ServiciosPage] Usuario autenticado: ${authState.user.email}');
+      debugPrint('   - User ID (auth): ${authState.user.id}');
+      debugPrint('   - Personal: ${authState.personal != null ? authState.personal!.nombreCompleto : "NULL"}');
+      debugPrint('   - Personal ID: ${authState.personal?.id ?? "NULL"}');
+
+      // Intentar usar personal.id primero, si no existe, usar user.id
+      final idConductor = authState.personal?.id ?? authState.user.id;
+      debugPrint('👤 [ServiciosPage] Iniciando stream de eventos para conductor: $idConductor');
+
+      // Iniciar Event Ledger: Realtime sin polling
+      context.read<TrasladosBloc>().add(IniciarStreamEventos(idConductor));
+      _streamIniciado = true;
+    } else {
+      debugPrint('⚠️ [ServiciosPage] No hay usuario autenticado, no se iniciará stream de eventos');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +133,34 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
                   debugPrint('   - Previous: ${previous.runtimeType}');
                   debugPrint('   - Current: ${current.runtimeType}');
 
-                  // IGNORAR estados transitorios - no deben reconstruir el ListView
+                  // ✅ REGLA 1: Siempre reconstruir cuando venimos de TrasladoAsignado o TrasladoDesasignado
+                  // porque estos estados indican que la lista de traslados cambió (se agregó o eliminó un traslado)
+                  if (current is TrasladosLoaded && (previous is TrasladoAsignado || previous is TrasladoDesasignado)) {
+                    debugPrint('   ✅ Viene desde ${previous.runtimeType} - SÍ reconstruir ListView (cambió la lista de traslados)');
+                    return true;
+                  }
+
+                  // ✅ REGLA 2: Reconstruir cuando venimos de EstadoCambiadoSuccess
+                  // porque el traslado puede haber cambiado a un estado no activo (finalizado, cancelado)
+                  // y debe desaparecer de la lista filtrada
+                  if (current is TrasladosLoaded && previous is EstadoCambiadoSuccess) {
+                    debugPrint('   ✅ Viene desde EstadoCambiadoSuccess - SÍ reconstruir ListView (puede haber desaparecido de filtros)');
+                    return true;
+                  }
+
+                  // ✅ REGLA 3: Reconstruir cuando cambiamos de Initial/Loading a Loaded
+                  if (current is TrasladosLoaded && (previous is TrasladosInitial || previous is TrasladosLoading)) {
+                    debugPrint('   ✅ Primera carga REAL - SÍ reconstruir ListView');
+                    return true;
+                  }
+
+                  // ✅ REGLA 4: Reconstruir cuando cambiamos a Loading o Error
+                  if (current is TrasladosLoading || current is TrasladosError) {
+                    debugPrint('   ✅ Loading/Error - SÍ reconstruir ListView');
+                    return true;
+                  }
+
+                  // ❌ REGLA 5: IGNORAR estados transitorios - no deben reconstruir el ListView
                   if (current is CambiandoEstadoTraslado ||
                       current is EstadoCambiadoSuccess ||
                       current is TrasladoAsignado ||
@@ -115,21 +169,23 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
                     return false; // Los listeners manejan estos estados
                   }
 
-                  // Reconstruir solo cuando cambia a Loading o Error
-                  if (current is TrasladosLoading || current is TrasladosError) {
-                    debugPrint('   ✅ Loading/Error - SÍ reconstruir ListView');
-                    return true;
-                  }
-
-                  // Para TrasladosLoaded, comparar el número de traslados FILTRADOS (activos del día)
+                  // ✅ REGLA 6: Para TrasladosLoaded → TrasladosLoaded, comparar el número de traslados FILTRADOS
                   if (current is TrasladosLoaded && previous is TrasladosLoaded) {
                     final trasladosPreviosFiltrados = _filtrarTraslados(previous.traslados);
                     final trasladosActualesFiltrados = _filtrarTraslados(current.traslados);
 
                     final cambioNumeroFiltrados = trasladosActualesFiltrados.length != trasladosPreviosFiltrados.length;
+                    final cambioNumeroTotales = current.traslados.length != previous.traslados.length;
 
                     debugPrint('   - Traslados FILTRADOS: ${trasladosPreviosFiltrados.length} → ${trasladosActualesFiltrados.length}');
                     debugPrint('   - Traslados TOTALES: ${previous.traslados.length} → ${current.traslados.length}');
+
+                    // Si cambió el número TOTAL de traslados, reconstruir
+                    // Esto detecta cuando se elimina un traslado que no estaba en los filtrados
+                    if (cambioNumeroTotales) {
+                      debugPrint('   ✅ Cambió número de traslados TOTALES - SÍ reconstruir ListView');
+                      return true;
+                    }
 
                     if (cambioNumeroFiltrados) {
                       debugPrint('   ✅ Cambió número de traslados FILTRADOS - SÍ reconstruir ListView');
@@ -137,31 +193,6 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
                       debugPrint('   ❌ Solo cambió un traslado individual - NO reconstruir ListView');
                     }
                     return cambioNumeroFiltrados;
-                  }
-
-                  // Si es la primera carga REAL (desde Initial o Loading)
-                  if (current is TrasladosLoaded) {
-                    // Reconstruir si venimos de un estado inicial
-                    if (previous is TrasladosInitial || previous is TrasladosLoading) {
-                      debugPrint('   ✅ Primera carga REAL - SÍ reconstruir ListView');
-                      return true;
-                    }
-                    // IMPORTANTE: Reconstruir si venimos de EstadoCambiadoSuccess
-                    // porque el traslado puede haber cambiado a un estado no activo (finalizado, cancelado)
-                    // y debe desaparecer de la lista filtrada
-                    if (previous is EstadoCambiadoSuccess) {
-                      debugPrint('   ✅ Viene desde EstadoCambiadoSuccess - SÍ reconstruir ListView (puede haber desaparecido de filtros)');
-                      return true;
-                    }
-                    // IMPORTANTE: Reconstruir si venimos de TrasladoAsignado o TrasladoDesasignado
-                    // porque estos estados indican que la lista de traslados cambió (se agregó o eliminó un traslado)
-                    if (previous is TrasladoAsignado || previous is TrasladoDesasignado) {
-                      debugPrint('   ✅ Viene desde ${previous.runtimeType} - SÍ reconstruir ListView (cambió la lista de traslados)');
-                      return true;
-                    }
-                    // Si venimos de otros estados transitorios, NO reconstruir
-                    debugPrint('   ❌ Transición desde ${previous.runtimeType} - NO reconstruir ListView');
-                    return false;
                   }
 
                   // Por defecto NO reconstruir

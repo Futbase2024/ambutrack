@@ -5,11 +5,7 @@ import 'package:flutter/material.dart';
 
 /// Badge visual para mostrar la prioridad de una incidencia
 ///
-/// Muestra la prioridad con colores diferenciados según el nivel:
-/// - Baja: Gris (gray600)
-/// - Media: Naranja (warning)
-/// - Alta: Rojo (error)
-/// - Crítica: Rojo oscuro (emergency)
+/// Muestra la prioridad con tonos de azul consistentes con el proyecto
 class IncidenciaPrioridadBadge extends StatelessWidget {
   const IncidenciaPrioridadBadge({
     required this.prioridad,
@@ -20,7 +16,8 @@ class IncidenciaPrioridadBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final BadgeConfig config = _getConfig(prioridad);
+    final Color backgroundColor = _getBackgroundColor(prioridad);
+    final Color textColor = _getTextColor(prioridad);
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -28,66 +25,46 @@ class IncidenciaPrioridadBadge extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: config.color.withValues(alpha: 0.1),
+            color: backgroundColor,
             borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+            border: Border.all(color: textColor.withValues(alpha: 0.3)),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(
-                config.icon,
-                size: 14,
-                color: config.color,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                prioridad.nombre,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: config.color,
-                ),
-              ),
-            ],
+          child: Text(
+            prioridad.nombre,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: textColor,
+            ),
           ),
         ),
       ),
     );
   }
 
-  BadgeConfig _getConfig(PrioridadIncidencia prioridad) {
+  Color _getBackgroundColor(PrioridadIncidencia prioridad) {
     switch (prioridad) {
       case PrioridadIncidencia.baja:
-        return const BadgeConfig(
-          color: AppColors.gray600,
-          icon: Icons.arrow_downward,
-        );
+        return AppColors.primary.withValues(alpha: 0.05);
       case PrioridadIncidencia.media:
-        return const BadgeConfig(
-          color: AppColors.warning,
-          icon: Icons.remove,
-        );
+        return AppColors.primary.withValues(alpha: 0.1);
       case PrioridadIncidencia.alta:
-        return const BadgeConfig(
-          color: AppColors.error,
-          icon: Icons.arrow_upward,
-        );
+        return AppColors.primary.withValues(alpha: 0.15);
       case PrioridadIncidencia.critica:
-        return const BadgeConfig(
-          color: AppColors.emergency,
-          icon: Icons.priority_high,
-        );
+        return AppColors.primary.withValues(alpha: 0.2);
     }
   }
-}
 
-/// Configuración de colores e iconos para el badge
-class BadgeConfig {
-  const BadgeConfig({
-    required this.color,
-    required this.icon,
-  });
-
-  final Color color;
-  final IconData icon;
+  Color _getTextColor(PrioridadIncidencia prioridad) {
+    switch (prioridad) {
+      case PrioridadIncidencia.baja:
+        return AppColors.primary.withValues(alpha: 0.7);
+      case PrioridadIncidencia.media:
+        return AppColors.primary;
+      case PrioridadIncidencia.alta:
+        return AppColors.primary.withValues(alpha: 0.9);
+      case PrioridadIncidencia.critica:
+        return AppColors.primary;
+    }
+  }
 }

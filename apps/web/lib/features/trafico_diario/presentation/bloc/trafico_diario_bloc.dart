@@ -5,6 +5,7 @@ import 'package:ambutrack_web/features/servicios/servicios/domain/repositories/t
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'trafico_diario_event.dart';
 import 'trafico_diario_state.dart';
@@ -27,6 +28,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
       loadTrasladosRequested: (e) => _onLoadTrasladosRequested(emit, idsServiciosRecurrentes: e.idsServiciosRecurrentes, fecha: e.fecha),
       // ignore: always_specify_types
       refreshRequested: (_) => _onRefreshRequested(emit),
+      // ignore: always_specify_types
+      generarTrasladosRequested: (_) => _onGenerarTrasladosRequested(emit),
       // ignore: always_specify_types
       asignarConductorRequested: (e) => _onAsignarConductorRequested(emit, idTraslado: e.idTraslado, idConductor: e.idConductor, idVehiculo: e.idVehiculo, matriculaVehiculo: e.matriculaVehiculo),
       // ignore: always_specify_types
@@ -122,6 +125,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
         String? estadoFilter,
         String? centroFilter,
         bool isRefreshing,
+        bool isGenerating,
+        DateTime? trasladosGeneradosHasta,
       ) {
         // Marcar como refrescando
         emit(
@@ -131,6 +136,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
             estadoFilter: estadoFilter,
             centroFilter: centroFilter,
             isRefreshing: true,
+            isGenerating: isGenerating,
+            trasladosGeneradosHasta: trasladosGeneradosHasta,
           ),
         );
 
@@ -142,10 +149,127 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
             searchQuery: searchQuery,
             estadoFilter: estadoFilter,
             centroFilter: centroFilter,
+            isGenerating: isGenerating,
+            trasladosGeneradosHasta: trasladosGeneradosHasta,
           ),
         );
       },
     );
+  }
+
+  Future<void> _onGenerarTrasladosRequested(Emitter<TraficoDiarioState> emit) async {
+    debugPrint('🔄 TraficoDiarioBloc: Generando traslados para los próximos 14 días');
+
+    // Calcular la fecha hasta la cual se generarán los traslados
+    final DateTime fechaHasta = DateTime.now().add(const Duration(days: 14));
+
+    // Capturar el estado actual para preservar los datos
+    state.whenOrNull(
+      loaded: (
+        List<TrasladoEntity> traslados,
+        String searchQuery,
+        String? estadoFilter,
+        String? centroFilter,
+        bool isRefreshing,
+        bool isGenerating,
+        DateTime? trasladosGeneradosHasta,
+      ) {
+        // Establecer isGenerating en true
+        emit(
+          TraficoDiarioState.loaded(
+            traslados: traslados,
+            searchQuery: searchQuery,
+            estadoFilter: estadoFilter,
+            centroFilter: centroFilter,
+            isRefreshing: isRefreshing,
+            isGenerating: true,
+            trasladosGeneradosHasta: trasladosGeneradosHasta,
+          ),
+        );
+      },
+    );
+
+    try {
+      // Llamar a la función RPC de Supabase para generar traslados
+      final SupabaseClient client = Supabase.instance.client;
+
+      final Map<String, dynamic> response = await client.rpc<Map<String, dynamic>>(
+        'generar_traslados_periodo',
+        params: <String, dynamic>{
+          'p_fecha_desde': DateTime.now().toIso8601String().split('T')[0],
+          'p_fecha_hasta': fechaHasta.toIso8601String().split('T')[0],
+        },
+      );
+
+      debugPrint('✅ TraficoDiarioBloc: Traslados generados correctamente');
+      debugPrint('   - Servicios procesados: ${response['servicios_procesados']}');
+      debugPrint('   - Traslados generados: ${response['traslados_generados']}');
+
+      // Emitir estado de éxito o error según el resultado
+      final int? serviciosConError = response['servicios_con_error'] as int?;
+      if (serviciosConError != null && serviciosConError > 0) {
+        debugPrint('⚠️ TraficoDiarioBloc: Hubo errores durante la generación');
+        final List<dynamic>? errores = response['errores'] as List<dynamic>?;
+        if (errores != null) {
+          for (final dynamic error in errores) {
+            debugPrint('   - $error');
+          }
+        }
+      }
+
+      // Establecer isGenerating en false y actualizar trasladosGeneradosHasta
+      state.whenOrNull(
+        loaded: (
+          List<TrasladoEntity> traslados,
+          String searchQuery,
+          String? estadoFilter,
+          String? centroFilter,
+          bool isRefreshing,
+          bool isGenerating,
+          DateTime? trasladosGeneradosHasta,
+        ) {
+          emit(
+            TraficoDiarioState.loaded(
+              traslados: traslados,
+              searchQuery: searchQuery,
+              estadoFilter: estadoFilter,
+              centroFilter: centroFilter,
+              isRefreshing: isRefreshing,
+              trasladosGeneradosHasta: fechaHasta,
+            ),
+          );
+        },
+      );
+
+      // Emitir evento de refresh para recargar los datos
+      add(const TraficoDiarioEvent.refreshRequested());
+    } catch (e) {
+      debugPrint('❌ TraficoDiarioBloc: Error al generar traslados: $e');
+
+      // Establecer isGenerating en false incluso si hay error
+      state.whenOrNull(
+        loaded: (
+          List<TrasladoEntity> traslados,
+          String searchQuery,
+          String? estadoFilter,
+          String? centroFilter,
+          bool isRefreshing,
+          bool isGenerating,
+          DateTime? trasladosGeneradosHasta,
+        ) {
+          emit(
+            TraficoDiarioState.loaded(
+              traslados: traslados,
+              searchQuery: searchQuery,
+              estadoFilter: estadoFilter,
+              centroFilter: centroFilter,
+              isRefreshing: isRefreshing,
+              trasladosGeneradosHasta: trasladosGeneradosHasta,
+            ),
+          );
+        },
+      );
+    }
   }
 
   Future<void> _onAsignarConductorRequested(
@@ -179,6 +303,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
           String? estadoFilter,
           String? centroFilter,
           bool isRefreshing,
+          bool isGenerating,
+        DateTime? trasladosGeneradosHasta,
         ) {
           // Actualizar el traslado en la lista con la entidad actualizada
           final List<TrasladoEntity> trasladosActualizados = traslados.map((TrasladoEntity t) {
@@ -194,6 +320,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
               searchQuery: searchQuery,
               estadoFilter: estadoFilter,
               centroFilter: centroFilter,
+              isGenerating: isGenerating,
+            trasladosGeneradosHasta: trasladosGeneradosHasta,
             ),
           );
         },
@@ -227,6 +355,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
         String? ef,
         String? cf,
         bool isRefreshing,
+        bool isGenerating,
+        DateTime? trasladosGeneradosHasta,
       ) {
         trasladosActuales = List<TrasladoEntity>.from(traslados);
         searchQuery = sq;
@@ -312,6 +442,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
         String? estadoFilter,
         String? centroFilter,
         bool isRefreshing,
+        bool isGenerating,
+        DateTime? trasladosGeneradosHasta,
       ) {
         emit(
           TraficoDiarioState.loaded(
@@ -339,6 +471,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
         String? estadoFilter,
         String? centroFilter,
         bool isRefreshing,
+        bool isGenerating,
+        DateTime? trasladosGeneradosHasta,
       ) {
         emit(
           TraficoDiarioState.loaded(
@@ -366,6 +500,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
         String? estadoFilter,
         String? centroFilter,
         bool isRefreshing,
+        bool isGenerating,
+        DateTime? trasladosGeneradosHasta,
       ) {
         emit(
           TraficoDiarioState.loaded(
@@ -403,6 +539,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
           String? estadoFilter,
           String? centroFilter,
           bool isRefreshing,
+          bool isGenerating,
+        DateTime? trasladosGeneradosHasta,
         ) {
           // Actualizar el traslado en la lista con la entidad actualizada
           final List<TrasladoEntity> trasladosActualizados = traslados.map((TrasladoEntity t) {
@@ -418,6 +556,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
               searchQuery: searchQuery,
               estadoFilter: estadoFilter,
               centroFilter: centroFilter,
+              isGenerating: isGenerating,
+            trasladosGeneradosHasta: trasladosGeneradosHasta,
             ),
           );
         },
@@ -444,23 +584,25 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
         String? estadoFilter,
         String? centroFilter,
         bool isRefreshing,
+        bool isGenerating,
+        DateTime? trasladosGeneradosHasta,
       ) =>
           List<TrasladoEntity>.from(traslados),
       orElse: () => <TrasladoEntity>[],
     );
 
     final String searchQueryCapturado = state.maybeWhen(
-      loaded: (List<TrasladoEntity> traslados, String searchQuery, String? estadoFilter, String? centroFilter, bool isRefreshing) => searchQuery,
+      loaded: (List<TrasladoEntity> traslados, String searchQuery, String? estadoFilter, String? centroFilter, bool isRefreshing, bool isGenerating, DateTime? trasladosGeneradosHasta) => searchQuery,
       orElse: () => '',
     );
 
     final String? estadoFilterCapturado = state.maybeWhen(
-      loaded: (List<TrasladoEntity> traslados, String searchQuery, String? estadoFilter, String? centroFilter, bool isRefreshing) => estadoFilter,
+      loaded: (List<TrasladoEntity> traslados, String searchQuery, String? estadoFilter, String? centroFilter, bool isRefreshing, bool isGenerating, DateTime? trasladosGeneradosHasta) => estadoFilter,
       orElse: () => null,
     );
 
     final String? centroFilterCapturado = state.maybeWhen(
-      loaded: (List<TrasladoEntity> traslados, String searchQuery, String? estadoFilter, String? centroFilter, bool isRefreshing) => centroFilter,
+      loaded: (List<TrasladoEntity> traslados, String searchQuery, String? estadoFilter, String? centroFilter, bool isRefreshing, bool isGenerating, DateTime? trasladosGeneradosHasta) => centroFilter,
       orElse: () => null,
     );
 
@@ -548,6 +690,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
           String? estadoFilter,
           String? centroFilter,
           bool isRefreshing,
+          bool isGenerating,
+        DateTime? trasladosGeneradosHasta,
         ) {
           final List<TrasladoEntity> trasladosActualizados = traslados.map((TrasladoEntity t) {
             if (t.id == idTraslado) {
@@ -562,6 +706,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
               searchQuery: searchQuery,
               estadoFilter: estadoFilter,
               centroFilter: centroFilter,
+              isGenerating: isGenerating,
+            trasladosGeneradosHasta: trasladosGeneradosHasta,
             ),
           );
         },
@@ -599,6 +745,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
           String? estadoFilter,
           String? centroFilter,
           bool isRefreshing,
+          bool isGenerating,
+        DateTime? trasladosGeneradosHasta,
         ) {
           final List<TrasladoEntity> trasladosActualizados = traslados.map((TrasladoEntity t) {
             if (t.id == idTraslado) {
@@ -613,6 +761,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
               searchQuery: searchQuery,
               estadoFilter: estadoFilter,
               centroFilter: centroFilter,
+              isGenerating: isGenerating,
+            trasladosGeneradosHasta: trasladosGeneradosHasta,
             ),
           );
         },
@@ -645,6 +795,8 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
         String? estadoFilter,
         String? centroFilter,
         bool isRefreshing,
+        bool isGenerating,
+        DateTime? trasladosGeneradosHasta,
       ) {
         // Verificar si el traslado existe en la lista actual
         final int index = traslados.indexWhere((TrasladoEntity t) => t.id == traslado.id);

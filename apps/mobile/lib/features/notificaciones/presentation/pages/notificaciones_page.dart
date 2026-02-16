@@ -24,8 +24,10 @@ class NotificacionesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<NotificacionesBloc>()..add(const NotificacionesEvent.started()),
+    // Nota: Usamos BlocProvider.value porque el NotificacionesBloc es un singleton
+    // que se inicializa en app.dart. No volvemos a inicializarlo aquí.
+    return BlocProvider.value(
+      value: getIt<NotificacionesBloc>(),
       child: const _NotificacionesView(),
     );
   }

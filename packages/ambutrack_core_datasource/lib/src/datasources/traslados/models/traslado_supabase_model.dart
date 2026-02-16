@@ -79,6 +79,10 @@ class TrasladoSupabaseModel {
     this.updatedAt,
     this.createdBy,
     this.updatedBy,
+    this.requiereSillaRuedas,
+    this.requiereCamilla,
+    this.requiereAyuda,
+    this.requiereAcompanante,
   });
 
   final String id;
@@ -241,6 +245,19 @@ class TrasladoSupabaseModel {
   @JsonKey(name: 'updated_by')
   final String? updatedBy;
 
+  // REQUISITOS DEL SERVICIO (campos denormalizados)
+  @JsonKey(name: 'requiere_silla_ruedas')
+  final bool? requiereSillaRuedas;
+
+  @JsonKey(name: 'requiere_camilla')
+  final bool? requiereCamilla;
+
+  @JsonKey(name: 'requiere_ayuda')
+  final bool? requiereAyuda;
+
+  @JsonKey(name: 'requiere_acompanante')
+  final bool? requiereAcompanante;
+
   /// Deserialización desde JSON (Supabase → Model)
   factory TrasladoSupabaseModel.fromJson(Map<String, dynamic> json) =>
       _$TrasladoSupabaseModelFromJson(json);
@@ -308,6 +325,10 @@ class TrasladoSupabaseModel {
       updatedAt: entity.updatedAt?.toIso8601String(),
       createdBy: entity.createdBy,
       updatedBy: entity.updatedBy,
+      requiereSillaRuedas: entity.requiereSillaRuedas,
+      requiereCamilla: entity.requiereCamilla,
+      requiereAyuda: entity.requiereAyuda,
+      requiereAcompanante: entity.requiereAcompanante,
     );
   }
 
@@ -391,6 +412,10 @@ class TrasladoSupabaseModel {
       updatedAt: _parseAsUtc(updatedAt),
       createdBy: createdBy,
       updatedBy: updatedBy,
+      requiereSillaRuedas: requiereSillaRuedas,
+      requiereCamilla: requiereCamilla,
+      requiereAyuda: requiereAyuda,
+      requiereAcompanante: requiereAcompanante,
     );
   }
 

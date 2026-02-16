@@ -221,21 +221,48 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
     Emitter<TrasladosState> emit,
   ) async {
     try {
-      debugPrint('🔄 [TrasladosBloc] Actualizando desde stream');
+      debugPrint('🔄 [TrasladosBloc] Actualizando desde stream - ${event.traslados.length} traslados');
 
       if (state is TrasladosLoaded) {
         final currentState = state as TrasladosLoaded;
 
+        // Los streams de Supabase NO traen los pacientes embebidos, así que necesitamos
+        // recargar cada traslado individualmente para obtener los datos completos
+        // Solo recargamos los traslados que no tengan paciente para optimizar
+        final trasladosConPacientes = <TrasladoEntity>[];
+        int recargados = 0;
+
+        for (final traslado in event.traslados) {
+          // Verificar si el traslado ya tiene paciente embebido
+          if (traslado.paciente != null) {
+            trasladosConPacientes.add(traslado);
+          } else {
+            try {
+              debugPrint('📥 [TrasladosBloc] Recargando traslado ${traslado.id} (sin paciente)');
+              // Recargar traslado completo con paciente embebido usando getById (que tiene JOINs)
+              final trasladoCompleto = await _repository.getById(traslado.id);
+              trasladosConPacientes.add(trasladoCompleto);
+              recargados++;
+            } catch (e) {
+              debugPrint('⚠️ [TrasladosBloc] Error recargando traslado ${traslado.id}: $e');
+              // Si falla, usar el traslado del stream (sin paciente)
+              trasladosConPacientes.add(traslado);
+            }
+          }
+        }
+
+        debugPrint('✅ [TrasladosBloc] $recargados traslados recargados con pacientes de ${event.traslados.length} totales');
+
         // Mantener el traslado seleccionado actualizado si existe
         final trasladoSeleccionado = currentState.trasladoSeleccionado != null
-            ? event.traslados.firstWhere(
+            ? trasladosConPacientes.firstWhere(
                 (t) => t.id == currentState.trasladoSeleccionado!.id,
                 orElse: () => currentState.trasladoSeleccionado!,
               )
             : null;
 
         emit(currentState.copyWith(
-          traslados: event.traslados,
+          traslados: trasladosConPacientes,
           trasladoSeleccionado: trasladoSeleccionado,
         ));
       } else {
@@ -357,9 +384,9 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
         tag: _tag,
       );
 
-      // Suscribirse a eventos Realtime
+      // Suscribirse a eventos Realtime pasando el ID del conductor
       _eventosStreamSubscription = _repository
-          .streamEventosConductor()
+          .streamEventosConductor(event.idConductor)
           .listen(
             (evento) {
               AppLogger.debug(

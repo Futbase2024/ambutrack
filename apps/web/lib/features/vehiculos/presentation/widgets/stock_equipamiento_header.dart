@@ -154,6 +154,7 @@ class _StatsSection extends StatelessWidget {
                 value: s.value,
                 icon: s.icon,
                 color: s.color,
+                backgroundColor: s.backgroundColor,
               ),
             ),
           )
@@ -167,11 +168,31 @@ class _StatsSection extends StatelessWidget {
 
   List<_StatData> _buildStats() {
     if (state is StockEquipamientoLoading || state is StockEquipamientoInitial) {
-      return const <_StatData>[
-        _StatData(value: '-', icon: Icons.directions_car, color: AppColors.primary),
-        _StatData(value: '-', icon: Icons.check_circle, color: AppColors.success),
-        _StatData(value: '-', icon: Icons.warning, color: AppColors.warning),
-        _StatData(value: '-', icon: Icons.error, color: AppColors.error),
+      return <_StatData>[
+        _StatData(
+          value: '-',
+          icon: Icons.directions_car,
+          color: AppColors.primary,
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+        ),
+        _StatData(
+          value: '-',
+          icon: Icons.check_circle,
+          color: AppColors.primary,
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+        ),
+        _StatData(
+          value: '-',
+          icon: Icons.warning,
+          color: AppColors.primary,
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+        ),
+        _StatData(
+          value: '-',
+          icon: Icons.error,
+          color: AppColors.primary,
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+        ),
       ];
     }
 
@@ -182,27 +203,36 @@ class _StatsSection extends StatelessWidget {
           value: loaded.totalVehiculos.toString(),
           icon: Icons.directions_car,
           color: AppColors.primary,
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
         ),
         _StatData(
           value: loaded.vehiculosOk.toString(),
           icon: Icons.check_circle,
-          color: AppColors.success,
+          color: AppColors.primary,
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
         ),
         _StatData(
           value: loaded.vehiculosAtencion.toString(),
           icon: Icons.warning,
-          color: AppColors.warning,
+          color: AppColors.primary,
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
         ),
         _StatData(
           value: loaded.vehiculosCritico.toString(),
           icon: Icons.error,
-          color: AppColors.error,
+          color: AppColors.primary,
+          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
         ),
       ];
     }
 
-    return const <_StatData>[
-      _StatData(value: '!', icon: Icons.error, color: AppColors.error),
+    return <_StatData>[
+      _StatData(
+        value: '!',
+        icon: Icons.error,
+        color: AppColors.primary,
+        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+      ),
     ];
   }
 }
@@ -213,11 +243,13 @@ class _StatData {
     required this.value,
     required this.icon,
     required this.color,
+    required this.backgroundColor,
   });
 
   final String value;
   final IconData icon;
   final Color color;
+  final Color backgroundColor;
 }
 
 /// Mini tarjeta de estadística
@@ -226,11 +258,13 @@ class _MiniStatCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.color,
+    required this.backgroundColor,
   });
 
   final String value;
   final IconData icon;
   final Color color;
+  final Color backgroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -240,12 +274,13 @@ class _MiniStatCard extends StatelessWidget {
         vertical: AppSizes.spacingXs,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
         border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(icon, color: color, size: AppSizes.iconLarge),
           const SizedBox(width: AppSizes.spacingXs),
@@ -285,7 +320,6 @@ class _RefreshButton extends StatelessWidget {
             },
       icon: Icons.refresh,
       label: 'Actualizar',
-      variant: AppButtonVariant.secondary,
     );
   }
 }

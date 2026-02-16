@@ -15,6 +15,7 @@ import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/trafico_
 import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/trafico_diario_state.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/servicios_header.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/servicios_table.dart';
+import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/traslados_14_days_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -73,6 +74,9 @@ class _PlanificarServiciosViewState extends State<_PlanificarServiciosView> {
 
   // Flag para rastrear si ya se solicitó cargar traslados (evita bucle infinito)
   bool _trasladosAlreadyRequested = false;
+
+  // Estado para mostrar/ocultar vista de 14 días
+  bool _show14DaysView = false;
 
   @override
   void initState() {
@@ -235,9 +239,11 @@ class _PlanificarServiciosViewState extends State<_PlanificarServiciosView> {
         return BlocBuilder<TraficoDiarioBloc, TraficoDiarioState>(
           builder: (BuildContext context, TraficoDiarioState traficoDiarioState) {
             List<TrasladoEntity> trasladosPendientes = <TrasladoEntity>[];
+            DateTime? trasladosGeneradosHasta;
 
             traficoDiarioState.whenOrNull(
-              loaded: (List<TrasladoEntity> traslados, String searchQuery, String? estadoFilter, String? centroFilter, bool isRefreshing) {
+              loaded: (List<TrasladoEntity> traslados, String searchQuery, String? estadoFilter, String? centroFilter, bool isRefreshing, bool isGenerating, DateTime? tTrasadosGeneradosHasta) {
+                trasladosGeneradosHasta = tTrasadosGeneradosHasta;
                 debugPrint('📅 TraficoDiarioBloc loaded: ${traslados.length} traslados');
 
                 // Filtrar traslados para el día seleccionado directamente del BLoC
@@ -302,6 +308,13 @@ class _PlanificarServiciosViewState extends State<_PlanificarServiciosView> {
                     // Header con selector de fecha
                     ServiciosHeader(
                       selectedDay: _selectedDay,
+                      trasladosGeneradosHasta: trasladosGeneradosHasta,
+                      show14DaysView: _show14DaysView,
+                      onToggle14DaysView: () {
+                        setState(() {
+                          _show14DaysView = !_show14DaysView;
+                        });
+                      },
                       onDayChanged: (DateTime newDay) {
                         setState(() {
                           _selectedDay = newDay;
@@ -338,6 +351,49 @@ class _PlanificarServiciosViewState extends State<_PlanificarServiciosView> {
                       },
                     ),
                     const SizedBox(height: 12),
+
+                    // Vista de 14 días (opcional)
+                    if (_show14DaysView)
+                      Traslados14DaysView(
+                        traslados: trasladosPendientes,
+                        selectedDay: _selectedDay,
+                        onDaySelected: (DateTime day) {
+                          setState(() {
+                            _selectedDay = day;
+                            // Resetear flag cuando cambia la fecha para permitir nueva carga
+                            _trasladosAlreadyRequested = false;
+                          });
+
+                          // Recargar traslados para la nueva fecha
+                          serviciosState.whenOrNull(
+                            loaded: (
+                              List<ServicioEntity> servicios,
+                              String searchQuery,
+                              int? yearFilter,
+                              String? estadoFilter,
+                              bool isRefreshing,
+                              ServicioEntity? selectedServicio,
+                              bool isLoadingDetails,
+                            ) {
+                              if (servicios.isNotEmpty) {
+                                final List<String> servicioIds = servicios
+                                    .map((ServicioEntity s) => s.id)
+                                    .whereType<String>()
+                                    .toList();
+
+                                context.read<TraficoDiarioBloc>().add(
+                                      TraficoDiarioEvent.loadTrasladosRequested(
+                                        idsServiciosRecurrentes: servicioIds,
+                                        fecha: day,
+                                      ),
+                                    );
+                              }
+                            },
+                          );
+                        },
+                      ),
+
+                    if (_show14DaysView) const SizedBox(height: 12),
 
                     // Tabla de traslados
                     Expanded(

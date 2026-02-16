@@ -641,6 +641,7 @@ class TrasladoCard extends StatelessWidget {
       case EstadoTraslado.enviado:
         return EstadoTraslado.recibido;
       case EstadoTraslado.recibido:
+      case EstadoTraslado.recibidoConductor:
         return EstadoTraslado.enOrigen;
       case EstadoTraslado.enOrigen:
         return EstadoTraslado.saliendoOrigen;

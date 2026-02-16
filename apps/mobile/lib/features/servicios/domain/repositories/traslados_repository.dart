@@ -49,12 +49,14 @@ abstract class TrasladosRepository {
   /// Stream de un traslado específico
   Stream<TrasladoEntity> watchById(String id);
 
-  /// Stream de eventos de traslados para el conductor autenticado
+  /// Stream de eventos de traslados para el conductor especificado
   /// Emite eventos cuando:
   /// - Me asignan un traslado (assigned/reassigned)
   /// - Me quitan un traslado (unassigned/reassigned a otro)
   /// - Cambia el estado de un traslado mío (status_changed)
-  Stream<TrasladoEventoEntity> streamEventosConductor();
+  ///
+  /// [idConductor] ID del conductor a escuchar. Si es null, usa el usuario autenticado.
+  Stream<TrasladoEventoEntity> streamEventosConductor([String? idConductor]);
 
   /// Cierra todos los canales Realtime activos
   Future<void> disposeRealtimeChannels();

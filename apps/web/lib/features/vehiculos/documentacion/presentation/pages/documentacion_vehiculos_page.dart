@@ -1,7 +1,9 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
+import 'package:ambutrack_web/core/widgets/headers/page_header.dart';
 import 'package:ambutrack_web/features/vehiculos/documentacion/presentation/bloc/documentacion_vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/documentacion/presentation/bloc/documentacion_vehiculos_event.dart';
 import 'package:ambutrack_web/features/vehiculos/documentacion/presentation/bloc/documentacion_vehiculos_state.dart';
@@ -88,44 +90,44 @@ class _DocumentacionVehiculosPageState extends State<DocumentacionVehiculosPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
-      body: SafeArea(
-        child: BlocProvider<DocumentacionVehiculosBloc>(
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: AppColors.backgroundLight,
+        body: BlocProvider<DocumentacionVehiculosBloc>(
           create: (_) => getIt<DocumentacionVehiculosBloc>()
             ..add(const DocumentacionVehiculosLoadRequested()),
-          child: _DocumentacionVehiculosView(
-            filters: _filters,
-            onFiltersChanged: (DocumentacionFilters newFilters) {
-              setState(() {
-                _filters = newFilters;
-              });
-            },
-            onShowForm: (DocumentacionVehiculoEntity? documento) {
-              _showFormDialog(context, documento: documento);
-            },
-            onShowDetail: (DocumentacionVehiculoEntity documento) {
-              _showDetailDialog(context, documento);
-            },
-            onEdit: (DocumentacionVehiculoEntity documento) {
-              _handleEdit(context, documento);
-            },
-            onRenovar: (DocumentacionVehiculoEntity documento) {
-              _handleRenovar(context, documento);
-            },
-            onDelete: (DocumentacionVehiculoEntity documento) {
-              _handleDelete(context, documento);
-            },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.paddingXl,
+              AppSizes.paddingXl,
+              AppSizes.paddingXl,
+              AppSizes.paddingLarge,
+            ),
+            child: _DocumentacionVehiculosView(
+              filters: _filters,
+              onFiltersChanged: (DocumentacionFilters newFilters) {
+                setState(() {
+                  _filters = newFilters;
+                });
+              },
+              onShowForm: (DocumentacionVehiculoEntity? documento) {
+                _showFormDialog(context, documento: documento);
+              },
+              onShowDetail: (DocumentacionVehiculoEntity documento) {
+                _showDetailDialog(context, documento);
+              },
+              onEdit: (DocumentacionVehiculoEntity documento) {
+                _handleEdit(context, documento);
+              },
+              onRenovar: (DocumentacionVehiculoEntity documento) {
+                _handleRenovar(context, documento);
+              },
+              onDelete: (DocumentacionVehiculoEntity documento) {
+                _handleDelete(context, documento);
+              },
+            ),
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showFormDialog(context),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Nuevo Documento'),
-        elevation: 4,
       ),
     );
   }
@@ -152,53 +154,107 @@ class _DocumentacionVehiculosView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return BlocBuilder<DocumentacionVehiculosBloc,
+      DocumentacionVehiculosState>(
+      builder: (BuildContext context, DocumentacionVehiculosState state) {
+        if (state is DocumentacionVehiculosLoading ||
+            state is DocumentacionVehiculosInitial) {
+          return const _LoadingView();
+        } else if (state is DocumentacionVehiculosLoaded) {
+          return _buildLoadedContent(
+            context: context,
+            documentos: state.documentos,
+            isRefreshing: state.isRefreshing,
+          );
+        } else if (state is DocumentacionVehiculosError) {
+          return _ErrorView(
+            message: state.message,
+            onRetry: () {
+              context.read<DocumentacionVehiculosBloc>().add(
+                const DocumentacionVehiculosLoadRequested(),
+              );
+            },
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildLoadedContent({
+    required BuildContext context,
+    required List<DocumentacionVehiculoEntity> documentos,
+    required bool isRefreshing,
+  }) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        // Filtros
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: DocumentacionFiltersWidget(
-            filters: filters,
-            onFiltersChanged: onFiltersChanged,
+        PageHeader(
+          config: PageHeaderConfig(
+            icon: Icons.description_outlined,
+            title: 'Documentación de Vehículos',
+            subtitle: 'Gestión de documentos y vencimientos',
+            stats: _buildHeaderStats(documentos),
+            addButtonLabel: 'Nuevo Documento',
+            onAdd: () => onShowForm(null),
           ),
         ),
-
-        // Lista de documentos
+        const SizedBox(height: AppSizes.spacingXl),
+        DocumentacionFiltersWidget(
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+        ),
+        const SizedBox(height: AppSizes.spacing),
         Expanded(
-          child: BlocBuilder<DocumentacionVehiculosBloc,
-            DocumentacionVehiculosState>(
-            builder: (BuildContext context, DocumentacionVehiculosState state) {
-              if (state is DocumentacionVehiculosLoading ||
-                  state is DocumentacionVehiculosInitial) {
-                return const _LoadingView();
-              } else if (state is DocumentacionVehiculosLoaded) {
-                if (state.documentos.isEmpty) {
-                  return _EmptyView(onShowForm: onShowForm);
-                }
-                return _LoadedView(
-                  documentos: state.documentos,
-                  isRefreshing: state.isRefreshing,
+          child: documentos.isEmpty
+              ? _EmptyView(onShowForm: onShowForm)
+              : _LoadedView(
+                  documentos: documentos,
+                  isRefreshing: isRefreshing,
                   onShowDetail: onShowDetail,
                   onEdit: onEdit,
                   onRenovar: onRenovar,
                   onDelete: onDelete,
-                );
-              } else if (state is DocumentacionVehiculosError) {
-                return _ErrorView(
-                  message: state.message,
-                  onRetry: () {
-                    context.read<DocumentacionVehiculosBloc>().add(
-                      const DocumentacionVehiculosLoadRequested(),
-                    );
-                  },
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
+                ),
         ),
       ],
     );
+  }
+
+  List<HeaderStat> _buildHeaderStats(List<DocumentacionVehiculoEntity> documentos) {
+    final int total = documentos.length;
+    final int vigentes = documentos
+        .where((DocumentacionVehiculoEntity d) => d.estado == 'vigente')
+        .length;
+    final int proximosVencer = documentos
+        .where((DocumentacionVehiculoEntity d) => d.estado == 'proxima_vencer')
+        .length;
+    final int vencidos = documentos
+        .where((DocumentacionVehiculoEntity d) => d.estado == 'vencida')
+        .length;
+
+    return <HeaderStat>[
+      HeaderStat(
+        value: '$total',
+        icon: Icons.description,
+        color: AppColors.primary,
+      ),
+      HeaderStat(
+        value: '$vigentes',
+        icon: Icons.check_circle,
+        color: AppColors.primary,
+      ),
+      HeaderStat(
+        value: '$proximosVencer',
+        icon: Icons.warning,
+        color: AppColors.primary,
+      ),
+      HeaderStat(
+        value: '$vencidos',
+        icon: Icons.error,
+        color: AppColors.primary,
+      ),
+    ];
   }
 }
 
@@ -222,17 +278,17 @@ class _EmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          const Icon(
+          Icon(
             Icons.description_outlined,
             size: 64,
             color: AppColors.gray400,
           ),
-          const SizedBox(height: 16),
-          const Text(
+          SizedBox(height: 16),
+          Text(
             'No hay documentos registrados',
             style: TextStyle(
               fontSize: 18,
@@ -240,22 +296,12 @@ class _EmptyView extends StatelessWidget {
               color: AppColors.gray700,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Haz clic en el botón + para agregar un nuevo documento',
+          SizedBox(height: 8),
+          Text(
+            'Haz clic en el botón Nuevo Documento para agregar uno',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.gray600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () => onShowForm(null),
-            icon: const Icon(Icons.add),
-            label: const Text('Agregar Documento'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
             ),
           ),
         ],
@@ -346,7 +392,7 @@ class _LoadedView extends StatelessWidget {
         padding: const EdgeInsets.only(
           left: 16,
           right: 16,
-          bottom: 80,
+          bottom: 16,
         ),
         itemCount: documentos.length,
         itemBuilder: (BuildContext context, int index) {

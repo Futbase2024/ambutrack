@@ -19,6 +19,8 @@ class TraficoDiarioState with _$TraficoDiarioState {
     String? estadoFilter,
     String? centroFilter,
     @Default(false) bool isRefreshing,
+    @Default(false) bool isGenerating,
+    DateTime? trasladosGeneradosHasta,
   }) = _Loaded;
 
   /// Error al cargar traslados

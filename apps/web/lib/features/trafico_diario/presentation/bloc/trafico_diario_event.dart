@@ -18,6 +18,9 @@ class TraficoDiarioEvent with _$TraficoDiarioEvent {
   /// Solicita refresco de traslados
   const factory TraficoDiarioEvent.refreshRequested() = _RefreshRequested;
 
+  /// Genera traslados automáticamente para los próximos 14 días
+  const factory TraficoDiarioEvent.generarTrasladosRequested() = _GenerarTrasladosRequested;
+
   /// Asigna un conductor, vehículo y matrícula a un traslado individual
   const factory TraficoDiarioEvent.asignarConductorRequested({
     required String idTraslado,
