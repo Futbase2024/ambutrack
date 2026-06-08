@@ -290,8 +290,9 @@ class _UsuarioTableState extends State<UsuarioTable> {
   }
 
   Widget _buildNombreCell(UserEntity usuario) {
+    final String nombre = usuario.displayName ?? usuario.email;
     return Text(
-      usuario.displayName ?? 'Sin nombre',
+      nombre,
       style: GoogleFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.w500,
@@ -455,7 +456,7 @@ class _UsuarioTableState extends State<UsuarioTable> {
       title: 'Confirmar Eliminación',
       message: 'Esta acción es permanente y no se puede deshacer.',
       itemDetails: <String, String>{
-        'Nombre': usuario.displayName ?? 'Sin nombre',
+        'Nombre': usuario.displayName ?? usuario.email,
         'Email': usuario.email,
         if (usuario.dni != null) 'DNI': usuario.dni!,
         if (usuario.rol != null) 'Rol': _getRolDisplayName(usuario.rol!),

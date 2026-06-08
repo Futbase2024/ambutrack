@@ -9,7 +9,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Header de la página de facultativos
 class FacultativoHeader extends StatelessWidget {
-  const FacultativoHeader({super.key});
+  const FacultativoHeader({super.key, this.extra});
+
+  final Widget? extra;
 
   @override
   Widget build(BuildContext context) {
@@ -30,53 +32,59 @@ class FacultativoHeader extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          // Icono
-          Container(
-            padding: const EdgeInsets.all(AppSizes.paddingSmall),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-            ),
-            child: const Icon(
-              Icons.medical_services,
-              color: AppColors.primary,
-              size: AppSizes.iconMedium,
-            ),
-          ),
-          const SizedBox(width: AppSizes.spacingSmall),
-
-          // Título y descripción
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Facultativos',
-                  style: GoogleFonts.inter(
-                    fontSize: AppSizes.fontMedium,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimaryLight,
-                  ),
+          Row(
+            children: <Widget>[
+              Container(
+                padding: const EdgeInsets.all(AppSizes.paddingSmall),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
                 ),
-                Text(
-                  'Gestiona los facultativos y profesionales médicos',
-                  style: GoogleFonts.inter(
-                    fontSize: AppSizes.fontXs,
-                    color: AppColors.textSecondaryLight,
-                  ),
+                child: const Icon(
+                  Icons.medical_services,
+                  color: AppColors.primary,
+                  size: AppSizes.iconMedium,
                 ),
-              ],
-            ),
-          ),
+              ),
+              const SizedBox(width: AppSizes.spacingSmall),
 
-          // Botón agregar
-          AppButton(
-            onPressed: () => _showAddDialog(context),
-            label: 'Agregar Facultativo',
-            icon: Icons.add,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Facultativos',
+                      style: GoogleFonts.inter(
+                        fontSize: AppSizes.fontMedium,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimaryLight,
+                      ),
+                    ),
+                    Text(
+                      'Gestiona los facultativos y profesionales médicos',
+                      style: GoogleFonts.inter(
+                        fontSize: AppSizes.fontXs,
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              AppButton(
+                onPressed: () => _showAddDialog(context),
+                label: 'Agregar Facultativo',
+                icon: Icons.add,
+              ),
+            ],
           ),
+          if (extra != null) ...<Widget>[
+            const SizedBox(height: AppSizes.spacing),
+            extra!,
+          ],
         ],
       ),
     );

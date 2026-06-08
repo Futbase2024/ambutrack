@@ -10,21 +10,22 @@ import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/core/widgets/tables/app_data_grid_v5.dart';
 import 'package:ambutrack_web/features/cuadrante/dotaciones/presentation/bloc/dotaciones_bloc_exports.dart';
 import 'package:ambutrack_web/features/cuadrante/dotaciones/presentation/widgets/dotacion_form_dialog.dart';
+import 'package:ambutrack_web/features/cuadrante/dotaciones/presentation/widgets/dotaciones_filters.dart';
+import 'package:ambutrack_web/features/cuadrante/dotaciones/presentation/widgets/dotaciones_table_cells.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
-/// Tabla de gestión de Dotaciones
+/// Tabla de gestión de Dotaciones con patrón Vehículos
 class DotacionesTable extends StatefulWidget {
-  const DotacionesTable({super.key});
+  const DotacionesTable({super.key, required this.filterData});
+
+  final DotacionesFilterData filterData;
 
   @override
   State<DotacionesTable> createState() => _DotacionesTableState();
 }
 
 class _DotacionesTableState extends State<DotacionesTable> {
-  String _searchQuery = '';
   int? _sortColumnIndex;
   bool _sortAscending = true;
   bool _isDeleting = false;
@@ -34,139 +35,138 @@ class _DotacionesTableState extends State<DotacionesTable> {
   static const int _itemsPerPage = 25;
 
   @override
+  void didUpdateWidget(covariant DotacionesTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filterData != oldWidget.filterData) {
+      _currentPage = 0;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocListener<DotacionesBloc, DotacionesState>(
-      listener: (BuildContext context, Object? state) async {
-        // Manejo de loading al eliminar
-        if (_isDeleting && _loadingDialogContext != null) {
-          if (state is DotacionesLoaded || state is DotacionesError || state is DotacionOperationSuccess) {
-            final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
+      listener: (BuildContext context, DotacionesState state) async {
+        if (!_isDeleting || _loadingDialogContext == null) {
+          return;
+        }
 
-            // Manejar resultado con CrudOperationHandler
-            if (state is DotacionesError) {
-              await CrudOperationHandler.handleDeleteError(
-                context: _loadingDialogContext!,
-                isDeleting: _isDeleting,
-                entityName: 'Dotación',
-                errorMessage: state.message,
-                onClose: () {
-                  setState(() {
-                    _isDeleting = false;
-                    _loadingDialogContext = null;
-                    _deleteStartTime = null;
-                  });
-                },
-              );
-            } else if (state is DotacionOperationSuccess) {
-              await CrudOperationHandler.handleDeleteSuccess(
-                context: _loadingDialogContext!,
-                isDeleting: _isDeleting,
-                entityName: 'Dotación',
-                durationMs: elapsed.inMilliseconds,
-                onClose: () {
-                  setState(() {
-                    _isDeleting = false;
-                    _loadingDialogContext = null;
-                    _deleteStartTime = null;
-                  });
-                },
-              );
-            }
+        if (state is DotacionesError) {
+          await CrudOperationHandler.handleDeleteError(
+            context: _loadingDialogContext!,
+            isDeleting: _isDeleting,
+            entityName: 'Dotación',
+            errorMessage: state.message,
+            onClose: () {
+              setState(() {
+                _isDeleting = false;
+                _loadingDialogContext = null;
+                _deleteStartTime = null;
+              });
+            },
+          );
+        } else if (state is DotacionesLoaded) {
+          if (_deleteStartTime != null) {
+            final Duration elapsed =
+                DateTime.now().difference(_deleteStartTime!);
+            await CrudOperationHandler.handleDeleteSuccess(
+              context: _loadingDialogContext!,
+              isDeleting: _isDeleting,
+              entityName: 'Dotación',
+              durationMs: elapsed.inMilliseconds,
+              onClose: () {
+                setState(() {
+                  _isDeleting = false;
+                  _loadingDialogContext = null;
+                  _deleteStartTime = null;
+                });
+              },
+            );
           }
         }
       },
       child: BlocBuilder<DotacionesBloc, DotacionesState>(
-        builder: (BuildContext context, Object? state) {
+        builder: (BuildContext context, DotacionesState state) {
           if (state is DotacionesLoading) {
             return const _LoadingView();
           }
 
           if (state is DotacionesError) {
-            return _ErrorView(message: state.message);
+            return _ErrorView(
+              message: state.message,
+              onRetry: () => context
+                  .read<DotacionesBloc>()
+                  .add(const DotacionesLoadRequested()),
+            );
           }
 
-          if (state is DotacionesLoaded || state is DotacionOperationSuccess) {
-            final List<DotacionEntity> dotaciones = state is DotacionesLoaded
-                ? state.dotaciones
-                : (state as DotacionOperationSuccess).dotaciones;
+          if (state is DotacionesLoaded) {
+            // Filtrado client-side
+            final List<DotacionEntity> filtradas =
+                widget.filterData.apply(state.dotaciones);
 
-            // Filtrado y ordenamiento
-            List<DotacionEntity> filtradas = _filterDotaciones(dotaciones);
-            filtradas = _sortDotaciones(filtradas);
+            // Ordenamiento
+            final List<DotacionEntity> ordenadas =
+                _sortDotaciones(filtradas);
 
-            // Cálculo de paginación
-            final int totalItems = filtradas.length;
+            // Paginación
+            final int totalItems = ordenadas.length;
             final int totalPages = (totalItems / _itemsPerPage).ceil();
             final int startIndex = _currentPage * _itemsPerPage;
-            final int endIndex = (startIndex + _itemsPerPage).clamp(0, totalItems);
-            final List<DotacionEntity> dotacionesPaginadas = totalItems > 0
-                ? filtradas.sublist(startIndex, endIndex)
+            final int endIndex =
+                (startIndex + _itemsPerPage).clamp(0, totalItems);
+            final List<DotacionEntity> paginadas = totalItems > 0
+                ? ordenadas.sublist(startIndex, endIndex)
                 : <DotacionEntity>[];
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                // Header: Búsqueda
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        'Listado de Dotaciones',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimaryLight,
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 300,
-                      child: _SearchField(
-                        searchQuery: _searchQuery,
-                        onSearchChanged: (String query) {
-                          setState(() {
-                            _searchQuery = query;
-                            _currentPage = 0; // Reset a primera página al filtrar
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSizes.spacing),
-
                 // Info de resultados filtrados
-                if (dotaciones.length != filtradas.length)
+                if (widget.filterData.hasActiveFilters)
                   Padding(
                     padding: const EdgeInsets.only(bottom: AppSizes.spacing),
                     child: Text(
-                      'Mostrando ${filtradas.length} de ${dotaciones.length} dotaciones',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: AppColors.textSecondaryLight,
-                      ),
+                      'Mostrando ${filtradas.length} de ${state.dotaciones.length} dotaciones',
+                      style: AppTextStyles.bodySmallSecondary,
                     ),
                   ),
 
-                // Tabla con scroll interno
+                // Tabla
                 Expanded(
                   child: AppDataGridV5<DotacionEntity>(
                     columns: const <DataGridColumn>[
-                      DataGridColumn(label: 'NOMBRE', flexWidth: 2, sortable: true),
+                      DataGridColumn(
+                        label: 'NOMBRE',
+                        flexWidth: 2,
+                        sortable: true,
+                      ),
                       DataGridColumn(label: 'DESTINO', sortable: true),
                       DataGridColumn(label: 'UNIDADES', sortable: true),
                       DataGridColumn(label: 'PRIORIDAD', sortable: true),
                       DataGridColumn(label: 'VIGENCIA'),
                       DataGridColumn(label: 'ESTADO', sortable: true),
                     ],
-                    rows: dotacionesPaginadas,
-                    buildCells: (DotacionEntity dotacion) => <DataGridCell>[
-                      DataGridCell(child: _buildNombreCell(dotacion)),
-                      DataGridCell(child: _buildDestinoCell(dotacion)),
-                      DataGridCell(child: _buildUnidadesCell(dotacion)),
-                      DataGridCell(child: _buildPrioridadCell(dotacion)),
-                      DataGridCell(child: _buildVigenciaCell(dotacion)),
-                      DataGridCell(child: _buildEstadoCell(dotacion)),
+                    rows: paginadas,
+                    buildCells: (DotacionEntity dotacion) =>
+                        <DataGridCell>[
+                      DataGridCell(
+                        child: DotacionNombreCell(dotacion: dotacion),
+                      ),
+                      DataGridCell(
+                        child: DotacionDestinoCell(dotacion: dotacion),
+                      ),
+                      DataGridCell(
+                        child: DotacionUnidadesCell(dotacion: dotacion),
+                      ),
+                      DataGridCell(
+                        child: DotacionPrioridadCell(dotacion: dotacion),
+                      ),
+                      DataGridCell(
+                        child: DotacionVigenciaCell(dotacion: dotacion),
+                      ),
+                      DataGridCell(
+                        child: DotacionEstadoCell(dotacion: dotacion),
+                      ),
                     ],
                     sortColumnIndex: _sortColumnIndex,
                     sortAscending: _sortAscending,
@@ -176,26 +176,28 @@ class _DotacionesTableState extends State<DotacionesTable> {
                         _sortAscending = ascending;
                       });
                     },
-                    rowHeight: 72,
+                    headerHeight: 44,
                     outerBorderColor: AppColors.gray300,
-                    emptyMessage: _searchQuery.isNotEmpty
+                    emptyMessage: widget.filterData.hasActiveFilters
                         ? 'No se encontraron dotaciones con los filtros aplicados'
                         : 'No hay dotaciones registradas',
-                    onEdit: (DotacionEntity dotacion) => _editDotacion(context, dotacion),
-                    onDelete: (DotacionEntity dotacion) => _confirmDelete(context, dotacion),
+                    onView: (DotacionEntity dotacion) =>
+                        _showDetails(context, dotacion),
+                    onEdit: (DotacionEntity dotacion) =>
+                        _editDotacion(context, dotacion),
+                    onDelete: (DotacionEntity dotacion) =>
+                        _confirmDelete(context, dotacion),
                   ),
                 ),
 
-                // Paginación (siempre visible)
+                // Paginación
                 const SizedBox(height: AppSizes.spacing),
-                _buildPaginationControls(
+                _PaginationControls(
                   currentPage: _currentPage,
                   totalPages: totalPages.clamp(1, 999),
                   totalItems: totalItems,
                   onPageChanged: (int page) {
-                    setState(() {
-                      _currentPage = page;
-                    });
+                    setState(() => _currentPage = page);
                   },
                 ),
               ],
@@ -208,320 +210,7 @@ class _DotacionesTableState extends State<DotacionesTable> {
     );
   }
 
-  // ==================== PAGINACIÓN ====================
-
-  /// Construye controles de paginación
-  Widget _buildPaginationControls({
-    required int currentPage,
-    required int totalPages,
-    required int totalItems,
-    required void Function(int) onPageChanged,
-  }) {
-    final int startItem = totalItems == 0 ? 0 : currentPage * _itemsPerPage + 1;
-    final int endItem = totalItems == 0
-        ? 0
-        : ((currentPage + 1) * _itemsPerPage).clamp(0, totalItems);
-
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(color: AppColors.gray200),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          // Info de elementos mostrados
-          Text(
-            'Mostrando $startItem-$endItem de $totalItems items',
-            style: AppTextStyles.bodySmallSecondary,
-          ),
-
-          // Botones de navegación
-          Row(
-            children: <Widget>[
-              // Primera página
-              IconButton(
-                icon: const Icon(Icons.first_page),
-                onPressed: currentPage > 0
-                    ? () => onPageChanged(0)
-                    : null,
-                tooltip: 'Primera página',
-              ),
-
-              // Página anterior
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: currentPage > 0
-                    ? () => onPageChanged(currentPage - 1)
-                    : null,
-                tooltip: 'Página anterior',
-              ),
-
-              // Indicador de página
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.paddingMedium,
-                  vertical: AppSizes.paddingSmall,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                ),
-                child: Text(
-                  'Página ${currentPage + 1} de $totalPages',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textPrimaryDark,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-
-              // Página siguiente
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: currentPage < totalPages - 1
-                    ? () => onPageChanged(currentPage + 1)
-                    : null,
-                tooltip: 'Página siguiente',
-              ),
-
-              // Última página
-              IconButton(
-                icon: const Icon(Icons.last_page),
-                onPressed: currentPage < totalPages - 1
-                    ? () => onPageChanged(totalPages - 1)
-                    : null,
-                tooltip: 'Última página',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ==================== CÉLULAS ====================
-
-  Widget _buildNombreCell(DotacionEntity dotacion) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Text(
-          dotacion.nombre,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimaryLight,
-          ),
-        ),
-        if (dotacion.descripcion != null && dotacion.descripcion!.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(
-              dotacion.descripcion!,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                color: AppColors.textSecondaryLight,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildDestinoCell(DotacionEntity dotacion) {
-    final String tipoDestino = dotacion.tipoDestino;
-    IconData icon;
-    Color color;
-
-    switch (tipoDestino) {
-      case 'Hospital':
-        icon = Icons.local_hospital;
-        color = AppColors.error;
-        break;
-      case 'Base':
-        icon = Icons.home_work;
-        color = AppColors.primary;
-        break;
-      case 'Contrato':
-        icon = Icons.description;
-        color = AppColors.warning;
-        break;
-      default:
-        icon = Icons.help_outline;
-        color = AppColors.textSecondaryLight;
-    }
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Icon(icon, size: 16, color: color),
-        const SizedBox(width: 6),
-        Text(
-          tipoDestino,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            color: AppColors.textPrimaryLight,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUnidadesCell(DotacionEntity dotacion) {
-    return Container(
-      width: double.infinity,
-      alignment: Alignment.center,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: AppColors.primarySurface,
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        ),
-        child: Text(
-          '${dotacion.cantidadUnidades}',
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.primary,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPrioridadCell(DotacionEntity dotacion) {
-    Color color;
-    String label;
-
-    if (dotacion.prioridad >= 8) {
-      color = AppColors.error;
-      label = 'Alta';
-    } else if (dotacion.prioridad >= 5) {
-      color = AppColors.warning;
-      label = 'Media';
-    } else {
-      color = AppColors.success;
-      label = 'Baja';
-    }
-
-    return Container(
-      width: double.infinity,
-      alignment: Alignment.center,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text(
-              '${dotacion.prioridad}',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVigenciaCell(DotacionEntity dotacion) {
-    final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
-    final String inicio = dateFormat.format(dotacion.fechaInicio);
-    final String fin = dotacion.fechaFin != null ? dateFormat.format(dotacion.fechaFin!) : 'Indefinido';
-
-    final bool esVigente = dotacion.esVigenteEn(DateTime.now());
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Text(
-          inicio,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            color: AppColors.textPrimaryLight,
-          ),
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(
-              esVigente ? Icons.arrow_forward : Icons.event_busy,
-              size: 10,
-              color: esVigente ? AppColors.success : AppColors.error,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              fin,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                color: esVigente ? AppColors.success : AppColors.error,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEstadoCell(DotacionEntity dotacion) {
-    return Container(
-      width: double.infinity,
-      alignment: Alignment.center,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: dotacion.activo ? AppColors.success.withValues(alpha: 0.1) : AppColors.error.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          border: Border.all(
-            color: dotacion.activo ? AppColors.success.withValues(alpha: 0.3) : AppColors.error.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Text(
-          dotacion.activo ? 'Activa' : 'Inactiva',
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: dotacion.activo ? AppColors.success.withValues(alpha: 0.8) : AppColors.error.withValues(alpha: 0.8),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ==================== FILTRADO Y ORDENAMIENTO ====================
-
-  List<DotacionEntity> _filterDotaciones(List<DotacionEntity> dotaciones) {
-    if (_searchQuery.isEmpty) {
-      return dotaciones;
-    }
-
-    final String query = _searchQuery.toLowerCase();
-    return dotaciones.where((DotacionEntity dotacion) {
-      return dotacion.nombre.toLowerCase().contains(query) ||
-          (dotacion.descripcion?.toLowerCase().contains(query) ?? false);
-    }).toList();
-  }
+  // ==================== ORDENAMIENTO ====================
 
   List<DotacionEntity> _sortDotaciones(List<DotacionEntity> dotaciones) {
     if (_sortColumnIndex == null) {
@@ -529,37 +218,40 @@ class _DotacionesTableState extends State<DotacionesTable> {
     }
 
     final List<DotacionEntity> sorted = List<DotacionEntity>.from(dotaciones)
+      ..sort((DotacionEntity a, DotacionEntity b) {
+        int comparison = 0;
 
-    ..sort((DotacionEntity a, DotacionEntity b) {
-      int comparison = 0;
+        switch (_sortColumnIndex!) {
+          case 0: // NOMBRE
+            comparison = a.nombre.compareTo(b.nombre);
+          case 1: // DESTINO
+            comparison = a.tipoDestino.compareTo(b.tipoDestino);
+          case 2: // UNIDADES
+            comparison =
+                a.cantidadUnidades.compareTo(b.cantidadUnidades);
+          case 3: // PRIORIDAD
+            comparison = a.prioridad.compareTo(b.prioridad);
+          case 5: // ESTADO
+            comparison =
+                a.activo == b.activo ? 0 : (a.activo ? -1 : 1);
+        }
 
-      switch (_sortColumnIndex) {
-        case 0: // NOMBRE
-          comparison = a.nombre.compareTo(b.nombre);
-          break;
-        case 1: // DESTINO
-          comparison = a.tipoDestino.compareTo(b.tipoDestino);
-          break;
-        case 2: // UNIDADES
-          comparison = a.cantidadUnidades.compareTo(b.cantidadUnidades);
-          break;
-        case 3: // PRIORIDAD
-          comparison = a.prioridad.compareTo(b.prioridad);
-          break;
-        case 5: // ESTADO
-          comparison = a.activo == b.activo ? 0 : (a.activo ? -1 : 1);
-          break;
-      }
-
-      return _sortAscending ? comparison : -comparison;
-    });
+        return _sortAscending ? comparison : -comparison;
+      });
 
     return sorted;
   }
 
   // ==================== ACCIONES ====================
 
-  Future<void> _editDotacion(BuildContext context, DotacionEntity dotacion) async {
+  void _showDetails(BuildContext context, DotacionEntity dotacion) {
+    debugPrint('👁️ Ver detalle dotación: ${dotacion.nombre}');
+  }
+
+  Future<void> _editDotacion(
+    BuildContext context,
+    DotacionEntity dotacion,
+  ) async {
     await showDialog<void>(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -571,15 +263,22 @@ class _DotacionesTableState extends State<DotacionesTable> {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, DotacionEntity dotacion) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    DotacionEntity dotacion,
+  ) async {
     final bool? confirmed = await showConfirmationDialog(
       context: context,
       title: 'Confirmar Eliminación',
-      message: '¿Estás seguro de que deseas eliminar esta dotación? Esta acción no se puede deshacer.',
+      message:
+          '¿Estás seguro de que deseas eliminar esta dotación? '
+          'Esta acción no se puede deshacer.',
       itemDetails: <String, String>{
         'Código': dotacion.codigo ?? 'N/A',
         'Nombre': dotacion.nombre,
-        if (dotacion.descripcion != null && dotacion.descripcion!.isNotEmpty) 'Descripción': dotacion.descripcion!,
+        if (dotacion.descripcion != null &&
+            dotacion.descripcion!.isNotEmpty)
+          'Descripción': dotacion.descripcion!,
         'Destino': dotacion.tipoDestino,
         'Unidades': '${dotacion.cantidadUnidades}',
         'Prioridad': '${dotacion.prioridad}',
@@ -588,7 +287,9 @@ class _DotacionesTableState extends State<DotacionesTable> {
     );
 
     if (confirmed == true && context.mounted) {
-      debugPrint('🗑️ Eliminando dotación: ${dotacion.nombre} (${dotacion.id})');
+      debugPrint(
+        '🗑️ Eliminando dotación: ${dotacion.nombre} (${dotacion.id})',
+      );
 
       BuildContext? loadingContext;
 
@@ -619,7 +320,9 @@ class _DotacionesTableState extends State<DotacionesTable> {
       );
 
       if (context.mounted) {
-        context.read<DotacionesBloc>().add(DotacionDeleteRequested(dotacion.id));
+        context
+            .read<DotacionesBloc>()
+            .add(DotacionDeleteRequested(dotacion.id));
       }
     }
   }
@@ -627,76 +330,101 @@ class _DotacionesTableState extends State<DotacionesTable> {
 
 // ==================== WIDGETS AUXILIARES ====================
 
-/// Campo de búsqueda
-class _SearchField extends StatefulWidget {
-  const _SearchField({
-    required this.searchQuery,
-    required this.onSearchChanged,
+/// Controles de paginación profesional
+class _PaginationControls extends StatelessWidget {
+  const _PaginationControls({
+    required this.currentPage,
+    required this.totalPages,
+    required this.totalItems,
+    required this.onPageChanged,
   });
 
-  final String searchQuery;
-  final void Function(String) onSearchChanged;
-
-  @override
-  State<_SearchField> createState() => _SearchFieldState();
-}
-
-class _SearchFieldState extends State<_SearchField> {
-  late TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.searchQuery);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  final int currentPage;
+  final int totalPages;
+  final int totalItems;
+  final void Function(int) onPageChanged;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: _controller,
-      onChanged: widget.onSearchChanged,
-      decoration: InputDecoration(
-        hintText: 'Buscar dotación...',
-        prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondaryLight),
-        suffixIcon: _controller.text.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear, size: 18, color: AppColors.textSecondaryLight),
-                onPressed: () {
-                  _controller.clear();
-                  widget.onSearchChanged('');
-                },
-              )
-            : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.gray300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.gray300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.paddingMedium,
-          vertical: AppSizes.paddingSmall,
-        ),
-        isDense: true,
+    final int startItem =
+        totalItems == 0 ? 0 : currentPage * _itemsPerPage + 1;
+    final int endItem = totalItems == 0
+        ? 0
+        : ((currentPage + 1) * _itemsPerPage).clamp(0, totalItems);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingSmall),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+        border: Border.all(color: AppColors.gray200),
       ),
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        color: AppColors.textPrimaryLight,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          Text(
+            'Mostrando $startItem-$endItem de $totalItems dotaciones',
+            style: AppTextStyles.bodySmallSecondary,
+          ),
+          Row(
+            children: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.first_page),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                onPressed: currentPage > 0
+                    ? () => onPageChanged(0)
+                    : null,
+                tooltip: 'Primera página',
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                onPressed: currentPage > 0
+                    ? () => onPageChanged(currentPage - 1)
+                    : null,
+                tooltip: 'Página anterior',
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingSmall,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                ),
+                child: Text(
+                  'Página ${currentPage + 1} de $totalPages',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textPrimaryDark,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                onPressed: currentPage < totalPages - 1
+                    ? () => onPageChanged(currentPage + 1)
+                    : null,
+                tooltip: 'Página siguiente',
+              ),
+              IconButton(
+                icon: const Icon(Icons.last_page),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                onPressed: currentPage < totalPages - 1
+                    ? () => onPageChanged(totalPages - 1)
+                    : null,
+                tooltip: 'Última página',
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
+
+  static const int _itemsPerPage = 25;
 }
 
 /// Vista de carga
@@ -724,9 +452,10 @@ class _LoadingView extends StatelessWidget {
 
 /// Vista de error
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message});
+  const _ErrorView({required this.message, required this.onRetry});
 
   final String message;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -740,24 +469,30 @@ class _ErrorView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+          const Icon(
+            Icons.error_outline,
+            color: AppColors.error,
+            size: 48,
+          ),
           const SizedBox(height: AppSizes.spacing),
           Text(
             'Error al cargar dotaciones',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.error,
-            ),
+            style: AppTextStyles.h6.copyWith(color: AppColors.error),
           ),
           const SizedBox(height: AppSizes.spacingSmall),
           Text(
             message,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: AppColors.textSecondaryLight,
-            ),
+            style: AppTextStyles.bodySecondary,
             textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSizes.spacing),
+          ElevatedButton(
+            onPressed: onRetry,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Reintentar'),
           ),
         ],
       ),

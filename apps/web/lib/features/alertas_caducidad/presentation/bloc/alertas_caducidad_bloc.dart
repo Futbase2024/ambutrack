@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+import 'package:ambutrack_web/core/di/locator.dart';
+import 'package:ambutrack_web/core/services/auth_service.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -60,7 +62,7 @@ class AlertasCaducidadBloc
           _onFilterBySeveridad(emit, severidad),
       markAsViewed: (String alertaId, AlertaTipo tipo, String entidadId) {
         _onMarkAsViewed(alertaId, tipo, entidadId);
-        return Future.value();
+        return Future<void>.value();
       },
       clearFilters: () => _onClearFilters(emit),
     );
@@ -281,14 +283,50 @@ class AlertasCaducidadBloc
     );
   }
 
-  /// Marcar alerta como vista (no cambia estado)
+  /// Marcar alerta como vista para que no se muestre hoy
   Future<void> _onMarkAsViewed(
     String alertaId,
     AlertaTipo tipo,
     String entidadId,
   ) async {
-    debugPrint('✅ Marcando alerta como vista: $alertaId');
-    // TODO(team): Implementar llamada al repository cuando este disponible
+    final AuthService authService = getIt<AuthService>();
+    final String? usuarioId = authService.currentUser?.id;
+    if (usuarioId == null) {
+      debugPrint('⚠️ No se puede marcar alerta como vista: usuario no autenticado');
+      return;
+    }
+
+    final String tipoAlerta = _tipoToString(tipo);
+    debugPrint('👁️ Marcando alerta como vista: $alertaId ($tipoAlerta/$entidadId)');
+
+    try {
+      await _repository.marcarAlertaVista(
+        usuarioId: usuarioId,
+        tipoAlerta: tipoAlerta,
+        entidadId: entidadId,
+      );
+      debugPrint('✅ Alerta marcada como vista: $alertaId');
+    } catch (e) {
+      debugPrint('❌ Error al marcar alerta como vista: $e');
+    }
+  }
+
+  /// Convierte AlertaTipo a string para la RPC
+  String _tipoToString(AlertaTipo tipo) {
+    switch (tipo) {
+      case AlertaTipo.seguro:
+        return 'seguro';
+      case AlertaTipo.itv:
+        return 'itv';
+      case AlertaTipo.homologacion:
+        return 'homologacion';
+      case AlertaTipo.revisionTecnica:
+        return 'revision_tecnica';
+      case AlertaTipo.revision:
+        return 'revision';
+      case AlertaTipo.mantenimiento:
+        return 'mantenimiento';
+    }
   }
 
   /// Aplicar filtros a la lista de alertas

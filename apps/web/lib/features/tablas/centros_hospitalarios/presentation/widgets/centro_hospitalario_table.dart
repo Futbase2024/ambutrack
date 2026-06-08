@@ -3,12 +3,9 @@ import 'dart:async';
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/theme/app_text_styles.dart';
-import 'package:ambutrack_web/core/widgets/badges/status_badge.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
-import 'package:ambutrack_web/core/widgets/tables/app_data_grid_v5.dart';
 import 'package:ambutrack_web/features/tablas/centros_hospitalarios/presentation/bloc/centro_hospitalario_bloc.dart';
 import 'package:ambutrack_web/features/tablas/centros_hospitalarios/presentation/bloc/centro_hospitalario_event.dart';
 import 'package:ambutrack_web/features/tablas/centros_hospitalarios/presentation/bloc/centro_hospitalario_state.dart';
@@ -19,32 +16,47 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Tabla de gestión de Centros Hospitalarios
 class CentroHospitalarioTable extends StatefulWidget {
-  const CentroHospitalarioTable({super.key});
+  const CentroHospitalarioTable({
+    super.key,
+    required this.centros,
+    required this.sortColumnIndex,
+    required this.sortAscending,
+    required this.onSort,
+    required this.currentPage,
+    required this.totalPages,
+    required this.totalItems,
+    required this.onPageChanged,
+    required this.hasFilters,
+  });
+
+  final List<CentroHospitalarioEntity> centros;
+  final int? sortColumnIndex;
+  final bool sortAscending;
+  final void Function(int columnIndex, bool ascending) onSort;
+  final int currentPage;
+  final int totalPages;
+  final int totalItems;
+  final void Function(int page) onPageChanged;
+  final bool hasFilters;
 
   @override
   State<CentroHospitalarioTable> createState() => _CentroHospitalarioTableState();
 }
 
 class _CentroHospitalarioTableState extends State<CentroHospitalarioTable> {
-  String _searchQuery = '';
-  int? _sortColumnIndex = 0; // Ordenar por Nombre por defecto
-  bool _sortAscending = true;
   bool _isDeleting = false;
   BuildContext? _loadingDialogContext;
   DateTime? _deleteStartTime;
-  int _currentPage = 0;
   static const int _itemsPerPage = 25;
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<CentroHospitalarioBloc, CentroHospitalarioState>(
-      listener: (BuildContext context, Object? state) async {
-        // Manejo de loading al eliminar
+      listener: (BuildContext context, CentroHospitalarioState state) async {
         if (_isDeleting && _loadingDialogContext != null) {
           if (state is CentroHospitalarioLoaded || state is CentroHospitalarioError) {
             final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
 
-            // Manejar resultado con CrudOperationHandler
             if (state is CentroHospitalarioError) {
               await CrudOperationHandler.handleDeleteError(
                 context: _loadingDialogContext!,
@@ -77,279 +89,48 @@ class _CentroHospitalarioTableState extends State<CentroHospitalarioTable> {
           }
         }
       },
-      child: BlocBuilder<CentroHospitalarioBloc, CentroHospitalarioState>(
-        builder: (BuildContext context, Object? state) {
-          if (state is CentroHospitalarioLoading) {
-            return const _LoadingView();
-          }
-
-          if (state is CentroHospitalarioError) {
-            return _ErrorView(message: state.message);
-          }
-
-          if (state is CentroHospitalarioLoaded) {
-            // Filtrado y ordenamiento
-            List<CentroHospitalarioEntity> filtrados = _filterCentros(state.centros);
-            filtrados = _sortCentros(filtrados);
-
-            // Cálculo de paginación
-            final int totalItems = filtrados.length;
-            final int totalPages = (totalItems / _itemsPerPage).ceil();
-            final int startIndex = _currentPage * _itemsPerPage;
-            final int endIndex = (startIndex + _itemsPerPage).clamp(0, totalItems);
-            final List<CentroHospitalarioEntity> centrosPaginados = totalItems > 0
-                ? filtrados.sublist(startIndex, endIndex)
-                : <CentroHospitalarioEntity>[];
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                // Header: Título y búsqueda
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        'Listado de Centros Hospitalarios',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimaryLight,
-                        ),
-                      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+          border: Border.all(color: AppColors.gray200),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: AppColors.gray200.withValues(alpha: 0.5),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Expanded(
+              child: widget.centros.isEmpty
+                  ? _EmptyState(hasFilters: widget.hasFilters)
+                  : _DataTable(
+                      centros: widget.centros,
+                      sortColumnIndex: widget.sortColumnIndex,
+                      sortAscending: widget.sortAscending,
+                      onSort: widget.onSort,
+                      onEdit: _editCentro,
+                      onDelete: _confirmDelete,
                     ),
-                    // Búsqueda
-                    SizedBox(
-                      width: 250,
-                      child: _SearchField(
-                        searchQuery: _searchQuery,
-                        onSearchChanged: (String query) {
-                          setState(() {
-                            _searchQuery = query;
-                            _currentPage = 0; // Reset a primera página al buscar
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSizes.spacing),
-
-                // Info de resultados filtrados
-                if (state.centros.length != filtrados.length)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSizes.spacing),
-                    child: Text(
-                      'Mostrando ${filtrados.length} de ${state.centros.length} centros',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: AppColors.textSecondaryLight,
-                      ),
-                    ),
-                  ),
-
-                // Tabla con scroll interno
-                Expanded(
-                  child: AppDataGridV5<CentroHospitalarioEntity>(
-                    columns: const <DataGridColumn>[
-                      DataGridColumn(label: 'NOMBRE', flexWidth: 2, sortable: true),
-                      DataGridColumn(label: 'CÓDIGO', sortable: true),
-                      DataGridColumn(label: 'TELÉFONO', sortable: true),
-                      DataGridColumn(label: 'DIRECCIÓN', flexWidth: 2, sortable: true),
-                      DataGridColumn(label: 'ESTADO', sortable: true),
-                    ],
-                    rows: centrosPaginados,
-                    buildCells: (CentroHospitalarioEntity centro) => <DataGridCell>[
-                      DataGridCell(child: _buildNombreCell(centro)),
-                      DataGridCell(child: _buildCodigoCell(centro)),
-                      DataGridCell(child: _buildTelefonoCell(centro)),
-                      DataGridCell(child: _buildDireccionCell(centro)),
-                      DataGridCell(child: _buildEstadoCell(centro)),
-                    ],
-                    sortColumnIndex: _sortColumnIndex,
-                    sortAscending: _sortAscending,
-                    onSort: (int columnIndex, {required bool ascending}) {
-                      setState(() {
-                        _sortColumnIndex = columnIndex;
-                        _sortAscending = ascending;
-                      });
-                    },
-                    rowHeight: 64,
-                    outerBorderColor: AppColors.gray300,
-                    emptyMessage: _searchQuery.isNotEmpty
-                        ? 'No se encontraron centros con los filtros aplicados'
-                        : 'No hay centros hospitalarios registrados',
-                    onEdit: (CentroHospitalarioEntity centro) => _editCentro(context, centro),
-                    onDelete: (CentroHospitalarioEntity centro) => _confirmDelete(context, centro),
-                  ),
-                ),
-
-                // Paginación (siempre visible)
-                const SizedBox(height: AppSizes.spacing),
-                _buildPaginationControls(
-                  currentPage: _currentPage,
-                  totalPages: totalPages.clamp(1, 999),
-                  totalItems: totalItems,
-                  onPageChanged: (int page) {
-                    setState(() {
-                      _currentPage = page;
-                    });
-                  },
-                ),
-              ],
-            );
-          }
-
-          return const SizedBox.shrink();
-        },
+            ),
+            _PaginationBar(
+              currentPage: widget.currentPage,
+              totalPages: widget.totalPages,
+              totalItems: widget.totalItems,
+              itemsPerPage: _itemsPerPage,
+              onPageChanged: widget.onPageChanged,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ==================== PAGINACIÓN ====================
-
-  /// Construye controles de paginación
-  Widget _buildPaginationControls({
-    required int currentPage,
-    required int totalPages,
-    required int totalItems,
-    required void Function(int) onPageChanged,
-  }) {
-    final int startItem = totalItems == 0 ? 0 : currentPage * _itemsPerPage + 1;
-    final int endItem = totalItems == 0
-        ? 0
-        : ((currentPage + 1) * _itemsPerPage).clamp(0, totalItems);
-
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(color: AppColors.gray200),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          // Info de elementos mostrados
-          Text(
-            'Mostrando $startItem-$endItem de $totalItems items',
-            style: AppTextStyles.bodySmallSecondary,
-          ),
-
-          // Botones de navegación
-          Row(
-            children: <Widget>[
-              // Primera página
-              IconButton(
-                icon: const Icon(Icons.first_page),
-                onPressed: currentPage > 0
-                    ? () => onPageChanged(0)
-                    : null,
-                tooltip: 'Primera página',
-              ),
-
-              // Página anterior
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: currentPage > 0
-                    ? () => onPageChanged(currentPage - 1)
-                    : null,
-                tooltip: 'Página anterior',
-              ),
-
-              // Indicador de página
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.paddingMedium,
-                  vertical: AppSizes.paddingSmall,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                ),
-                child: Text(
-                  'Página ${currentPage + 1} de $totalPages',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textPrimaryDark,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-
-              // Página siguiente
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: currentPage < totalPages - 1
-                    ? () => onPageChanged(currentPage + 1)
-                    : null,
-                tooltip: 'Página siguiente',
-              ),
-
-              // Última página
-              IconButton(
-                icon: const Icon(Icons.last_page),
-                onPressed: currentPage < totalPages - 1
-                    ? () => onPageChanged(totalPages - 1)
-                    : null,
-                tooltip: 'Última página',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ==================== FILTRADO Y ORDENAMIENTO ====================
-
-  List<CentroHospitalarioEntity> _filterCentros(List<CentroHospitalarioEntity> centros) {
-    if (_searchQuery.isEmpty) {
-      return centros;
-    }
-
-    final String query = _searchQuery.toLowerCase();
-    return centros.where((CentroHospitalarioEntity centro) {
-      return centro.nombre.toLowerCase().contains(query) ||
-          (centro.localidadNombre?.toLowerCase().contains(query) ?? false) ||
-          (centro.provinciaNombre?.toLowerCase().contains(query) ?? false) ||
-          (centro.tipoCentro?.toLowerCase().contains(query) ?? false) ||
-          (centro.direccion?.toLowerCase().contains(query) ?? false) ||
-          (centro.telefono?.toLowerCase().contains(query) ?? false);
-    }).toList();
-  }
-
-  List<CentroHospitalarioEntity> _sortCentros(List<CentroHospitalarioEntity> centros) {
-    if (_sortColumnIndex == null) {
-      return centros;
-    }
-
-    final List<CentroHospitalarioEntity> sorted = List<CentroHospitalarioEntity>.from(centros)
-      ..sort((CentroHospitalarioEntity a, CentroHospitalarioEntity b) {
-        int comparison = 0;
-
-        switch (_sortColumnIndex) {
-          case 0: // Nombre
-            comparison = a.nombre.compareTo(b.nombre);
-          case 1: // Código (tipoCentro)
-            comparison = (a.tipoCentro ?? '').compareTo(b.tipoCentro ?? '');
-          case 2: // Teléfono
-            comparison = (a.telefono ?? '').compareTo(b.telefono ?? '');
-          case 3: // Dirección
-            comparison = (a.direccion ?? '').compareTo(b.direccion ?? '');
-          case 4: // Estado
-            comparison = a.activo == b.activo ? 0 : (a.activo ? -1 : 1);
-          default:
-            comparison = 0;
-        }
-
-        return _sortAscending ? comparison : -comparison;
-      });
-
-    return sorted;
-  }
-
-  // ==================== ACCIONES ====================
-
-  Future<void> _editCentro(BuildContext context, CentroHospitalarioEntity centro) async {
+  Future<void> _editCentro(CentroHospitalarioEntity centro) async {
     await showDialog<void>(
       context: context,
       builder: (BuildContext dialogContext) => BlocProvider<CentroHospitalarioBloc>.value(
@@ -359,31 +140,22 @@ class _CentroHospitalarioTableState extends State<CentroHospitalarioTable> {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, CentroHospitalarioEntity centro) async {
+  Future<void> _confirmDelete(CentroHospitalarioEntity centro) async {
     final bool? confirmed = await showConfirmationDialog(
       context: context,
       title: 'Confirmar Eliminación',
-      message: '¿Estás seguro de que deseas eliminar este centro hospitalario? Esta acción no se puede deshacer.',
+      message: '¿Estás seguro de que deseas eliminar este centro hospitalario?',
       itemDetails: <String, String>{
         'Nombre': centro.nombre,
-        if (centro.tipoCentro != null && centro.tipoCentro!.isNotEmpty)
-          'Tipo': centro.tipoCentro!,
-        if (centro.direccion != null && centro.direccion!.isNotEmpty)
-          'Dirección': centro.direccion!,
+        if (centro.tipoCentro != null && centro.tipoCentro!.isNotEmpty) 'Tipo': centro.tipoCentro!,
         if (centro.localidadNombre != null && centro.localidadNombre!.isNotEmpty)
           'Localidad': centro.localidadNombre!,
-        if (centro.provinciaNombre != null && centro.provinciaNombre!.isNotEmpty)
-          'Provincia': centro.provinciaNombre!,
-        if (centro.telefono != null && centro.telefono!.isNotEmpty)
-          'Teléfono': centro.telefono!,
-        if (centro.email != null && centro.email!.isNotEmpty)
-          'Email': centro.email!,
         'Estado': centro.activo ? 'Activo' : 'Inactivo',
       },
     );
 
     if (confirmed == true && context.mounted) {
-      debugPrint('🗑️ Eliminando centro: ${centro.nombre} (${centro.id})');
+      debugPrint('Eliminando centro: ${centro.nombre} (${centro.id})');
 
       BuildContext? loadingContext;
 
@@ -418,216 +190,546 @@ class _CentroHospitalarioTableState extends State<CentroHospitalarioTable> {
       }
     }
   }
-
-  // ==================== CELL BUILDERS ====================
-
-  Widget _buildNombreCell(CentroHospitalarioEntity centro) {
-    return Text(
-      centro.nombre,
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimaryLight,
-      ),
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildCodigoCell(CentroHospitalarioEntity centro) {
-    return Text(
-      centro.tipoCentro ?? 'N/A',
-      style: GoogleFonts.inter(
-        fontSize: 13,
-        color: centro.tipoCentro != null
-            ? AppColors.textSecondaryLight
-            : AppColors.textSecondaryLight.withValues(alpha: 0.5),
-        fontStyle: centro.tipoCentro != null ? FontStyle.normal : FontStyle.italic,
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildTelefonoCell(CentroHospitalarioEntity centro) {
-    return Text(
-      centro.telefono ?? 'N/A',
-      style: GoogleFonts.inter(
-        fontSize: 13,
-        color: centro.telefono != null
-            ? AppColors.textSecondaryLight
-            : AppColors.textSecondaryLight.withValues(alpha: 0.5),
-        fontStyle: centro.telefono != null ? FontStyle.normal : FontStyle.italic,
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildDireccionCell(CentroHospitalarioEntity centro) {
-    final String direccion = centro.direccion != null && centro.direccion!.isNotEmpty
-        ? centro.direccion!
-        : 'Sin dirección';
-
-    return Text(
-      direccion,
-      style: GoogleFonts.inter(
-        fontSize: 13,
-        color: centro.direccion != null && centro.direccion!.isNotEmpty
-            ? AppColors.textSecondaryLight
-            : AppColors.textSecondaryLight.withValues(alpha: 0.5),
-        fontStyle: centro.direccion != null && centro.direccion!.isNotEmpty
-            ? FontStyle.normal
-            : FontStyle.italic,
-      ),
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildEstadoCell(CentroHospitalarioEntity centro) {
-    return Container(
-      width: double.infinity,
-      alignment: Alignment.center,
-      child: StatusBadge(
-        label: centro.activo ? 'Activo' : 'Inactivo',
-        type: centro.activo ? StatusBadgeType.success : StatusBadgeType.inactivo,
-      ),
-    );
-  }
 }
 
-/// Campo de búsqueda
-class _SearchField extends StatefulWidget {
-  const _SearchField({
+/// Barra de filtros profesional - usada desde la página
+class CentroHospitalarioFilterBar extends StatelessWidget {
+  const CentroHospitalarioFilterBar({
+    super.key,
     required this.searchQuery,
+    required this.statusFilter,
     required this.onSearchChanged,
+    required this.onStatusChanged,
+    required this.onClear,
+    required this.totalCentros,
+    required this.filteredCentros,
   });
 
   final String searchQuery;
+  final String statusFilter;
   final void Function(String) onSearchChanged;
-
-  @override
-  State<_SearchField> createState() => _SearchFieldState();
-}
-
-class _SearchFieldState extends State<_SearchField> {
-  late TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.searchQuery);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: _controller,
-      onChanged: widget.onSearchChanged,
-      decoration: InputDecoration(
-        hintText: 'Buscar centro...',
-        prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondaryLight),
-        suffixIcon: _controller.text.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear, size: 18, color: AppColors.textSecondaryLight),
-                onPressed: () {
-                  _controller.clear();
-                  widget.onSearchChanged('');
-                },
-              )
-            : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.gray300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.gray300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.paddingMedium,
-          vertical: AppSizes.paddingSmall,
-        ),
-        isDense: true,
-      ),
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        color: AppColors.textPrimaryLight,
-      ),
-    );
-  }
-}
-
-/// Vista de carga
-class _LoadingView extends StatelessWidget {
-  const _LoadingView();
+  final void Function(String) onStatusChanged;
+  final VoidCallback onClear;
+  final int totalCentros;
+  final int filteredCentros;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSizes.spacingMassive),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.padding,
+        vertical: AppSizes.paddingSmall,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.radius),
+        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
         border: Border.all(color: AppColors.gray200),
       ),
-      constraints: const BoxConstraints(minHeight: 400),
-      child: const Center(
-        child: AppLoadingIndicator(
-          message: 'Cargando centros hospitalarios...',
+      child: Wrap(
+        spacing: AppSizes.spacingSmall,
+        runSpacing: AppSizes.spacingSmall,
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: <Widget>[
+          SizedBox(
+            width: 300,
+            height: 40,
+            child: TextField(
+              onChanged: onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Buscar por nombre, localidad, teléfono...',
+                hintStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.gray400),
+                prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.gray400),
+                suffixIcon: searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18, color: AppColors.gray400),
+                        onPressed: () => onSearchChanged(''),
+                      )
+                    : null,
+                filled: true,
+                fillColor: AppColors.gray50,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Container(
+                height: 40,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.gray50,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: statusFilter.isEmpty ? null : statusFilter,
+                    hint: Text('Estado', style: GoogleFonts.inter(fontSize: 13, color: AppColors.gray500)),
+                    items: const <DropdownMenuItem<String>>[
+                      DropdownMenuItem(value: 'activo', child: Text('Activos')),
+                      DropdownMenuItem(value: 'inactivo', child: Text('Inactivos')),
+                    ],
+                    onChanged: (String? value) => onStatusChanged(value ?? ''),
+                    borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                    icon: const Icon(Icons.expand_more, size: 18, color: AppColors.gray400),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSizes.spacingSmall),
+              if (searchQuery.isNotEmpty || statusFilter.isNotEmpty)
+                TextButton.icon(
+                  onPressed: onClear,
+                  icon: const Icon(Icons.close, size: 16, color: AppColors.gray500),
+                  label: Text(
+                    'Limpiar',
+                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.gray500),
+                  ),
+                ),
+              const SizedBox(width: AppSizes.spacing),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: filteredCentros != totalCentros ? AppColors.primarySurface : AppColors.gray50,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                ),
+                child: Text(
+                  filteredCentros != totalCentros
+                      ? '$filteredCentros de $totalCentros centros'
+                      : '$totalCentros centros',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: filteredCentros != totalCentros ? AppColors.primary : AppColors.gray600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tabla de datos
+class _DataTable extends StatelessWidget {
+  const _DataTable({
+    required this.centros,
+    required this.sortColumnIndex,
+    required this.sortAscending,
+    required this.onSort,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final List<CentroHospitalarioEntity> centros;
+  final int? sortColumnIndex;
+  final bool sortAscending;
+  final void Function(int columnIndex, bool ascending) onSort;
+  final void Function(CentroHospitalarioEntity) onEdit;
+  final void Function(CentroHospitalarioEntity) onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: DataTable(
+        headingRowColor: WidgetStateProperty.all(AppColors.gray50),
+        headingRowHeight: 44,
+        columnSpacing: 16,
+        horizontalMargin: 16,
+        sortColumnIndex: sortColumnIndex,
+        sortAscending: sortAscending,
+        columns: <DataColumn>[
+          DataColumn(label: Text('NOMBRE', style: _headerStyle), onSort: onSort),
+          DataColumn(label: Text('TIPO', style: _headerStyle), onSort: onSort),
+          DataColumn(label: Text('UBICACIÓN', style: _headerStyle), onSort: onSort),
+          DataColumn(label: Text('TELÉFONO', style: _headerStyle), onSort: onSort),
+          DataColumn(label: Text('ESTADO', style: _headerStyle), onSort: onSort),
+          DataColumn(
+            label: Align(
+              alignment: Alignment.centerRight,
+              child: Text('ACCIONES', style: _headerStyle),
+            ),
+          ),
+        ],
+        rows: centros.map((CentroHospitalarioEntity centro) {
+          return DataRow(
+            cells: <DataCell>[
+              DataCell(_NombreCell(centro: centro)),
+              DataCell(_TipoCell(centro: centro)),
+              DataCell(_UbicacionCell(centro: centro)),
+              DataCell(_TelefonoCell(centro: centro)),
+              DataCell(_EstadoCell(centro: centro)),
+              DataCell(
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: _AccionesCell(centro: centro, onEdit: onEdit, onDelete: onDelete),
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  TextStyle get _headerStyle => GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.bold,
+        color: AppColors.gray500,
+        letterSpacing: 0.5,
+      );
+}
+
+/// Celda de nombre con icono
+class _NombreCell extends StatelessWidget {
+  const _NombreCell({required this.centro});
+
+  final CentroHospitalarioEntity centro;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: AppColors.primarySurface,
+            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          ),
+          child: const Icon(Icons.local_hospital, size: 18, color: AppColors.primary),
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Text(
+            centro.nombre,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimaryLight,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Celda de tipo
+class _TipoCell extends StatelessWidget {
+  const _TipoCell({required this.centro});
+
+  final CentroHospitalarioEntity centro;
+
+  @override
+  Widget build(BuildContext context) {
+    final String tipo = centro.tipoCentro ?? 'Sin tipo';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.gray100,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        tipo,
+        style: GoogleFonts.inter(fontSize: 12, color: AppColors.gray700),
+      ),
+    );
+  }
+}
+
+/// Celda de ubicación
+class _UbicacionCell extends StatelessWidget {
+  const _UbicacionCell({required this.centro});
+
+  final CentroHospitalarioEntity centro;
+
+  @override
+  Widget build(BuildContext context) {
+    final String localidad = centro.localidadNombre ?? 'Sin localidad';
+    final String provincia = centro.provinciaNombre ?? '';
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Text(
+          localidad,
+          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimaryLight),
+        ),
+        if (provincia.isNotEmpty)
+          Text(
+            provincia,
+            style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondaryLight),
+          ),
+      ],
+    );
+  }
+}
+
+/// Celda de teléfono
+class _TelefonoCell extends StatelessWidget {
+  const _TelefonoCell({required this.centro});
+
+  final CentroHospitalarioEntity centro;
+
+  @override
+  Widget build(BuildContext context) {
+    if (centro.telefono == null || centro.telefono!.isEmpty) {
+      return Text(
+        '—',
+        style: GoogleFonts.inter(fontSize: 13, color: AppColors.gray400),
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        const Icon(Icons.phone_outlined, size: 14, color: AppColors.gray400),
+        const SizedBox(width: 4),
+        Text(
+          centro.telefono!,
+          style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondaryLight),
+        ),
+      ],
+    );
+  }
+}
+
+/// Celda de estado con badge
+class _EstadoCell extends StatelessWidget {
+  const _EstadoCell({required this.centro});
+
+  final CentroHospitalarioEntity centro;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isActivo = centro.activo;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: isActivo ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+        borderRadius: BorderRadius.circular(9999),
+      ),
+      child: Text(
+        isActivo ? 'Activo' : 'Inactivo',
+        style: GoogleFonts.inter(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: isActivo ? const Color(0xFF166534) : const Color(0xFF991B1B),
         ),
       ),
     );
   }
 }
 
-/// Vista de error
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message});
+/// Celda de acciones
+class _AccionesCell extends StatelessWidget {
+  const _AccionesCell({
+    required this.centro,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
-  final String message;
+  final CentroHospitalarioEntity centro;
+  final void Function(CentroHospitalarioEntity) onEdit;
+  final void Function(CentroHospitalarioEntity) onDelete;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingXl),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.radius),
-        border: Border.all(color: AppColors.error),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        _ActionButton(
+          icon: Icons.edit_outlined,
+          tooltip: 'Editar',
+          color: AppColors.primary,
+          onPressed: () => onEdit(centro),
+        ),
+        const SizedBox(width: 4),
+        _ActionButton(
+          icon: Icons.delete_outline,
+          tooltip: 'Eliminar',
+          color: AppColors.error,
+          onPressed: () => onDelete(centro),
+        ),
+      ],
+    );
+  }
+}
+
+/// Botón de acción
+class _ActionButton extends StatefulWidget {
+  const _ActionButton({
+    required this.icon,
+    required this.tooltip,
+    required this.color,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  State<_ActionButton> createState() => _ActionButtonState();
+}
+
+class _ActionButtonState extends State<_ActionButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: widget.tooltip,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onPressed,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: _isHovered ? widget.color.withValues(alpha: 0.1) : Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(
+              widget.icon,
+              size: 18,
+              color: _isHovered ? widget.color : AppColors.gray400,
+            ),
+          ),
+        ),
       ),
+    );
+  }
+}
+
+/// Paginación compacta
+class _PaginationBar extends StatelessWidget {
+  const _PaginationBar({
+    required this.currentPage,
+    required this.totalPages,
+    required this.totalItems,
+    required this.itemsPerPage,
+    required this.onPageChanged,
+  });
+
+  final int currentPage;
+  final int totalPages;
+  final int totalItems;
+  final int itemsPerPage;
+  final void Function(int) onPageChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final int startItem = totalItems == 0 ? 0 : currentPage * itemsPerPage + 1;
+    final int endItem = ((currentPage + 1) * itemsPerPage).clamp(0, totalItems);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingSmall),
+      decoration: const BoxDecoration(
+        color: AppColors.gray50,
+        border: Border(top: BorderSide(color: AppColors.gray200)),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(AppSizes.radiusLarge),
+          bottomRight: Radius.circular(AppSizes.radiusLarge),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          Text(
+            'Mostrando $startItem-$endItem de $totalItems',
+            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.gray500),
+          ),
+          Row(
+            children: <Widget>[
+              _PageButton(
+                icon: Icons.chevron_left,
+                enabled: currentPage > 0,
+                onPressed: () => onPageChanged(currentPage - 1),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '${currentPage + 1} / $totalPages',
+                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+              _PageButton(
+                icon: Icons.chevron_right,
+                enabled: currentPage < totalPages - 1,
+                onPressed: () => onPageChanged(currentPage + 1),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Botón de página
+class _PageButton extends StatelessWidget {
+  const _PageButton({
+    required this.icon,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: Icon(icon, size: 18),
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      color: enabled ? AppColors.gray600 : AppColors.gray300,
+      onPressed: enabled ? onPressed : null,
+    );
+  }
+}
+
+/// Estado vacío
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.hasFilters});
+
+  final bool hasFilters;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+          Icon(
+            hasFilters ? Icons.search_off : Icons.local_hospital_outlined,
+            size: 48,
+            color: AppColors.gray300,
+          ),
           const SizedBox(height: AppSizes.spacing),
           Text(
-            'Error al cargar centros hospitalarios',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.error,
-            ),
-          ),
-          const SizedBox(height: AppSizes.spacingSmall),
-          Text(
-            message,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: AppColors.textSecondaryLight,
-            ),
-            textAlign: TextAlign.center,
+            hasFilters ? 'No se encontraron resultados' : 'No hay centros hospitalarios',
+            style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.gray500),
           ),
         ],
       ),

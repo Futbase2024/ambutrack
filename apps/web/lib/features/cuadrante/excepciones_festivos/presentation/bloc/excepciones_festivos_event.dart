@@ -9,12 +9,12 @@ abstract class ExcepcionesFestivosEvent extends Equatable {
   List<Object?> get props => <Object?>[];
 }
 
-/// Evento para cargar todas las excepciones/festivos
+/// Cargar todas las excepciones/festivos
 class ExcepcionesFestivosLoadRequested extends ExcepcionesFestivosEvent {
   const ExcepcionesFestivosLoadRequested();
 }
 
-/// Evento para crear una nueva excepción/festivo
+/// Crear una nueva excepción/festivo
 class ExcepcionFestivoCreateRequested extends ExcepcionesFestivosEvent {
   const ExcepcionFestivoCreateRequested(this.item);
 
@@ -24,7 +24,7 @@ class ExcepcionFestivoCreateRequested extends ExcepcionesFestivosEvent {
   List<Object?> get props => <Object?>[item];
 }
 
-/// Evento para actualizar una excepción/festivo
+/// Actualizar una excepción/festivo
 class ExcepcionFestivoUpdateRequested extends ExcepcionesFestivosEvent {
   const ExcepcionFestivoUpdateRequested(this.item);
 
@@ -34,7 +34,7 @@ class ExcepcionFestivoUpdateRequested extends ExcepcionesFestivosEvent {
   List<Object?> get props => <Object?>[item];
 }
 
-/// Evento para eliminar una excepción/festivo
+/// Eliminar una excepción/festivo
 class ExcepcionFestivoDeleteRequested extends ExcepcionesFestivosEvent {
   const ExcepcionFestivoDeleteRequested(this.id);
 
@@ -42,15 +42,4 @@ class ExcepcionFestivoDeleteRequested extends ExcepcionesFestivosEvent {
 
   @override
   List<Object?> get props => <Object?>[id];
-}
-
-/// Evento para cambiar el estado activo
-class ExcepcionFestivoToggleActivoRequested extends ExcepcionesFestivosEvent {
-  const ExcepcionFestivoToggleActivoRequested(this.id, {required this.activo});
-
-  final String id;
-  final bool activo;
-
-  @override
-  List<Object?> get props => <Object?>[id, activo];
 }

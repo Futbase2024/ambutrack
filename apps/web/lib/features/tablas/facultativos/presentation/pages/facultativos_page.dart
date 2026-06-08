@@ -23,23 +23,37 @@ class FacultativosPage extends StatelessWidget {
   }
 }
 
-class _FacultativosView extends StatelessWidget {
+class _FacultativosView extends StatefulWidget {
   const _FacultativosView();
 
   @override
+  State<_FacultativosView> createState() => _FacultativosViewState();
+}
+
+class _FacultativosViewState extends State<_FacultativosView> {
+  String _searchQuery = '';
+
+  @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(AppSizes.paddingLarge),
+    return Padding(
+      padding: const EdgeInsets.all(AppSizes.paddingLarge),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          // Header con título y botón agregar
-          FacultativoHeader(),
-          SizedBox(height: AppSizes.spacingLarge),
-
-          // Tabla con datos
+          FacultativoHeader(
+            extra: SizedBox(
+              width: 250,
+              child: FacultativoSearchField(
+                searchQuery: _searchQuery,
+                onSearchChanged: (String query) {
+                  setState(() => _searchQuery = query);
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSizes.spacingLarge),
           Expanded(
-            child: FacultativoTable(),
+            child: FacultativoTable(searchQuery: _searchQuery),
           ),
         ],
       ),

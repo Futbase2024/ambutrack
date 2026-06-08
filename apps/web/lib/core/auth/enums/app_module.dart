@@ -95,12 +95,15 @@ enum AppModule {
   /// Histórico de servicios
   historico('historico', 'Histórico', '/servicios/historico'),
 
+  /// Agenda de Pendientes
+  agendaPendientes('agenda_pendientes', 'Agenda Pendientes', '/servicios/agenda-pendientes'),
+
   // === OPERACIONES ===
   /// Operaciones en tiempo real
   operaciones('operaciones', 'Operaciones', '/operaciones'),
 
   /// Incidencias
-  incidencias('incidencias', 'Incidencias', '/operaciones/incidencias'),
+  incidencias('incidencias', 'Incidencias', '/administracion/incidencias'),
 
   /// Comunicaciones
   comunicaciones('comunicaciones', 'Comunicaciones', '/operaciones/comunicaciones'),

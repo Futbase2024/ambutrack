@@ -19,17 +19,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Tabla de gestión de Pacientes
 class PacientesTable extends StatefulWidget {
-  const PacientesTable({required this.onFilterChanged, super.key});
+  const PacientesTable({required this.filterData, super.key});
 
-  final void Function(PacientesFilterData) onFilterChanged;
+  final PacientesFilterData filterData;
 
   @override
   State<PacientesTable> createState() => _PacientesTableState();
 }
 
 class _PacientesTableState extends State<PacientesTable> {
-  String _searchQuery = '';
-  int? _sortColumnIndex = 0; // Ordenar por Nombre por defecto
+  int? _sortColumnIndex = 0;
   bool _sortAscending = true;
   bool _isDeleting = false;
   BuildContext? _loadingDialogContext;
@@ -38,15 +37,21 @@ class _PacientesTableState extends State<PacientesTable> {
   static const int _itemsPerPage = 25;
 
   @override
+  void didUpdateWidget(PacientesTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filterData != oldWidget.filterData) {
+      _currentPage = 0;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocListener<PacientesBloc, PacientesState>(
       listener: (BuildContext context, Object? state) async {
-        // Manejo de loading al eliminar
         if (_isDeleting && _loadingDialogContext != null) {
           if (state is PacientesLoaded || state is PacientesError) {
             final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
 
-            // Manejar resultado con CrudOperationHandler
             if (state is PacientesError) {
               await CrudOperationHandler.handleDeleteError(
                 context: _loadingDialogContext!,
@@ -90,59 +95,30 @@ class _PacientesTableState extends State<PacientesTable> {
           }
 
           if (state is PacientesLoaded) {
-            // Filtrado y ordenamiento
-            List<PacienteEntity> filtrados = _filterPacientes(state.pacientes);
-            filtrados = _sortPacientes(filtrados);
+            final List<PacienteEntity> allPacientes = state.pacientes;
+            final List<PacienteEntity> filtrados = widget.filterData.apply(allPacientes);
+            final List<PacienteEntity> sorted = _sortPacientes(filtrados);
 
-            // Cálculo de paginación
-            final int totalItems = filtrados.length;
+            final int totalItems = sorted.length;
             final int totalPages = (totalItems / _itemsPerPage).ceil();
             final int startIndex = _currentPage * _itemsPerPage;
             final int endIndex = (startIndex + _itemsPerPage).clamp(0, totalItems);
             final List<PacienteEntity> pacientesPaginados = totalItems > 0
-                ? filtrados.sublist(startIndex, endIndex)
+                ? sorted.sublist(startIndex, endIndex)
                 : <PacienteEntity>[];
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                // Header: Título y búsqueda
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        'Listado de Pacientes',
-                        style: AppTextStyles.h4,
-                      ),
-                    ),
-                    // Búsqueda
-                    SizedBox(
-                      width: 300,
-                      child: _SearchField(
-                        searchQuery: _searchQuery,
-                        onSearchChanged: (String query) {
-                          setState(() {
-                            _searchQuery = query;
-                            _currentPage = 0; // Reset a primera página al buscar
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSizes.spacing),
-
-                // Info de resultados filtrados
-                if (state.pacientes.length != filtrados.length)
+                if (allPacientes.length != filtrados.length)
                   Padding(
                     padding: const EdgeInsets.only(bottom: AppSizes.spacing),
                     child: Text(
-                      'Mostrando ${filtrados.length} de ${state.pacientes.length} pacientes',
+                      'Mostrando ${filtrados.length} de ${allPacientes.length} pacientes',
                       style: AppTextStyles.bodySmallSecondary,
                     ),
                   ),
 
-                // Tabla con scroll interno
                 Expanded(
                   child: AppStandardTable<PacienteEntity>(
                     columns: const <StandardTableColumn>[
@@ -166,8 +142,8 @@ class _PacientesTableState extends State<PacientesTable> {
                         _sortAscending = ascending;
                       });
                     },
-                    rowHeight: 64,
-                    emptyMessage: _searchQuery.isNotEmpty
+                    headerHeight: 44,
+                    emptyMessage: widget.filterData.hasActiveFilters
                         ? 'No se encontraron pacientes con los filtros aplicados'
                         : 'No hay pacientes registrados',
                     customActions: <CustomAction<PacienteEntity>>[
@@ -182,7 +158,6 @@ class _PacientesTableState extends State<PacientesTable> {
                   ),
                 ),
 
-                // Paginación (siempre visible)
                 const SizedBox(height: AppSizes.spacing),
                 _buildPaginationControls(
                   currentPage: _currentPage,
@@ -206,7 +181,6 @@ class _PacientesTableState extends State<PacientesTable> {
 
   // ==================== PAGINACIÓN ====================
 
-  /// Construye controles de paginación
   Widget _buildPaginationControls({
     required int currentPage,
     required int totalPages,
@@ -219,7 +193,7 @@ class _PacientesTableState extends State<PacientesTable> {
         : ((currentPage + 1) * _itemsPerPage).clamp(0, totalItems);
 
     return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
+      padding: const EdgeInsets.all(AppSizes.paddingSmall),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
@@ -228,38 +202,32 @@ class _PacientesTableState extends State<PacientesTable> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
-          // Info de elementos mostrados
           Text(
             'Mostrando $startItem-$endItem de $totalItems items',
             style: AppTextStyles.bodySmallSecondary,
           ),
-
-          // Botones de navegación
           Row(
             children: <Widget>[
-              // Primera página
               IconButton(
                 icon: const Icon(Icons.first_page),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: currentPage > 0
                     ? () => onPageChanged(0)
                     : null,
                 tooltip: 'Primera página',
               ),
-
-              // Página anterior
               IconButton(
                 icon: const Icon(Icons.chevron_left),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: currentPage > 0
                     ? () => onPageChanged(currentPage - 1)
                     : null,
                 tooltip: 'Página anterior',
               ),
-
-              // Indicador de página
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.paddingMedium,
-                  vertical: AppSizes.paddingSmall,
+                  horizontal: AppSizes.paddingSmall,
+                  vertical: 4,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
@@ -273,19 +241,17 @@ class _PacientesTableState extends State<PacientesTable> {
                   ),
                 ),
               ),
-
-              // Página siguiente
               IconButton(
                 icon: const Icon(Icons.chevron_right),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: currentPage < totalPages - 1
                     ? () => onPageChanged(currentPage + 1)
                     : null,
                 tooltip: 'Página siguiente',
               ),
-
-              // Última página
               IconButton(
                 icon: const Icon(Icons.last_page),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: currentPage < totalPages - 1
                     ? () => onPageChanged(totalPages - 1)
                     : null,
@@ -298,22 +264,7 @@ class _PacientesTableState extends State<PacientesTable> {
     );
   }
 
-  // ==================== FILTRADO Y ORDENAMIENTO ====================
-
-  List<PacienteEntity> _filterPacientes(List<PacienteEntity> pacientes) {
-    if (_searchQuery.isEmpty) {
-      return pacientes;
-    }
-
-    final String query = _searchQuery.toLowerCase();
-    return pacientes.where((PacienteEntity paciente) {
-      return (paciente.identificacion?.toLowerCase().contains(query) ?? false) ||
-          paciente.nombreCompleto.toLowerCase().contains(query) ||
-          paciente.documento.toLowerCase().contains(query) ||
-          (paciente.telefonoMovil?.toLowerCase().contains(query) ?? false) ||
-          (paciente.email?.toLowerCase().contains(query) ?? false);
-    }).toList();
-  }
+  // ==================== ORDENAMIENTO ====================
 
   List<PacienteEntity> _sortPacientes(List<PacienteEntity> pacientes) {
     if (_sortColumnIndex == null) {
@@ -325,9 +276,9 @@ class _PacientesTableState extends State<PacientesTable> {
         int comparison = 0;
 
         switch (_sortColumnIndex) {
-          case 0: // Identificación
+          case 0:
             comparison = (a.identificacion ?? '').compareTo(b.identificacion ?? '');
-          case 1: // Nombre
+          case 1:
             comparison = a.nombreCompleto.compareTo(b.nombreCompleto);
           default:
             comparison = 0;
@@ -341,7 +292,6 @@ class _PacientesTableState extends State<PacientesTable> {
 
   // ==================== ACCIONES ====================
 
-  /// Navegar a formulario de creación de servicio con paciente preseleccionado
   Future<void> _createServicio(BuildContext context, PacienteEntity paciente) async {
     debugPrint('🚑 Abriendo wizard de creación de servicio para: ${paciente.nombreCompleto} (${paciente.id})');
 
@@ -469,75 +419,6 @@ class _PacientesTableState extends State<PacientesTable> {
             : AppColors.textSecondaryLight.withValues(alpha: 0.5),
         fontStyle: (paciente.telefonoMovil != null || paciente.telefonoFijo != null) ? FontStyle.normal : FontStyle.italic,
       ),
-    );
-  }
-}
-
-/// Campo de búsqueda
-class _SearchField extends StatefulWidget {
-  const _SearchField({
-    required this.searchQuery,
-    required this.onSearchChanged,
-  });
-
-  final String searchQuery;
-  final void Function(String) onSearchChanged;
-
-  @override
-  State<_SearchField> createState() => _SearchFieldState();
-}
-
-class _SearchFieldState extends State<_SearchField> {
-  late TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.searchQuery);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: _controller,
-      onChanged: widget.onSearchChanged,
-      decoration: InputDecoration(
-        hintText: 'Buscar paciente...',
-        prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondaryLight),
-        suffixIcon: _controller.text.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear, size: 18, color: AppColors.textSecondaryLight),
-                onPressed: () {
-                  _controller.clear();
-                  widget.onSearchChanged('');
-                },
-              )
-            : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.gray300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.gray300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.paddingMedium,
-          vertical: AppSizes.paddingSmall,
-        ),
-        isDense: true,
-      ),
-      style: AppTextStyles.input,
     );
   }
 }

@@ -72,6 +72,7 @@ class UsuariosRepositoryImpl implements UsuariosRepository {
           'empresaId': usuario.empresaId,
           'empresaNombre': usuario.empresaNombre,
           'dni': usuario.dni,
+          if (usuario.personalId != null) 'personalId': usuario.personalId,
         },
       );
 

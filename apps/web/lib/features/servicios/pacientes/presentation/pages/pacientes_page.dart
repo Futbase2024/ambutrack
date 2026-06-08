@@ -37,6 +37,7 @@ class _PacientesView extends StatefulWidget {
 
 class _PacientesViewState extends State<_PacientesView> {
   DateTime? _pageStartTime;
+  PacientesFilterData _filterData = const PacientesFilterData();
 
   @override
   void initState() {
@@ -44,7 +45,6 @@ class _PacientesViewState extends State<_PacientesView> {
     _pageStartTime = DateTime.now();
     debugPrint('⏱️ PacientesPage: Inicio de carga de página');
 
-    // Solo cargar si está en estado inicial
     final PacientesBloc bloc = context.read<PacientesBloc>();
     if (bloc.state is PacientesInitial) {
       debugPrint('🚀 PacientesPage: Primera carga, solicitando pacientes...');
@@ -53,7 +53,6 @@ class _PacientesViewState extends State<_PacientesView> {
       final PacientesLoaded loadedState = bloc.state as PacientesLoaded;
       debugPrint('⚡ PacientesPage: Datos ya cargados (${loadedState.pacientes.length} pacientes), reutilizando estado del BLoC');
 
-      // Medir tiempo de renderizado cuando reutiliza datos
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_pageStartTime != null) {
           final Duration elapsed = DateTime.now().difference(_pageStartTime!);
@@ -65,15 +64,15 @@ class _PacientesViewState extends State<_PacientesView> {
   }
 
   void _onFilterChanged(PacientesFilterData filterData) {
-    // El filtrado ahora se maneja dentro de PacientesTable
-    debugPrint('🔍 Filtros aplicados: searchText=${filterData.searchText}');
+    setState(() {
+      _filterData = filterData;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<PacientesBloc, PacientesState>(
       listener: (BuildContext context, PacientesState state) {
-        // Medir tiempo cuando se completa la carga inicial
         if (state is PacientesLoaded && _pageStartTime != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_pageStartTime != null) {
@@ -106,15 +105,15 @@ class _PacientesViewState extends State<_PacientesView> {
                       addButtonLabel: 'Agregar Paciente',
                       stats: _buildHeaderStats(state),
                       onAdd: _showAddPacienteDialog,
+                      extra: PacientesFilters(onFilterChanged: _onFilterChanged),
                     ),
                   );
                 },
               ),
-              const SizedBox(height: AppSizes.spacingXl),
+              const SizedBox(height: AppSizes.spacing),
 
-              // Tabla ocupa el espacio restante
               Expanded(
-                child: PacientesTable(onFilterChanged: _onFilterChanged),
+                child: PacientesTable(filterData: _filterData),
               ),
             ],
           ),
@@ -154,7 +153,6 @@ class _PacientesViewState extends State<_PacientesView> {
       total = state.pacientes.length.toString();
       activos = state.pacientes.where((PacienteEntity p) => p.activo).length.toString();
 
-      // Pacientes registrados hoy
       final DateTime hoy = DateTime.now();
       final DateTime inicioHoy = DateTime(hoy.year, hoy.month, hoy.day);
       registradosHoy = state.pacientes
@@ -162,7 +160,6 @@ class _PacientesViewState extends State<_PacientesView> {
           .length
           .toString();
 
-      // Pacientes pendientes de completar datos (sin dirección o teléfono)
       pendientes = state.pacientes
           .where((PacienteEntity p) =>
               (p.domicilioDireccion == null || p.domicilioDireccion!.isEmpty) ||

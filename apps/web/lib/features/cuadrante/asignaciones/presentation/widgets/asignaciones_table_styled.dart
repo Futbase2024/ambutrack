@@ -11,45 +11,51 @@ import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/bloc/
 import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/bloc/asignaciones/asignaciones_event.dart';
 import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/bloc/asignaciones/asignaciones_state.dart';
 import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/widgets/asignacion_form_dialog.dart';
+import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/widgets/asignaciones_filters.dart';
+import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/widgets/asignaciones_table_cells.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-/// Tabla de gestión de Asignaciones estilo transporte pacientes
-///
-/// Inspirada en diseño de referencia con:
-/// - Agrupación por fecha (collapsible como I/V)
-/// - Filas alternantes (blanco/verde claro)
-/// - Estados con badges
-/// - Checkboxes para confirmación
-/// - Campos SI/NO con colores
-/// - Header azul claro
+/// Tabla de gestión de Asignaciones con agrupación por fecha
 class AsignacionesTableStyled extends StatefulWidget {
-  const AsignacionesTableStyled({super.key});
+  const AsignacionesTableStyled({
+    super.key,
+    required this.filterData,
+  });
+
+  final AsignacionesFilterData filterData;
 
   @override
-  State<AsignacionesTableStyled> createState() => _AsignacionesTableStyledState();
+  State<AsignacionesTableStyled> createState() =>
+      _AsignacionesTableStyledState();
 }
 
 class _AsignacionesTableStyledState extends State<AsignacionesTableStyled> {
-  String _searchQuery = '';
   bool _isDeleting = false;
   BuildContext? _loadingDialogContext;
   DateTime? _deleteStartTime;
   int _currentPage = 0;
   static const int _itemsPerPage = 25;
-
-  /// Mapa de grupos expandidos por fecha
   final Map<String, bool> _expandedGroups = <String, bool>{};
+
+  @override
+  void didUpdateWidget(covariant AsignacionesTableStyled oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filterData != oldWidget.filterData) {
+      _currentPage = 0;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<AsignacionesBloc, AsignacionesState>(
-      listener: (BuildContext context, Object? state) async {
+      listener: (BuildContext context, AsignacionesState state) async {
         if (_isDeleting && _loadingDialogContext != null) {
-          if (state is AsignacionesLoaded || state is AsignacionesError || state is AsignacionOperationSuccess) {
-            final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
+          if (state is AsignacionesLoaded || state is AsignacionesError) {
+            final Duration elapsed =
+                DateTime.now().difference(_deleteStartTime!);
 
             if (state is AsignacionesError) {
               await CrudOperationHandler.handleDeleteError(
@@ -65,7 +71,7 @@ class _AsignacionesTableStyledState extends State<AsignacionesTableStyled> {
                   });
                 },
               );
-            } else if (state is AsignacionOperationSuccess) {
+            } else {
               await CrudOperationHandler.handleDeleteSuccess(
                 context: _loadingDialogContext!,
                 isDeleting: _isDeleting,
@@ -84,37 +90,44 @@ class _AsignacionesTableStyledState extends State<AsignacionesTableStyled> {
         }
       },
       child: BlocBuilder<AsignacionesBloc, AsignacionesState>(
-        builder: (BuildContext context, Object? state) {
+        builder: (BuildContext context, AsignacionesState state) {
           if (state is AsignacionesLoading) {
-            return const _LoadingView();
+            return const _TableLoadingView();
           }
 
           if (state is AsignacionesError) {
-            return _ErrorView(message: state.message);
+            return _TableErrorView(message: state.message);
           }
 
-          if (state is AsignacionesLoaded || state is AsignacionOperationSuccess) {
-            final List<AsignacionVehiculoTurnoEntity> asignaciones = state is AsignacionesLoaded
-                ? state.asignaciones
-                : (state as AsignacionOperationSuccess).asignaciones;
-
-            final List<AsignacionVehiculoTurnoEntity> filtradas = _filterAsignaciones(asignaciones);
+          if (state is AsignacionesLoaded) {
+            final List<AsignacionVehiculoTurnoEntity> filtradas =
+                widget.filterData.apply(state.asignaciones);
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                _buildHeader(context),
+                // Info de resultados filtrados
+                if (widget.filterData.hasActiveFilters)
+                  Padding(
+                    padding:
+                        const EdgeInsets.only(bottom: AppSizes.spacing),
+                    child: Text(
+                      'Mostrando ${filtradas.length} de ${state.asignaciones.length} asignaciones',
+                      style: AppTextStyles.bodySmallSecondary,
+                    ),
+                  ),
+
+                Expanded(child: _buildGroupedTable(filtradas)),
                 const SizedBox(height: AppSizes.spacing),
-
-                if (asignaciones.length != filtradas.length)
-                  _buildFilterInfo(asignaciones.length, filtradas.length),
-
-                Expanded(
-                  child: _buildGroupedTable(filtradas),
+                _TablePagination(
+                  currentPage: _currentPage,
+                  totalPages:
+                      (filtradas.length / _itemsPerPage).ceil().clamp(1, 999),
+                  totalItems: filtradas.length,
+                  onPageChanged: (int page) {
+                    setState(() => _currentPage = page);
+                  },
                 ),
-
-                const SizedBox(height: AppSizes.spacing),
-                _buildPagination(filtradas.length),
               ],
             );
           }
@@ -125,68 +138,34 @@ class _AsignacionesTableStyledState extends State<AsignacionesTableStyled> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: Text(
-            'Listado de Asignaciones',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimaryLight,
-            ),
-          ),
-        ),
-        SizedBox(
-          width: 300,
-          child: _SearchField(
-            searchQuery: _searchQuery,
-            onSearchChanged: (String query) {
-              setState(() {
-                _searchQuery = query;
-                _currentPage = 0;
-              });
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFilterInfo(int total, int filtradas) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSizes.spacing),
-      child: Text(
-        'Mostrando $filtradas de $total asignaciones',
-        style: GoogleFonts.inter(
-          fontSize: 13,
-          color: AppColors.textSecondaryLight,
-        ),
-      ),
-    );
-  }
+  // ==================== TABLA AGRUPADA ====================
 
   Widget _buildGroupedTable(List<AsignacionVehiculoTurnoEntity> asignaciones) {
     if (asignaciones.isEmpty) {
       return _buildEmptyState();
     }
 
-    // Agrupar por fecha
-    final Map<String, List<AsignacionVehiculoTurnoEntity>> grouped = _groupByFecha(asignaciones);
-
-    // Ordenar fechas descendente
+    final Map<String, List<AsignacionVehiculoTurnoEntity>> grouped =
+        _groupByFecha(asignaciones);
     final List<String> sortedDates = grouped.keys.toList()
       ..sort((String a, String b) => b.compareTo(a));
 
-    // Paginar grupos
+    // Paginación por grupos
     final int startIndex = _currentPage * _itemsPerPage;
     int currentIndex = 0;
-    final List<MapEntry<String, List<AsignacionVehiculoTurnoEntity>>> paginatedGroups = <MapEntry<String, List<AsignacionVehiculoTurnoEntity>>>[];
+    final List<MapEntry<String, List<AsignacionVehiculoTurnoEntity>>>
+        paginatedGroups = <MapEntry<String,
+            List<AsignacionVehiculoTurnoEntity>>>[];
 
     for (final String date in sortedDates) {
-      if (currentIndex >= startIndex && paginatedGroups.length < _itemsPerPage) {
-        paginatedGroups.add(MapEntry<String, List<AsignacionVehiculoTurnoEntity>>(date, grouped[date]!));
+      if (currentIndex >= startIndex &&
+          paginatedGroups.length < _itemsPerPage) {
+        paginatedGroups.add(
+          MapEntry<String, List<AsignacionVehiculoTurnoEntity>>(
+            date,
+            grouped[date]!,
+          ),
+        );
       }
       currentIndex += grouped[date]!.length;
       if (paginatedGroups.length >= _itemsPerPage) {
@@ -197,252 +176,268 @@ class _AsignacionesTableStyledState extends State<AsignacionesTableStyled> {
     return SingleChildScrollView(
       child: Column(
         children: <Widget>[
-          // Header de tabla
-          _buildTableHeader(),
-
-          // Grupos
-          ...paginatedGroups.map((MapEntry<String, List<AsignacionVehiculoTurnoEntity>> entry) {
-            return _buildGroup(entry.key, entry.value);
-          }),
+          const _TableHeader(),
+          ...paginatedGroups.map(
+            (MapEntry<String, List<AsignacionVehiculoTurnoEntity>> entry) {
+              return _GroupWidget(
+                fechaStr: entry.key,
+                items: entry.value,
+                isExpanded: _expandedGroups[entry.key] ?? true,
+                onToggle: () {
+                  setState(() {
+                    _expandedGroups[entry.key] =
+                        !(_expandedGroups[entry.key] ?? true);
+                  });
+                },
+                onEdit: (AsignacionVehiculoTurnoEntity a) =>
+                    _editAsignacion(context, a),
+                onDelete: (AsignacionVehiculoTurnoEntity a) =>
+                    _confirmDelete(context, a),
+                onToggleConfirm: _toggleConfirmacion,
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTableHeader() {
+  Widget _buildEmptyState() {
     return Container(
-      height: 48,
-      decoration: const BoxDecoration(
-        color: Color(0xFFE3F2FD), // Azul claro como en la imagen
-        border: Border(
-          bottom: BorderSide(color: AppColors.gray300),
+      constraints: const BoxConstraints(minHeight: 400),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSizes.radius),
+        border: Border.all(color: AppColors.gray300),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              widget.filterData.hasActiveFilters
+                  ? Icons.search_off
+                  : Icons.inbox_outlined,
+              size: 64,
+              color: AppColors.gray400,
+            ),
+            const SizedBox(height: AppSizes.spacing),
+            Text(
+              widget.filterData.hasActiveFilters
+                  ? 'No se encontraron asignaciones con los filtros aplicados'
+                  : 'No hay asignaciones registradas',
+              style: AppTextStyles.bodySecondary,
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Map<String, List<AsignacionVehiculoTurnoEntity>> _groupByFecha(
+    List<AsignacionVehiculoTurnoEntity> asignaciones,
+  ) {
+    final Map<String, List<AsignacionVehiculoTurnoEntity>> grouped =
+        <String, List<AsignacionVehiculoTurnoEntity>>{};
+
+    for (final AsignacionVehiculoTurnoEntity a in asignaciones) {
+      final String key = DateFormat('yyyy-MM-dd').format(a.fecha);
+      grouped.putIfAbsent(key, () => <AsignacionVehiculoTurnoEntity>[]);
+      grouped[key]!.add(a);
+    }
+
+    return grouped;
+  }
+
+  // ==================== ACCIONES ====================
+
+  Future<void> _toggleConfirmacion(
+    AsignacionVehiculoTurnoEntity asignacion,
+  ) async {
+    debugPrint('🔄 Toggle confirmación: ${asignacion.id}');
+  }
+
+  Future<void> _editAsignacion(
+    BuildContext context,
+    AsignacionVehiculoTurnoEntity asignacion,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) =>
+          BlocProvider<AsignacionesBloc>.value(
+            value: context.read<AsignacionesBloc>(),
+            child: AsignacionFormDialog(asignacion: asignacion),
+          ),
+    );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    AsignacionVehiculoTurnoEntity asignacion,
+  ) async {
+    final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
+    final bool? confirmed = await showConfirmationDialog(
+      context: context,
+      title: 'Confirmar Eliminación',
+      message:
+          '¿Estás seguro de que deseas eliminar esta asignación? '
+          'Esta acción no se puede deshacer.',
+      itemDetails: <String, String>{
+        'Fecha': dateFormat.format(asignacion.fecha),
+        'Vehículo': asignacion.vehiculoId,
+        'Dotación': asignacion.dotacionId,
+        'Estado': getEstadoLabel(asignacion.estado),
+      },
+    );
+
+    if (confirmed == true && context.mounted) {
+      debugPrint('🗑️ Eliminando asignación: ${asignacion.id}');
+
+      BuildContext? loadingContext;
+
+      unawaited(
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            loadingContext = dialogContext;
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && loadingContext != null) {
+                setState(() {
+                  _isDeleting = true;
+                  _loadingDialogContext = loadingContext;
+                  _deleteStartTime = DateTime.now();
+                });
+              }
+            });
+
+            return const AppLoadingOverlay(
+              message: 'Eliminando asignación...',
+              color: AppColors.emergency,
+              icon: Icons.delete_forever,
+            );
+          },
+        ),
+      );
+
+      if (context.mounted) {
+        context
+            .read<AsignacionesBloc>()
+            .add(AsignacionDeleteRequested(asignacion.id));
+      }
+    }
+  }
+}
+
+// ==================== HEADER DE TABLA ====================
+
+class _TableHeader extends StatelessWidget {
+  const _TableHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      decoration: const BoxDecoration(
+        color: Color(0xFFE3F2FD),
+        border: Border(bottom: BorderSide(color: AppColors.gray300)),
       ),
       child: const Row(
         children: <Widget>[
-          // Grupo (I/V) -> Fecha
-          SizedBox(
-            width: 80,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'FECHA',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-          ),
-
-          // Hora -> Vehículo
-          SizedBox(
-            width: 150,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'VEHÍCULO',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-          ),
-
-          // Paciente -> Dotación
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'DOTACIÓN',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-          ),
-
-          // Domicilio Origen -> Turno
-          SizedBox(
-            width: 120,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'TURNO',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-          ),
-
-          // Localidad Origen -> Estado
-          SizedBox(
-            width: 120,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'ESTADO',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-          ),
-
-          // Origen -> Destino
-          SizedBox(
-            width: 200,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'DESTINO',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-          ),
-
-          // Domicilio Destino -> Confirmado (checkbox)
-          SizedBox(
-            width: 100,
-            child: Center(
-              child: Text(
-                'CONF.',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-          ),
-
-          // Estatus -> Kms real (SI/NO)
-          SizedBox(
-            width: 80,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'KM REAL',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-          ),
-
-          // Conductor -> Completado (SI/NO)
-          SizedBox(
-            width: 80,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'COMP.',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-          ),
-
-          // Estatus -> Kms
-          SizedBox(
-            width: 100,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'KMS',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-          ),
-
-          // Destino -> Servicios
-          SizedBox(
-            width: 100,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'SERV.',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-          ),
-
-          // Terápia -> Horas
-          SizedBox(
-            width: 100,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                'HORAS',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-          ),
-
-          // Acciones
-          SizedBox(
-            width: 80,
-            child: Center(
-              child: Text(
-                'ACC.',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-            ),
-          ),
+          _HeaderCell(width: 80, label: 'FECHA'),
+          _HeaderCell(width: 150, label: 'VEHÍCULO'),
+          _HeaderCell(flex: true, label: 'DOTACIÓN'),
+          _HeaderCell(width: 120, label: 'TURNO'),
+          _HeaderCell(width: 120, label: 'ESTADO'),
+          _HeaderCell(width: 200, label: 'DESTINO'),
+          _HeaderCell(width: 100, label: 'CONF.', center: true),
+          _HeaderCell(width: 80, label: 'KM REAL'),
+          _HeaderCell(width: 80, label: 'COMP.'),
+          _HeaderCell(width: 100, label: 'KMS'),
+          _HeaderCell(width: 100, label: 'SERV.'),
+          _HeaderCell(width: 100, label: 'HORAS'),
+          _HeaderCell(width: 80, label: 'ACC.', center: true),
         ],
       ),
     );
   }
+}
 
-  Widget _buildGroup(String fechaStr, List<AsignacionVehiculoTurnoEntity> items) {
-    final bool isExpanded = _expandedGroups[fechaStr] ?? true;
+class _HeaderCell extends StatelessWidget {
+  const _HeaderCell({
+    this.width,
+    this.flex = false,
+    required this.label,
+    this.center = false,
+  });
 
+  final double? width;
+  final bool flex;
+  final String label;
+  final bool center;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget text = Text(
+      label,
+      style: GoogleFonts.inter(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF333333),
+      ),
+    );
+
+    if (flex) {
+      return Expanded(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: text,
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: width,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: center ? Center(child: text) : text,
+      ),
+    );
+  }
+}
+
+// ==================== GRUPO POR FECHA ====================
+
+class _GroupWidget extends StatelessWidget {
+  const _GroupWidget({
+    required this.fechaStr,
+    required this.items,
+    required this.isExpanded,
+    required this.onToggle,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onToggleConfirm,
+  });
+
+  final String fechaStr;
+  final List<AsignacionVehiculoTurnoEntity> items;
+  final bool isExpanded;
+  final VoidCallback onToggle;
+  final void Function(AsignacionVehiculoTurnoEntity) onEdit;
+  final void Function(AsignacionVehiculoTurnoEntity) onDelete;
+  final void Function(AsignacionVehiculoTurnoEntity) onToggleConfirm;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: <Widget>[
-        // Header de grupo (como I/V)
+        // Header del grupo
         InkWell(
-          onTap: () {
-            setState(() {
-              _expandedGroups[fechaStr] = !isExpanded;
-            });
-          },
+          onTap: onToggle,
           child: Container(
-            height: 40,
+            height: 36,
             decoration: BoxDecoration(
               color: AppColors.gray100,
               border: Border.all(color: AppColors.gray300),
@@ -452,7 +447,7 @@ class _AsignacionesTableStyledState extends State<AsignacionesTableStyled> {
                 const SizedBox(width: 12),
                 Icon(
                   isExpanded ? Icons.expand_more : Icons.chevron_right,
-                  size: 20,
+                  size: 18,
                   color: AppColors.gray700,
                 ),
                 const SizedBox(width: 8),
@@ -466,7 +461,8 @@ class _AsignacionesTableStyledState extends State<AsignacionesTableStyled> {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
@@ -487,148 +483,120 @@ class _AsignacionesTableStyledState extends State<AsignacionesTableStyled> {
 
         // Filas del grupo
         if (isExpanded)
-          ...items.asMap().entries.map((MapEntry<int, AsignacionVehiculoTurnoEntity> entry) {
-            final bool isEven = entry.key % 2 == 0;
-            return _buildRow(entry.value, isEven);
-          }),
+          ...items.asMap().entries.map(
+            (MapEntry<int, AsignacionVehiculoTurnoEntity> entry) {
+              final bool isEven = entry.key % 2 == 0;
+              return _AsignacionRow(
+                asignacion: entry.value,
+                isEven: isEven,
+                onEdit: onEdit,
+                onDelete: onDelete,
+                onToggleConfirm: onToggleConfirm,
+              );
+            },
+          ),
       ],
     );
   }
+}
 
-  Widget _buildRow(AsignacionVehiculoTurnoEntity asignacion, bool isEven) {
-    final Color bgColor = isEven ? Colors.white : const Color(0xFFF0FDF4); // Verde claro muy sutil
+// ==================== FILA DE ASIGNACIÓN ====================
 
+class _AsignacionRow extends StatelessWidget {
+  const _AsignacionRow({
+    required this.asignacion,
+    required this.isEven,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onToggleConfirm,
+  });
+
+  final AsignacionVehiculoTurnoEntity asignacion;
+  final bool isEven;
+  final void Function(AsignacionVehiculoTurnoEntity) onEdit;
+  final void Function(AsignacionVehiculoTurnoEntity) onDelete;
+  final void Function(AsignacionVehiculoTurnoEntity) onToggleConfirm;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      height: 56,
+      height: 48,
       decoration: BoxDecoration(
-        color: bgColor,
-        border: const Border(
-          bottom: BorderSide(color: AppColors.gray200),
-        ),
+        color: isEven ? Colors.white : const Color(0xFFF0FDF4),
+        border: const Border(bottom: BorderSide(color: AppColors.gray200)),
       ),
       child: Row(
         children: <Widget>[
-          // Fecha (vacío, ya está en el grupo)
-          const SizedBox(width: 80),
-
-          // Vehículo
+          const SizedBox(width: 80), // Fecha en grupo
           SizedBox(
             width: 150,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  const Icon(Icons.directions_car, size: 16, color: AppColors.primary),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      asignacion.vehiculoId,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimaryLight,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
+              child: AsignacionVehiculoCell(asignacion: asignacion),
             ),
           ),
-
-          // Dotación
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                asignacion.dotacionId,
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: AppColors.textPrimaryLight,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
+              child: AsignacionDotacionCell(asignacion: asignacion),
             ),
           ),
-
-          // Turno
           SizedBox(
             width: 120,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                asignacion.plantillaTurnoId ?? 'Sin turno',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: asignacion.plantillaTurnoId != null
-                      ? AppColors.textPrimaryLight
-                      : AppColors.textSecondaryLight,
-                  fontStyle: asignacion.plantillaTurnoId == null ? FontStyle.italic : null,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
+              child: AsignacionTurnoCell(asignacion: asignacion),
             ),
           ),
-
-          // Estado (badge)
           SizedBox(
             width: 120,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: _buildEstadoBadge(asignacion.estado),
+              child: AsignacionEstadoBadge(estado: asignacion.estado),
             ),
           ),
-
-          // Destino
           SizedBox(
             width: 200,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: _buildDestinoCell(asignacion),
+              child: AsignacionDestinoCell(asignacion: asignacion),
             ),
           ),
-
-          // Confirmado (checkbox)
           SizedBox(
             width: 100,
             child: Center(
               child: Checkbox(
                 value: asignacion.confirmadaPor != null,
-                onChanged: (bool? value) {
-                  _toggleConfirmacion(asignacion);
-                },
+                onChanged: (bool? _) => onToggleConfirm(asignacion),
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
           ),
-
-          // Km Real (SI/NO)
           SizedBox(
             width: 80,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: _buildSiNoCell(asignacion.kmFinal != null && asignacion.kmFinal! > 0),
+              child: AsignacionSiNoCell(
+                valor:
+                    asignacion.kmFinal != null && asignacion.kmFinal! > 0,
+              ),
             ),
           ),
-
-          // Completado (SI/NO)
           SizedBox(
             width: 80,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: _buildSiNoCell(asignacion.esCompletada),
+              child: AsignacionSiNoCell(valor: asignacion.esCompletada),
             ),
           ),
-
-          // Kms
           SizedBox(
             width: 100,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
                 asignacion.kmInicial != null && asignacion.kmFinal != null
-                    ? (asignacion.kmFinal! - asignacion.kmInicial!).toStringAsFixed(0)
+                    ? (asignacion.kmFinal! - asignacion.kmInicial!)
+                        .toStringAsFixed(0)
                     : '-',
                 style: GoogleFonts.inter(
                   fontSize: 13,
@@ -637,8 +605,6 @@ class _AsignacionesTableStyledState extends State<AsignacionesTableStyled> {
               ),
             ),
           ),
-
-          // Servicios
           SizedBox(
             width: 100,
             child: Padding(
@@ -652,8 +618,6 @@ class _AsignacionesTableStyledState extends State<AsignacionesTableStyled> {
               ),
             ),
           ),
-
-          // Horas
           SizedBox(
             width: 100,
             child: Padding(
@@ -669,26 +633,21 @@ class _AsignacionesTableStyledState extends State<AsignacionesTableStyled> {
               ),
             ),
           ),
-
-          // Km Real (SI/NO) - Deshabilitado visualmente, ya está antes de COMP
-          // Se mantiene la posición actual para consistencia
-
-          // Acciones
           SizedBox(
             width: 80,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                _ActionButton(
+                AsignacionActionButton(
                   icon: Icons.edit_outlined,
                   tooltip: 'Editar',
-                  onPressed: () => _editAsignacion(context, asignacion),
+                  onPressed: () => onEdit(asignacion),
                 ),
                 const SizedBox(width: 4),
-                _ActionButton(
+                AsignacionActionButton(
                   icon: Icons.delete_outline,
                   tooltip: 'Eliminar',
-                  onPressed: () => _confirmDelete(context, asignacion),
+                  onPressed: () => onDelete(asignacion),
                   color: AppColors.error,
                 ),
               ],
@@ -698,423 +657,12 @@ class _AsignacionesTableStyledState extends State<AsignacionesTableStyled> {
       ),
     );
   }
-
-  Widget _buildEstadoBadge(String estado) {
-    final Color color = _getEstadoColor(estado);
-    final String label = _getEstadoLabel(estado);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(
-            _getEstadoIcon(estado),
-            size: 14,
-            color: color,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDestinoCell(AsignacionVehiculoTurnoEntity asignacion) {
-    if (asignacion.hospitalId != null) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const Icon(Icons.local_hospital, size: 14, color: AppColors.error),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              'H: ${asignacion.hospitalId}',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: AppColors.textSecondaryLight,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      );
-    }
-
-    if (asignacion.baseId != null) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const Icon(Icons.home_work, size: 14, color: AppColors.primary),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              'B: ${asignacion.baseId}',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: AppColors.textSecondaryLight,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Text(
-      'Sin asignar',
-      style: GoogleFonts.inter(
-        fontSize: 12,
-        color: AppColors.textSecondaryLight,
-        fontStyle: FontStyle.italic,
-      ),
-    );
-  }
-
-  Widget _buildSiNoCell(bool valor) {
-    final Color color = valor ? AppColors.success : AppColors.textSecondaryLight;
-    final String label = valor ? 'SÍ' : 'NO';
-
-    return Text(
-      label,
-      style: GoogleFonts.inter(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: color,
-      ),
-    );
-  }
-
-  Color _getEstadoColor(String estado) {
-    switch (estado.toLowerCase()) {
-      case 'planificada':
-        return AppColors.info;
-      case 'confirmada':
-        return AppColors.success;
-      case 'en_curso':
-        return AppColors.warning;
-      case 'finalizada':
-      case 'completada':
-        return AppColors.textSecondaryLight;
-      case 'cancelada':
-        return AppColors.error;
-      default:
-        return AppColors.textSecondaryLight;
-    }
-  }
-
-  IconData _getEstadoIcon(String estado) {
-    switch (estado.toLowerCase()) {
-      case 'planificada':
-        return Icons.schedule;
-      case 'confirmada':
-        return Icons.check_circle;
-      case 'en_curso':
-        return Icons.play_circle;
-      case 'finalizada':
-      case 'completada':
-        return Icons.done_all;
-      case 'cancelada':
-        return Icons.cancel;
-      default:
-        return Icons.help_outline;
-    }
-  }
-
-  String _getEstadoLabel(String estado) {
-    switch (estado.toLowerCase()) {
-      case 'planificada':
-        return 'Planificada';
-      case 'confirmada':
-        return 'Confirmada';
-      case 'en_curso':
-        return 'En Curso';
-      case 'finalizada':
-      case 'completada':
-        return 'Completada';
-      case 'cancelada':
-        return 'Cancelada';
-      default:
-        return estado;
-    }
-  }
-
-  Map<String, List<AsignacionVehiculoTurnoEntity>> _groupByFecha(List<AsignacionVehiculoTurnoEntity> asignaciones) {
-    final Map<String, List<AsignacionVehiculoTurnoEntity>> grouped = <String, List<AsignacionVehiculoTurnoEntity>>{};
-
-    for (final AsignacionVehiculoTurnoEntity asignacion in asignaciones) {
-      final String fechaKey = DateFormat('yyyy-MM-dd').format(asignacion.fecha);
-      grouped.putIfAbsent(fechaKey, () => <AsignacionVehiculoTurnoEntity>[]);
-      grouped[fechaKey]!.add(asignacion);
-    }
-
-    return grouped;
-  }
-
-  List<AsignacionVehiculoTurnoEntity> _filterAsignaciones(List<AsignacionVehiculoTurnoEntity> asignaciones) {
-    if (_searchQuery.isEmpty) {
-      return asignaciones;
-    }
-
-    final String query = _searchQuery.toLowerCase();
-    return asignaciones.where((AsignacionVehiculoTurnoEntity asignacion) {
-      return asignacion.vehiculoId.toLowerCase().contains(query) ||
-          asignacion.dotacionId.toLowerCase().contains(query) ||
-          asignacion.estado.toLowerCase().contains(query) ||
-          (asignacion.hospitalId?.toLowerCase().contains(query) ?? false) ||
-          (asignacion.baseId?.toLowerCase().contains(query) ?? false) ||
-          (asignacion.plantillaTurnoId?.toLowerCase().contains(query) ?? false);
-    }).toList();
-  }
-
-  Widget _buildPagination(int totalItems) {
-    final int totalPages = (totalItems / _itemsPerPage).ceil();
-
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(color: AppColors.gray200),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          Text(
-            'Total: $totalItems asignaciones',
-            style: AppTextStyles.bodySmallSecondary,
-          ),
-          Row(
-            children: <Widget>[
-              IconButton(
-                icon: const Icon(Icons.first_page),
-                onPressed: _currentPage > 0 ? () => setState(() => _currentPage = 0) : null,
-                tooltip: 'Primera página',
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: _currentPage > 0 ? () => setState(() => _currentPage--) : null,
-                tooltip: 'Página anterior',
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                ),
-                child: Text(
-                  'Página ${_currentPage + 1} de ${totalPages.clamp(1, 999)}',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: _currentPage < totalPages.clamp(1, 999) - 1
-                    ? () => setState(() => _currentPage++)
-                    : null,
-                tooltip: 'Página siguiente',
-              ),
-              IconButton(
-                icon: const Icon(Icons.last_page),
-                onPressed: _currentPage < totalPages.clamp(1, 999) - 1
-                    ? () => setState(() => _currentPage = totalPages.clamp(1, 999) - 1)
-                    : null,
-                tooltip: 'Última página',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 400),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.radius),
-        border: Border.all(color: AppColors.gray300),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(
-              _searchQuery.isNotEmpty ? Icons.search_off : Icons.inbox_outlined,
-              size: 64,
-              color: AppColors.gray400,
-            ),
-            const SizedBox(height: AppSizes.spacing),
-            Text(
-              _searchQuery.isNotEmpty
-                  ? 'No se encontraron asignaciones con los filtros aplicados'
-                  : 'No hay asignaciones registradas',
-              style: AppTextStyles.bodySecondary,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _toggleConfirmacion(AsignacionVehiculoTurnoEntity asignacion) async {
-    // Toggle de confirmación - aquí se implementaría la lógica
-    debugPrint('🔄 Toggle confirmación: ${asignacion.id}');
-  }
-
-  Future<void> _editAsignacion(BuildContext context, AsignacionVehiculoTurnoEntity asignacion) async {
-    await showDialog<void>(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return BlocProvider<AsignacionesBloc>.value(
-          value: context.read<AsignacionesBloc>(),
-          child: AsignacionFormDialog(asignacion: asignacion),
-        );
-      },
-    );
-  }
-
-  Future<void> _confirmDelete(BuildContext context, AsignacionVehiculoTurnoEntity asignacion) async {
-    final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
-    final bool? confirmed = await showConfirmationDialog(
-      context: context,
-      title: 'Confirmar Eliminación',
-      message: '¿Estás seguro de que deseas eliminar esta asignación? Esta acción no se puede deshacer.',
-      itemDetails: <String, String>{
-        'Fecha': dateFormat.format(asignacion.fecha),
-        'Vehículo': asignacion.vehiculoId,
-        'Dotación': asignacion.dotacionId,
-        'Estado': _getEstadoLabel(asignacion.estado),
-      },
-    );
-
-    if (confirmed == true && context.mounted) {
-      debugPrint('🗑️ Eliminando asignación: ${asignacion.id}');
-
-      unawaited(
-        showDialog<void>(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext dialogContext) {
-            _loadingDialogContext = dialogContext;
-
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                setState(() {
-                  _isDeleting = true;
-                  _deleteStartTime = DateTime.now();
-                });
-              }
-            });
-
-            return const AppLoadingOverlay(
-              message: 'Eliminando asignación...',
-              color: AppColors.emergency,
-              icon: Icons.delete_forever,
-            );
-          },
-        ),
-      );
-
-      if (context.mounted) {
-        context.read<AsignacionesBloc>().add(AsignacionesEvent.delete(asignacion.id));
-      }
-    }
-  }
 }
 
-// ==================== WIDGETS AUXILIARES ====================
+// ==================== VISTAS AUXILIARES ====================
 
-class _SearchField extends StatefulWidget {
-  const _SearchField({
-    required this.searchQuery,
-    required this.onSearchChanged,
-  });
-
-  final String searchQuery;
-  final void Function(String) onSearchChanged;
-
-  @override
-  State<_SearchField> createState() => _SearchFieldState();
-}
-
-class _SearchFieldState extends State<_SearchField> {
-  late TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.searchQuery);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: _controller,
-      onChanged: widget.onSearchChanged,
-      decoration: InputDecoration(
-        hintText: 'Buscar asignación...',
-        prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondaryLight),
-        suffixIcon: _controller.text.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear, size: 18, color: AppColors.textSecondaryLight),
-                onPressed: () {
-                  _controller.clear();
-                  widget.onSearchChanged('');
-                },
-              )
-            : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.gray300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.gray300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.paddingMedium,
-          vertical: AppSizes.paddingSmall,
-        ),
-        isDense: true,
-      ),
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        color: AppColors.textPrimaryLight,
-      ),
-    );
-  }
-}
-
-class _LoadingView extends StatelessWidget {
-  const _LoadingView();
+class _TableLoadingView extends StatelessWidget {
+  const _TableLoadingView();
 
   @override
   Widget build(BuildContext context) {
@@ -1127,16 +675,14 @@ class _LoadingView extends StatelessWidget {
       ),
       constraints: const BoxConstraints(minHeight: 400),
       child: const Center(
-        child: AppLoadingIndicator(
-          message: 'Cargando asignaciones...',
-        ),
+        child: AppLoadingIndicator(message: 'Cargando asignaciones...'),
       ),
     );
   }
 }
 
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message});
+class _TableErrorView extends StatelessWidget {
+  const _TableErrorView({required this.message});
 
   final String message;
 
@@ -1156,19 +702,12 @@ class _ErrorView extends StatelessWidget {
           const SizedBox(height: AppSizes.spacing),
           Text(
             'Error al cargar asignaciones',
-            style: GoogleFonts.inter(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.error,
-            ),
+            style: AppTextStyles.h6.copyWith(color: AppColors.error),
           ),
           const SizedBox(height: AppSizes.spacingSmall),
           Text(
             message,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: AppColors.textSecondaryLight,
-            ),
+            style: AppTextStyles.bodySecondary,
             textAlign: TextAlign.center,
           ),
         ],
@@ -1177,51 +716,89 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-class _ActionButton extends StatefulWidget {
-  const _ActionButton({
-    required this.icon,
-    required this.tooltip,
-    required this.onPressed,
-    this.color = AppColors.secondaryLight,
+class _TablePagination extends StatelessWidget {
+  const _TablePagination({
+    required this.currentPage,
+    required this.totalPages,
+    required this.totalItems,
+    required this.onPageChanged,
   });
 
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onPressed;
-  final Color color;
-
-  @override
-  State<_ActionButton> createState() => _ActionButtonState();
-}
-
-class _ActionButtonState extends State<_ActionButton> {
-  bool _isHovered = false;
+  final int currentPage;
+  final int totalPages;
+  final int totalItems;
+  final void Function(int) onPageChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: widget.tooltip,
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: widget.onPressed,
-          child: Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: _isHovered ? AppColors.gray100 : Colors.transparent,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              widget.icon,
-              size: 16,
-              color: _isHovered ? widget.color : AppColors.gray500,
-            ),
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingSmall),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          Text(
+            'Total: $totalItems asignaciones',
+            style: AppTextStyles.bodySmallSecondary,
           ),
-        ),
+          Row(
+            children: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.first_page),
+                constraints:
+                    const BoxConstraints(minWidth: 36, minHeight: 36),
+                onPressed:
+                    currentPage > 0 ? () => onPageChanged(0) : null,
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                constraints:
+                    const BoxConstraints(minWidth: 36, minHeight: 36),
+                onPressed: currentPage > 0
+                    ? () => onPageChanged(currentPage - 1)
+                    : null,
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingSmall,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius:
+                      BorderRadius.circular(AppSizes.radiusSmall),
+                ),
+                child: Text(
+                  'Página ${currentPage + 1} de $totalPages',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textPrimaryDark,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                constraints:
+                    const BoxConstraints(minWidth: 36, minHeight: 36),
+                onPressed: currentPage < totalPages - 1
+                    ? () => onPageChanged(currentPage + 1)
+                    : null,
+              ),
+              IconButton(
+                icon: const Icon(Icons.last_page),
+                constraints:
+                    const BoxConstraints(minWidth: 36, minHeight: 36),
+                onPressed: currentPage < totalPages - 1
+                    ? () => onPageChanged(totalPages - 1)
+                    : null,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

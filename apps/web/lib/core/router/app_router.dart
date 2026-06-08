@@ -5,6 +5,7 @@ import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/layout/main_layout.dart';
 import 'package:ambutrack_web/core/router/auth_guard.dart';
 import 'package:ambutrack_web/core/widgets/placeholder_page.dart';
+import 'package:ambutrack_web/features/agenda_pendientes/presentation/pages/agenda_pendientes_page.dart';
 import 'package:ambutrack_web/features/almacen/presentation/pages/almacen_dashboard_page.dart';
 import 'package:ambutrack_web/features/almacen/presentation/pages/movimientos_stock_page.dart';
 import 'package:ambutrack_web/features/almacen/presentation/pages/productos_page.dart';
@@ -21,7 +22,8 @@ import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/presentation/p
 import 'package:ambutrack_web/features/cuadrante/dotaciones/presentation/pages/dotaciones_page.dart';
 import 'package:ambutrack_web/features/cuadrante/excepciones_festivos/presentation/pages/excepciones_festivos_page.dart';
 import 'package:ambutrack_web/features/error/pages/forbidden_page.dart';
-import 'package:ambutrack_web/features/home/home_page_integral.dart';
+import 'package:ambutrack_web/features/home/home_page_v2.dart';
+import 'package:ambutrack_web/features/incidencias/presentation/pages/incidencias_page.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/pages/itv_revisiones_page.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/pages/mantenimiento_preventivo_page_v2.dart';
 import 'package:ambutrack_web/features/perfil/presentation/pages/perfil_page.dart';
@@ -148,7 +150,7 @@ final GoRouter appRouter = GoRouter(
           pageBuilder: (BuildContext context, GoRouterState state) =>
           _buildPageWithTransition(
         key: state.pageKey,
-        child: const HomePageIntegral(),
+        child: const HomePageV2(),
       ),
         ),
         GoRoute(
@@ -157,7 +159,7 @@ final GoRouter appRouter = GoRouter(
           pageBuilder: (BuildContext context, GoRouterState state) =>
           _buildPageWithTransition(
         key: state.pageKey,
-        child: const HomePageIntegral(),
+        child: const HomePageV2(),
       ),
         ),
 
@@ -399,6 +401,16 @@ final GoRouter appRouter = GoRouter(
           icon: Icons.info_outline,
         ),
       ),
+        ),
+        // Agenda de Pendientes
+        GoRoute(
+          path: '/servicios/agenda-pendientes',
+          name: 'servicios_agenda_pendientes',
+          pageBuilder: (BuildContext context, GoRouterState state) =>
+              _buildPageWithTransition(
+            key: state.pageKey,
+            child: const AgendaPendientesPage(),
+          ),
         ),
 
         // ==================== PERSONAL ====================
@@ -944,6 +956,16 @@ final GoRouter appRouter = GoRouter(
           _buildPageWithTransition(
         key: state.pageKey,
         child: const ContratosPage(),
+      ),
+        ),
+        // Incidencias
+        GoRoute(
+          path: '/administracion/incidencias',
+          name: 'administracion_incidencias',
+          pageBuilder: (BuildContext context, GoRouterState state) =>
+          _buildPageWithTransition(
+        key: state.pageKey,
+        child: const IncidenciasPage(),
       ),
         ),
         // Usuarios y Roles

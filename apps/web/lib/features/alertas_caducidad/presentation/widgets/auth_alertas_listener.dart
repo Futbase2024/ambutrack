@@ -2,7 +2,7 @@ import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/alertas_caducidad/presentation/bloc/alertas_caducidad_bloc.dart';
 import 'package:ambutrack_web/features/alertas_caducidad/presentation/bloc/alertas_caducidad_event.dart';
 import 'package:ambutrack_web/features/alertas_caducidad/presentation/bloc/alertas_caducidad_state.dart';
-import 'package:ambutrack_web/features/alertas_caducidad/presentation/widgets/alertas_dialogo_inicial.dart';
+import 'package:ambutrack_web/features/alertas_caducidad/presentation/widgets/alertas_vencidas_hoy_dialog.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flutter/material.dart';
@@ -101,19 +101,24 @@ class _AuthAlertasListenerState extends State<AuthAlertasListener> {
           alertasState.maybeWhen(
             loaded: (List<AlertaCaducidadEntity> alertas, _, _, _, _) {
               debugPrint('🔔 AuthAlertasListener: ${alertas.length} alertas cargadas');
-              // Filtrar solo alertas críticas
-              if (alertas.any((AlertaCaducidadEntity a) => a.esCritica == true)) {
-                debugPrint('🔔 AuthAlertasListener: Hay alertas críticas, mostrando diálogo...');
-                // Mostrar diálogo de alertas críticas
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  final AuthState authState = context.read<AuthBloc>().state;
-                  if (authState is AuthAuthenticated) {
-                    _mostrarDialogoCriticas(context, alertas, authState.user.uid);
-                  }
-                });
-              } else {
-                debugPrint('🔔 AuthAlertasListener: No hay alertas críticas para mostrar');
+
+              if (alertas.isEmpty) {
+                debugPrint('🔔 AuthAlertasListener: No hay alertas para mostrar');
+                return;
               }
+
+              // Mostrar popup unificado con TODAS las alertas
+              // Cada item tiene "Ver" (navega a la página) y "Visto" (marca en BBDD)
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (context.mounted) {
+                  showDialog<void>(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (BuildContext dialogContext) =>
+                        AlertasVencidasHoyDialog(alertas: alertas),
+                  );
+                }
+              });
             },
             orElse: () {},
           );
@@ -123,30 +128,4 @@ class _AuthAlertasListenerState extends State<AuthAlertasListener> {
     );
   }
 
-  void _mostrarDialogoCriticas(
-    BuildContext context,
-    List<AlertaCaducidadEntity> alertas,
-    String usuarioId,
-  ) {
-    // Verificar que el contexto aún sea válido antes de mostrar el diálogo
-    if (!context.mounted) {
-      return;
-    }
-
-    // Filtrar solo alertas críticas
-    final List<AlertaCaducidadEntity> criticas = alertas.where((AlertaCaducidadEntity a) => a.esCritica == true).toList();
-
-    if (criticas.isEmpty) {
-      return;
-    }
-
-    // Usar Navigator.push con MaterialPageRoute para heredar localizaciones
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (BuildContext dialogContext) => AlertasDialogoInicial(
-          usuarioId: usuarioId,
-        ),
-      ),
-    );
-  }
 }

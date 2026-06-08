@@ -8,8 +8,12 @@ import 'package:ambutrack_web/features/menu/presentation/widgets/app_bar_with_me
 import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_bloc.dart';
 import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_event.dart';
 import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_state.dart';
+import 'package:ambutrack_web/features/notificaciones/presentation/widgets/notificacion_tipo_config.dart';
+import 'package:ambutrack_web/features/notificaciones/presentation/widgets/notificaciones_pendientes_dialog.dart';
+import 'package:ambutrack_web/features/vehiculos/presentation/widgets/incidencias/incidencia_notificacion_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Layout principal de la aplicación
 ///
@@ -24,33 +28,25 @@ class MainLayout extends StatelessWidget {
     this.title,
   });
 
-  /// Widget hijo que se renderiza en el área de contenido
   final Widget child;
-
-  /// Título opcional para mostrar en el AppBar
   final String? title;
 
   @override
   Widget build(BuildContext context) {
     final bool isDev = F.appFlavor == Flavor.dev;
 
-    // Debug: Verificar flavor en consola
     debugPrint('MainLayout - Flavor actual: ${F.appFlavor} (isDev: $isDev)');
 
-    // Obtener el estado de autenticación para inicializar notificaciones
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (BuildContext context, AuthState authState) {
-        // Solo proveer NotificacionBloc si el usuario está autenticado
         if (authState is! AuthAuthenticated) {
           return _buildScaffold(context, isDev, isAuthenticated: false);
         }
 
         final String userId = authState.user.uid;
 
-        // Proveer NotificacionBloc a nivel de layout para compartir en toda la app
         return BlocProvider<NotificacionBloc>(
           create: (BuildContext context) {
-            // Suscribir inmediatamente al usuario actual
             return getIt<NotificacionBloc>()
               ..add(NotificacionEvent.subscribeNotificaciones(userId));
           },
@@ -62,81 +58,178 @@ class MainLayout extends StatelessWidget {
 
   Widget _buildScaffold(BuildContext context, bool isDev, {required bool isAuthenticated}) {
     final Widget scaffold = Scaffold(
-      appBar: AppBarWithMenu(
-        title: title,
-      ),
+      appBar: AppBarWithMenu(title: title),
       body: Stack(
         children: <Widget>[
           child,
-          // Banner DEBUG siempre visible en DEV
           if (isDev)
             Positioned(
               top: 0,
               right: 0,
               child: CustomPaint(
                 painter: _DebugBannerPainter(),
-                child: const SizedBox(
-                  width: 100,
-                  height: 100,
-                ),
+                child: const SizedBox(width: 100, height: 100),
               ),
             ),
         ],
       ),
     );
 
-    // Solo agregar BlocListener si el usuario está autenticado
     if (!isAuthenticated) {
       return scaffold;
     }
 
+    return _NotificacionesListenerWrapper(child: scaffold);
+  }
+}
+
+/// Wrapper StatefulWidget que escucha notificaciones pendientes y nuevas.
+///
+/// Soluciona el timing issue: el BlocListener se monta ANTES de que
+/// el BLoC emita el primer estado loaded, y usa addPostFrameCallback
+/// para asegurar que el Navigator esté listo antes de mostrar el diálogo.
+class _NotificacionesListenerWrapper extends StatefulWidget {
+  const _NotificacionesListenerWrapper({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_NotificacionesListenerWrapper> createState() =>
+      _NotificacionesListenerWrapperState();
+}
+
+class _NotificacionesListenerWrapperState
+    extends State<_NotificacionesListenerWrapper> {
+  bool _dialogShown = false;
+
+  @override
+  Widget build(BuildContext context) {
     return BlocListener<NotificacionBloc, NotificacionState>(
       listenWhen: (NotificacionState previous, NotificacionState current) {
-        // Obtener conteo anterior
-        final int prevConteo = previous.whenOrNull(
-          loaded: (List<NotificacionEntity> notificaciones, int conteo) => conteo,
-        ) ?? 0;
-
-        // Obtener conteo actual
         final int currentConteo = current.whenOrNull(
-          loaded: (List<NotificacionEntity> notificaciones, int conteo) => conteo,
+          loaded: (List<NotificacionEntity> _, int conteo) => conteo,
         ) ?? 0;
 
-        // Verificar si el conteo de no leídas aumentó
-        final bool conteoAumento = currentConteo > prevConteo;
-        debugPrint('🔔 MainLayout: Conteo cambió de $prevConteo a $currentConteo, aumentó: $conteoAumento');
-        return conteoAumento;
+        // Solo proceder si hay notificaciones pendientes
+        if (currentConteo == 0) {
+          return false;
+        }
+
+        // Detectar si el estado actual tiene notificaciones reales (no vacías)
+        final bool currentHasNotificaciones = current.whenOrNull(
+          loaded: (List<NotificacionEntity> notifs, _) => notifs.isNotEmpty,
+        ) ?? false;
+
+        // Si no hay notificaciones reales todavía, no mostrar diálogo
+        // (esperar a que lleguen los datos del stream)
+        if (!currentHasNotificaciones) {
+          return false;
+        }
+
+        // Detectar primera carga: estado previo no era loaded
+        final bool wasNotLoaded = previous.maybeWhen(
+          loaded: (_, __) => false,
+          orElse: () => true,
+        );
+        if (wasNotLoaded && !_dialogShown) {
+          debugPrint('🔔 NotificacionesListener: Primera carga con $currentConteo pendientes');
+          return true;
+        }
+
+        // Detectar transición de loaded con lista vacía → loaded con datos reales
+        // (race condition: conteo llega antes que las notificaciones)
+        final bool prevHasNotificaciones = previous.whenOrNull(
+          loaded: (List<NotificacionEntity> notifs, _) => notifs.isNotEmpty,
+        ) ?? false;
+        if (!prevHasNotificaciones && currentHasNotificaciones && !_dialogShown) {
+          debugPrint('🔔 NotificacionesListener: Notificaciones reales recibidas ($currentConteo pendientes)');
+          return true;
+        }
+
+        // Detectar notificaciones nuevas en tiempo real (conteo aumenta)
+        final int prevConteo = previous.whenOrNull(
+          loaded: (List<NotificacionEntity> _, int conteo) => conteo,
+        ) ?? 0;
+        if (currentConteo > prevConteo && !_dialogShown) {
+          debugPrint('🔔 NotificacionesListener: Nuevas notificaciones ($prevConteo → $currentConteo)');
+          return true;
+        }
+
+        return false;
       },
       listener: (BuildContext context, NotificacionState state) {
         state.whenOrNull(
           loaded: (List<NotificacionEntity> notificaciones, int conteo) {
-            if (notificaciones.isNotEmpty) {
-              // Obtener la notificación más reciente
-              final NotificacionEntity ultimaNotificacion = notificaciones.first;
+            // Filtrar solo las no leídas
+            final List<NotificacionEntity> pendientes = notificaciones
+                .where((NotificacionEntity n) => !n.leida)
+                .toList();
 
-              debugPrint('🔔 MainLayout: Mostrando diálogo para notificación: ${ultimaNotificacion.titulo}');
-
-              // Mostrar diálogo de notificación
-              _mostrarDialogoNotificacion(context, ultimaNotificacion);
+            if (pendientes.isEmpty) {
+              return;
             }
+
+            _dialogShown = true;
+
+            // Esperar a que el Navigator esté listo
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) {
+                return;
+              }
+              _mostrarDialogo(context, pendientes, conteo);
+            });
           },
         );
       },
-      child: scaffold,
+      child: widget.child,
     );
   }
 
-  /// Muestra un diálogo de notificación cuando llega una nueva notificación
-  void _mostrarDialogoNotificacion(BuildContext context, NotificacionEntity notificacion) {
-    // Si es una incidencia de vehículo, mostrar diálogo especializado
-    if (notificacion.tipo == NotificacionTipo.incidenciaVehiculoReportada) {
-      _mostrarDialogoIncidenciaVehiculo(context, notificacion);
+  void _mostrarDialogo(
+    BuildContext context,
+    List<NotificacionEntity> notificaciones,
+    int conteo,
+  ) {
+    // Si hay múltiples pendientes, mostrar diálogo resumen
+    if (conteo > 1) {
+      debugPrint('🔔 Mostrando diálogo de $conteo notificaciones pendientes');
+      showNotificacionesPendientesDialog(
+        context: context,
+        notificaciones: notificaciones,
+      ).whenComplete(() {
+        // Resetear flag al cerrar para permitir futuros diálogos si llegan nuevas
+        if (mounted) {
+          setState(() => _dialogShown = false);
+        }
+      });
       return;
     }
 
-    // Diálogo genérico para otros tipos de notificaciones
+    // Si es una sola incidencia de vehículo, diálogo especializado
+    final NotificacionEntity notif = notificaciones.first;
+    if (notif.tipo == NotificacionTipo.incidenciaVehiculoReportada) {
+      debugPrint('🔔 Mostrando diálogo incidencia vehículo: ${notif.titulo}');
+      showIncidenciaVehiculoDialog(context: context, notificacion: notif);
+      // Resetear flag tras un frame para permitir futuras notificaciones
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() => _dialogShown = false);
+        }
+      });
+      return;
+    }
+
+    // Diálogo genérico para otros tipos
+    debugPrint('🔔 Mostrando diálogo genérico: ${notif.titulo}');
+    _mostrarDialogoGenerico(context, notif);
+  }
+
+  void _mostrarDialogoGenerico(BuildContext context, NotificacionEntity notif) {
+    final NotificacionTipoConfig config = getNotificacionTipoConfig(notif.tipo);
+
     showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => Dialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -151,25 +244,18 @@ class MainLayout extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              // Icono según tipo de notificación
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _getColorByTipo(notificacion.tipo).withValues(alpha: 0.1),
+                  color: config.color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  _getIconByTipo(notificacion.tipo),
-                  size: 48,
-                  color: _getColorByTipo(notificacion.tipo),
-                ),
+                child: Icon(config.icon, size: 48, color: config.color),
               ),
               const SizedBox(height: 20),
-
-              // Título
               Text(
-                notificacion.titulo,
-                style: const TextStyle(
+                notif.titulo,
+                style: GoogleFonts.inter(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: AppColors.gray900,
@@ -177,11 +263,9 @@ class MainLayout extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-
-              // Mensaje
               Text(
-                notificacion.mensaje,
-                style: const TextStyle(
+                notif.mensaje,
+                style: GoogleFonts.inter(
                   fontSize: 15,
                   color: AppColors.gray700,
                   height: 1.4,
@@ -189,22 +273,19 @@ class MainLayout extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-
-              // Botón de cerrar
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
-                    // Marcar como leída si no lo está
-                    if (!notificacion.leida) {
+                    if (!notif.leida) {
                       context.read<NotificacionBloc>().add(
-                        NotificacionEvent.marcarComoLeida(notificacion.id),
-                      );
+                            NotificacionEvent.marcarComoLeida(notif.id),
+                          );
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _getColorByTipo(notificacion.tipo),
+                    backgroundColor: config.color,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     elevation: 0,
@@ -214,10 +295,7 @@ class MainLayout extends StatelessWidget {
                   ),
                   child: const Text(
                     'Entendido',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -225,406 +303,12 @@ class MainLayout extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  /// Muestra un diálogo especializado para incidencias de vehículos
-  void _mostrarDialogoIncidenciaVehiculo(BuildContext context, NotificacionEntity notificacion) {
-    // Extraer datos del metadata
-    final Map<String, dynamic> metadata = notificacion.metadata;
-
-    // Prioridad (puede venir como 'alta', 'media', 'baja', 'critica')
-    final String prioridadRaw = metadata['prioridad'] as String? ?? 'media';
-    final String prioridad = prioridadRaw[0].toUpperCase() + prioridadRaw.substring(1);
-
-    // Nombre del reportante (reportado_por_nombre es el campo correcto en IncidenciaVehiculoEntity)
-    final String tecnico = metadata['reportado_por_nombre'] as String? ??
-                          metadata['reportante_nombre'] as String? ??
-                          'Sin especificar';
-
-    // Título de la incidencia (avería) - campo 'titulo' en IncidenciaVehiculoEntity
-    final String averia = metadata['titulo'] as String? ??
-                         metadata['tipo'] as String? ??
-                         'Sin especificar';
-
-    // Descripción detallada (observaciones) - campo 'descripcion' en IncidenciaVehiculoEntity
-    final String observaciones = metadata['descripcion'] as String? ??
-                                notificacion.mensaje;
-
-    // Matrícula del vehículo
-    final String matricula = metadata['vehiculo_matricula'] as String? ??
-                            metadata['matricula'] as String? ??
-                            'Sin especificar';
-
-    // Kilometraje - campo 'kilometraje_reporte' en IncidenciaVehiculoEntity
-    final String kilometraje = metadata['kilometraje_reporte']?.toString() ??
-                              metadata['kilometraje']?.toString() ??
-                              '0';
-
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext dialogContext) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          constraints: const BoxConstraints(maxWidth: 450),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: Colors.white,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              // Icono
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.car_crash_outlined,
-                    size: 48,
-                    color: AppColors.error,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Título
-              const Center(
-                child: Text(
-                  'Nueva Incidencia de Vehículo',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.gray900,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // Prioridad
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _getPrioridadColor(prioridad).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: _getPrioridadColor(prioridad),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Text(
-                    'Prioridad $prioridad',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _getPrioridadColor(prioridad),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Técnico/Reportante
-              _InfoRow(
-                icon: Icons.person_outline,
-                label: 'Reportado por',
-                value: tecnico,
-              ),
-              const SizedBox(height: 12),
-
-              // Avería
-              _InfoRow(
-                icon: Icons.build_outlined,
-                label: 'Avería',
-                value: averia,
-              ),
-              const SizedBox(height: 12),
-
-              // Observaciones
-              _InfoRow(
-                icon: Icons.notes_outlined,
-                label: 'Observaciones',
-                value: observaciones,
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-
-              // Separador
-              const Divider(color: AppColors.gray300),
-              const SizedBox(height: 16),
-
-              // Matrícula y Kilometraje
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: _InfoCard(
-                      icon: Icons.directions_car_outlined,
-                      label: 'Vehículo',
-                      value: matricula,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _InfoCard(
-                      icon: Icons.speed_outlined,
-                      label: 'Kilometraje',
-                      value: '$kilometraje km',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Botón de cerrar
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    // Marcar como leída si no lo está
-                    if (!notificacion.leida) {
-                      context.read<NotificacionBloc>().add(
-                        NotificacionEvent.marcarComoLeida(notificacion.id),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.error,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text(
-                    'Entendido',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Obtiene el color según la prioridad
-  Color _getPrioridadColor(String prioridad) {
-    switch (prioridad.toLowerCase()) {
-      case 'alta':
-      case 'high':
-        return AppColors.error;
-      case 'media':
-      case 'medium':
-        return AppColors.warning;
-      case 'baja':
-      case 'low':
-        return AppColors.info;
-      default:
-        return AppColors.gray600;
-    }
-  }
-
-  /// Obtiene el color según el tipo de notificación
-  Color _getColorByTipo(NotificacionTipo tipo) {
-    switch (tipo) {
-      case NotificacionTipo.ausenciaSolicitada:
-      case NotificacionTipo.vacacionSolicitada:
-        return AppColors.info;
-      case NotificacionTipo.ausenciaAprobada:
-      case NotificacionTipo.vacacionAprobada:
-        return AppColors.success;
-      case NotificacionTipo.ausenciaRechazada:
-      case NotificacionTipo.vacacionRechazada:
-        return AppColors.error;
-      case NotificacionTipo.cambioTurno:
-      case NotificacionTipo.trasladoAsignado:
-      case NotificacionTipo.trasladoIniciado:
-      case NotificacionTipo.trasladoFinalizado:
-        return AppColors.success;
-      case NotificacionTipo.trasladoDesadjudicado:
-      case NotificacionTipo.trasladoCancelado:
-        return AppColors.warning;
-      case NotificacionTipo.checklistPendiente:
-        return AppColors.warning;
-      case NotificacionTipo.incidenciaVehiculoReportada:
-        return AppColors.error;
-      case NotificacionTipo.alerta:
-        return AppColors.emergency;
-      case NotificacionTipo.alertaCaducidad:
-        return AppColors.warning;
-      case NotificacionTipo.info:
-        return AppColors.info;
-    }
-  }
-
-  /// Obtiene el icono según el tipo de notificación
-  IconData _getIconByTipo(NotificacionTipo tipo) {
-    switch (tipo) {
-      case NotificacionTipo.ausenciaSolicitada:
-      case NotificacionTipo.vacacionSolicitada:
-        return Icons.calendar_today_outlined;
-      case NotificacionTipo.ausenciaAprobada:
-      case NotificacionTipo.vacacionAprobada:
-        return Icons.check_circle_outline;
-      case NotificacionTipo.ausenciaRechazada:
-      case NotificacionTipo.vacacionRechazada:
-        return Icons.cancel_outlined;
-      case NotificacionTipo.cambioTurno:
-        return Icons.swap_horiz_outlined;
-      case NotificacionTipo.trasladoAsignado:
-        return Icons.local_shipping_outlined;
-      case NotificacionTipo.trasladoDesadjudicado:
-        return Icons.remove_circle_outline;
-      case NotificacionTipo.trasladoIniciado:
-        return Icons.play_arrow_outlined;
-      case NotificacionTipo.trasladoFinalizado:
-        return Icons.done_all_outlined;
-      case NotificacionTipo.trasladoCancelado:
-        return Icons.block_outlined;
-      case NotificacionTipo.checklistPendiente:
-        return Icons.checklist_outlined;
-      case NotificacionTipo.incidenciaVehiculoReportada:
-        return Icons.car_crash_outlined;
-      case NotificacionTipo.alerta:
-        return Icons.warning_amber_outlined;
-      case NotificacionTipo.alertaCaducidad:
-        return Icons.event_busy_outlined;
-      case NotificacionTipo.info:
-        return Icons.info_outlined;
-    }
-  }
-}
-
-/// Widget para mostrar una fila de información con icono, label y valor
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.maxLines = 1,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final int maxLines;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Icon(
-          icon,
-          size: 20,
-          color: AppColors.gray600,
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.gray600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.gray900,
-                  height: 1.3,
-                ),
-                maxLines: maxLines,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Widget para mostrar una tarjeta de información compacta
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.gray300,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Icon(
-                icon,
-                size: 16,
-                color: AppColors.gray600,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.gray600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.gray900,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
+    ).whenComplete(() {
+      // Resetear flag al cerrar para permitir futuros diálogos si llegan nuevas
+      if (mounted) {
+        setState(() => _dialogShown = false);
+      }
+    });
   }
 }
 
@@ -635,13 +319,11 @@ class _DebugBannerPainter extends CustomPainter {
     const double bannerWidth = 120.0;
     const double bannerHeight = 24.0;
 
-    // Rotar el canvas para el efecto diagonal
     canvas
       ..save()
       ..translate(size.width, 0)
-      ..rotate(0.785398); // 45 grados en radianes
+      ..rotate(0.785398);
 
-    // Dibujar el fondo amarillo del banner
     final Paint bgPaint = Paint()
       ..color = AppColors.warning
       ..style = PaintingStyle.fill;
@@ -651,7 +333,6 @@ class _DebugBannerPainter extends CustomPainter {
       bgPaint,
     );
 
-    // Dibujar el texto "DEBUG"
     final TextPainter textPainter = TextPainter(
       text: const TextSpan(
         text: 'DEBUG',

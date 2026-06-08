@@ -39,8 +39,10 @@ class SupabaseUsuarioDataSource implements UsuarioDataSource {
     _cacheTimestamp = null;
   }
 
-  /// Query base con JOIN a empresas
-  String get _baseQuery => '*, empresas(nombre)';
+  /// Query base con JOIN a empresas y tpersonal
+  /// Nota: Se especifica la FK exacta porque hay múltiples relaciones
+  /// entre usuarios y tpersonal (created_by, updated_by, usuario_id)
+  String get _baseQuery => '*, empresas(nombre), tpersonal!usuarios_personal_id_fkey(nombre, apellidos, dni)';
 
   @override
   Future<UserEntity> create(UserEntity entity) async {

@@ -8,7 +8,6 @@ import 'package:ambutrack_web/core/widgets/tables/app_data_grid_v5.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_event.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_state.dart';
-import 'package:ambutrack_web/features/vehiculos/presentation/widgets/stock_equipamiento_header.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/widgets/stock_equipamiento_view_dialog.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/widgets/stock_manual_form_dialog.dart';
 import 'package:flutter/material.dart';
@@ -17,18 +16,27 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Tabla de stock de equipamiento por vehículo
 class StockEquipamientoTable extends StatefulWidget {
-  const StockEquipamientoTable({super.key});
+  const StockEquipamientoTable({super.key, required this.searchQuery,});
+
+  final String searchQuery;
 
   @override
   State<StockEquipamientoTable> createState() => _StockEquipamientoTableState();
 }
 
 class _StockEquipamientoTableState extends State<StockEquipamientoTable> {
-  String _searchQuery = '';
   int? _sortColumnIndex;
   bool _sortAscending = true;
   int _currentPage = 0;
   static const int _itemsPerPage = 25;
+
+  @override
+  void didUpdateWidget(StockEquipamientoTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.searchQuery != widget.searchQuery) {
+      _currentPage = 0;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,9 +71,9 @@ class _StockEquipamientoTableState extends State<StockEquipamientoTable> {
     List<VehiculoStockResumenEntity> filtrados = _filterVehiculos(state.vehiculos);
     filtrados = _sortVehiculos(filtrados);
 
-    // Paginación
+    // Paginación manual
     final int totalItems = filtrados.length;
-    final int totalPages = (totalItems / _itemsPerPage).ceil();
+    final int totalPages = totalItems > 0 ? (totalItems / _itemsPerPage).ceil() : 1;
     final int startIndex = _currentPage * _itemsPerPage;
     final int endIndex = (startIndex + _itemsPerPage).clamp(0, totalItems);
     final List<VehiculoStockResumenEntity> paginados =
@@ -74,45 +82,6 @@ class _StockEquipamientoTableState extends State<StockEquipamientoTable> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        // Barra de búsqueda
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: Text(
-                'Vehículos con Equipamiento',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimaryLight,
-                ),
-              ),
-            ),
-            StockEquipamientoSearchBar(
-              onSearchChanged: (String query) {
-                setState(() {
-                  _searchQuery = query;
-                  _currentPage = 0;
-                });
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSizes.spacing),
-
-        // Info de filtros
-        if (state.vehiculos.length != filtrados.length)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSizes.spacing),
-            child: Text(
-              'Mostrando ${filtrados.length} de ${state.vehiculos.length} vehículos',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: AppColors.textSecondaryLight,
-              ),
-            ),
-          ),
-
-        // Tabla
         Expanded(
           child: AppDataGridV5<VehiculoStockResumenEntity>(
             columns: const <DataGridColumn>[
@@ -149,23 +118,19 @@ class _StockEquipamientoTableState extends State<StockEquipamientoTable> {
                 onPressed: (VehiculoStockResumenEntity item) => _addStock(context, item),
               ),
             ],
-            emptyMessage: _searchQuery.isNotEmpty
+            emptyMessage: widget.searchQuery.isNotEmpty
                 ? 'No se encontraron vehículos con los filtros aplicados'
                 : 'No hay vehículos registrados',
-            rowHeight: 64,
           ),
         ),
-
-        // Paginación
         const SizedBox(height: AppSizes.spacing),
-        _buildPaginationControls(
+        _PaginationBar(
           currentPage: _currentPage,
-          totalPages: totalPages,
+          totalPages: totalPages.clamp(1, 999),
           totalItems: totalItems,
+          itemsPerPage: _itemsPerPage,
           onPageChanged: (int page) {
-            setState(() {
-              _currentPage = page;
-            });
+            setState(() { _currentPage = page; });
           },
         ),
       ],
@@ -295,10 +260,8 @@ class _StockEquipamientoTableState extends State<StockEquipamientoTable> {
   List<VehiculoStockResumenEntity> _filterVehiculos(
     List<VehiculoStockResumenEntity> vehiculos,
   ) {
-    if (_searchQuery.isEmpty) {
-      return vehiculos;
-    }
-    final String query = _searchQuery.toLowerCase();
+    final String query = widget.searchQuery.toLowerCase();
+    if (query.isEmpty) return vehiculos;
     return vehiculos.where((VehiculoStockResumenEntity v) {
       return v.matricula.toLowerCase().contains(query) ||
           v.marca.toLowerCase().contains(query) ||
@@ -372,20 +335,33 @@ class _StockEquipamientoTableState extends State<StockEquipamientoTable> {
           );
     }
   }
+}
 
-  Widget _buildPaginationControls({
-    required int currentPage,
-    required int totalPages,
-    required int totalItems,
-    required void Function(int) onPageChanged,
-  }) {
-    final int startItem = totalItems == 0 ? 0 : currentPage * _itemsPerPage + 1;
+/// Barra de paginación compacta
+class _PaginationBar extends StatelessWidget {
+  const _PaginationBar({
+    required this.currentPage,
+    required this.totalPages,
+    required this.totalItems,
+    required this.itemsPerPage,
+    required this.onPageChanged,
+  });
+
+  final int currentPage;
+  final int totalPages;
+  final int totalItems;
+  final int itemsPerPage;
+  final void Function(int) onPageChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final int startItem = totalItems == 0 ? 0 : currentPage * itemsPerPage + 1;
     final int endItem = totalItems == 0
         ? 0
-        : ((currentPage + 1) * _itemsPerPage).clamp(0, totalItems);
+        : ((currentPage + 1) * itemsPerPage).clamp(0, totalItems);
 
     return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
+      padding: const EdgeInsets.all(AppSizes.paddingSmall),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
@@ -400,49 +376,55 @@ class _StockEquipamientoTableState extends State<StockEquipamientoTable> {
           ),
           Row(
             children: <Widget>[
-              _PaginationButton(
+              IconButton(
+                icon: const Icon(Icons.first_page),
                 onPressed: currentPage > 0 ? () => onPageChanged(0) : null,
-                icon: Icons.first_page,
                 tooltip: 'Primera página',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               ),
-              const SizedBox(width: AppSizes.spacingSmall),
-              _PaginationButton(
-                onPressed: currentPage > 0 ? () => onPageChanged(currentPage - 1) : null,
-                icon: Icons.chevron_left,
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed:
+                    currentPage > 0 ? () => onPageChanged(currentPage - 1) : null,
                 tooltip: 'Página anterior',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               ),
-              const SizedBox(width: AppSizes.spacing),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.paddingMedium,
-                  vertical: AppSizes.spacingSmall,
+                  horizontal: AppSizes.paddingSmall,
+                  vertical: 4,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
                 ),
                 child: Text(
-                  'Página ${currentPage + 1} de ${totalPages > 0 ? totalPages : 1}',
-                  style: GoogleFonts.inter(
-                    fontSize: AppSizes.fontSmall,
+                  'Página ${currentPage + 1} de $totalPages',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textPrimaryDark,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
                   ),
                 ),
               ),
-              const SizedBox(width: AppSizes.spacing),
-              _PaginationButton(
-                onPressed:
-                    currentPage < totalPages - 1 ? () => onPageChanged(currentPage + 1) : null,
-                icon: Icons.chevron_right,
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: currentPage < totalPages - 1
+                    ? () => onPageChanged(currentPage + 1)
+                    : null,
                 tooltip: 'Página siguiente',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               ),
-              const SizedBox(width: AppSizes.spacingSmall),
-              _PaginationButton(
-                onPressed:
-                    currentPage < totalPages - 1 ? () => onPageChanged(totalPages - 1) : null,
-                icon: Icons.last_page,
+              IconButton(
+                icon: const Icon(Icons.last_page),
+                onPressed: currentPage < totalPages - 1
+                    ? () => onPageChanged(totalPages - 1)
+                    : null,
                 tooltip: 'Última página',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               ),
             ],
           ),
@@ -523,45 +505,4 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-/// Botón de paginación
-class _PaginationButton extends StatelessWidget {
-  const _PaginationButton({
-    required this.onPressed,
-    required this.icon,
-    required this.tooltip,
-  });
 
-  final VoidCallback? onPressed;
-  final IconData icon;
-  final String tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        child: Container(
-          padding: const EdgeInsets.all(AppSizes.spacingSmall),
-          decoration: BoxDecoration(
-            color: onPressed != null
-                ? AppColors.primary.withValues(alpha: 0.1)
-                : AppColors.gray200,
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-            border: Border.all(
-              color: onPressed != null
-                  ? AppColors.primary.withValues(alpha: 0.3)
-                  : AppColors.gray300,
-            ),
-          ),
-          child: Icon(
-            icon,
-            size: AppSizes.iconSmall,
-            color: onPressed != null ? AppColors.primary : AppColors.gray400,
-          ),
-        ),
-      ),
-    );
-  }
-}

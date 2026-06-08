@@ -173,6 +173,9 @@ class UserEntity extends BaseEntity {
   /// ID de la empresa (extraído del metadata)
   String? get empresaId => metadata?['empresaId'] as String?;
 
+  /// ID del registro en tpersonal (extraído del metadata)
+  String? get personalId => metadata?['personalId'] as String?;
+
   /// Nombre de la empresa (extraído del metadata)
   String? get empresaNombre => metadata?['empresaNombre'] as String?;
 

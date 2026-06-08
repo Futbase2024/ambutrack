@@ -10,7 +10,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Header de la página de personal con estadísticas integradas
 class PersonalHeader extends StatelessWidget {
-  const PersonalHeader({super.key});
+  const PersonalHeader({super.key, this.extra});
+
+  final Widget? extra;
 
   @override
   Widget build(BuildContext context) {
@@ -36,73 +38,102 @@ class PersonalHeader extends StatelessWidget {
         ],
       ),
       child: isDesktop
-          ? const _DesktopLayout()
+          ? _DesktopLayout(extra: extra)
           : isTablet
-              ? const _TabletLayout()
-              : const _MobileLayout(),
+              ? _TabletLayout(extra: extra)
+              : _MobileLayout(extra: extra),
     );
   }
 }
 
 /// Layout para desktop: Título | Stats | Botón (horizontal)
 class _DesktopLayout extends StatelessWidget {
-  const _DesktopLayout();
+  const _DesktopLayout({required this.extra});
+
+  final Widget? extra;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        _TitleSection(),
-        const SizedBox(width: AppSizes.spacingLarge),
-        Expanded(child: _StatsCards()),
-        const SizedBox(width: AppSizes.spacingLarge),
-        _AddButton(),
-      ],
+    final List<Widget> widgets = <Widget>[
+      Row(
+        children: <Widget>[
+          _TitleSection(),
+          const SizedBox(width: AppSizes.spacingLarge),
+          Expanded(child: _StatsCards()),
+          const SizedBox(width: AppSizes.spacingLarge),
+          _AddButton(),
+        ],
+      ),
+    ];
+    if (extra != null) {
+      widgets
+        ..add(const SizedBox(height: AppSizes.spacing))
+        ..add(extra!);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: widgets,
     );
   }
 }
 
 /// Layout para tablet: Título + Botón arriba, Stats abajo
 class _TabletLayout extends StatelessWidget {
-  const _TabletLayout();
+  const _TabletLayout({required this.extra});
+
+  final Widget? extra;
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> widgets = <Widget>[
+      Row(
+        children: <Widget>[
+          Expanded(child: _TitleSection()),
+          const SizedBox(width: AppSizes.spacing),
+          _AddButton(),
+        ],
+      ),
+      const SizedBox(height: AppSizes.spacing),
+      _StatsCards(),
+    ];
+    if (extra != null) {
+      widgets
+        ..add(const SizedBox(height: AppSizes.spacing))
+        ..add(extra!);
+    }
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(child: _TitleSection()),
-            const SizedBox(width: AppSizes.spacing),
-            _AddButton(),
-          ],
-        ),
-        const SizedBox(height: AppSizes.spacing),
-        _StatsCards(),
-      ],
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: widgets,
     );
   }
 }
 
 /// Layout para móvil: Todo en columna
 class _MobileLayout extends StatelessWidget {
-  const _MobileLayout();
+  const _MobileLayout({required this.extra});
+
+  final Widget? extra;
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> widgets = <Widget>[
+      _TitleSection(),
+      const SizedBox(height: AppSizes.spacing),
+      _StatsCards(),
+      const SizedBox(height: AppSizes.spacing),
+      SizedBox(
+        width: double.infinity,
+        child: _AddButton(),
+      ),
+    ];
+    if (extra != null) {
+      widgets
+        ..add(const SizedBox(height: AppSizes.spacing))
+        ..add(extra!);
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        _TitleSection(),
-        const SizedBox(height: AppSizes.spacing),
-        _StatsCards(),
-        const SizedBox(height: AppSizes.spacing),
-        SizedBox(
-          width: double.infinity,
-          child: _AddButton(),
-        ),
-      ],
+      children: widgets,
     );
   }
 }

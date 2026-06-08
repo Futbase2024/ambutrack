@@ -108,7 +108,7 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: AppColors.gray900.withValues(alpha: 0.1),
@@ -121,7 +121,7 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
         icon: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppColors.backgroundLight,
+            color: AppColors.gray100,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: AppColors.gray200,
@@ -135,7 +135,7 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
         ),
         elevation: 12,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
+          borderRadius: BorderRadius.circular(12),
         ),
         color: AppColors.backgroundLight,
         onSelected: context.go,
@@ -149,8 +149,8 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.primarySurface,
-                          borderRadius: BorderRadius.circular(8.0),
+                          color: AppColors.gray100,
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(
                           item.icon,
@@ -165,7 +165,7 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimaryLight,
+                            color: AppColors.gray900,
                           ),
                         ),
                       ),
@@ -202,25 +202,11 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
                 color: isActive
-                    ? AppColors.backgroundLight.withValues(alpha: 0.25)
+                    ? AppColors.primary
                     : isHovered
-                        ? AppColors.backgroundLight.withValues(alpha: 0.15)
+                        ? AppColors.gray200
                         : null,
-                borderRadius: BorderRadius.circular(8.0),
-                border: isActive
-                    ? Border.all(
-                        color: AppColors.backgroundLight.withValues(alpha: 0.3),
-                      )
-                    : null,
-                boxShadow: isHovered || isActive
-                    ? <BoxShadow>[
-                        BoxShadow(
-                          color: AppColors.backgroundLight.withValues(alpha: 0.1),
-                          blurRadius: 6,
-                          offset: const Offset(0, 1),
-                        ),
-                      ]
-                    : null,
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -230,9 +216,7 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
                     size: 16,
                     color: isActive
                         ? AppColors.backgroundLight
-                        : isHovered
-                            ? AppColors.backgroundLight.withValues(alpha: 0.9)
-                            : AppColors.backgroundLight.withValues(alpha: 0.85),
+                        : AppColors.gray700,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -240,11 +224,9 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
                     style: GoogleFonts.inter(
                       color: isActive
                           ? AppColors.backgroundLight
-                          : isHovered
-                              ? AppColors.backgroundLight.withValues(alpha: 0.9)
-                              : AppColors.backgroundLight.withValues(alpha: 0.85),
+                          : AppColors.gray700,
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                      fontSize: 12.5,
+                      fontSize: 13,
                       letterSpacing: 0.2,
                     ),
                   ),
@@ -275,9 +257,9 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
         animation: _hoverAnimation,
         builder: (BuildContext context, Widget? child) {
           return PopupMenuButton<String>(
-            elevation: 16.0,
+            elevation: 16,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16.0),
+              borderRadius: BorderRadius.circular(16),
             ),
             color: AppColors.backgroundLight,
             onOpened: () => setState(() => _openDropdown = item.key),
@@ -292,25 +274,11 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
                 color: isOpen
-                    ? AppColors.backgroundLight.withValues(alpha: 0.25)
+                    ? AppColors.primary
                     : isHovered
-                        ? AppColors.backgroundLight.withValues(alpha: 0.15)
+                        ? AppColors.gray200
                         : null,
-                borderRadius: BorderRadius.circular(8.0),
-                border: isOpen
-                    ? Border.all(
-                        color: AppColors.backgroundLight.withValues(alpha: 0.3),
-                      )
-                    : null,
-                boxShadow: isHovered || isOpen
-                    ? <BoxShadow>[
-                        BoxShadow(
-                          color: AppColors.backgroundLight.withValues(alpha: 0.1),
-                          blurRadius: 6,
-                          offset: const Offset(0, 1),
-                        ),
-                      ]
-                    : null,
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -320,9 +288,7 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
                     size: 16,
                     color: isOpen
                         ? AppColors.backgroundLight
-                        : isHovered
-                            ? AppColors.backgroundLight.withValues(alpha: 0.9)
-                            : AppColors.backgroundLight.withValues(alpha: 0.85),
+                        : AppColors.gray700,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -330,11 +296,9 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
                     style: GoogleFonts.inter(
                       color: isOpen
                           ? AppColors.backgroundLight
-                          : isHovered
-                              ? AppColors.backgroundLight.withValues(alpha: 0.9)
-                              : AppColors.backgroundLight.withValues(alpha: 0.85),
+                          : AppColors.gray700,
                       fontWeight: isOpen ? FontWeight.w600 : FontWeight.w500,
-                      fontSize: 12.5,
+                      fontSize: 13,
                       letterSpacing: 0.2,
                     ),
                   ),
@@ -347,9 +311,7 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
                       size: 18,
                       color: isOpen
                           ? AppColors.backgroundLight
-                          : isHovered
-                              ? AppColors.backgroundLight.withValues(alpha: 0.9)
-                              : AppColors.backgroundLight.withValues(alpha: 0.75),
+                          : AppColors.gray700,
                     ),
                   ),
                 ],
@@ -380,7 +342,7 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: (item.color ?? AppColors.primary).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8.0),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     item.icon,
@@ -395,7 +357,7 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimaryLight,
+                      color: AppColors.gray900,
                       letterSpacing: 0.1,
                     ),
                   ),
@@ -403,7 +365,7 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
                 const Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 12,
-                  color: AppColors.textSecondaryLight,
+                  color: AppColors.gray500,
                 ),
               ],
             ),

@@ -16,10 +16,29 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+// Decorations constantes para reutilización
+const BoxDecoration _kAppBarHeaderDecoration = BoxDecoration(
+  color: AppColors.backgroundLight,
+  border: Border(
+    bottom: BorderSide(
+      color: AppColors.gray200,
+    ),
+  ),
+  boxShadow: <BoxShadow>[
+    BoxShadow(
+      color: Color.fromRGBO(0, 0, 0, 0.05),
+      blurRadius: 4,
+      offset: Offset(0, 1),
+    ),
+  ],
+);
+
 /// AppBar personalizado con menú integrado para AmbuTrack
 ///
-/// Proporciona un AppBar con el menú de navegación integrado que se adapta
-/// a diferentes tamaños de pantalla y mantiene la funcionalidad de tabs.
+/// Proporciona un AppBar moderno con:
+/// - Logo/título a la izquierda
+/// - Menú de navegación horizontal
+/// - Iconos de configuración, notificaciones y perfil a la derecha
 class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
   const AppBarWithMenu({
     super.key,
@@ -32,7 +51,7 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize {
-    double height = 120; // Altura para dos filas: título (60) + menú (60)
+    double height = 64; // Altura del header
     if (bottom != null) {
       height += bottom!.preferredSize.height;
     }
@@ -41,143 +60,109 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isWideScreen = MediaQuery.of(context).size.width > 800;
+    final bool isWideScreen = MediaQuery.of(context).size.width > 1024;
 
     return Material(
       child: SafeArea(
         bottom: false,
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                AppColors.primary,
-                AppColors.primaryDark,
-              ],
-            ),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: Color.fromRGBO(30, 64, 175, 0.3),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              // Primera fila: Título e iconos de acción
-              SizedBox(
-                height: 60,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    children: <Widget>[
-                      // Hamburger menu solo en móvil
-                      if (!isWideScreen) ...<Widget>[
-                        IconButton(
-                          icon: const Icon(
-                            Icons.menu_rounded,
-                            color: AppColors.backgroundLight,
-                            size: 24,
-                          ),
-                          onPressed: () {
-                            // TODO(team): Implementar drawer móvil
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                      ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // Header principal con fondo blanco
+            Container(
+              height: 64,
+              decoration: _kAppBarHeaderDecoration,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Row(
+                  children: <Widget>[
+                    // Logo y título a la izquierda
+                    _buildLogoSection(isWideScreen),
+                    const SizedBox(width: 32),
 
-                      // Título centrado con indicador de flavor
-                      Expanded(
-                        child: Center(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Text(
-                                title ?? F.title,
-                                style: GoogleFonts.inter(
-                                  fontSize: isWideScreen ? 20 : 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.backgroundLight,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              if (F.appFlavor == Flavor.dev) ...<Widget>[
-                                const SizedBox(width: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.warning,
-                                    borderRadius: BorderRadius.circular(6),
-                                    boxShadow: const <BoxShadow>[
-                                      BoxShadow(
-                                        color: Color.fromRGBO(251, 191, 36, 0.4),
-                                        blurRadius: 4,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Text(
-                                    'DEV',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.backgroundDark,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
+                    // Menú de navegación horizontal (solo en desktop)
+                    if (isWideScreen)
+                      const Expanded(
+                        child: AppMenu(),
                       ),
 
-                      // Sección derecha: Configuración + Notificaciones (incluye alertas) + Usuario
-                      if (isWideScreen) ...<Widget>[
-                        _buildConfigurationButton(context),
-                        const SizedBox(width: 12),
-                        _buildNotificationButton(context),
-                        const SizedBox(width: 12),
-                        _buildUserButton(context, isWideScreen),
-                      ] else ...<Widget>[
-                        _buildNotificationButton(context),
-                        const SizedBox(width: 8),
-                        _buildUserButton(context, isWideScreen),
-                      ],
+                    // Espaciador
+                    if (isWideScreen) const SizedBox(width: 32),
+
+                    // Acciones a la derecha
+                    if (isWideScreen) ...<Widget>[
+                      _buildConfigurationButton(context),
+                      const SizedBox(width: 12),
+                      _buildNotificationButton(context),
+                      const SizedBox(width: 12),
+                      _buildUserButton(context, isWideScreen),
+                    ] else ...<Widget>[
+                      const Spacer(),
+                      _buildNotificationButton(context),
+                      const SizedBox(width: 8),
+                      _buildUserButton(context, isWideScreen),
                     ],
-                  ),
+                  ],
                 ),
               ),
+            ),
 
-              // Segunda fila: Menú de navegación (solo en pantallas grandes)
-              if (isWideScreen)
-                SizedBox(
-                  height: 60,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                      border: Border(
-                        top: BorderSide(
-                          color: AppColors.backgroundLight.withValues(alpha: 0.1),
-                        ),
-                      ),
-                    ),
-                    child: const AppMenu(),
-                  ),
-                ),
-
-              // TabBar si existe
-              if (bottom != null) bottom!,
-            ],
-          ),
+            // TabBar si existe
+            if (bottom != null) bottom!,
+          ],
         ),
       ),
+    );
+  }
+
+  /// Sección del logo y título
+  Widget _buildLogoSection(bool isWideScreen) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        // Icono de ambulancia como logo
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(
+            Icons.local_hospital_rounded,
+            color: AppColors.primary,
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 12),
+
+        // Título de la app
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'AmbuTrack',
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.gray900,
+                letterSpacing: -0.5,
+              ),
+            ),
+            if (F.appFlavor == Flavor.dev)
+              Text(
+                'DEV',
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.warning,
+                  letterSpacing: 0.5,
+                ),
+              ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -186,22 +171,22 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(12),
         onTap: () {
           context.go('/configuracion');
         },
         child: Container(
-          padding: const EdgeInsets.all(10.0),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: AppColors.backgroundLight.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12.0),
+            color: AppColors.gray100,
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: AppColors.backgroundLight.withValues(alpha: 0.2),
+              color: AppColors.gray200,
             ),
           ),
           child: const Icon(
             Icons.settings_outlined,
-            color: AppColors.backgroundLight,
+            color: AppColors.gray600,
             size: 20,
           ),
         ),
@@ -242,19 +227,20 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                 return Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(12.0),
+                    borderRadius: BorderRadius.circular(12),
                     onTap: () {
                       _mostrarPanelNotificaciones(context);
                     },
                     child: Stack(
+                      clipBehavior: Clip.none,
                       children: <Widget>[
                         Container(
-                          padding: const EdgeInsets.all(10.0),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppColors.backgroundLight.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12.0),
+                            color: AppColors.gray100,
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: AppColors.backgroundLight.withValues(alpha: 0.2),
+                              color: AppColors.gray200,
                             ),
                           ),
                           child: Icon(
@@ -264,17 +250,17 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                                 : Icons.notifications_outlined,
                             color: alertasCriticasCount > 0
                                 ? AppColors.warning
-                                : AppColors.backgroundLight,
+                                : AppColors.gray600,
                             size: 20,
                           ),
                         ),
                         // Badge combinado
                         if (conteoTotal > 0)
                           Positioned(
-                            right: 6,
-                            top: 6,
+                            right: -4,
+                            top: -4,
                             child: Container(
-                              padding: const EdgeInsets.all(3.0),
+                              padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
                                 color: alertasCriticasCount > 0
                                     ? AppColors.warning
@@ -284,23 +270,16 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                                   color: AppColors.backgroundLight,
                                   width: 1.5,
                                 ),
-                                boxShadow: const <BoxShadow>[
-                                  BoxShadow(
-                                    color: Color.fromRGBO(251, 191, 36, 0.4),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 1),
-                                  ),
-                                ],
                               ),
                               constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
+                                minWidth: 18,
+                                minHeight: 18,
                               ),
                               child: Text(
                                 conteoTotal > 9 ? '9+' : '$conteoTotal',
                                 style: GoogleFonts.inter(
                                   color: AppColors.backgroundLight,
-                                  fontSize: 9,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                 ),
                                 textAlign: TextAlign.center,
@@ -396,9 +375,9 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
         return Material(
           color: Colors.transparent,
           child: PopupMenuButton<String>(
-            elevation: 16.0,
+            elevation: 16,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16.0),
+              borderRadius: BorderRadius.circular(16),
             ),
             color: AppColors.backgroundLight,
             onSelected: (String route) {
@@ -423,7 +402,7 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                       style: GoogleFonts.inter(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimaryLight,
+                        color: AppColors.gray900,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -432,7 +411,7 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
-                        color: AppColors.textSecondaryLight,
+                        color: AppColors.gray600,
                       ),
                     ),
                   ],
@@ -445,10 +424,10 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                 child: Row(
                   children: <Widget>[
                     Container(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8.0),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
                         Icons.person_outline,
@@ -462,7 +441,7 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimaryLight,
+                        color: AppColors.gray900,
                       ),
                     ),
                   ],
@@ -475,10 +454,10 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                 child: Row(
                   children: <Widget>[
                     Container(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: AppColors.emergency.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8.0),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
                         Icons.logout_outlined,
@@ -492,7 +471,7 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimaryLight,
+                        color: AppColors.gray900,
                       ),
                     ),
                   ],
@@ -500,12 +479,12 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
               ),
             ],
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.backgroundLight.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12.0),
+                color: AppColors.gray100,
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.backgroundLight.withValues(alpha: 0.2),
+                  color: AppColors.gray200,
                 ),
               ),
               child: Row(
@@ -513,10 +492,10 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                 children: <Widget>[
                   const CircleAvatar(
                     radius: 14,
-                    backgroundColor: AppColors.backgroundLight,
+                    backgroundColor: AppColors.primary,
                     child: Icon(
                       Icons.person,
-                      color: AppColors.primary,
+                      color: AppColors.backgroundLight,
                       size: 18,
                     ),
                   ),
@@ -529,7 +508,7 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.backgroundLight,
+                          color: AppColors.gray900,
                         ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
@@ -539,7 +518,7 @@ class AppBarWithMenu extends StatelessWidget implements PreferredSizeWidget {
                   const SizedBox(width: 6),
                   const Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    color: AppColors.backgroundLight,
+                    color: AppColors.gray600,
                     size: 18,
                   ),
                 ],

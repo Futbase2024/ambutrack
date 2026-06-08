@@ -9,7 +9,7 @@ import 'package:injectable/injectable.dart';
 @injectable
 class AsignacionesBloc extends Bloc<AsignacionesEvent, AsignacionesState> {
   AsignacionesBloc(this._repository)
-      : super(const AsignacionesState.initial()) {
+      : super(const AsignacionesInitial()) {
     on<AsignacionesLoadAllRequested>(_onLoadAll);
     on<AsignacionesLoadByFechaRequested>(_onLoadByFecha);
     on<AsignacionesLoadByRangoRequested>(_onLoadByRango);
@@ -22,20 +22,26 @@ class AsignacionesBloc extends Bloc<AsignacionesEvent, AsignacionesState> {
 
   final AsignacionVehiculoTurnoRepository _repository;
 
+  /// Fecha actual para recargar después de CUD
+  DateTime _currentFecha = DateTime.now();
+
   Future<void> _onLoadAll(
     AsignacionesLoadAllRequested event,
     Emitter<AsignacionesState> emit,
   ) async {
-    debugPrint('🔄 AsignacionesBloc: Cargando todas las asignaciones...');
-    emit(const AsignacionesState.loading());
-
     try {
-      final List<AsignacionVehiculoTurnoEntity> asignaciones = await _repository.getAll();
-      debugPrint('✅ AsignacionesBloc: ${asignaciones.length} asignaciones cargadas');
-      emit(AsignacionesState.loaded(asignaciones));
+      debugPrint('🔄 AsignacionesBloc: Cargando todas las asignaciones...');
+      emit(const AsignacionesLoading());
+
+      final List<AsignacionVehiculoTurnoEntity> asignaciones =
+          await _repository.getAll();
+      debugPrint(
+        '✅ AsignacionesBloc: ${asignaciones.length} asignaciones cargadas',
+      );
+      emit(AsignacionesLoaded(asignaciones));
     } catch (e) {
-      debugPrint('❌ AsignacionesBloc: Error al cargar asignaciones: $e');
-      emit(AsignacionesState.error(e.toString()));
+      debugPrint('❌ AsignacionesBloc: Error al cargar: $e');
+      emit(AsignacionesError(e.toString()));
     }
   }
 
@@ -43,16 +49,22 @@ class AsignacionesBloc extends Bloc<AsignacionesEvent, AsignacionesState> {
     AsignacionesLoadByFechaRequested event,
     Emitter<AsignacionesState> emit,
   ) async {
-    debugPrint('🔄 AsignacionesBloc: Cargando asignaciones por fecha ${event.fecha}...');
-    emit(const AsignacionesState.loading());
-
+    _currentFecha = event.fecha;
     try {
-      final List<AsignacionVehiculoTurnoEntity> asignaciones = await _repository.getByFecha(event.fecha);
-      debugPrint('✅ AsignacionesBloc: ${asignaciones.length} asignaciones encontradas');
-      emit(AsignacionesState.loaded(asignaciones));
+      debugPrint(
+        '🔄 AsignacionesBloc: Cargando por fecha ${event.fecha}...',
+      );
+      emit(const AsignacionesLoading());
+
+      final List<AsignacionVehiculoTurnoEntity> asignaciones =
+          await _repository.getByFecha(event.fecha);
+      debugPrint(
+        '✅ AsignacionesBloc: ${asignaciones.length} asignaciones encontradas',
+      );
+      emit(AsignacionesLoaded(asignaciones));
     } catch (e) {
-      debugPrint('❌ AsignacionesBloc: Error al cargar asignaciones por fecha: $e');
-      emit(AsignacionesState.error(e.toString()));
+      debugPrint('❌ AsignacionesBloc: Error al cargar por fecha: $e');
+      emit(AsignacionesError(e.toString()));
     }
   }
 
@@ -60,19 +72,19 @@ class AsignacionesBloc extends Bloc<AsignacionesEvent, AsignacionesState> {
     AsignacionesLoadByRangoRequested event,
     Emitter<AsignacionesState> emit,
   ) async {
-    debugPrint('🔄 AsignacionesBloc: Cargando asignaciones por rango...');
-    emit(const AsignacionesState.loading());
-
     try {
-      final List<AsignacionVehiculoTurnoEntity> asignaciones = await _repository.getByRangoFechas(
-        event.inicio,
-        event.fin,
+      debugPrint('🔄 AsignacionesBloc: Cargando por rango...');
+      emit(const AsignacionesLoading());
+
+      final List<AsignacionVehiculoTurnoEntity> asignaciones =
+          await _repository.getByRangoFechas(event.inicio, event.fin);
+      debugPrint(
+        '✅ AsignacionesBloc: ${asignaciones.length} asignaciones encontradas',
       );
-      debugPrint('✅ AsignacionesBloc: ${asignaciones.length} asignaciones encontradas');
-      emit(AsignacionesState.loaded(asignaciones));
+      emit(AsignacionesLoaded(asignaciones));
     } catch (e) {
-      debugPrint('❌ AsignacionesBloc: Error al cargar asignaciones por rango: $e');
-      emit(AsignacionesState.error(e.toString()));
+      debugPrint('❌ AsignacionesBloc: Error al cargar por rango: $e');
+      emit(AsignacionesError(e.toString()));
     }
   }
 
@@ -80,19 +92,19 @@ class AsignacionesBloc extends Bloc<AsignacionesEvent, AsignacionesState> {
     AsignacionesLoadByVehiculoRequested event,
     Emitter<AsignacionesState> emit,
   ) async {
-    debugPrint('🔄 AsignacionesBloc: Cargando asignaciones por vehículo...');
-    emit(const AsignacionesState.loading());
-
     try {
-      final List<AsignacionVehiculoTurnoEntity> asignaciones = await _repository.getByVehiculo(
-        event.vehiculoId,
-        event.fecha,
+      debugPrint('🔄 AsignacionesBloc: Cargando por vehículo...');
+      emit(const AsignacionesLoading());
+
+      final List<AsignacionVehiculoTurnoEntity> asignaciones =
+          await _repository.getByVehiculo(event.vehiculoId, event.fecha);
+      debugPrint(
+        '✅ AsignacionesBloc: ${asignaciones.length} asignaciones encontradas',
       );
-      debugPrint('✅ AsignacionesBloc: ${asignaciones.length} asignaciones encontradas');
-      emit(AsignacionesState.loaded(asignaciones));
+      emit(AsignacionesLoaded(asignaciones));
     } catch (e) {
-      debugPrint('❌ AsignacionesBloc: Error al cargar asignaciones por vehículo: $e');
-      emit(AsignacionesState.error(e.toString()));
+      debugPrint('❌ AsignacionesBloc: Error al cargar por vehículo: $e');
+      emit(AsignacionesError(e.toString()));
     }
   }
 
@@ -100,16 +112,19 @@ class AsignacionesBloc extends Bloc<AsignacionesEvent, AsignacionesState> {
     AsignacionesLoadByEstadoRequested event,
     Emitter<AsignacionesState> emit,
   ) async {
-    debugPrint('🔄 AsignacionesBloc: Cargando asignaciones por estado...');
-    emit(const AsignacionesState.loading());
-
     try {
-      final List<AsignacionVehiculoTurnoEntity> asignaciones = await _repository.getByEstado(event.estado);
-      debugPrint('✅ AsignacionesBloc: ${asignaciones.length} asignaciones encontradas');
-      emit(AsignacionesState.loaded(asignaciones));
+      debugPrint('🔄 AsignacionesBloc: Cargando por estado...');
+      emit(const AsignacionesLoading());
+
+      final List<AsignacionVehiculoTurnoEntity> asignaciones =
+          await _repository.getByEstado(event.estado);
+      debugPrint(
+        '✅ AsignacionesBloc: ${asignaciones.length} asignaciones encontradas',
+      );
+      emit(AsignacionesLoaded(asignaciones));
     } catch (e) {
-      debugPrint('❌ AsignacionesBloc: Error al cargar asignaciones por estado: $e');
-      emit(AsignacionesState.error(e.toString()));
+      debugPrint('❌ AsignacionesBloc: Error al cargar por estado: $e');
+      emit(AsignacionesError(e.toString()));
     }
   }
 
@@ -117,18 +132,14 @@ class AsignacionesBloc extends Bloc<AsignacionesEvent, AsignacionesState> {
     AsignacionCreateRequested event,
     Emitter<AsignacionesState> emit,
   ) async {
-    debugPrint('🔄 AsignacionesBloc: Creando asignación...');
-
     try {
+      debugPrint('🔄 AsignacionesBloc: Creando asignación...');
       await _repository.create(event.asignacion);
-      debugPrint('✅ AsignacionesBloc: Asignación creada exitosamente');
-
-      // Recargar lista después de crear
-      final List<AsignacionVehiculoTurnoEntity> asignaciones = await _repository.getByFecha(event.asignacion.fecha);
-      emit(AsignacionesState.loaded(asignaciones));
+      debugPrint('✅ AsignacionesBloc: Asignación creada');
+      add(AsignacionesLoadByFechaRequested(event.asignacion.fecha));
     } catch (e) {
-      debugPrint('❌ AsignacionesBloc: Error al crear asignación: $e');
-      emit(AsignacionesState.error(e.toString()));
+      debugPrint('❌ AsignacionesBloc: Error al crear: $e');
+      emit(AsignacionesError(e.toString()));
     }
   }
 
@@ -136,18 +147,14 @@ class AsignacionesBloc extends Bloc<AsignacionesEvent, AsignacionesState> {
     AsignacionUpdateRequested event,
     Emitter<AsignacionesState> emit,
   ) async {
-    debugPrint('🔄 AsignacionesBloc: Actualizando asignación...');
-
     try {
+      debugPrint('🔄 AsignacionesBloc: Actualizando asignación...');
       await _repository.update(event.asignacion);
-      debugPrint('✅ AsignacionesBloc: Asignación actualizada exitosamente');
-
-      // Recargar lista después de actualizar
-      final List<AsignacionVehiculoTurnoEntity> asignaciones = await _repository.getByFecha(event.asignacion.fecha);
-      emit(AsignacionesState.loaded(asignaciones));
+      debugPrint('✅ AsignacionesBloc: Asignación actualizada');
+      add(AsignacionesLoadByFechaRequested(event.asignacion.fecha));
     } catch (e) {
-      debugPrint('❌ AsignacionesBloc: Error al actualizar asignación: $e');
-      emit(AsignacionesState.error(e.toString()));
+      debugPrint('❌ AsignacionesBloc: Error al actualizar: $e');
+      emit(AsignacionesError(e.toString()));
     }
   }
 
@@ -155,38 +162,14 @@ class AsignacionesBloc extends Bloc<AsignacionesEvent, AsignacionesState> {
     AsignacionDeleteRequested event,
     Emitter<AsignacionesState> emit,
   ) async {
-    debugPrint('🔄 AsignacionesBloc: Eliminando asignación...');
-
     try {
+      debugPrint('🔄 AsignacionesBloc: Eliminando asignación...');
       await _repository.delete(event.id);
-      debugPrint('✅ AsignacionesBloc: Asignación eliminada exitosamente');
-
-      // Recargar lista después de eliminar
-      final AsignacionesState currentState = state;
-      if (currentState is AsignacionesLoaded) {
-        final List<AsignacionVehiculoTurnoEntity> asignaciones = currentState.asignaciones
-            .where((AsignacionVehiculoTurnoEntity a) => a.id != event.id)
-            .toList();
-        emit(
-          AsignacionesState.operationSuccess(
-            message: 'Asignación eliminada exitosamente',
-            asignaciones: asignaciones,
-          ),
-        );
-      } else if (currentState is AsignacionOperationSuccess) {
-        final List<AsignacionVehiculoTurnoEntity> asignaciones = currentState.asignaciones
-            .where((AsignacionVehiculoTurnoEntity a) => a.id != event.id)
-            .toList();
-        emit(
-          AsignacionesState.operationSuccess(
-            message: 'Asignación eliminada exitosamente',
-            asignaciones: asignaciones,
-          ),
-        );
-      }
+      debugPrint('✅ AsignacionesBloc: Asignación eliminada');
+      add(AsignacionesLoadByFechaRequested(_currentFecha));
     } catch (e) {
-      debugPrint('❌ AsignacionesBloc: Error al eliminar asignación: $e');
-      emit(AsignacionesState.error(e.toString()));
+      debugPrint('❌ AsignacionesBloc: Error al eliminar: $e');
+      emit(AsignacionesError(e.toString()));
     }
   }
 }

@@ -18,14 +18,18 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Tabla de Stock de Vestuario
 class StockVestuarioTable extends StatefulWidget {
-  const StockVestuarioTable({super.key});
+  const StockVestuarioTable({
+    super.key,
+    required this.searchQuery,
+  });
+
+  final String searchQuery;
 
   @override
   State<StockVestuarioTable> createState() => _StockVestuarioTableState();
 }
 
 class _StockVestuarioTableState extends State<StockVestuarioTable> {
-  String _searchQuery = '';
   int? _sortColumnIndex = 0;
   bool _sortAscending = true;
   bool _isDeleting = false;
@@ -33,6 +37,14 @@ class _StockVestuarioTableState extends State<StockVestuarioTable> {
   DateTime? _deleteStartTime;
   int _currentPage = 0;
   static const int _itemsPerPage = 25;
+
+  @override
+  void didUpdateWidget(StockVestuarioTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.searchQuery != widget.searchQuery) {
+      _currentPage = 0;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,36 +113,6 @@ class _StockVestuarioTableState extends State<StockVestuarioTable> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                // Header: Título y búsqueda
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        'Listado de Stock de Vestuario',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimaryLight,
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 300,
-                      child: _SearchField(
-                        searchQuery: _searchQuery,
-                        onSearchChanged: (String query) {
-                          setState(() {
-                            _searchQuery = query;
-                            _currentPage = 0;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSizes.spacing),
-
-                // Info de resultados filtrados
                 if (state.items.length != filtrados.length)
                   Padding(
                     padding: const EdgeInsets.only(bottom: AppSizes.spacing),
@@ -143,7 +125,6 @@ class _StockVestuarioTableState extends State<StockVestuarioTable> {
                     ),
                   ),
 
-                // Tabla con scroll interno
                 Expanded(
                   child: AppDataGridV5<StockVestuarioEntity>(
                     columns: const <DataGridColumn>[
@@ -169,7 +150,7 @@ class _StockVestuarioTableState extends State<StockVestuarioTable> {
                     ],
                     onEdit: (StockVestuarioEntity item) => _editItem(context, item),
                     onDelete: (StockVestuarioEntity item) => _confirmDelete(context, item),
-                    emptyMessage: _searchQuery.isNotEmpty
+                    emptyMessage: widget.searchQuery.isNotEmpty
                         ? 'No se encontraron artículos con los filtros aplicados'
                         : 'No hay artículos de stock registrados',
                     sortColumnIndex: _sortColumnIndex,
@@ -180,18 +161,18 @@ class _StockVestuarioTableState extends State<StockVestuarioTable> {
                         _sortAscending = ascending;
                       });
                     },
-                    rowHeight: 42.0, // Altura compacta para mostrar todo en 1 línea
-                    headerHeight: 48.0, // Header más compacto
+                    rowHeight: 42.0,
+                    headerHeight: 48.0,
                   ),
                 ),
 
-                // Paginación
                 const SizedBox(height: AppSizes.spacing),
-                _buildPaginationControls(
+                _PaginationBar(
                   currentPage: _currentPage,
-                  totalPages: totalPages,
+                  totalPages: totalPages.clamp(1, 999),
                   totalItems: totalItems,
-                  onPageChanged: (int page) => setState(() => _currentPage = page),
+                  itemsPerPage: _itemsPerPage,
+                  onPageChanged: (int page) { setState(() { _currentPage = page; }); },
                 ),
               ],
             );
@@ -203,102 +184,12 @@ class _StockVestuarioTableState extends State<StockVestuarioTable> {
     );
   }
 
-  /// Construye controles de paginación profesional
-  Widget _buildPaginationControls({
-    required int currentPage,
-    required int totalPages,
-    required int totalItems,
-    required void Function(int) onPageChanged,
-  }) {
-    final int startItem = totalItems == 0 ? 0 : currentPage * _itemsPerPage + 1;
-    final int endItem = totalItems == 0
-        ? 0
-        : ((currentPage + 1) * _itemsPerPage).clamp(0, totalItems);
-
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(color: AppColors.gray200),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          // Info de elementos mostrados
-          Text(
-            'Mostrando $startItem-$endItem de $totalItems items',
-            style: AppTextStyles.bodySmallSecondary,
-          ),
-
-          // Controles de navegación
-          Row(
-            children: <Widget>[
-              // Primera página
-              _PaginationButton(
-                onPressed: currentPage > 0 ? () => onPageChanged(0) : null,
-                icon: Icons.first_page,
-                tooltip: 'Primera página',
-              ),
-              const SizedBox(width: AppSizes.spacingSmall),
-
-              // Página anterior
-              _PaginationButton(
-                onPressed: currentPage > 0 ? () => onPageChanged(currentPage - 1) : null,
-                icon: Icons.chevron_left,
-                tooltip: 'Página anterior',
-              ),
-              const SizedBox(width: AppSizes.spacing),
-
-              // Indicador de página actual (badge azul)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.paddingMedium,
-                  vertical: AppSizes.spacingSmall,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                ),
-                child: Text(
-                  'Página ${currentPage + 1} de ${totalPages > 0 ? totalPages : 1}',
-                  style: GoogleFonts.inter(
-                    fontSize: AppSizes.fontSmall,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSizes.spacing),
-
-              // Página siguiente
-              _PaginationButton(
-                onPressed: currentPage < totalPages - 1 ? () => onPageChanged(currentPage + 1) : null,
-                icon: Icons.chevron_right,
-                tooltip: 'Página siguiente',
-              ),
-              const SizedBox(width: AppSizes.spacingSmall),
-
-              // Última página
-              _PaginationButton(
-                onPressed: currentPage < totalPages - 1 ? () => onPageChanged(totalPages - 1) : null,
-                icon: Icons.last_page,
-                tooltip: 'Última página',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Filtra los items según el query de búsqueda
   List<StockVestuarioEntity> _filterItems(List<StockVestuarioEntity> items) {
-    if (_searchQuery.isEmpty) {
+    if (widget.searchQuery.isEmpty) {
       return items;
     }
 
-    final String queryLower = _searchQuery.toLowerCase();
+    final String queryLower = widget.searchQuery.toLowerCase();
 
     return items.where((StockVestuarioEntity item) {
       return item.prenda.toLowerCase().contains(queryLower) ||
@@ -528,48 +419,10 @@ class _StockVestuarioTableState extends State<StockVestuarioTable> {
   }
 }
 
-/// Botón de paginación reutilizable
-class _PaginationButton extends StatelessWidget {
-  const _PaginationButton({
-    required this.onPressed,
-    required this.icon,
-    required this.tooltip,
-  });
-
-  final VoidCallback? onPressed;
-  final IconData icon;
-  final String tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        child: Container(
-          padding: const EdgeInsets.all(AppSizes.spacingSmall),
-          decoration: BoxDecoration(
-            color: onPressed != null ? AppColors.primary.withValues(alpha: 0.1) : AppColors.gray200,
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-            border: Border.all(
-              color: onPressed != null ? AppColors.primary.withValues(alpha: 0.3) : AppColors.gray300,
-            ),
-          ),
-          child: Icon(
-            icon,
-            size: AppSizes.iconSmall,
-            color: onPressed != null ? AppColors.primary : AppColors.gray400,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Campo de búsqueda
-class _SearchField extends StatefulWidget {
-  const _SearchField({
+/// Campo de búsqueda para Stock de Vestuario (usado en PageHeader.extra)
+class StockVestuarioSearchField extends StatefulWidget {
+  const StockVestuarioSearchField({
+    super.key,
     required this.searchQuery,
     required this.onSearchChanged,
   });
@@ -578,16 +431,24 @@ class _SearchField extends StatefulWidget {
   final void Function(String) onSearchChanged;
 
   @override
-  State<_SearchField> createState() => _SearchFieldState();
+  State<StockVestuarioSearchField> createState() => _StockVestuarioSearchFieldState();
 }
 
-class _SearchFieldState extends State<_SearchField> {
+class _StockVestuarioSearchFieldState extends State<StockVestuarioSearchField> {
   late TextEditingController _controller;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.searchQuery);
+  }
+
+  @override
+  void didUpdateWidget(StockVestuarioSearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.searchQuery != widget.searchQuery && _controller.text != widget.searchQuery) {
+      _controller.text = widget.searchQuery;
+    }
   }
 
   @override
@@ -634,6 +495,98 @@ class _SearchFieldState extends State<_SearchField> {
       style: GoogleFonts.inter(
         fontSize: 14,
         color: AppColors.textPrimaryLight,
+      ),
+    );
+  }
+}
+
+/// Barra de paginación compacta
+class _PaginationBar extends StatelessWidget {
+  const _PaginationBar({
+    required this.currentPage,
+    required this.totalPages,
+    required this.totalItems,
+    required this.itemsPerPage,
+    required this.onPageChanged,
+  });
+
+  final int currentPage;
+  final int totalPages;
+  final int totalItems;
+  final int itemsPerPage;
+  final void Function(int) onPageChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final int startItem = totalItems == 0 ? 0 : currentPage * itemsPerPage + 1;
+    final int endItem = totalItems == 0
+        ? 0
+        : ((currentPage + 1) * itemsPerPage).clamp(0, totalItems);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingSmall),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          Text(
+            'Mostrando $startItem-$endItem de $totalItems artículos',
+            style: AppTextStyles.bodySmallSecondary,
+          ),
+          Row(
+            children: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.first_page),
+                onPressed: currentPage > 0 ? () => onPageChanged(0) : null,
+                tooltip: 'Primera página',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: currentPage > 0 ? () => onPageChanged(currentPage - 1) : null,
+                tooltip: 'Página anterior',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingSmall,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                ),
+                child: Text(
+                  'Página ${currentPage + 1} de $totalPages',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textPrimaryDark,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: currentPage < totalPages - 1 ? () => onPageChanged(currentPage + 1) : null,
+                tooltip: 'Página siguiente',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+              IconButton(
+                icon: const Icon(Icons.last_page),
+                onPressed: currentPage < totalPages - 1 ? () => onPageChanged(totalPages - 1) : null,
+                tooltip: 'Última página',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

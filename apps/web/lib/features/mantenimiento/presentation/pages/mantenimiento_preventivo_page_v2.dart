@@ -46,6 +46,7 @@ class _MantenimientoPreventivoView extends StatefulWidget {
 
 class _MantenimientoPreventivoViewState extends State<_MantenimientoPreventivoView> {
   DateTime? _pageStartTime;
+  MantenimientosFilterData _filterData = const MantenimientosFilterData();
 
   @override
   void initState() {
@@ -55,8 +56,9 @@ class _MantenimientoPreventivoViewState extends State<_MantenimientoPreventivoVi
   }
 
   void _onFilterChanged(MantenimientosFilterData filterData) {
-    // Los filtros se manejan dentro de la tabla
-    debugPrint('🔍 Filtros aplicados en Mantenimiento Preventivo');
+    setState(() {
+      _filterData = filterData;
+    });
   }
 
   @override
@@ -95,6 +97,7 @@ class _MantenimientoPreventivoViewState extends State<_MantenimientoPreventivoVi
                       subtitle: 'Programación y seguimiento de mantenimientos',
                       addButtonLabel: 'Programar Mantenimiento',
                       stats: _buildHeaderStats(state),
+                      extra: MantenimientosFilters(onFilterChanged: _onFilterChanged),
                       onAdd: _showAddMantenimientoDialog,
                     ),
                   );
@@ -104,7 +107,7 @@ class _MantenimientoPreventivoViewState extends State<_MantenimientoPreventivoVi
 
               // Tabla ocupa el espacio restante
               Expanded(
-                child: MantenimientoTableV4(onFilterChanged: _onFilterChanged),
+                child: MantenimientoTableV4(filterData: _filterData),
               ),
             ],
           ),

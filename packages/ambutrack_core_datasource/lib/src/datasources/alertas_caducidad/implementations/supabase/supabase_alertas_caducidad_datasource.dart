@@ -186,6 +186,26 @@ class SupabaseAlertasCaducidadDataSource
     }
   }
 
+  @override
+  Future<void> marcarAlertaVista({
+    required String usuarioId,
+    required String tipoAlerta,
+    required String entidadId,
+  }) async {
+    try {
+      await supabase.rpc(
+        'marcar_alerta_vista',
+        params: {
+          'p_usuario_id': usuarioId,
+          'p_tipo_alerta': tipoAlerta,
+          'p_entidad_id': entidadId,
+        },
+      );
+    } catch (e) {
+      debugPrint('❌ Error al marcar alerta como vista: $e');
+    }
+  }
+
   /// Convierte el enum AlertaTipo a string para Supabase
   String _tipoToString(AlertaTipo tipo) {
     switch (tipo) {

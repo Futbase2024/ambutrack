@@ -23,14 +23,18 @@ import 'historial_medico_form_dialog.dart';
 
 /// Tabla de Historial Médico del Personal
 class HistorialMedicoTable extends StatefulWidget {
-  const HistorialMedicoTable({super.key});
+  const HistorialMedicoTable({
+    super.key,
+    required this.searchQuery,
+  });
+
+  final String searchQuery;
 
   @override
   State<HistorialMedicoTable> createState() => _HistorialMedicoTableState();
 }
 
 class _HistorialMedicoTableState extends State<HistorialMedicoTable> {
-  String _searchQuery = '';
   int? _sortColumnIndex = 0;
   bool _sortAscending = true;
   bool _isDeleting = false;
@@ -38,6 +42,14 @@ class _HistorialMedicoTableState extends State<HistorialMedicoTable> {
   DateTime? _deleteStartTime;
   int _currentPage = 0;
   static const int _itemsPerPage = 25;
+
+  @override
+  void didUpdateWidget(HistorialMedicoTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.searchQuery != widget.searchQuery) {
+      _currentPage = 0;
+    }
+  }
 
   // Cache de personal para mostrar nombres
   final Map<String, String> _personalNombres = <String, String>{};
@@ -139,36 +151,6 @@ class _HistorialMedicoTableState extends State<HistorialMedicoTable> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                // Header: Título y búsqueda
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        'Listado de Reconocimientos Médicos',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimaryLight,
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 300,
-                      child: _SearchField(
-                        searchQuery: _searchQuery,
-                        onSearchChanged: (String query) {
-                          setState(() {
-                            _searchQuery = query;
-                            _currentPage = 0;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSizes.spacing),
-
-                // Info de resultados filtrados
                 if (state.items.length != filtrados.length)
                   Padding(
                     padding: const EdgeInsets.only(bottom: AppSizes.spacing),
@@ -181,7 +163,6 @@ class _HistorialMedicoTableState extends State<HistorialMedicoTable> {
                     ),
                   ),
 
-                // Tabla con scroll interno
                 Expanded(
                   child: AppDataGridV5<HistorialMedicoEntity>(
                     columns: const <DataGridColumn>[
@@ -211,9 +192,7 @@ class _HistorialMedicoTableState extends State<HistorialMedicoTable> {
                         _sortAscending = ascending;
                       });
                     },
-                    rowHeight: 64,
-                    outerBorderColor: AppColors.gray300,
-                    emptyMessage: _searchQuery.isNotEmpty
+                    emptyMessage: widget.searchQuery.isNotEmpty
                         ? 'No se encontraron reconocimientos con los filtros aplicados'
                         : 'No hay reconocimientos médicos registrados',
                     onEdit: (HistorialMedicoEntity item) => _editItem(context, item),
@@ -221,17 +200,13 @@ class _HistorialMedicoTableState extends State<HistorialMedicoTable> {
                   ),
                 ),
 
-                // Paginación (siempre visible)
                 const SizedBox(height: AppSizes.spacing),
-                _buildPaginationControls(
+                _PaginationBar(
                   currentPage: _currentPage,
                   totalPages: totalPages.clamp(1, 999),
                   totalItems: totalItems,
-                  onPageChanged: (int page) {
-                    setState(() {
-                      _currentPage = page;
-                    });
-                  },
+                  itemsPerPage: _itemsPerPage,
+                  onPageChanged: (int page) { setState(() { _currentPage = page; }); },
                 ),
               ],
             );
@@ -245,11 +220,11 @@ class _HistorialMedicoTableState extends State<HistorialMedicoTable> {
 
   /// Filtra items según el query de búsqueda
   List<HistorialMedicoEntity> _filterItems(List<HistorialMedicoEntity> items) {
-    if (_searchQuery.isEmpty) {
+    if (widget.searchQuery.isEmpty) {
       return items;
     }
 
-    final String query = _searchQuery.toLowerCase();
+    final String query = widget.searchQuery.toLowerCase();
 
     return items.where((HistorialMedicoEntity item) {
       final String personal = _getNombrePersonal(item.personalId).toLowerCase();
@@ -498,92 +473,6 @@ class _HistorialMedicoTableState extends State<HistorialMedicoTable> {
     }
   }
 
-  /// Construye controles de paginación profesional
-  Widget _buildPaginationControls({
-    required int currentPage,
-    required int totalPages,
-    required int totalItems,
-    required void Function(int) onPageChanged,
-  }) {
-    final int startItem = totalItems == 0 ? 0 : currentPage * _itemsPerPage + 1;
-    final int endItem = totalItems == 0 ? 0 : ((currentPage + 1) * _itemsPerPage).clamp(0, totalItems);
-
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(color: AppColors.gray200),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          // Info de elementos mostrados
-          Text(
-            'Mostrando $startItem-$endItem de $totalItems items',
-            style: AppTextStyles.bodySmallSecondary,
-          ),
-
-          // Controles de navegación
-          Row(
-            children: <Widget>[
-              // Primera página
-              _PaginationButton(
-                onPressed: currentPage > 0 ? () => onPageChanged(0) : null,
-                icon: Icons.first_page,
-                tooltip: 'Primera página',
-              ),
-              const SizedBox(width: AppSizes.spacingSmall),
-
-              // Página anterior
-              _PaginationButton(
-                onPressed: currentPage > 0 ? () => onPageChanged(currentPage - 1) : null,
-                icon: Icons.chevron_left,
-                tooltip: 'Página anterior',
-              ),
-              const SizedBox(width: AppSizes.spacing),
-
-              // Indicador de página actual (badge azul)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.paddingMedium,
-                  vertical: AppSizes.spacingSmall,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                ),
-                child: Text(
-                  'Página ${currentPage + 1} de ${totalPages > 0 ? totalPages : 1}',
-                  style: GoogleFonts.inter(
-                    fontSize: AppSizes.fontSmall,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSizes.spacing),
-
-              // Página siguiente
-              _PaginationButton(
-                onPressed: currentPage < totalPages - 1 ? () => onPageChanged(currentPage + 1) : null,
-                icon: Icons.chevron_right,
-                tooltip: 'Página siguiente',
-              ),
-              const SizedBox(width: AppSizes.spacingSmall),
-
-              // Última página
-              _PaginationButton(
-                onPressed: currentPage < totalPages - 1 ? () => onPageChanged(totalPages - 1) : null,
-                icon: Icons.last_page,
-                tooltip: 'Última página',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// Vista de carga
@@ -652,9 +541,10 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-/// Campo de búsqueda
-class _SearchField extends StatefulWidget {
-  const _SearchField({
+/// Campo de búsqueda para Historial Médico (usado en PageHeader.extra)
+class HistorialMedicoSearchField extends StatefulWidget {
+  const HistorialMedicoSearchField({
+    super.key,
     required this.searchQuery,
     required this.onSearchChanged,
   });
@@ -663,16 +553,24 @@ class _SearchField extends StatefulWidget {
   final void Function(String) onSearchChanged;
 
   @override
-  State<_SearchField> createState() => _SearchFieldState();
+  State<HistorialMedicoSearchField> createState() => _HistorialMedicoSearchFieldState();
 }
 
-class _SearchFieldState extends State<_SearchField> {
+class _HistorialMedicoSearchFieldState extends State<HistorialMedicoSearchField> {
   late TextEditingController _controller;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.searchQuery);
+  }
+
+  @override
+  void didUpdateWidget(HistorialMedicoSearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.searchQuery != widget.searchQuery && _controller.text != widget.searchQuery) {
+      _controller.text = widget.searchQuery;
+    }
   }
 
   @override
@@ -724,40 +622,93 @@ class _SearchFieldState extends State<_SearchField> {
   }
 }
 
-/// Botón de paginación reutilizable
-class _PaginationButton extends StatelessWidget {
-  const _PaginationButton({
-    required this.onPressed,
-    required this.icon,
-    required this.tooltip,
+/// Barra de paginación compacta
+class _PaginationBar extends StatelessWidget {
+  const _PaginationBar({
+    required this.currentPage,
+    required this.totalPages,
+    required this.totalItems,
+    required this.itemsPerPage,
+    required this.onPageChanged,
   });
 
-  final VoidCallback? onPressed;
-  final IconData icon;
-  final String tooltip;
+  final int currentPage;
+  final int totalPages;
+  final int totalItems;
+  final int itemsPerPage;
+  final void Function(int) onPageChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onPressed,
+    final int startItem = totalItems == 0 ? 0 : currentPage * itemsPerPage + 1;
+    final int endItem = totalItems == 0
+        ? 0
+        : ((currentPage + 1) * itemsPerPage).clamp(0, totalItems);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingSmall),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        child: Container(
-          padding: const EdgeInsets.all(AppSizes.spacingSmall),
-          decoration: BoxDecoration(
-            color: onPressed != null ? AppColors.primary.withValues(alpha: 0.1) : AppColors.gray200,
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-            border: Border.all(
-              color: onPressed != null ? AppColors.primary.withValues(alpha: 0.3) : AppColors.gray300,
-            ),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          Text(
+            'Mostrando $startItem-$endItem de $totalItems reconocimientos',
+            style: AppTextStyles.bodySmallSecondary,
           ),
-          child: Icon(
-            icon,
-            size: AppSizes.iconSmall,
-            color: onPressed != null ? AppColors.primary : AppColors.gray400,
+          Row(
+            children: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.first_page),
+                onPressed: currentPage > 0 ? () => onPageChanged(0) : null,
+                tooltip: 'Primera página',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: currentPage > 0 ? () => onPageChanged(currentPage - 1) : null,
+                tooltip: 'Página anterior',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingSmall,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                ),
+                child: Text(
+                  'Página ${currentPage + 1} de $totalPages',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textPrimaryDark,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: currentPage < totalPages - 1 ? () => onPageChanged(currentPage + 1) : null,
+                tooltip: 'Página siguiente',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+              IconButton(
+                icon: const Icon(Icons.last_page),
+                onPressed: currentPage < totalPages - 1 ? () => onPageChanged(totalPages - 1) : null,
+                tooltip: 'Última página',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+            ],
           ),
-        ),
+        ],
       ),
     );
   }

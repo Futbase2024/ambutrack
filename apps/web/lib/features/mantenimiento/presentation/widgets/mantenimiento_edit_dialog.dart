@@ -130,12 +130,12 @@ class _MantenimientoEditDialogState extends State<MantenimientoEditDialog> {
           );
         }
 
-        if (state is MantenimientoOperationSuccess) {
+        if (state is MantenimientoLoaded && _isLoading) {
           setState(() => _isLoading = false);
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
+            const SnackBar(
+              content: Text('Mantenimiento actualizado correctamente'),
               backgroundColor: AppColors.success,
             ),
           );

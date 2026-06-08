@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/core/widgets/tables/app_data_grid_v5.dart';
 import 'package:ambutrack_web/features/personal/horarios/presentation/bloc/registro_horario_bloc.dart';
@@ -23,10 +24,13 @@ class _FichajesTableState extends State<FichajesTable> {
   FichajesFilterData _filterData = const FichajesFilterData();
   int? _sortColumnIndex;
   bool _sortAscending = true;
+  int _currentPage = 0;
+  static const int _itemsPerPage = 25;
 
   void _onFilterChanged(FichajesFilterData filterData) {
     setState(() {
       _filterData = filterData;
+      _currentPage = 0;
     });
   }
 
@@ -144,19 +148,41 @@ class _FichajesTableState extends State<FichajesTable> {
                   );
                 }
 
-                return AppDataGridV5<RegistroHorarioEntity>(
-                  columns: _buildColumns(),
-                  rows: sortedData,
-                  buildCells: _buildCells,
-                  sortColumnIndex: _sortColumnIndex,
-                  sortAscending: _sortAscending,
-                  onSort: _onSort,
-                  customActions: <CustomAction<RegistroHorarioEntity>>[
-                    CustomAction<RegistroHorarioEntity>(
-                      icon: Icons.map,
-                      tooltip: 'Ver Mapa',
-                      color: AppColors.info,
-                      onPressed: _showMapDialog,
+                final int totalItems = sortedData.length;
+                final int totalPages = totalItems > 0 ? (totalItems / _itemsPerPage).ceil() : 1;
+                final int startIndex = _currentPage * _itemsPerPage;
+                final int endIndex = (startIndex + _itemsPerPage).clamp(0, totalItems);
+                final List<RegistroHorarioEntity> pageData = totalItems > 0
+                    ? sortedData.sublist(startIndex, endIndex)
+                    : <RegistroHorarioEntity>[];
+
+                return Column(
+                  children: <Widget>[
+                    Expanded(
+                      child: AppDataGridV5<RegistroHorarioEntity>(
+                        columns: _buildColumns(),
+                        rows: pageData,
+                        buildCells: _buildCells,
+                        sortColumnIndex: _sortColumnIndex,
+                        sortAscending: _sortAscending,
+                        onSort: _onSort,
+                        customActions: <CustomAction<RegistroHorarioEntity>>[
+                          CustomAction<RegistroHorarioEntity>(
+                            icon: Icons.map,
+                            tooltip: 'Ver Mapa',
+                            color: AppColors.info,
+                            onPressed: _showMapDialog,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.spacing),
+                    _PaginationBar(
+                      currentPage: _currentPage,
+                      totalPages: totalPages.clamp(1, 999),
+                      totalItems: totalItems,
+                      itemsPerPage: _itemsPerPage,
+                      onPageChanged: (int page) { setState(() { _currentPage = page; }); },
                     ),
                   ],
                 );
@@ -305,6 +331,98 @@ class _FichajesTableState extends State<FichajesTable> {
       context: context,
       builder: (BuildContext context) =>
           UbicacionFichajeMapDialog(registro: registro),
+    );
+  }
+}
+
+/// Barra de paginación compacta
+class _PaginationBar extends StatelessWidget {
+  const _PaginationBar({
+    required this.currentPage,
+    required this.totalPages,
+    required this.totalItems,
+    required this.itemsPerPage,
+    required this.onPageChanged,
+  });
+
+  final int currentPage;
+  final int totalPages;
+  final int totalItems;
+  final int itemsPerPage;
+  final void Function(int) onPageChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final int startItem = totalItems == 0 ? 0 : currentPage * itemsPerPage + 1;
+    final int endItem = totalItems == 0
+        ? 0
+        : ((currentPage + 1) * itemsPerPage).clamp(0, totalItems);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingSmall),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          Text(
+            'Mostrando $startItem-$endItem de $totalItems fichajes',
+            style: AppTextStyles.bodySmallSecondary,
+          ),
+          Row(
+            children: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.first_page),
+                onPressed: currentPage > 0 ? () => onPageChanged(0) : null,
+                tooltip: 'Primera página',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: currentPage > 0 ? () => onPageChanged(currentPage - 1) : null,
+                tooltip: 'Página anterior',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingSmall,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                ),
+                child: Text(
+                  'Página ${currentPage + 1} de $totalPages',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textPrimaryDark,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: currentPage < totalPages - 1 ? () => onPageChanged(currentPage + 1) : null,
+                tooltip: 'Página siguiente',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+              IconButton(
+                icon: const Icon(Icons.last_page),
+                onPressed: currentPage < totalPages - 1 ? () => onPageChanged(totalPages - 1) : null,
+                tooltip: 'Última página',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

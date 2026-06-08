@@ -158,6 +158,12 @@ class MenuRepositoryImpl implements MenuRepository {
           icon: Icons.info_outline,
           route: '/servicios/estado',
         ),
+        MenuItem(
+          key: 'servicios_agenda_pendientes',
+          label: 'Agenda de Pendientes',
+          icon: Icons.event_note,
+          route: '/servicios/agenda-pendientes',
+        ),
       ],
     ),
 
@@ -499,6 +505,12 @@ class MenuRepositoryImpl implements MenuRepository {
           label: 'Contratos',
           icon: Icons.description,
           route: '/administracion/contratos',
+        ),
+        MenuItem(
+          key: 'administracion_incidencias',
+          label: 'Incidencias',
+          icon: Icons.report_problem,
+          route: '/administracion/incidencias',
         ),
         MenuItem(
           key: 'administracion_usuarios',

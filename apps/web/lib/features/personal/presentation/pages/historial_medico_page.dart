@@ -36,6 +36,7 @@ class _HistorialMedicoView extends StatefulWidget {
 
 class _HistorialMedicoViewState extends State<_HistorialMedicoView> {
   DateTime? _pageStartTime;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -99,6 +100,15 @@ class _HistorialMedicoViewState extends State<_HistorialMedicoView> {
                       addButtonLabel: 'Nuevo Reconocimiento',
                       stats: _buildHeaderStats(state),
                       onAdd: _showAddReconocimientoDialog,
+                      extra: SizedBox(
+                        width: 300,
+                        child: HistorialMedicoSearchField(
+                          searchQuery: _searchQuery,
+                          onSearchChanged: (String query) {
+                            setState(() { _searchQuery = query; });
+                          },
+                        ),
+                      ),
                     ),
                   );
                 },
@@ -107,7 +117,7 @@ class _HistorialMedicoViewState extends State<_HistorialMedicoView> {
               const SizedBox(height: AppSizes.spacingXl),
 
               // Tabla de historial médico
-              const Expanded(child: HistorialMedicoTable()),
+              Expanded(child: HistorialMedicoTable(searchQuery: _searchQuery)),
             ],
           ),
         ),

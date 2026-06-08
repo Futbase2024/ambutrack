@@ -47,4 +47,15 @@ abstract class AlertaCaducidadRepository {
   Future<List<AlertaCaducidadEntity>> getAlertasPorVehiculo(
     String vehiculoId,
   );
+
+  /// Marca una alerta como vista por el usuario para que no se muestre hoy.
+  ///
+  /// [usuarioId] - ID del usuario autenticado
+  /// [tipoAlerta] - Tipo de alerta (itv, seguro, etc.)
+  /// [entidadId] - ID de la entidad asociada
+  Future<void> marcarAlertaVista({
+    required String usuarioId,
+    required String tipoAlerta,
+    required String entidadId,
+  });
 }

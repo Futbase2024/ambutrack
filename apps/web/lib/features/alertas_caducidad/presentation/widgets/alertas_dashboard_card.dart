@@ -23,8 +23,8 @@ class AlertasDashboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<AlertasCaducidadBloc>(
-      create: (_) => getIt<AlertasCaducidadBloc>()
+    return BlocProvider<AlertasCaducidadBloc>.value(
+      value: getIt<AlertasCaducidadBloc>()
         ..add(const AlertasCaducidadEvent.started()),
       child: BlocBuilder<AlertasCaducidadBloc, AlertasCaducidadState>(
         builder: (BuildContext context, AlertasCaducidadState state) {

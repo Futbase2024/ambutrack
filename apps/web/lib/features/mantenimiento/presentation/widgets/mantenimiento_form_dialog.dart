@@ -20,6 +20,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 /// Diálogo para programar mantenimientos
 class MantenimientoFormDialog extends StatefulWidget {
@@ -95,7 +96,7 @@ class _MantenimientoFormDialogState extends State<MantenimientoFormDialog> {
           );
         }
 
-        if (state is MantenimientoOperationSuccess && _isSaving) {
+        if (state is MantenimientoLoaded && _isSaving) {
           CrudOperationHandler.handleSuccess(
             context: context,
             isSaving: _isSaving,
@@ -549,7 +550,7 @@ class _MantenimientoFormDialogState extends State<MantenimientoFormDialog> {
       }
 
       final MantenimientoEntity mantenimiento = MantenimientoEntity(
-        id: widget.mantenimiento?.id ?? '',
+        id: widget.mantenimiento?.id ?? const Uuid().v4(),
         vehiculoId: _vehiculoSeleccionado!.id,
         fecha: _fecha,
         kmVehiculo: double.parse(_kmVehiculoController.text.trim()),

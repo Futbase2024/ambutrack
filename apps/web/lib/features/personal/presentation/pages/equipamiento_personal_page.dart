@@ -36,6 +36,7 @@ class _EquipamientoView extends StatefulWidget {
 
 class _EquipamientoViewState extends State<_EquipamientoView> {
   DateTime? _pageStartTime;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -99,6 +100,15 @@ class _EquipamientoViewState extends State<_EquipamientoView> {
                       addButtonLabel: 'Agregar Equipamiento',
                       stats: _buildHeaderStats(state),
                       onAdd: _showAddEquipamientoDialog,
+                      extra: SizedBox(
+                        width: 300,
+                        child: EquipamientoPersonalSearchField(
+                          searchQuery: _searchQuery,
+                          onSearchChanged: (String query) {
+                            setState(() { _searchQuery = query; });
+                          },
+                        ),
+                      ),
                     ),
                   );
                 },
@@ -107,7 +117,7 @@ class _EquipamientoViewState extends State<_EquipamientoView> {
               const SizedBox(height: AppSizes.spacingXl),
 
               // Tabla de equipamiento
-              const Expanded(child: EquipamientoPersonalTable()),
+              Expanded(child: EquipamientoPersonalTable(searchQuery: _searchQuery)),
             ],
           ),
         ),

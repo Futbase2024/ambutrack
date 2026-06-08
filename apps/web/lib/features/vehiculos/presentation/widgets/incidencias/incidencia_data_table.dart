@@ -60,7 +60,6 @@ class IncidenciaDataTable extends StatelessWidget {
         ),
       ],
       emptyMessage: 'No hay incidencias registradas',
-      rowHeight: 56,
     );
   }
 

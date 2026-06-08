@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:ambutrack_web/core/lang/app_strings.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/theme/app_text_styles.dart';
@@ -27,14 +26,15 @@ import 'package:intl/intl.dart';
 /// - Paginación automática
 /// - Estados manejados (Loading/Error/Vacío)
 class PersonalTableV4 extends StatefulWidget {
-  const PersonalTableV4({super.key});
+  const PersonalTableV4({required this.filterData, super.key});
+
+  final PersonalFilterData filterData;
 
   @override
   State<PersonalTableV4> createState() => _PersonalTableV4State();
 }
 
 class _PersonalTableV4State extends State<PersonalTableV4> {
-  PersonalFilterData _filterData = const PersonalFilterData();
   bool _isDeleting = false;
   BuildContext? _loadingDialogContext;
   DateTime? _deleteStartTime;
@@ -45,11 +45,12 @@ class _PersonalTableV4State extends State<PersonalTableV4> {
   int _currentPage = 0;
   static const int _itemsPerPage = 25;
 
-  void _onFilterChanged(PersonalFilterData filterData) {
-    setState(() {
-      _filterData = filterData;
+  @override
+  void didUpdateWidget(PersonalTableV4 oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filterData != oldWidget.filterData) {
       _currentPage = 0;
-    });
+    }
   }
 
   void _onSort(int columnIndex, {required bool ascending}) {
@@ -109,7 +110,7 @@ class _PersonalTableV4State extends State<PersonalTableV4> {
 
           if (state is PersonalLoaded) {
             // Aplicar filtros
-            List<PersonalEntity> personalFiltrado = _filterData.apply(state.personal);
+            List<PersonalEntity> personalFiltrado = widget.filterData.apply(state.personal);
 
             // Aplicar ordenamiento antes de paginar
             if (_sortColumnIndex != null) {
@@ -157,18 +158,6 @@ class _PersonalTableV4State extends State<PersonalTableV4> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    Text(
-                      AppStrings.personalListaTitulo,
-                      style: AppTextStyles.h4,
-                    ),
-                    PersonalFilters(onFiltersChanged: _onFilterChanged),
-                  ],
-                ),
-                const SizedBox(height: AppSizes.spacing),
-
                 // Info de resultados filtrados
                 if (state.personal.length != personalFiltrado.length)
                   Padding(
@@ -193,10 +182,10 @@ class _PersonalTableV4State extends State<PersonalTableV4> {
                     buildCells: _buildCells,
                     sortColumnIndex: _sortColumnIndex,
                     sortAscending: _sortAscending,
-                    outerBorderColor: AppColors.gray400,
+                    outerBorderColor: AppColors.gray300,
                     onSort: _onSort,
-                    rowHeight: 60.0,
-                    emptyMessage: _filterData.hasActiveFilters
+                    headerHeight: 44,
+                    emptyMessage: widget.filterData.hasActiveFilters
                         ? 'No se encontraron resultados con los filtros aplicados'
                         : 'No hay personal registrado',
                     onView: (PersonalEntity persona) => _showPersonalDetails(context, persona),
@@ -242,7 +231,7 @@ class _PersonalTableV4State extends State<PersonalTableV4> {
         : ((currentPage + 1) * _itemsPerPage).clamp(0, totalItems);
 
     return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
+      padding: const EdgeInsets.all(AppSizes.paddingSmall),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
@@ -263,6 +252,7 @@ class _PersonalTableV4State extends State<PersonalTableV4> {
               // Primera página
               IconButton(
                 icon: const Icon(Icons.first_page),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: currentPage > 0
                     ? () => onPageChanged(0)
                     : null,
@@ -272,6 +262,7 @@ class _PersonalTableV4State extends State<PersonalTableV4> {
               // Página anterior
               IconButton(
                 icon: const Icon(Icons.chevron_left),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: currentPage > 0
                     ? () => onPageChanged(currentPage - 1)
                     : null,
@@ -281,8 +272,8 @@ class _PersonalTableV4State extends State<PersonalTableV4> {
               // Indicador de página
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.paddingMedium,
-                  vertical: AppSizes.paddingSmall,
+                  horizontal: AppSizes.paddingSmall,
+                  vertical: 4,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
@@ -300,6 +291,7 @@ class _PersonalTableV4State extends State<PersonalTableV4> {
               // Página siguiente
               IconButton(
                 icon: const Icon(Icons.chevron_right),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: currentPage < totalPages - 1
                     ? () => onPageChanged(currentPage + 1)
                     : null,
@@ -309,6 +301,7 @@ class _PersonalTableV4State extends State<PersonalTableV4> {
               // Última página
               IconButton(
                 icon: const Icon(Icons.last_page),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: currentPage < totalPages - 1
                     ? () => onPageChanged(totalPages - 1)
                     : null,

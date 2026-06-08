@@ -41,10 +41,9 @@ class _AsignacionesTableState extends State<AsignacionesTable> {
       listener: (BuildContext context, Object? state) async {
         // Manejo de loading al eliminar
         if (_isDeleting && _loadingDialogContext != null) {
-          if (state is AsignacionesLoaded || state is AsignacionesError || state is AsignacionOperationSuccess) {
+          if (state is AsignacionesLoaded || state is AsignacionesError) {
             final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
 
-            // Manejar resultado con CrudOperationHandler
             if (state is AsignacionesError) {
               await CrudOperationHandler.handleDeleteError(
                 context: _loadingDialogContext!,
@@ -59,7 +58,7 @@ class _AsignacionesTableState extends State<AsignacionesTable> {
                   });
                 },
               );
-            } else if (state is AsignacionOperationSuccess) {
+            } else {
               await CrudOperationHandler.handleDeleteSuccess(
                 context: _loadingDialogContext!,
                 isDeleting: _isDeleting,
@@ -87,10 +86,8 @@ class _AsignacionesTableState extends State<AsignacionesTable> {
             return _ErrorView(message: state.message);
           }
 
-          if (state is AsignacionesLoaded || state is AsignacionOperationSuccess) {
-            final List<AsignacionVehiculoTurnoEntity> asignaciones = state is AsignacionesLoaded
-                ? state.asignaciones
-                : (state as AsignacionOperationSuccess).asignaciones;
+          if (state is AsignacionesLoaded) {
+            final List<AsignacionVehiculoTurnoEntity> asignaciones = state.asignaciones;
 
             // Filtrado y ordenamiento
             List<AsignacionVehiculoTurnoEntity> filtradas = _filterAsignaciones(asignaciones);
@@ -574,7 +571,7 @@ class _AsignacionesTableState extends State<AsignacionesTable> {
       );
 
       if (context.mounted) {
-        context.read<AsignacionesBloc>().add(AsignacionesEvent.delete(asignacion.id));
+        context.read<AsignacionesBloc>().add(AsignacionDeleteRequested(asignacion.id));
       }
     }
   }

@@ -19,6 +19,12 @@ import 'package:ambutrack_web/core/services/geocoding_service.dart' as _i1071;
 import 'package:ambutrack_web/core/services/pdf_ruta_service.dart' as _i30;
 import 'package:ambutrack_web/core/services/routing_service.dart' as _i1033;
 import 'package:ambutrack_web/core/services/ruta_service.dart' as _i686;
+import 'package:ambutrack_web/features/agenda_pendientes/data/repositories/agenda_pendiente_repository_impl.dart'
+    as _i741;
+import 'package:ambutrack_web/features/agenda_pendientes/domain/repositories/agenda_pendiente_repository.dart'
+    as _i998;
+import 'package:ambutrack_web/features/agenda_pendientes/presentation/bloc/agenda_pendiente_bloc.dart'
+    as _i158;
 import 'package:ambutrack_web/features/alertas_caducidad/data/repositories/alerta_caducidad_repository_impl.dart'
     as _i910;
 import 'package:ambutrack_web/features/alertas_caducidad/domain/repositories/alerta_caducidad_repository.dart'
@@ -117,6 +123,12 @@ import 'package:ambutrack_web/features/cuadrante/excepciones_festivos/presentati
     as _i87;
 import 'package:ambutrack_web/features/home/presentation/bloc/home_bloc.dart'
     as _i848;
+import 'package:ambutrack_web/features/incidencias/data/repositories/incidencia_repository_impl.dart'
+    as _i1010;
+import 'package:ambutrack_web/features/incidencias/domain/repositories/incidencia_repository.dart'
+    as _i27;
+import 'package:ambutrack_web/features/incidencias/presentation/bloc/incidencia/incidencia_bloc.dart'
+    as _i444;
 import 'package:ambutrack_web/features/itv_revisiones/data/repositories/itv_revision_repository_impl.dart'
     as _i662;
 import 'package:ambutrack_web/features/itv_revisiones/domain/repositories/itv_revision_repository.dart'
@@ -179,6 +191,10 @@ import 'package:ambutrack_web/features/personal/horarios/domain/repositories/reg
     as _i960;
 import 'package:ambutrack_web/features/personal/horarios/presentation/bloc/registro_horario_bloc.dart'
     as _i504;
+import 'package:ambutrack_web/features/personal/presentation/bloc/certificacion_catalogo/certificacion_catalogo_bloc.dart'
+    as _i833;
+import 'package:ambutrack_web/features/personal/presentation/bloc/curso_catalogo/curso_catalogo_bloc.dart'
+    as _i80;
 import 'package:ambutrack_web/features/personal/presentation/bloc/equipamiento_personal_bloc.dart'
     as _i391;
 import 'package:ambutrack_web/features/personal/presentation/bloc/formacion/formacion_bloc.dart'
@@ -458,6 +474,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i440.CuadranteRepository>(
       () => _i1029.CuadranteRepositoryImpl(gh<_i454.SupabaseClient>()),
     );
+    gh.lazySingleton<_i998.AgendaPendienteRepository>(
+      () => _i741.AgendaPendienteRepositoryImpl(),
+    );
     gh.lazySingleton<_i707.AuthRepository>(
       () => _i822.AuthRepositoryImpl(gh<_i496.AuthService>()),
     );
@@ -481,6 +500,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i1002.CertificacionRepository>(
       () => _i82.CertificacionRepositoryImpl(),
+    );
+    gh.lazySingleton<_i27.IncidenciaRepository>(
+      () => _i1010.IncidenciaRepositoryImpl(),
     );
     gh.lazySingleton<_i836.ItvRevisionRepository>(
       () => _i662.ItvRevisionRepositoryImpl(),
@@ -667,6 +689,11 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i373.PersonalRepository>(),
       ),
     );
+    gh.factory<_i158.AgendaPendienteBloc>(
+      () => _i158.AgendaPendienteBloc(
+        repository: gh<_i998.AgendaPendienteRepository>(),
+      ),
+    );
     gh.lazySingleton<_i750.RoleService>(
       () => _i750.RoleService(
         gh<_i707.AuthRepository>(),
@@ -685,6 +712,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i796.EspecialidadBloc>(
       () => _i796.EspecialidadBloc(gh<_i1023.EspecialidadRepository>()),
     );
+    gh.factory<_i444.IncidenciaBloc>(
+      () => _i444.IncidenciaBloc(gh<_i27.IncidenciaRepository>()),
+    );
     gh.factory<_i938.NotificacionBloc>(
       () => _i938.NotificacionBloc(gh<_i1037.NotificacionesRepository>()),
     );
@@ -700,6 +730,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i66.UsuariosRepository>(),
         gh<_i750.RoleService>(),
       ),
+    );
+    gh.factory<_i80.CursoCatalogoBloc>(
+      () => _i80.CursoCatalogoBloc(gh<_i534.CursoRepository>()),
     );
     gh.factory<_i548.MotivoCancelacionBloc>(
       () =>
@@ -720,6 +753,13 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i1015.StockEquipamientoBloc>(
       () => _i1015.StockEquipamientoBloc(gh<_i145.VehiculoRepository>()),
+    );
+    gh.factory<_i833.CertificacionCatalogoBloc>(
+      () =>
+          _i833.CertificacionCatalogoBloc(gh<_i1002.CertificacionRepository>()),
+    );
+    gh.factory<_i245.DotacionesBloc>(
+      () => _i245.DotacionesBloc(gh<_i5.DotacionesRepository>()),
     );
     gh.factory<_i1007.MovimientoStockBloc>(
       () => _i1007.MovimientoStockBloc(gh<_i408.MovimientoStockRepository>()),
@@ -770,9 +810,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i136.TraficoDiarioBloc>(
       () => _i136.TraficoDiarioBloc(gh<_i660.TrasladoRepository>()),
-    );
-    gh.factory<_i245.DotacionesBloc>(
-      () => _i245.DotacionesBloc(gh<_i5.DotacionesRepository>()),
     );
     gh.factory<_i153.PerfilBloc>(
       () => _i153.PerfilBloc(gh<_i878.PerfilRepository>()),

@@ -29,6 +29,9 @@ enum NotificacionTipo {
   // Caducidades
   alertaCaducidad('alerta_caducidad', 'Alerta de Caducidad'),
 
+  // Agenda
+  agendaPendiente('agenda_pendiente', 'Pendiente Programado'),
+
   // Generales
   alerta('alerta', 'Alerta'),
   info('info', 'Información');

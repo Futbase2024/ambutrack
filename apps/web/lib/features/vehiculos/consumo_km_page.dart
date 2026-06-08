@@ -14,6 +14,7 @@ import 'package:ambutrack_web/features/vehiculos/presentation/widgets/consumo/co
 import 'package:ambutrack_web/features/vehiculos/presentation/widgets/consumo/consumo_form_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Página de Consumo y Kilometraje
 ///
@@ -41,6 +42,41 @@ class ConsumoKmPage extends StatelessWidget {
 class _ConsumoKmView extends StatelessWidget {
   const _ConsumoKmView();
 
+  List<HeaderStat> _buildHeaderStats(Map<String, double> estadisticas) {
+    return <HeaderStat>[
+      HeaderStat(
+        value: '${estadisticas['consumo_promedio']?.toStringAsFixed(1) ?? '0.0'} L/100km',
+        icon: Icons.speed,
+      ),
+      HeaderStat(
+        value: '${estadisticas['km_recorridos']?.toStringAsFixed(0) ?? '0'} km',
+        icon: Icons.timeline,
+      ),
+      HeaderStat(
+        value: '${estadisticas['costo_total']?.toStringAsFixed(0) ?? '0'} €',
+        icon: Icons.euro,
+      ),
+      HeaderStat(
+        value: '${estadisticas['litros_totales']?.toStringAsFixed(0) ?? '0'} L',
+        icon: Icons.local_gas_station,
+      ),
+    ];
+  }
+
+  void _showConsumoForm(BuildContext context, List<VehiculoEntity> vehiculos) {
+    final ConsumoCombustibleBloc bloc = context.read<ConsumoCombustibleBloc>();
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) => ConsumoFormModal(
+        vehiculos: vehiculos,
+        onSave: (ConsumoCombustibleEntity consumo) async {
+          bloc.add(ConsumoCombustibleEvent.createRegistro(consumo));
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,23 +102,19 @@ class _ConsumoKmView extends StatelessWidget {
               orElse: () {},
             );
           },
-          child: BlocBuilder<ConsumoCombustibleBloc, ConsumoCombustibleState>(
-            buildWhen: (ConsumoCombustibleState previous, ConsumoCombustibleState current) {
-              return current.maybeWhen(
-                loaded: (_, List<VehiculoEntity> v, int p1, int p2, Map<String, double> e, String? fv, DateTime? fi, DateTime? ff) => true,
-                orElse: () => false,
-              );
-            },
-            builder: (BuildContext context, ConsumoCombustibleState state) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  // Header
-                  const _ConsumoKmHeader(),
-                  const SizedBox(height: AppSizes.spacingXl),
-
-                  // Filtros
-                  state.maybeWhen(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              // Header con filtros
+              BlocBuilder<ConsumoCombustibleBloc, ConsumoCombustibleState>(
+                buildWhen: (ConsumoCombustibleState previous, ConsumoCombustibleState current) {
+                  return current.maybeWhen(
+                    loaded: (_, List<VehiculoEntity> v, int p1, int p2, Map<String, double> e, String? fv, DateTime? fi, DateTime? ff) => true,
+                    orElse: () => false,
+                  );
+                },
+                builder: (BuildContext context, ConsumoCombustibleState state) {
+                  return state.maybeWhen(
                     loaded: (
                       List<ConsumoCombustibleEntity> registros,
                       List<VehiculoEntity> vehiculos,
@@ -93,138 +125,56 @@ class _ConsumoKmView extends StatelessWidget {
                       DateTime? filtroFechaInicio,
                       DateTime? filtroFechaFin,
                     ) {
-                      return ConsumoFilters(
-                        vehiculos: vehiculos,
-                        filtroVehiculoId: filtroVehiculoId,
-                        filtroFechaInicio: filtroFechaInicio,
-                        filtroFechaFin: filtroFechaFin,
-                        onVehiculoChanged: (String? vehiculoId) {
-                          context.read<ConsumoCombustibleBloc>().add(
-                                ConsumoCombustibleEvent.filterByVehiculo(vehiculoId),
-                              );
-                        },
-                        onFechaInicioChanged: (DateTime? fecha) {
-                          context.read<ConsumoCombustibleBloc>().add(
-                                ConsumoCombustibleEvent.filterByFecha(
-                                  fecha,
-                                  state.maybeWhen(
-                                    loaded: (_, __, ___, _____, ______, _______, DateTime? fi, DateTime? f) => f,
-                                    orElse: () => null,
-                                  ),
-                                ),
-                              );
-                        },
-                        onFechaFinChanged: (DateTime? fecha) {
-                          context.read<ConsumoCombustibleBloc>().add(
-                                ConsumoCombustibleEvent.filterByFecha(
-                                  state.maybeWhen(
-                                    loaded: (_, __, ___, _____, ______, _______, DateTime? f, _) => f,
-                                    orElse: () => null,
-                                  ),
-                                  fecha,
-                                ),
-                              );
-                        },
-                        onClearFilters: () {
-                          context.read<ConsumoCombustibleBloc>().add(
-                                const ConsumoCombustibleEvent.clearFilters(),
-                              );
-                        },
+                      return PageHeader(
+                        config: PageHeaderConfig(
+                          icon: Icons.local_gas_station,
+                          title: 'Consumo y Kilometraje',
+                          subtitle: 'Control de combustible y kilometraje de la flota',
+                          addButtonLabel: 'Registrar Consumo',
+                          stats: _buildHeaderStats(estadisticas),
+                          extra: ConsumoFilters(
+                            vehiculos: vehiculos,
+                            filtroVehiculoId: filtroVehiculoId,
+                            filtroFechaInicio: filtroFechaInicio,
+                            filtroFechaFin: filtroFechaFin,
+                            onVehiculoChanged: (String? vehiculoId) {
+                              context.read<ConsumoCombustibleBloc>().add(
+                                    ConsumoCombustibleEvent.filterByVehiculo(vehiculoId),
+                                  );
+                            },
+                            onFechaInicioChanged: (DateTime? fecha) {
+                              context.read<ConsumoCombustibleBloc>().add(
+                                    ConsumoCombustibleEvent.filterByFecha(fecha, filtroFechaFin),
+                                  );
+                            },
+                            onFechaFinChanged: (DateTime? fecha) {
+                              context.read<ConsumoCombustibleBloc>().add(
+                                    ConsumoCombustibleEvent.filterByFecha(filtroFechaInicio, fecha),
+                                  );
+                            },
+                            onClearFilters: () {
+                              context.read<ConsumoCombustibleBloc>().add(
+                                    const ConsumoCombustibleEvent.clearFilters(),
+                                  );
+                            },
+                          ),
+                          onAdd: () => _showConsumoForm(context, vehiculos),
+                        ),
                       );
                     },
                     orElse: () => const SizedBox.shrink(),
-                  ),
-                  const SizedBox(height: AppSizes.spacingLarge),
+                  );
+                },
+              ),
+              const SizedBox(height: AppSizes.spacingXl),
 
-                  // Contenido principal
-                  const Expanded(
-                    child: _ConsumoKmContent(),
-                  ),
-                ],
-              );
-            },
+              // Contenido principal
+              const Expanded(
+                child: _ConsumoKmContent(),
+              ),
+            ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Header con PageHeader estándar
-class _ConsumoKmHeader extends StatelessWidget {
-  const _ConsumoKmHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<ConsumoCombustibleBloc, ConsumoCombustibleState>(
-      buildWhen: (ConsumoCombustibleState previous, ConsumoCombustibleState current) {
-        return current.maybeWhen(
-          loaded: (_, List<VehiculoEntity> v, int p1, int p2, Map<String, double> e, String? fv, DateTime? fi, DateTime? ff) => true,
-          orElse: () => false,
-        );
-      },
-      builder: (BuildContext context, ConsumoCombustibleState state) {
-        return state.maybeWhen(
-          loaded: (
-            List<ConsumoCombustibleEntity> registros,
-            List<VehiculoEntity> vehiculos,
-            int currentPage,
-            int totalPages,
-            Map<String, double> estadisticas,
-            String? filtroVehiculoId,
-            DateTime? filtroFechaInicio,
-            DateTime? filtroFechaFin,
-          ) {
-            return PageHeader(
-              config: PageHeaderConfig(
-                icon: Icons.local_gas_station,
-                title: 'Consumo y Kilometraje',
-                subtitle: 'Control de combustible y kilometraje de la flota',
-                stats: _buildHeaderStats(estadisticas),
-                onAdd: () => _showConsumoForm(context, vehiculos),
-                addButtonLabel: 'Registrar Consumo',
-              ),
-            );
-          },
-          orElse: () => const SizedBox.shrink(),
-        );
-      },
-    );
-  }
-
-  /// Construye las estadísticas del header
-  List<HeaderStat> _buildHeaderStats(Map<String, double> estadisticas) {
-    return <HeaderStat>[
-      HeaderStat(
-        value: '${estadisticas['consumo_promedio']?.toStringAsFixed(1) ?? '0.0'} L/100km',
-        icon: Icons.speed,
-      ),
-      HeaderStat(
-        value: '${estadisticas['km_recorridos']?.toStringAsFixed(0) ?? '0'} km',
-        icon: Icons.timeline,
-      ),
-      HeaderStat(
-        value: '${estadisticas['costo_total']?.toStringAsFixed(0) ?? '0'} €',
-        icon: Icons.euro,
-      ),
-      HeaderStat(
-        value: '${estadisticas['litros_totales']?.toStringAsFixed(0) ?? '0'} L',
-        icon: Icons.local_gas_station,
-      ),
-    ];
-  }
-
-  void _showConsumoForm(BuildContext context, List<VehiculoEntity> vehiculos) {
-    final ConsumoCombustibleBloc bloc = context.read<ConsumoCombustibleBloc>();
-
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) => ConsumoFormModal(
-        vehiculos: vehiculos,
-        onSave: (ConsumoCombustibleEntity consumo) async {
-          bloc.add(ConsumoCombustibleEvent.createRegistro(consumo));
-        },
       ),
     );
   }
@@ -421,22 +371,19 @@ class _PaginationControls extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(AppSizes.padding),
+      padding: const EdgeInsets.all(AppSizes.paddingMedium),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(
-          color: AppColors.gray200,
-        ),
+        border: Border.all(color: AppColors.gray200),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
-          // Texto de página actual
           Container(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSizes.padding,
-              vertical: AppSizes.paddingSmall,
+              horizontal: AppSizes.paddingSmall,
+              vertical: 4,
             ),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.1),
@@ -444,36 +391,44 @@ class _PaginationControls extends StatelessWidget {
             ),
             child: Text(
               'Página $currentPage de $totalPages',
-              style: AppTextStyles.labelBold.copyWith(
+              style: GoogleFonts.inter(
+                fontSize: 12,
                 color: AppColors.primary,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-
-          // Botones de paginación
           Row(
             children: <Widget>[
-              IconButton(
-                onPressed: currentPage > 1
-                    ? () {
-                        context.read<ConsumoCombustibleBloc>().add(
-                              ConsumoCombustibleEvent.changePage(currentPage - 1),
-                            );
-                      }
-                    : null,
-                icon: const Icon(Icons.chevron_left),
-                tooltip: 'Anterior',
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: IconButton(
+                  onPressed: currentPage > 1
+                      ? () {
+                          context.read<ConsumoCombustibleBloc>().add(
+                                ConsumoCombustibleEvent.changePage(currentPage - 1),
+                              );
+                        }
+                      : null,
+                  icon: const Icon(Icons.chevron_left, size: 18),
+                  tooltip: 'Anterior',
+                ),
               ),
-              IconButton(
-                onPressed: currentPage < totalPages
-                    ? () {
-                        context.read<ConsumoCombustibleBloc>().add(
-                              ConsumoCombustibleEvent.changePage(currentPage + 1),
-                            );
-                      }
-                    : null,
-                icon: const Icon(Icons.chevron_right),
-                tooltip: 'Siguiente',
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: IconButton(
+                  onPressed: currentPage < totalPages
+                      ? () {
+                          context.read<ConsumoCombustibleBloc>().add(
+                                ConsumoCombustibleEvent.changePage(currentPage + 1),
+                              );
+                        }
+                      : null,
+                  icon: const Icon(Icons.chevron_right, size: 18),
+                  tooltip: 'Siguiente',
+                ),
               ),
             ],
           ),

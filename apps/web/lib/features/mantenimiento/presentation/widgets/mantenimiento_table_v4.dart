@@ -24,32 +24,30 @@ import 'package:intl/intl.dart';
 
 /// Tabla de mantenimientos optimizada con AppDataGridV5
 class MantenimientoTableV4 extends StatefulWidget {
-  const MantenimientoTableV4({required this.onFilterChanged, super.key});
+  const MantenimientoTableV4({required this.filterData, super.key});
 
-  final void Function(MantenimientosFilterData) onFilterChanged;
+  final MantenimientosFilterData filterData;
 
   @override
   State<MantenimientoTableV4> createState() => _MantenimientoTableV4State();
 }
 
 class _MantenimientoTableV4State extends State<MantenimientoTableV4> {
-  MantenimientosFilterData _filterData = const MantenimientosFilterData();
   bool _isDeleting = false;
   BuildContext? _loadingDialogContext;
   DateTime? _deleteStartTime;
   int? _sortColumnIndex;
   bool _sortAscending = true;
 
-  // Paginación para mejorar rendimiento
   int _currentPage = 0;
   static const int _itemsPerPage = 25;
 
-  void _onFilterChanged(MantenimientosFilterData filterData) {
-    setState(() {
-      _filterData = filterData;
-      _currentPage = 0; // Resetear a primera página cuando cambian filtros
-    });
-    widget.onFilterChanged(filterData);
+  @override
+  void didUpdateWidget(covariant MantenimientoTableV4 oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.filterData != widget.filterData) {
+      _currentPage = 0;
+    }
   }
 
   void _onSort(int columnIndex, {required bool ascending}) {
@@ -126,6 +124,7 @@ class _MantenimientoTableV4State extends State<MantenimientoTableV4> {
         showDialog<void>(
           context: context,
           barrierDismissible: false,
+          useRootNavigator: false,
           builder: (BuildContext dialogContext) {
             loadingContext = dialogContext;
 
@@ -162,17 +161,24 @@ class _MantenimientoTableV4State extends State<MantenimientoTableV4> {
           if (state is MantenimientoLoaded || state is MantenimientoError) {
             final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
 
-            CrudOperationHandler.handleDeleteSuccess(
-              context: context,
-              isDeleting: _isDeleting,
-              entityName: 'Mantenimiento',
-              durationMs: elapsed.inMilliseconds,
-              onClose: () => setState(() {
-                _isDeleting = false;
-                _loadingDialogContext = null;
-                _deleteStartTime = null;
-              }),
-            );
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) {
+                if (!mounted) {
+                  return;
+                }
+
+                CrudOperationHandler.handleDeleteSuccess(
+                context: context,
+                isDeleting: _isDeleting,
+                entityName: 'Mantenimiento',
+                durationMs: elapsed.inMilliseconds,
+                onClose: () => setState(() {
+                  _isDeleting = false;
+                  _loadingDialogContext = null;
+                  _deleteStartTime = null;
+                }),
+              );
+            });
           }
         }
       },
@@ -187,7 +193,7 @@ class _MantenimientoTableV4State extends State<MantenimientoTableV4> {
           }
 
           if (state is MantenimientoLoaded) {
-            List<MantenimientoEntity> mantenimientosFiltrados = _filterData.apply(state.mantenimientos);
+            List<MantenimientoEntity> mantenimientosFiltrados = widget.filterData.apply(state.mantenimientos);
 
             // Aplicar sort
             if (_sortColumnIndex != null) {
@@ -202,53 +208,52 @@ class _MantenimientoTableV4State extends State<MantenimientoTableV4> {
             final List<MantenimientoEntity> mantenimientosPaginados =
                 mantenimientosFiltrados.sublist(startIndex, endIndex);
 
+            final bool hasActiveFilters = widget.filterData.hasActiveFilters;
+
             return Column(
               children: <Widget>[
-                // Filtros + Info de resultados
-                Padding(
-                  padding: const EdgeInsets.all(AppSizes.paddingLarge),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      MantenimientosFilters(onFilterChanged: _onFilterChanged),
-                      if (_filterData.hasActiveFilters || totalItems != state.mantenimientos.length) ...<Widget>[
-                        const SizedBox(height: AppSizes.spacing),
-                        Row(
-                          children: <Widget>[
-                            Text(
-                              'Mostrando ${mantenimientosPaginados.length} de $totalItems mantenimientos',
+                // Info de resultados con badge de filtros activos
+                if (hasActiveFilters || totalItems != state.mantenimientos.length)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSizes.paddingLarge,
+                      AppSizes.spacing,
+                      AppSizes.paddingLarge,
+                      AppSizes.spacing,
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        Text(
+                          'Mostrando ${mantenimientosPaginados.length} de $totalItems mantenimientos',
+                          style: GoogleFonts.inter(
+                            fontSize: AppSizes.fontXs,
+                            color: AppColors.textSecondaryLight,
+                          ),
+                        ),
+                        if (hasActiveFilters) ...<Widget>[
+                          const SizedBox(width: AppSizes.spacingSmall),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSizes.paddingSmall,
+                              vertical: AppSizes.spacingXs,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                            ),
+                            child: Text(
+                              'Filtros activos',
                               style: GoogleFonts.inter(
                                 fontSize: AppSizes.fontXs,
-                                color: AppColors.textSecondaryLight,
+                                color: AppColors.warning,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            if (_filterData.hasActiveFilters) ...<Widget>[
-                              const SizedBox(width: AppSizes.spacingSmall),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSizes.paddingSmall,
-                                  vertical: AppSizes.spacingXs,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.warning.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                                ),
-                                child: Text(
-                                  'Filtros activos',
-                                  style: GoogleFonts.inter(
-                                    fontSize: AppSizes.fontXs,
-                                    color: AppColors.warning,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
             
                 // Tabla
                 Expanded(
@@ -269,9 +274,9 @@ class _MantenimientoTableV4State extends State<MantenimientoTableV4> {
                         sortColumnIndex: _sortColumnIndex,
                         sortAscending: _sortAscending,
                         onSort: _onSort,
-                        rowHeight: 72,
+                        headerHeight: 44,
                         outerBorderColor: AppColors.gray300,
-                        emptyMessage: _filterData.hasActiveFilters
+                        emptyMessage: widget.filterData.hasActiveFilters
                             ? 'No se encontraron mantenimientos con los filtros aplicados'
                             : 'No hay mantenimientos registrados',
                         onView: (MantenimientoEntity m) => _showMantenimientoDetails(context, m),
@@ -457,27 +462,35 @@ class _MantenimientoTableV4State extends State<MantenimientoTableV4> {
         Row(
           children: <Widget>[
             // Primera página
-            IconButton(
-              icon: const Icon(Icons.first_page),
-              onPressed: currentPage > 0
-                  ? () => onPageChanged(0)
-                  : null,
-              tooltip: 'Primera página',
+            SizedBox(
+              width: 36,
+              height: 36,
+              child: IconButton(
+                icon: const Icon(Icons.first_page, size: 18),
+                onPressed: currentPage > 0
+                    ? () => onPageChanged(0)
+                    : null,
+                tooltip: 'Primera página',
+              ),
             ),
 
             // Página anterior
-            IconButton(
-              icon: const Icon(Icons.chevron_left),
-              onPressed: currentPage > 0
-                  ? () => onPageChanged(currentPage - 1)
-                  : null,
-              tooltip: 'Página anterior',
+            SizedBox(
+              width: 36,
+              height: 36,
+              child: IconButton(
+                icon: const Icon(Icons.chevron_left, size: 18),
+                onPressed: currentPage > 0
+                    ? () => onPageChanged(currentPage - 1)
+                    : null,
+                tooltip: 'Página anterior',
+              ),
             ),
 
             // Indicador de página
             Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.paddingMedium,
+                horizontal: AppSizes.paddingSmall,
                 vertical: AppSizes.paddingSmall,
               ),
               decoration: BoxDecoration(
@@ -486,7 +499,8 @@ class _MantenimientoTableV4State extends State<MantenimientoTableV4> {
               ),
               child: Text(
                 'Página ${currentPage + 1} de $totalPages',
-                style: AppTextStyles.bodySmall.copyWith(
+                style: GoogleFonts.inter(
+                  fontSize: 12,
                   color: AppColors.textPrimaryDark,
                   fontWeight: FontWeight.w600,
                 ),
@@ -494,21 +508,29 @@ class _MantenimientoTableV4State extends State<MantenimientoTableV4> {
             ),
 
             // Página siguiente
-            IconButton(
-              icon: const Icon(Icons.chevron_right),
-              onPressed: currentPage < totalPages - 1
-                  ? () => onPageChanged(currentPage + 1)
-                  : null,
-              tooltip: 'Página siguiente',
+            SizedBox(
+              width: 36,
+              height: 36,
+              child: IconButton(
+                icon: const Icon(Icons.chevron_right, size: 18),
+                onPressed: currentPage < totalPages - 1
+                    ? () => onPageChanged(currentPage + 1)
+                    : null,
+                tooltip: 'Página siguiente',
+              ),
             ),
 
             // Última página
-            IconButton(
-              icon: const Icon(Icons.last_page),
-              onPressed: currentPage < totalPages - 1
-                  ? () => onPageChanged(totalPages - 1)
-                  : null,
-              tooltip: 'Última página',
+            SizedBox(
+              width: 36,
+              height: 36,
+              child: IconButton(
+                icon: const Icon(Icons.last_page, size: 18),
+                onPressed: currentPage < totalPages - 1
+                    ? () => onPageChanged(totalPages - 1)
+                    : null,
+                tooltip: 'Última página',
+              ),
             ),
           ],
         ),

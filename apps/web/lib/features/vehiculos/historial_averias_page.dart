@@ -2,6 +2,7 @@ import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
 import 'package:ambutrack_web/core/widgets/headers/page_header.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
@@ -100,35 +101,34 @@ class _HistorialAveriasView extends StatelessWidget {
             title: 'Historial de Averías',
             subtitle: 'Registro y seguimiento de averías y reparaciones',
             stats: _buildHeaderStats(incidencias),
+            extra: IncidenciaFilters(
+              filtroEstado: filtroEstado,
+              filtroPrioridad: filtroPrioridad,
+              filtroTipo: filtroTipo,
+              onEstadoChanged: (EstadoIncidencia? estado) {
+                context
+                    .read<IncidenciaVehiculoBloc>()
+                    .add(IncidenciaVehiculoEvent.filterByEstado(estado));
+              },
+              onPrioridadChanged: (PrioridadIncidencia? prioridad) {
+                context
+                    .read<IncidenciaVehiculoBloc>()
+                    .add(IncidenciaVehiculoEvent.filterByPrioridad(prioridad));
+              },
+              onTipoChanged: (TipoIncidencia? tipo) {
+                context
+                    .read<IncidenciaVehiculoBloc>()
+                    .add(IncidenciaVehiculoEvent.filterByTipo(tipo));
+              },
+              onClearFilters: () {
+                context
+                    .read<IncidenciaVehiculoBloc>()
+                    .add(const IncidenciaVehiculoEvent.clearFilters());
+              },
+            ),
             addButtonLabel: 'Reportar Avería',
             onAdd: () => _showFormModal(context),
           ),
-        ),
-        const SizedBox(height: AppSizes.spacingXl),
-        IncidenciaFilters(
-          filtroEstado: filtroEstado,
-          filtroPrioridad: filtroPrioridad,
-          filtroTipo: filtroTipo,
-          onEstadoChanged: (EstadoIncidencia? estado) {
-            context
-                .read<IncidenciaVehiculoBloc>()
-                .add(IncidenciaVehiculoEvent.filterByEstado(estado));
-          },
-          onPrioridadChanged: (PrioridadIncidencia? prioridad) {
-            context
-                .read<IncidenciaVehiculoBloc>()
-                .add(IncidenciaVehiculoEvent.filterByPrioridad(prioridad));
-          },
-          onTipoChanged: (TipoIncidencia? tipo) {
-            context
-                .read<IncidenciaVehiculoBloc>()
-                .add(IncidenciaVehiculoEvent.filterByTipo(tipo));
-          },
-          onClearFilters: () {
-            context
-                .read<IncidenciaVehiculoBloc>()
-                .add(const IncidenciaVehiculoEvent.clearFilters());
-          },
         ),
         const SizedBox(height: AppSizes.spacing),
         Expanded(
@@ -150,7 +150,16 @@ class _HistorialAveriasView extends StatelessWidget {
             },
           ),
         ),
-        _buildPagination(context, currentPage, totalPages),
+        const SizedBox(height: AppSizes.spacing),
+        _PaginationBar(
+          currentPage: currentPage - 1,
+          totalPages: totalPages.clamp(1, 999),
+          onPageChanged: (int page) {
+            context.read<IncidenciaVehiculoBloc>().add(
+              IncidenciaVehiculoEvent.changePage(page + 1),
+            );
+          },
+        ),
       ],
     );
   }
@@ -239,64 +248,6 @@ class _HistorialAveriasView extends StatelessWidget {
     );
   }
 
-  Widget _buildPagination(BuildContext context, int currentPage, int totalPages) {
-    if (totalPages <= 1) {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          top: BorderSide(color: AppColors.gray300),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          IconButton(
-            onPressed: currentPage > 1
-                ? () {
-                    context.read<IncidenciaVehiculoBloc>().add(
-                          IncidenciaVehiculoEvent.changePage(currentPage - 1),
-                        );
-                  }
-                : null,
-            icon: const Icon(Icons.chevron_left),
-          ),
-          const SizedBox(width: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              'Página $currentPage de $totalPages',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          IconButton(
-            onPressed: currentPage < totalPages
-                ? () {
-                    context.read<IncidenciaVehiculoBloc>().add(
-                          IncidenciaVehiculoEvent.changePage(currentPage + 1),
-                        );
-                  }
-                : null,
-            icon: const Icon(Icons.chevron_right),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showFormModal(
     BuildContext context, {
     IncidenciaVehiculoEntity? incidencia,
@@ -341,5 +292,80 @@ class _HistorialAveriasView extends StatelessWidget {
           .read<IncidenciaVehiculoBloc>()
           .add(IncidenciaVehiculoEvent.deleteIncidencia(incidencia.id));
     }
+  }
+}
+
+/// Barra de paginación compacta
+class _PaginationBar extends StatelessWidget {
+  const _PaginationBar({
+    required this.currentPage,
+    required this.totalPages,
+    required this.onPageChanged,
+  });
+
+  final int currentPage;
+  final int totalPages;
+  final void Function(int) onPageChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingSmall),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.first_page),
+            onPressed: currentPage > 0 ? () => onPageChanged(0) : null,
+            tooltip: 'Primera página',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            onPressed: currentPage > 0 ? () => onPageChanged(currentPage - 1) : null,
+            tooltip: 'Página anterior',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.paddingSmall,
+              vertical: 4,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+            ),
+            child: Text(
+              'Página ${currentPage + 1} de $totalPages',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textPrimaryDark,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: currentPage < totalPages - 1 ? () => onPageChanged(currentPage + 1) : null,
+            tooltip: 'Página siguiente',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          ),
+          IconButton(
+            icon: const Icon(Icons.last_page),
+            onPressed: currentPage < totalPages - 1 ? () => onPageChanged(totalPages - 1) : null,
+            tooltip: 'Última página',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          ),
+        ],
+      ),
+    );
   }
 }

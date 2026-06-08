@@ -48,4 +48,15 @@ abstract class AlertasCaducidadDataSource {
   /// [vehiculoId] - ID del vehículo
   Future<List<AlertaCaducidadEntity>> getAlertasPorVehiculo(
       String vehiculoId);
+
+  /// Marca una alerta como vista por el usuario para hoy
+  ///
+  /// [usuarioId] - ID del usuario
+  /// [tipoAlerta] - Tipo de alerta (itv, seguro, etc.)
+  /// [entidadId] - ID de la entidad asociada
+  Future<void> marcarAlertaVista({
+    required String usuarioId,
+    required String tipoAlerta,
+    required String entidadId,
+  });
 }

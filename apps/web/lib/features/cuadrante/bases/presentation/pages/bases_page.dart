@@ -5,27 +5,47 @@ import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/widgets/headers/page_header.dart';
 import 'package:ambutrack_web/features/cuadrante/bases/presentation/bloc/bloc.dart';
 import 'package:ambutrack_web/features/cuadrante/bases/presentation/widgets/base_form_dialog.dart';
+import 'package:ambutrack_web/features/cuadrante/bases/presentation/widgets/bases_filters.dart';
 import 'package:ambutrack_web/features/cuadrante/bases/presentation/widgets/bases_table.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Página principal de gestión de Bases/Centros de ambulancias
 class BasesPage extends StatelessWidget {
   const BasesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: BlocProvider<BasesBloc>(
-        create: (BuildContext context) => getIt<BasesBloc>()..add(const BasesLoadRequested()),
+      child: BlocProvider<BasesBloc>.value(
+        value: getIt<BasesBloc>(),
         child: const _BasesView(),
       ),
     );
   }
 }
 
-class _BasesView extends StatelessWidget {
+class _BasesView extends StatefulWidget {
   const _BasesView();
+
+  @override
+  State<_BasesView> createState() => _BasesViewState();
+}
+
+class _BasesViewState extends State<_BasesView> {
+  BasesFilterData _filterData = const BasesFilterData();
+
+  @override
+  void initState() {
+    super.initState();
+    final BasesBloc bloc = context.read<BasesBloc>();
+    if (bloc.state is BasesInitial) {
+      bloc.add(const BasesLoadRequested());
+    }
+  }
+
+  void _onFilterChanged(BasesFilterData data) {
+    setState(() => _filterData = data);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +61,6 @@ class _BasesView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            // PageHeader con estadísticas
             BlocBuilder<BasesBloc, BasesState>(
               builder: (BuildContext context, BasesState state) {
                 return PageHeader(
@@ -51,48 +70,44 @@ class _BasesView extends StatelessWidget {
                     subtitle: 'Administra las bases y centros del sistema',
                     addButtonLabel: 'Nueva Base',
                     stats: _buildHeaderStats(state),
+                    extra: BasesFilters(onFilterChanged: _onFilterChanged),
                     onAdd: () => _showCreateDialog(context),
                   ),
                 );
               },
             ),
-            const SizedBox(height: AppSizes.spacingXl),
-
-            // Tabla ocupa el espacio restante
-            const Expanded(child: BasesTable()),
+            const SizedBox(height: AppSizes.spacing),
+            Expanded(
+              child: BasesTable(filterData: _filterData),
+            ),
           ],
         ),
       ),
     );
   }
 
-  /// Construye las estadísticas del header
   List<HeaderStat> _buildHeaderStats(BasesState state) {
-    String total = '-';
-    String activas = '-';
-    String inactivas = '-';
-
-    if (state is BasesLoaded) {
-      total = state.bases.length.toString();
-      activas = state.bases.where((BaseCentroEntity b) => b.activo).length.toString();
-      inactivas = state.bases.where((BaseCentroEntity b) => !b.activo).length.toString();
-    } else if (state is BaseOperationSuccess) {
-      total = state.bases.length.toString();
-      activas = state.bases.where((BaseCentroEntity b) => b.activo).length.toString();
-      inactivas = state.bases.where((BaseCentroEntity b) => !b.activo).length.toString();
+    if (state is! BasesLoaded) {
+      return const <HeaderStat>[
+        HeaderStat(value: '-', icon: Icons.location_city),
+        HeaderStat(value: '-', icon: Icons.check_circle),
+        HeaderStat(value: '-', icon: Icons.cancel),
+      ];
     }
+
+    final List<BaseCentroEntity> bases = state.bases;
 
     return <HeaderStat>[
       HeaderStat(
-        value: total,
+        value: bases.length.toString(),
         icon: Icons.location_city,
       ),
       HeaderStat(
-        value: activas,
+        value: bases.where((BaseCentroEntity b) => b.activo).length.toString(),
         icon: Icons.check_circle,
       ),
       HeaderStat(
-        value: inactivas,
+        value: bases.where((BaseCentroEntity b) => !b.activo).length.toString(),
         icon: Icons.cancel,
       ),
     ];

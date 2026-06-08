@@ -21,32 +21,30 @@ import 'package:go_router/go_router.dart';
 
 /// Tabla de vehículos optimizada con ModernDataTableV3
 class VehiculosTableV4 extends StatefulWidget {
-  const VehiculosTableV4({required this.onFilterChanged, super.key});
+  const VehiculosTableV4({required this.filterData, super.key});
 
-  final void Function(VehiculosFilterData) onFilterChanged;
+  final VehiculosFilterData filterData;
 
   @override
   State<VehiculosTableV4> createState() => _VehiculosTableV4State();
 }
 
 class _VehiculosTableV4State extends State<VehiculosTableV4> {
-  VehiculosFilterData _filterData = const VehiculosFilterData();
   bool _isDeleting = false;
   BuildContext? _loadingDialogContext;
   DateTime? _deleteStartTime;
   int? _sortColumnIndex;
   bool _sortAscending = true;
 
-  // Paginación para mejorar rendimiento
   int _currentPage = 0;
   static const int _itemsPerPage = 25;
 
-  void _onFilterChanged(VehiculosFilterData filterData) {
-    setState(() {
-      _filterData = filterData;
-      _currentPage = 0; // Resetear a primera página cuando cambian filtros
-    });
-    widget.onFilterChanged(filterData);
+  @override
+  void didUpdateWidget(VehiculosTableV4 oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filterData != oldWidget.filterData) {
+      _currentPage = 0;
+    }
   }
 
   List<VehiculoEntity> _applySorting(List<VehiculoEntity> data) {
@@ -243,7 +241,7 @@ class _VehiculosTableV4State extends State<VehiculosTableV4> {
           }
 
           if (state is VehiculosLoaded) {
-            List<VehiculoEntity> vehiculosFiltrados = _filterData.apply(state.vehiculos);
+            List<VehiculoEntity> vehiculosFiltrados = widget.filterData.apply(state.vehiculos);
             vehiculosFiltrados = _applySorting(vehiculosFiltrados);
 
             // Aplicar paginación para mejorar rendimiento (25 items por página)
@@ -258,17 +256,6 @@ class _VehiculosTableV4State extends State<VehiculosTableV4> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    Text(
-                      AppStrings.vehiculosListaTitulo,
-                      style: AppTextStyles.h4,
-                    ),
-                    VehiculosFilters(onFilterChanged: _onFilterChanged),
-                  ],
-                ),
-                const SizedBox(height: AppSizes.spacing),
                 if (state.vehiculos.length != vehiculosFiltrados.length)
                   Padding(
                     padding: const EdgeInsets.only(bottom: AppSizes.spacing),
@@ -292,9 +279,9 @@ class _VehiculosTableV4State extends State<VehiculosTableV4> {
                     sortColumnIndex: _sortColumnIndex,
                     sortAscending: _sortAscending,
                     onSort: _onSort,
-                    rowHeight: 72,
+                    headerHeight: 44,
                     outerBorderColor: AppColors.gray300,
-                    emptyMessage: _filterData.hasActiveFilters
+                    emptyMessage: widget.filterData.hasActiveFilters
                         ? 'No se encontraron vehículos con los filtros aplicados'
                         : AppStrings.vehiculosListaVacia,
                     onView: (VehiculoEntity vehiculo) => _showVehiculoDetails(context, vehiculo),
@@ -335,7 +322,7 @@ class _VehiculosTableV4State extends State<VehiculosTableV4> {
     final int endItem = ((currentPage + 1) * _itemsPerPage).clamp(0, totalItems);
 
     return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
+      padding: const EdgeInsets.all(AppSizes.paddingSmall),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
@@ -356,6 +343,7 @@ class _VehiculosTableV4State extends State<VehiculosTableV4> {
               // Primera página
               IconButton(
                 icon: const Icon(Icons.first_page),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: currentPage > 0
                     ? () => onPageChanged(0)
                     : null,
@@ -365,6 +353,7 @@ class _VehiculosTableV4State extends State<VehiculosTableV4> {
               // Página anterior
               IconButton(
                 icon: const Icon(Icons.chevron_left),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: currentPage > 0
                     ? () => onPageChanged(currentPage - 1)
                     : null,
@@ -374,8 +363,8 @@ class _VehiculosTableV4State extends State<VehiculosTableV4> {
               // Indicador de página
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.paddingMedium,
-                  vertical: AppSizes.paddingSmall,
+                  horizontal: AppSizes.paddingSmall,
+                  vertical: 4,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
@@ -393,6 +382,7 @@ class _VehiculosTableV4State extends State<VehiculosTableV4> {
               // Página siguiente
               IconButton(
                 icon: const Icon(Icons.chevron_right),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: currentPage < totalPages - 1
                     ? () => onPageChanged(currentPage + 1)
                     : null,
@@ -402,6 +392,7 @@ class _VehiculosTableV4State extends State<VehiculosTableV4> {
               // Última página
               IconButton(
                 icon: const Icon(Icons.last_page),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: currentPage < totalPages - 1
                     ? () => onPageChanged(totalPages - 1)
                     : null,
@@ -432,7 +423,7 @@ class _VehiculosTableV4State extends State<VehiculosTableV4> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 1),
             Text(
               'Año ${vehiculo.anioFabricacion}',
               style: AppTextStyles.tableCellSmall,
@@ -455,7 +446,7 @@ class _VehiculosTableV4State extends State<VehiculosTableV4> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 1),
             Text(
               vehiculo.modelo,
               style: AppTextStyles.tableCellSmall,

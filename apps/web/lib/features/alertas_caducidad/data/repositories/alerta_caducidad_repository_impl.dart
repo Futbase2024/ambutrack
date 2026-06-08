@@ -76,4 +76,18 @@ class AlertaCaducidadRepositoryImpl implements AlertaCaducidadRepository {
     debugPrint('🚗 Repository: Obteniendo alertas del vehículo: $vehiculoId');
     return _dataSource.getAlertasPorVehiculo(vehiculoId);
   }
+
+  @override
+  Future<void> marcarAlertaVista({
+    required String usuarioId,
+    required String tipoAlerta,
+    required String entidadId,
+  }) async {
+    debugPrint('👁️ Repository: Marcando alerta como vista: $tipoAlerta/$entidadId');
+    return _dataSource.marcarAlertaVista(
+      usuarioId: usuarioId,
+      tipoAlerta: tipoAlerta,
+      entidadId: entidadId,
+    );
+  }
 }

@@ -20,6 +20,7 @@ class UsuarioSupabaseModel {
     this.fotoUrl,
     this.empresaId,
     this.empresaNombre,
+    this.personalId,
     required this.createdAt,
     this.updatedAt,
   });
@@ -35,6 +36,7 @@ class UsuarioSupabaseModel {
   final String? fotoUrl;
   final String? empresaId;
   final String? empresaNombre;
+  final String? personalId;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -47,18 +49,30 @@ class UsuarioSupabaseModel {
       empresaNombre = empresasData['nombre'] as String?;
     }
 
+    // Extraer nombre/apellidos/dni desde tpersonal (JOIN)
+    String? nombre = json['nombre'] as String?;
+    String? apellidos = json['apellidos'] as String?;
+    String? dni = json['dni'] as String?;
+    final dynamic tpersonalData = json['tpersonal'];
+    if (tpersonalData is Map<String, dynamic>) {
+      nombre = tpersonalData['nombre'] as String? ?? nombre;
+      apellidos = tpersonalData['apellidos'] as String? ?? apellidos;
+      dni = tpersonalData['dni'] as String? ?? dni;
+    }
+
     return UsuarioSupabaseModel(
       id: json['id'] as String,
       email: json['email'] as String,
-      dni: json['dni'] as String?,
-      nombre: json['nombre'] as String?,
-      apellidos: json['apellidos'] as String?,
+      dni: dni,
+      nombre: nombre,
+      apellidos: apellidos,
       telefono: json['telefono'] as String?,
       rol: json['rol'] as String?,
       activo: json['activo'] as bool? ?? true,
       fotoUrl: json['foto_url'] as String?,
       empresaId: json['empresa_id'] as String?,
       empresaNombre: empresaNombre,
+      personalId: json['personal_id'] as String?,
       createdAt: _parseDate(json['created_at']),
       updatedAt: _parseDateNullable(json['updated_at']),
     );
@@ -77,6 +91,7 @@ class UsuarioSupabaseModel {
       'activo': activo,
       if (fotoUrl != null) 'foto_url': fotoUrl,
       if (empresaId != null) 'empresa_id': empresaId,
+      if (personalId != null) 'personal_id': personalId,
       'created_at': createdAt.toIso8601String(),
       if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
     };
@@ -85,15 +100,18 @@ class UsuarioSupabaseModel {
   /// Convertir a UserEntity del dominio
   UserEntity toEntity() {
     // Construir displayName desde nombre + apellidos
-    final String? displayName = nombre != null && apellidos != null
-        ? '$nombre $apellidos'.trim()
-        : nombre ?? apellidos;
+    // Fallback a email cuando no hay nombre ni apellidos (null o vacío)
+    final String nombreStr = (nombre ?? '').trim();
+    final String apellidosStr = (apellidos ?? '').trim();
+    final String fullName = '$nombreStr $apellidosStr'.trim();
+    final String displayName = fullName.isNotEmpty ? fullName : email;
 
     // Construir metadata con los campos adicionales
     final Map<String, dynamic> metadata = <String, dynamic>{};
     if (dni != null) metadata['dni'] = dni;
     if (empresaId != null) metadata['empresaId'] = empresaId;
     if (empresaNombre != null) metadata['empresaNombre'] = empresaNombre;
+    if (personalId != null) metadata['personalId'] = personalId;
 
     return UserEntity(
       id: id,
@@ -138,6 +156,7 @@ class UsuarioSupabaseModel {
       fotoUrl: entity.photoUrl,
       empresaId: entity.empresaId,
       empresaNombre: entity.empresaNombre,
+      personalId: entity.personalId,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt ?? DateTime.now(),
     );

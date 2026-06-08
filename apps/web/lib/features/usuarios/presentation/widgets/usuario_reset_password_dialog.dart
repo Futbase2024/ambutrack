@@ -114,7 +114,7 @@ class _UsuarioResetPasswordDialogState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          widget.usuario.displayName ?? 'Sin nombre',
+                          widget.usuario.displayName ?? widget.usuario.email,
                           style: GoogleFonts.inter(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,

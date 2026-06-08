@@ -5,22 +5,21 @@ import 'package:ambutrack_web/core/widgets/headers/page_header.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_event.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_state.dart';
+import 'package:ambutrack_web/features/vehiculos/presentation/widgets/stock_equipamiento_header.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/widgets/stock_equipamiento_table.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Página de Stock de Equipamiento de Vehículos
-///
-/// Muestra una tabla con todos los vehículos y sus estadísticas de equipamiento:
-/// - Total de items
-/// - Items OK
-/// - Items caducados
-/// - Items con stock bajo
-/// - Items próximos a caducar
-///
-/// Permite ver, editar y añadir stock a cada vehículo.
-class StockEquipamientoPage extends StatelessWidget {
+class StockEquipamientoPage extends StatefulWidget {
   const StockEquipamientoPage({super.key});
+
+  @override
+  State<StockEquipamientoPage> createState() => _StockEquipamientoPageState();
+}
+
+class _StockEquipamientoPageState extends State<StockEquipamientoPage> {
+  String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
@@ -42,10 +41,15 @@ class StockEquipamientoPage extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    _HeaderSection(state: state),
+                    _HeaderSection(
+                      state: state,
+                      onSearchChanged: (String query) {
+                        setState(() => _searchQuery = query);
+                      },
+                    ),
                     const SizedBox(height: AppSizes.spacingXl),
-                    const Expanded(
-                      child: StockEquipamientoTable(),
+                    Expanded(
+                      child: StockEquipamientoTable(searchQuery: _searchQuery),
                     ),
                   ],
                 );
@@ -59,9 +63,13 @@ class StockEquipamientoPage extends StatelessWidget {
 }
 
 class _HeaderSection extends StatelessWidget {
-  const _HeaderSection({required this.state});
+  const _HeaderSection({
+    required this.state,
+    required this.onSearchChanged,
+  });
 
   final StockEquipamientoState state;
+  final ValueChanged<String> onSearchChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +82,7 @@ class _HeaderSection extends StatelessWidget {
               title: 'Stock de Equipamiento',
               subtitle: 'Resumen de equipamiento por vehículo',
               stats: _buildHeaderStats(state),
+              extra: StockEquipamientoSearchBar(onSearchChanged: onSearchChanged),
               onAdd: () {}, // No hay acción de agregar en esta página
               addButtonLabel: 'Actualizar',
             ),

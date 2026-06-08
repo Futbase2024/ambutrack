@@ -39,12 +39,4 @@ class MantenimientoError extends MantenimientoState {
   List<Object?> get props => <Object?>[message];
 }
 
-/// Estado de operación exitosa (crear/actualizar/eliminar)
-class MantenimientoOperationSuccess extends MantenimientoState {
-  const MantenimientoOperationSuccess({required this.message});
 
-  final String message;
-
-  @override
-  List<Object?> get props => <Object?>[message];
-}

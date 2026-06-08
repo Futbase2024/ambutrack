@@ -36,6 +36,7 @@ class _StockVestuarioView extends StatefulWidget {
 
 class _StockVestuarioViewState extends State<_StockVestuarioView> {
   DateTime? _pageStartTime;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -99,6 +100,15 @@ class _StockVestuarioViewState extends State<_StockVestuarioView> {
                       addButtonLabel: 'Agregar Artículo',
                       stats: _buildHeaderStats(state),
                       onAdd: _showAddStockDialog,
+                      extra: SizedBox(
+                        width: 300,
+                        child: StockVestuarioSearchField(
+                          searchQuery: _searchQuery,
+                          onSearchChanged: (String query) {
+                            setState(() { _searchQuery = query; });
+                          },
+                        ),
+                      ),
                     ),
                   );
                 },
@@ -107,7 +117,7 @@ class _StockVestuarioViewState extends State<_StockVestuarioView> {
               const SizedBox(height: AppSizes.spacingXl),
 
               // Tabla de stock
-              const Expanded(child: StockVestuarioTable()),
+              Expanded(child: StockVestuarioTable(searchQuery: _searchQuery)),
             ],
           ),
         ),

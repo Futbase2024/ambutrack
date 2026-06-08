@@ -12,7 +12,6 @@ import 'package:ambutrack_web/features/vehiculos/presentation/widgets/vehiculos_
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Página de gestión de vehículos
 class VehiculosPage extends StatelessWidget {
   const VehiculosPage({super.key});
 
@@ -27,7 +26,6 @@ class VehiculosPage extends StatelessWidget {
   }
 }
 
-/// Vista principal de vehículos con filtros
 class _VehiculosView extends StatefulWidget {
   const _VehiculosView();
 
@@ -37,6 +35,7 @@ class _VehiculosView extends StatefulWidget {
 
 class _VehiculosViewState extends State<_VehiculosView> {
   DateTime? _pageStartTime;
+  VehiculosFilterData _filterData = const VehiculosFilterData();
 
   @override
   void initState() {
@@ -44,7 +43,6 @@ class _VehiculosViewState extends State<_VehiculosView> {
     _pageStartTime = DateTime.now();
     debugPrint('⏱️ VehiculosPage: Inicio de carga de página');
 
-    // Solo cargar si está en estado inicial
     final VehiculosBloc bloc = context.read<VehiculosBloc>();
     if (bloc.state is VehiculosInitial) {
       debugPrint('🚀 VehiculosPage: Primera carga, solicitando vehículos...');
@@ -53,7 +51,6 @@ class _VehiculosViewState extends State<_VehiculosView> {
       final VehiculosLoaded loadedState = bloc.state as VehiculosLoaded;
       debugPrint('⚡ VehiculosPage: Datos ya cargados (${loadedState.vehiculos.length} vehículos), reutilizando estado del BLoC');
 
-      // Medir tiempo de renderizado cuando reutiliza datos
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_pageStartTime != null) {
           final Duration elapsed = DateTime.now().difference(_pageStartTime!);
@@ -65,15 +62,15 @@ class _VehiculosViewState extends State<_VehiculosView> {
   }
 
   void _onFilterChanged(VehiculosFilterData filterData) {
-    // El filtrado ahora se maneja dentro de VehiculosTable
-    debugPrint('🔍 Filtros aplicados: searchText=${filterData.searchText}, estado=${filterData.estado}, tipo=${filterData.tipo}');
+    setState(() {
+      _filterData = filterData;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<VehiculosBloc, VehiculosState>(
       listener: (BuildContext context, VehiculosState state) {
-        // Medir tiempo cuando se completa la carga inicial
         if (state is VehiculosLoaded && _pageStartTime != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_pageStartTime != null) {
@@ -106,15 +103,15 @@ class _VehiculosViewState extends State<_VehiculosView> {
                       addButtonLabel: AppStrings.vehiculosAgregar,
                       stats: _buildHeaderStats(state),
                       onAdd: _showAddVehiculoDialog,
+                      extra: VehiculosFilters(onFilterChanged: _onFilterChanged),
                     ),
                   );
                 },
               ),
-              const SizedBox(height: AppSizes.spacingXl),
+              const SizedBox(height: AppSizes.spacing),
 
-              // Tabla ocupa el espacio restante
               Expanded(
-                child: VehiculosTableV4(onFilterChanged: _onFilterChanged),
+                child: VehiculosTableV4(filterData: _filterData),
               ),
             ],
           ),

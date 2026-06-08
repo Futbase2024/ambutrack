@@ -1,22 +1,40 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:equatable/equatable.dart';
 
-part 'asignaciones_state.freezed.dart';
+/// Estados del BLoC de Asignaciones
+abstract class AsignacionesState extends Equatable {
+  const AsignacionesState();
 
-@freezed
-class AsignacionesState with _$AsignacionesState {
-  const factory AsignacionesState.initial() = AsignacionesInitial;
+  @override
+  List<Object?> get props => <Object?>[];
+}
 
-  const factory AsignacionesState.loading() = AsignacionesLoading;
+/// Estado inicial
+class AsignacionesInitial extends AsignacionesState {
+  const AsignacionesInitial();
+}
 
-  const factory AsignacionesState.loaded(
-    List<AsignacionVehiculoTurnoEntity> asignaciones,
-  ) = AsignacionesLoaded;
+/// Estado de carga
+class AsignacionesLoading extends AsignacionesState {
+  const AsignacionesLoading();
+}
 
-  const factory AsignacionesState.operationSuccess({
-    required String message,
-    required List<AsignacionVehiculoTurnoEntity> asignaciones,
-  }) = AsignacionOperationSuccess;
+/// Estado con datos cargados
+class AsignacionesLoaded extends AsignacionesState {
+  const AsignacionesLoaded(this.asignaciones);
 
-  const factory AsignacionesState.error(String message) = AsignacionesError;
+  final List<AsignacionVehiculoTurnoEntity> asignaciones;
+
+  @override
+  List<Object?> get props => <Object?>[asignaciones];
+}
+
+/// Estado de error
+class AsignacionesError extends AsignacionesState {
+  const AsignacionesError(this.message);
+
+  final String message;
+
+  @override
+  List<Object?> get props => <Object?>[message];
 }

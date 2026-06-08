@@ -8,13 +8,14 @@ import 'package:injectable/injectable.dart';
 
 /// BLoC para gestión de Excepciones/Festivos
 @injectable
-class ExcepcionesFestivosBloc extends Bloc<ExcepcionesFestivosEvent, ExcepcionesFestivosState> {
-  ExcepcionesFestivosBloc(this._repository) : super(const ExcepcionesFestivosInitial()) {
+class ExcepcionesFestivosBloc
+    extends Bloc<ExcepcionesFestivosEvent, ExcepcionesFestivosState> {
+  ExcepcionesFestivosBloc(this._repository)
+      : super(const ExcepcionesFestivosInitial()) {
     on<ExcepcionesFestivosLoadRequested>(_onLoadRequested);
     on<ExcepcionFestivoCreateRequested>(_onCreateRequested);
     on<ExcepcionFestivoUpdateRequested>(_onUpdateRequested);
     on<ExcepcionFestivoDeleteRequested>(_onDeleteRequested);
-    on<ExcepcionFestivoToggleActivoRequested>(_onToggleActivoRequested);
   }
 
   final ExcepcionFestivoRepository _repository;
@@ -35,7 +36,9 @@ class ExcepcionesFestivosBloc extends Bloc<ExcepcionesFestivosEvent, Excepciones
     } catch (e, stackTrace) {
       debugPrint('❌ BLoC: Error al cargar: $e');
       debugPrint('Stack trace: $stackTrace');
-      emit(ExcepcionesFestivosError('Error al cargar excepciones/festivos: ${e.toString()}'));
+      emit(ExcepcionesFestivosError(
+        'Error al cargar excepciones/festivos: ${e.toString()}',
+      ));
     }
   }
 
@@ -46,26 +49,15 @@ class ExcepcionesFestivosBloc extends Bloc<ExcepcionesFestivosEvent, Excepciones
   ) async {
     try {
       debugPrint('🔄 BLoC: Creando excepción/festivo: ${event.item.nombre}');
-
       await _repository.create(event.item);
-
       debugPrint('✅ BLoC: Excepción/festivo creada');
-
-      // Recargar lista
-      final List<ExcepcionFestivoEntity> items = await _repository.getAll();
-      emit(ExcepcionesFestivosLoaded(items));
+      add(const ExcepcionesFestivosLoadRequested());
     } catch (e, stackTrace) {
       debugPrint('❌ BLoC: Error al crear: $e');
       debugPrint('Stack trace: $stackTrace');
-      emit(ExcepcionesFestivosError('Error al crear excepción/festivo: ${e.toString()}'));
-
-      // Recargar lista para mantener estado consistente
-      try {
-        final List<ExcepcionFestivoEntity> items = await _repository.getAll();
-        emit(ExcepcionesFestivosLoaded(items));
-      } catch (_) {
-        // Si falla la recarga, mantener estado de error
-      }
+      emit(ExcepcionesFestivosError(
+        'Error al crear excepción/festivo: ${e.toString()}',
+      ));
     }
   }
 
@@ -75,27 +67,18 @@ class ExcepcionesFestivosBloc extends Bloc<ExcepcionesFestivosEvent, Excepciones
     Emitter<ExcepcionesFestivosState> emit,
   ) async {
     try {
-      debugPrint('🔄 BLoC: Actualizando excepción/festivo: ${event.item.nombre}');
-
+      debugPrint(
+        '🔄 BLoC: Actualizando excepción/festivo: ${event.item.nombre}',
+      );
       await _repository.update(event.item);
-
       debugPrint('✅ BLoC: Excepción/festivo actualizada');
-
-      // Recargar lista
-      final List<ExcepcionFestivoEntity> items = await _repository.getAll();
-      emit(ExcepcionesFestivosLoaded(items));
+      add(const ExcepcionesFestivosLoadRequested());
     } catch (e, stackTrace) {
       debugPrint('❌ BLoC: Error al actualizar: $e');
       debugPrint('Stack trace: $stackTrace');
-      emit(ExcepcionesFestivosError('Error al actualizar excepción/festivo: ${e.toString()}'));
-
-      // Recargar lista para mantener estado consistente
-      try {
-        final List<ExcepcionFestivoEntity> items = await _repository.getAll();
-        emit(ExcepcionesFestivosLoaded(items));
-      } catch (_) {
-        // Si falla la recarga, mantener estado de error
-      }
+      emit(ExcepcionesFestivosError(
+        'Error al actualizar excepción/festivo: ${e.toString()}',
+      ));
     }
   }
 
@@ -106,56 +89,15 @@ class ExcepcionesFestivosBloc extends Bloc<ExcepcionesFestivosEvent, Excepciones
   ) async {
     try {
       debugPrint('🔄 BLoC: Eliminando excepción/festivo con ID: ${event.id}');
-
       await _repository.delete(event.id);
-
       debugPrint('✅ BLoC: Excepción/festivo eliminada');
-
-      // Recargar lista y emitir estado de éxito
-      final List<ExcepcionFestivoEntity> items = await _repository.getAll();
-      emit(ExcepcionFestivoOperationSuccess(items, 'Excepción/festivo eliminada exitosamente'));
+      add(const ExcepcionesFestivosLoadRequested());
     } catch (e, stackTrace) {
       debugPrint('❌ BLoC: Error al eliminar: $e');
       debugPrint('Stack trace: $stackTrace');
-      emit(ExcepcionesFestivosError('Error al eliminar excepción/festivo: ${e.toString()}'));
-
-      // Recargar lista para mantener estado consistente
-      try {
-        final List<ExcepcionFestivoEntity> items = await _repository.getAll();
-        emit(ExcepcionesFestivosLoaded(items));
-      } catch (_) {
-        // Si falla la recarga, mantener estado de error
-      }
-    }
-  }
-
-  /// Maneja el cambio de estado activo
-  Future<void> _onToggleActivoRequested(
-    ExcepcionFestivoToggleActivoRequested event,
-    Emitter<ExcepcionesFestivosState> emit,
-  ) async {
-    try {
-      debugPrint('🔄 BLoC: Cambiando estado activo: ${event.activo}');
-
-      await _repository.toggleActivo(event.id, activo: event.activo);
-
-      debugPrint('✅ BLoC: Estado actualizado');
-
-      // Recargar lista
-      final List<ExcepcionFestivoEntity> items = await _repository.getAll();
-      emit(ExcepcionesFestivosLoaded(items));
-    } catch (e, stackTrace) {
-      debugPrint('❌ BLoC: Error al cambiar estado: $e');
-      debugPrint('Stack trace: $stackTrace');
-      emit(ExcepcionesFestivosError('Error al cambiar estado: ${e.toString()}'));
-
-      // Recargar lista para mantener estado consistente
-      try {
-        final List<ExcepcionFestivoEntity> items = await _repository.getAll();
-        emit(ExcepcionesFestivosLoaded(items));
-      } catch (_) {
-        // Si falla la recarga, mantener estado de error
-      }
+      emit(ExcepcionesFestivosError(
+        'Error al eliminar excepción/festivo: ${e.toString()}',
+      ));
     }
   }
 }

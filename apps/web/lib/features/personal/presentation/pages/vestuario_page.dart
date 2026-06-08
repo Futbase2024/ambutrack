@@ -44,6 +44,7 @@ class _VestuarioView extends StatefulWidget {
 
 class _VestuarioViewState extends State<_VestuarioView> {
   DateTime? _pageStartTime;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -117,6 +118,15 @@ class _VestuarioViewState extends State<_VestuarioView> {
                       addButtonLabel: 'Agregar Vestuario',
                       stats: _buildHeaderStats(state),
                       onAdd: _showAddVestuarioDialog,
+                      extra: SizedBox(
+                        width: 300,
+                        child: VestuarioSearchField(
+                          searchQuery: _searchQuery,
+                          onSearchChanged: (String query) {
+                            setState(() { _searchQuery = query; });
+                          },
+                        ),
+                      ),
                     ),
                   );
                 },
@@ -125,7 +135,7 @@ class _VestuarioViewState extends State<_VestuarioView> {
               const SizedBox(height: AppSizes.spacingXl),
 
               // Tabla de vestuario
-              const Expanded(child: VestuarioTable()),
+              Expanded(child: VestuarioTable(searchQuery: _searchQuery)),
             ],
           ),
         ),

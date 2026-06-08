@@ -180,6 +180,24 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
     try {
       await _repository.marcarComoLeida(id);
       debugPrint('✅ NotificacionBloc: Notificación marcada como leída correctamente');
+
+      // Actualizar estado inmediatamente sin esperar al real-time
+      if (!emit.isDone) {
+        state.whenOrNull(
+          loaded: (List<NotificacionEntity> notificaciones, int conteoNoLeidas) {
+            final List<NotificacionEntity> updated = notificaciones
+                .map((NotificacionEntity n) => n.id == id
+                    ? n.copyWith(leida: true, fechaLectura: DateTime.now())
+                    : n)
+                .toList();
+            final int newConteo = conteoNoLeidas > 0 ? conteoNoLeidas - 1 : 0;
+            emit(NotificacionState.loaded(
+              notificaciones: updated,
+              conteoNoLeidas: newConteo,
+            ));
+          },
+        );
+      }
     } catch (e) {
       debugPrint('❌ NotificacionBloc: Error al marcar como leída: $e');
 
@@ -206,6 +224,24 @@ class NotificacionBloc extends Bloc<NotificacionEvent, NotificacionState> {
     try {
       await _repository.marcarTodasComoLeidas(usuarioId);
       debugPrint('✅ NotificacionBloc: Todas las notificaciones marcadas como leídas correctamente');
+
+      // Actualizar estado inmediatamente sin esperar al real-time
+      if (!emit.isDone) {
+        state.whenOrNull(
+          loaded: (List<NotificacionEntity> notificaciones, int _) {
+            final DateTime now = DateTime.now();
+            final List<NotificacionEntity> updated = notificaciones
+                .map((NotificacionEntity n) => n.leida
+                    ? n
+                    : n.copyWith(leida: true, fechaLectura: now))
+                .toList();
+            emit(NotificacionState.loaded(
+              notificaciones: updated,
+              conteoNoLeidas: 0,
+            ));
+          },
+        );
+      }
     } catch (e) {
       debugPrint('❌ NotificacionBloc: Error al marcar todas como leídas: $e');
 

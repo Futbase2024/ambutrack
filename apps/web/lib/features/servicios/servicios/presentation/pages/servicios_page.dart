@@ -2,6 +2,7 @@ import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
+import 'package:ambutrack_web/core/widgets/headers/page_header.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/entities/servicio_entity.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/servicios_bloc.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/servicios_event.dart';
@@ -119,8 +120,20 @@ class _ServiciosViewState extends State<_ServiciosView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                // Header compacto con botones y filtros
-                _buildCompactHeader(state),
+                PageHeader(
+                  config: PageHeaderConfig(
+                    icon: Icons.medical_services,
+                    title: 'Gestión de Servicios',
+                    subtitle:
+                        'Administra los servicios de ambulancias y traslados',
+                    addButtonLabel: 'NUEVO',
+                    stats: _buildHeaderStats(state),
+                    extra: _buildCompactFilters(state),
+                    onAdd: _showNewServicioDialog,
+                  ),
+                ),
+                const SizedBox(height: AppSizes.spacing),
+                _buildActionBar(state),
                 const SizedBox(height: AppSizes.spacing),
 
                 // Contenido principal: Tabla (50%) + Panel lateral (50%)
@@ -177,9 +190,54 @@ class _ServiciosViewState extends State<_ServiciosView> {
     }
   }
 
-  /// Construye el header compacto con título, filtros y botones de acción en una línea
-  Widget _buildCompactHeader(ServiciosState state) {
-    // Obtener servicio seleccionado desde el estado
+  List<HeaderStat> _buildHeaderStats(ServiciosState state) {
+    return state.maybeWhen(
+      loaded: (List<ServicioEntity> servicios, String searchQuery,
+          int? yearFilter, String? estadoFilter, bool isRefreshing,
+          ServicioEntity? selectedServicio, bool isLoadingDetails) {
+        final int total = servicios.length;
+        final int activos =
+            servicios.where((ServicioEntity s) => s.estado == 'ACTIVO').length;
+        final int suspendidos = servicios
+            .where((ServicioEntity s) => s.estado == 'SUSPENDIDO')
+            .length;
+        return <HeaderStat>[
+          HeaderStat(value: total.toString(), icon: Icons.medical_services),
+          HeaderStat(value: activos.toString(), icon: Icons.check_circle),
+          HeaderStat(value: suspendidos.toString(), icon: Icons.pause_circle),
+        ];
+      },
+      orElse: () => const <HeaderStat>[
+        HeaderStat(value: '-', icon: Icons.medical_services),
+        HeaderStat(value: '-', icon: Icons.check_circle),
+        HeaderStat(value: '-', icon: Icons.pause_circle),
+      ],
+    );
+  }
+
+  Widget _buildCompactFilters(ServiciosState state) {
+    return Wrap(
+      spacing: AppSizes.spacing,
+      runSpacing: AppSizes.spacing,
+      alignment: WrapAlignment.end,
+      children: <Widget>[
+        SizedBox(
+          width: 250,
+          child: _buildSearchField(),
+        ),
+        SizedBox(
+          width: 120,
+          child: _buildYearSelector(),
+        ),
+        SizedBox(
+          width: 180,
+          child: _buildEstadoSelector(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionBar(ServiciosState state) {
     final ServicioEntity? selectedServicio = state.maybeWhen(
       loaded: (
         List<ServicioEntity> servicios,
@@ -196,111 +254,67 @@ class _ServiciosViewState extends State<_ServiciosView> {
 
     final bool hasSelection = selectedServicio != null;
     final bool isActive = hasSelection && selectedServicio.estado == 'ACTIVO';
-    final bool isSuspended = hasSelection && selectedServicio.estado == 'SUSPENDIDO';
+    final bool isSuspended =
+        hasSelection && selectedServicio.estado == 'SUSPENDIDO';
 
     return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
+      padding: const EdgeInsets.all(AppSizes.paddingSmall),
       decoration: BoxDecoration(
         color: AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
         border: Border.all(color: AppColors.gray200),
       ),
-      child: Row(
+      child: Wrap(
+        spacing: AppSizes.spacingSmall,
+        runSpacing: AppSizes.spacingSmall,
         children: <Widget>[
-          // Icono y título
-          const Icon(
-            Icons.medical_services,
-            color: AppColors.primary,
-            size: 20,
+          _buildCompactButton(
+            label: 'EDITAR',
+            icon: Icons.edit,
+            color: AppColors.primary.withValues(alpha: 0.8),
+            onPressed: hasSelection
+                ? () => _handleEditar(context, selectedServicio)
+                : null,
           ),
-          const SizedBox(width: AppSizes.spacingSmall),
-          Text(
-            'Gestión de Servicios',
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimaryLight,
-            ),
+          _buildCompactButton(
+            label: 'ELIMINAR',
+            icon: Icons.delete_outline,
+            color: AppColors.primary.withValues(alpha: 0.8),
+            onPressed: hasSelection
+                ? () => _handleEliminar(context, selectedServicio)
+                : null,
           ),
-          const SizedBox(width: AppSizes.spacing),
-
-          // Filtros
-          SizedBox(
-            width: 250,
-            child: _buildSearchField(),
+          _buildCompactButton(
+            label: 'FINALIZAR',
+            icon: Icons.done_all,
+            color: AppColors.primary.withValues(alpha: 0.8),
+            onPressed: isActive
+                ? () => _handleFinalizar(context, selectedServicio)
+                : null,
           ),
-          const SizedBox(width: AppSizes.spacingSmall),
-          SizedBox(
-            width: 120,
-            child: _buildYearSelector(),
+          _buildCompactButton(
+            label: 'SUSPENDER',
+            icon: Icons.pause_circle_outline,
+            color: AppColors.primary.withValues(alpha: 0.8),
+            onPressed: isActive
+                ? () => _handleSuspender(context, selectedServicio)
+                : null,
           ),
-          const SizedBox(width: AppSizes.spacingSmall),
-          SizedBox(
-            width: 180,
-            child: _buildEstadoSelector(),
+          _buildCompactButton(
+            label: 'REANUDAR',
+            icon: Icons.play_circle_outline,
+            color: AppColors.success.withValues(alpha: 0.8),
+            onPressed: isSuspended
+                ? () => _handleReanudar(context, selectedServicio)
+                : null,
           ),
-
-          const Spacer(),
-
-          // Botones de acción
-          Wrap(
-            spacing: AppSizes.spacingSmall,
-            children: <Widget>[
-              _buildCompactButton(
-                label: 'NUEVO',
-                icon: Icons.add,
-                color: AppColors.primary.withValues(alpha: 0.8),
-                onPressed: _showNewServicioDialog,
-              ),
-              _buildCompactButton(
-                label: 'EDITAR',
-                icon: Icons.edit,
-                color: AppColors.primary.withValues(alpha: 0.8),
-                onPressed: hasSelection
-                    ? () => _handleEditar(context, selectedServicio)
-                    : null,
-              ),
-              _buildCompactButton(
-                label: 'ELIMINAR',
-                icon: Icons.delete_outline,
-                color: AppColors.primary.withValues(alpha: 0.8),
-                onPressed: hasSelection
-                    ? () => _handleEliminar(context, selectedServicio)
-                    : null,
-              ),
-              _buildCompactButton(
-                label: 'FINALIZAR',
-                icon: Icons.done_all,
-                color: AppColors.primary.withValues(alpha: 0.8),
-                onPressed: isActive
-                    ? () => _handleFinalizar(context, selectedServicio)
-                    : null,
-              ),
-              _buildCompactButton(
-                label: 'SUSPENDER',
-                icon: Icons.pause_circle_outline,
-                color: AppColors.primary.withValues(alpha: 0.8),
-                onPressed: isActive
-                    ? () => _handleSuspender(context, selectedServicio)
-                    : null,
-              ),
-              _buildCompactButton(
-                label: 'REANUDAR',
-                icon: Icons.play_circle_outline,
-                color: AppColors.success.withValues(alpha: 0.8),
-                onPressed: isSuspended
-                    ? () => _handleReanudar(context, selectedServicio)
-                    : null,
-              ),
-              _buildCompactButton(
-                label: 'EXCLUIR',
-                icon: Icons.block,
-                color: AppColors.primary.withValues(alpha: 0.8),
-                onPressed: isActive
-                    ? () => _handleExcluir(context, selectedServicio)
-                    : null,
-              ),
-            ],
+          _buildCompactButton(
+            label: 'EXCLUIR',
+            icon: Icons.block,
+            color: AppColors.primary.withValues(alpha: 0.8),
+            onPressed: isActive
+                ? () => _handleExcluir(context, selectedServicio)
+                : null,
           ),
         ],
       ),

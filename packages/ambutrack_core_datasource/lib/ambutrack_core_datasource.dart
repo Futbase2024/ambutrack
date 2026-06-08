@@ -63,6 +63,14 @@ export 'src/datasources/vehiculos/vehiculos_factory.dart' show VehiculoDataSourc
 export 'src/datasources/vehiculos/implementations/supabase/supabase_vehiculo_datasource.dart';
 export 'src/datasources/vehiculos/models/vehiculo_supabase_model.dart';
 
+export 'src/datasources/incidencias/entities/incidencia_entity.dart'
+    hide EstadoIncidencia, PrioridadIncidencia;
+export 'src/datasources/incidencias/incidencia_contract.dart';
+export 'src/datasources/incidencias/incidencia_factory.dart'
+    show IncidenciaDataSourceFactory;
+export 'src/datasources/incidencias/implementations/supabase/supabase_incidencia_datasource.dart';
+export 'src/datasources/incidencias/models/incidencia_supabase_model.dart';
+
 export 'src/datasources/incidencias_vehiculo/entities/incidencia_vehiculo_entity.dart';
 export 'src/datasources/incidencias_vehiculo/incidencia_vehiculo_contract.dart';
 export 'src/datasources/incidencias_vehiculo/incidencia_vehiculo_factory.dart';
@@ -399,6 +407,14 @@ export 'src/datasources/alertas_caducidad/alertas_caducidad_factory.dart'
     show AlertasCaducidadDataSourceFactory;
 export 'src/datasources/alertas_caducidad/implementations/supabase/supabase_alertas_caducidad_datasource.dart';
 export 'src/datasources/alertas_caducidad/models/alerta_caducidad_supabase_model.dart';
+
+// Agenda de Pendientes
+export 'src/datasources/agenda_pendientes/entities/agenda_pendiente_entity.dart';
+export 'src/datasources/agenda_pendientes/agenda_pendiente_contract.dart';
+export 'src/datasources/agenda_pendientes/agenda_pendiente_factory.dart'
+    show AgendaPendienteDataSourceFactory;
+export 'src/datasources/agenda_pendientes/implementations/supabase/supabase_agenda_pendiente_datasource.dart';
+export 'src/datasources/agenda_pendientes/models/agenda_pendiente_supabase_model.dart';
 
 // Utils - Utilidades públicas
 export 'src/utils/exceptions/datasource_exception.dart';

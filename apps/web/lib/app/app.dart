@@ -7,7 +7,7 @@ import 'package:ambutrack_web/core/widgets/context_menu/context_menu_blocker.dar
 import 'package:ambutrack_web/features/alertas_caducidad/presentation/bloc/alertas_caducidad_bloc.dart';
 import 'package:ambutrack_web/features/alertas_caducidad/presentation/bloc/alertas_caducidad_event.dart';
 import 'package:ambutrack_web/features/alertas_caducidad/presentation/bloc/alertas_caducidad_state.dart';
-import 'package:ambutrack_web/features/alertas_caducidad/presentation/widgets/alertas_dialogo_inicial.dart';
+import 'package:ambutrack_web/features/alertas_caducidad/presentation/widgets/alertas_criticas_dialog.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_event.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
@@ -31,7 +31,7 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider<AuthBloc>(
       create: (BuildContext context) => getIt<AuthBloc>()..add(const AuthCheckRequested()),
-      child: RepositoryProvider<AlertasCaducidadBloc>.value(
+      child: BlocProvider<AlertasCaducidadBloc>.value(
         value: getIt<AlertasCaducidadBloc>(),
         child: RepositoryProvider<StockEquipamientoBloc>.value(
           value: getIt<StockEquipamientoBloc>(),
@@ -131,7 +131,6 @@ class _AlertasDialogListenerState extends State<_AlertasDialogListener> {
               _shownAlertasIds.add(alerta.id);
             }
 
-            final String usuarioId = authState.user.uid;
             debugPrint('🔔 _AlertasDialogListener: Intentando mostrar diálogo de ${nuevasCriticas.length} alertas críticas...');
             // Usar Future.delayed para asegurar que el Navigator esté completamente inicializado
             Future<void>.delayed(const Duration(milliseconds: 100), () {
@@ -144,8 +143,8 @@ class _AlertasDialogListenerState extends State<_AlertasDialogListener> {
                   showDialog<void>(
                     context: context,
                     barrierDismissible: false,
-                    builder: (BuildContext dialogContext) => AlertasDialogoInicial(
-                      usuarioId: usuarioId,
+                    builder: (BuildContext dialogContext) => AlertasCriticasDialog(
+                      alertas: nuevasCriticas,
                     ),
                   );
                 } else {

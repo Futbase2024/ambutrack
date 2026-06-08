@@ -33,6 +33,9 @@ class AppDataGrid<T> extends StatefulWidget {
     this.sortColumnIndex,
     this.sortAscending = true,
     this.onSort,
+    this.headingRowHeight = 44,
+    this.dataRowMinHeight = 40,
+    this.dataRowMaxHeight = 56,
   });
 
   /// Título del DataGrid (opcional)
@@ -86,6 +89,15 @@ class AppDataGrid<T> extends StatefulWidget {
   /// Callback cuando se hace clic en una columna ordenable
   final void Function(int columnIndex, {required bool ascending})? onSort;
 
+  /// Altura de la fila de encabezado
+  final double headingRowHeight;
+
+  /// Altura mínima de las filas de datos
+  final double dataRowMinHeight;
+
+  /// Altura máxima de las filas de datos
+  final double dataRowMaxHeight;
+
   @override
   State<AppDataGrid<T>> createState() => _AppDataGridState<T>();
 }
@@ -132,11 +144,11 @@ class _AppDataGridState<T> extends State<AppDataGrid<T>> {
             const Divider(height: 1),
           ],
 
-          // Contenido: tabla o estado vacío
+          // Contenido: tabla o estado vacío — Expanded para evitar overflow
           if (widget.rows.isEmpty)
-            _buildEmptyState()
+            Expanded(child: _buildEmptyState())
           else
-            _buildDataTable(),
+            Expanded(child: _buildDataTable()),
         ],
       ),
     );
@@ -202,16 +214,19 @@ class _AppDataGridState<T> extends State<AppDataGrid<T>> {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         return SingleChildScrollView(
-          controller: _scrollController,
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: DataTable(
+          // Scroll vertical: permite ver todas las filas
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: DataTable(
               headingRowColor: WidgetStateProperty.all(AppColors.primarySurface),
+              headingRowHeight: widget.headingRowHeight,
               columnSpacing: AppSizes.spacingLarge,
               horizontalMargin: AppSizes.paddingLarge,
-              dataRowMinHeight: 56,
-              dataRowMaxHeight: 80,
+              dataRowMinHeight: widget.dataRowMinHeight,
+              dataRowMaxHeight: widget.dataRowMaxHeight,
               sortColumnIndex: widget.sortColumnIndex,
               sortAscending: widget.sortAscending,
               columns: <DataColumn>[
@@ -266,9 +281,10 @@ class _AppDataGridState<T> extends State<AppDataGrid<T>> {
                   .toList(),
             ),
           ),
-        );
-      },
-    );
+        ),
+      );
+    },
+  );
   }
 
   /// Construye los botones de acción para cada fila

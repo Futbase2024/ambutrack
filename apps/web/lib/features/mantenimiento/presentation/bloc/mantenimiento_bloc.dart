@@ -83,8 +83,6 @@ class MantenimientoBloc extends Bloc<MantenimientoEvent, MantenimientoState> {
       },
       (MantenimientoEntity mantenimiento) {
         debugPrint('✅ MantenimientoBloc: Mantenimiento creado con ID ${mantenimiento.id}');
-        emit(const MantenimientoOperationSuccess(message: 'Mantenimiento creado correctamente'));
-        // Recargar la lista solo si el BLoC no está cerrado
         if (!isClosed) {
           add(const MantenimientoLoadRequested());
         }
@@ -109,8 +107,6 @@ class MantenimientoBloc extends Bloc<MantenimientoEvent, MantenimientoState> {
       },
       (MantenimientoEntity mantenimiento) {
         debugPrint('✅ MantenimientoBloc: Mantenimiento actualizado');
-        emit(const MantenimientoOperationSuccess(message: 'Mantenimiento actualizado correctamente'));
-        // Recargar la lista solo si el BLoC no está cerrado
         if (!isClosed) {
           add(const MantenimientoLoadRequested());
         }
@@ -135,8 +131,6 @@ class MantenimientoBloc extends Bloc<MantenimientoEvent, MantenimientoState> {
       },
       (_) {
         debugPrint('✅ MantenimientoBloc: Mantenimiento eliminado');
-        emit(const MantenimientoOperationSuccess(message: 'Mantenimiento eliminado correctamente'));
-        // Recargar la lista solo si el BLoC no está cerrado
         if (!isClosed) {
           add(const MantenimientoLoadRequested());
         }

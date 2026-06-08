@@ -38,14 +38,3 @@ class DotacionesError extends DotacionesState {
   @override
   List<Object?> get props => <Object?>[message];
 }
-
-/// Estado de operación exitosa (crear, actualizar, eliminar)
-class DotacionOperationSuccess extends DotacionesState {
-  const DotacionOperationSuccess(this.message, this.dotaciones);
-
-  final String message;
-  final List<DotacionEntity> dotaciones;
-
-  @override
-  List<Object?> get props => <Object?>[message, dotaciones];
-}

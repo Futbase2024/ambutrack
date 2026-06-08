@@ -1,13 +1,13 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
 import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:ambutrack_web/features/cuadrante/bases/presentation/bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Diálogo de formulario para crear/editar una Base
 class BaseFormDialog extends StatefulWidget {
@@ -32,18 +32,12 @@ class _BaseFormDialogState extends State<BaseFormDialog> {
   @override
   void initState() {
     super.initState();
-    _initializeControllers();
-  }
+    _nombreController = TextEditingController(text: widget.base?.nombre ?? '');
+    _direccionController = TextEditingController(text: widget.base?.direccion ?? '');
 
-  void _initializeControllers() {
-    final BaseCentroEntity? base = widget.base;
-
-    _nombreController = TextEditingController(text: base?.nombre ?? '');
-    _direccionController = TextEditingController(text: base?.direccion ?? '');
-
-    if (base != null) {
-      _tipoSeleccionado = base.tipo ?? 'Permanente';
-      _activo = base.activo;
+    if (widget.base != null) {
+      _tipoSeleccionado = widget.base!.tipo ?? 'Permanente';
+      _activo = widget.base!.activo;
     }
   }
 
@@ -65,11 +59,16 @@ class _BaseFormDialogState extends State<BaseFormDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              _buildInfoSection(),
+              _InfoSection(nombreController: _nombreController),
               const SizedBox(height: AppSizes.spacing),
-              _buildUbicacionSection(),
+              _UbicacionSection(direccionController: _direccionController),
               const SizedBox(height: AppSizes.spacing),
-              _buildConfiguracionSection(),
+              _ConfiguracionSection(
+                tipoSeleccionado: _tipoSeleccionado,
+                activo: _activo,
+                onTipoChanged: (String value) => setState(() => _tipoSeleccionado = value),
+                onActivoChanged: (bool value) => setState(() => _activo = value),
+              ),
             ],
           ),
         ),
@@ -88,21 +87,47 @@ class _BaseFormDialogState extends State<BaseFormDialog> {
     );
   }
 
-  Widget _buildInfoSection() {
+  void _onSave() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final BaseCentroEntity base = BaseCentroEntity(
+      id: widget.base?.id ?? '',
+      codigo: widget.base?.codigo,
+      nombre: _nombreController.text.trim(),
+      direccion: _direccionController.text.trim().isEmpty ? null : _direccionController.text.trim(),
+      tipo: _tipoSeleccionado,
+      activo: _activo,
+      createdAt: widget.base?.createdAt ?? DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    if (_isEditing) {
+      context.read<BasesBloc>().add(BaseUpdateRequested(base));
+    } else {
+      context.read<BasesBloc>().add(BaseCreateRequested(base));
+    }
+
+    Navigator.of(context).pop();
+  }
+}
+
+/// Sección de información básica del formulario
+class _InfoSection extends StatelessWidget {
+  const _InfoSection({required this.nombreController});
+
+  final TextEditingController? nombreController;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          'Información Básica',
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimaryLight,
-          ),
-        ),
+        Text('Información Básica', style: AppTextStyles.h5),
         const SizedBox(height: AppSizes.spacingSmall),
         TextFormField(
-          controller: _nombreController,
+          controller: nombreController,
           textInputAction: TextInputAction.next,
           decoration: const InputDecoration(
             labelText: 'Nombre *',
@@ -119,22 +144,23 @@ class _BaseFormDialogState extends State<BaseFormDialog> {
       ],
     );
   }
+}
 
-  Widget _buildUbicacionSection() {
+/// Sección de ubicación del formulario
+class _UbicacionSection extends StatelessWidget {
+  const _UbicacionSection({required this.direccionController});
+
+  final TextEditingController direccionController;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          'Ubicación',
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimaryLight,
-          ),
-        ),
+        Text('Ubicación', style: AppTextStyles.h5),
         const SizedBox(height: AppSizes.spacingSmall),
         TextFormField(
-          controller: _direccionController,
+          controller: direccionController,
           textInputAction: TextInputAction.next,
           maxLines: 2,
           decoration: const InputDecoration(
@@ -146,22 +172,32 @@ class _BaseFormDialogState extends State<BaseFormDialog> {
       ],
     );
   }
+}
 
-  Widget _buildConfiguracionSection() {
+/// Sección de configuración del formulario
+class _ConfiguracionSection extends StatelessWidget {
+  const _ConfiguracionSection({
+    required this.tipoSeleccionado,
+    required this.activo,
+    required this.onTipoChanged,
+    required this.onActivoChanged,
+  });
+
+  final String tipoSeleccionado;
+  final bool activo;
+  final void Function(String) onTipoChanged;
+  // ignore: avoid_positional_boolean_parameters
+  final void Function(bool) onActivoChanged;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          'Configuración',
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimaryLight,
-          ),
-        ),
+        Text('Configuración', style: AppTextStyles.h5),
         const SizedBox(height: AppSizes.spacingSmall),
         AppDropdown<String>(
-          value: _tipoSeleccionado,
+          value: tipoSeleccionado,
           label: 'Tipo de Base *',
           hint: 'Selecciona tipo',
           prefixIcon: Icons.category,
@@ -181,57 +217,22 @@ class _BaseFormDialogState extends State<BaseFormDialog> {
           ],
           onChanged: (String? value) {
             if (value != null) {
-              setState(() => _tipoSeleccionado = value);
+              onTipoChanged(value);
             }
           },
         ),
         const SizedBox(height: AppSizes.spacingSmall),
         SwitchListTile(
-          title: Text(
-            'Base Activa',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textPrimaryLight,
-            ),
-          ),
+          title: Text('Base Activa', style: AppTextStyles.bodyBold),
           subtitle: Text(
-            _activo ? 'La base está operativa' : 'La base está desactivada',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: AppColors.textSecondaryLight,
-            ),
+            activo ? 'La base está operativa' : 'La base está desactivada',
+            style: AppTextStyles.bodySmallSecondary,
           ),
-          value: _activo,
-          onChanged: (bool value) => setState(() => _activo = value),
+          value: activo,
+          onChanged: onActivoChanged,
           activeThumbColor: AppColors.success,
         ),
       ],
     );
-  }
-
-  void _onSave() {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    final BaseCentroEntity base = BaseCentroEntity(
-      id: widget.base?.id ?? '',
-      codigo: widget.base?.codigo, // Mantener código existente si es edición
-      nombre: _nombreController.text.trim(),
-      direccion: _direccionController.text.trim().isEmpty ? null : _direccionController.text.trim(),
-      tipo: _tipoSeleccionado,
-      activo: _activo,
-      createdAt: widget.base?.createdAt ?? DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-
-    if (_isEditing) {
-      context.read<BasesBloc>().add(BaseUpdateRequested(base));
-    } else {
-      context.read<BasesBloc>().add(BaseCreateRequested(base));
-    }
-
-    Navigator.of(context).pop();
   }
 }
