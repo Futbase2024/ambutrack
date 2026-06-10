@@ -9,7 +9,6 @@ import 'package:injectable/injectable.dart';
 /// BLoC para gestión de contratos
 @injectable
 class ContratoBloc extends Bloc<ContratoEvent, ContratoState> {
-
   ContratoBloc(this._repository) : super(const ContratoInitial()) {
     on<ContratoLoadRequested>(_onLoadRequested);
     on<ContratoLoadActivosRequested>(_onLoadActivosRequested);
@@ -20,7 +19,27 @@ class ContratoBloc extends Bloc<ContratoEvent, ContratoState> {
     on<ContratoDeleteRequested>(_onDeleteRequested);
     on<ContratoToggleActivoRequested>(_onToggleActivoRequested);
   }
+
   final ContratoRepository _repository;
+
+  /// Carga los nombres de hospitales para mostrar en la tabla
+  Future<Map<String, String>> _loadHospitalNames() async {
+    try {
+      final CentroHospitalarioDataSource hospitalDataSource =
+          CentroHospitalarioDataSourceFactory.createSupabase();
+
+      final List<CentroHospitalarioEntity> hospitales =
+          await hospitalDataSource.getAll();
+
+      return <String, String>{
+        for (final CentroHospitalarioEntity h in hospitales)
+          h.id: h.nombre,
+      };
+    } catch (e) {
+      debugPrint('⚠️ ContratoBloc: Error al cargar nombres de hospitales: $e');
+      return <String, String>{};
+    }
+  }
 
   Future<void> _onLoadRequested(
     ContratoLoadRequested event,
@@ -31,9 +50,10 @@ class ContratoBloc extends Bloc<ContratoEvent, ContratoState> {
       debugPrint('🚀 ContratoBloc: Cargando todos los contratos...');
 
       final List<ContratoEntity> contratos = await _repository.getAll();
+      final Map<String, String> hospitalNames = await _loadHospitalNames();
 
       debugPrint('✅ ContratoBloc: ${contratos.length} contratos cargados');
-      emit(ContratoLoaded(contratos));
+      emit(ContratoLoaded(contratos, hospitalNames: hospitalNames));
     } catch (e) {
       debugPrint('❌ ContratoBloc: Error al cargar contratos: $e');
       emit(ContratoError('Error al cargar contratos: $e'));
@@ -49,9 +69,10 @@ class ContratoBloc extends Bloc<ContratoEvent, ContratoState> {
       debugPrint('🚀 ContratoBloc: Cargando contratos activos...');
 
       final List<ContratoEntity> contratos = await _repository.getActivos();
+      final Map<String, String> hospitalNames = await _loadHospitalNames();
 
       debugPrint('✅ ContratoBloc: ${contratos.length} contratos activos');
-      emit(ContratoLoaded(contratos));
+      emit(ContratoLoaded(contratos, hospitalNames: hospitalNames));
     } catch (e) {
       debugPrint('❌ ContratoBloc: Error al cargar contratos activos: $e');
       emit(ContratoError('Error al cargar contratos activos: $e'));
@@ -67,9 +88,10 @@ class ContratoBloc extends Bloc<ContratoEvent, ContratoState> {
       debugPrint('🚀 ContratoBloc: Cargando contratos vigentes...');
 
       final List<ContratoEntity> contratos = await _repository.getVigentes();
+      final Map<String, String> hospitalNames = await _loadHospitalNames();
 
       debugPrint('✅ ContratoBloc: ${contratos.length} contratos vigentes');
-      emit(ContratoLoaded(contratos));
+      emit(ContratoLoaded(contratos, hospitalNames: hospitalNames));
     } catch (e) {
       debugPrint('❌ ContratoBloc: Error al cargar contratos vigentes: $e');
       emit(ContratoError('Error al cargar contratos vigentes: $e'));
@@ -86,10 +108,12 @@ class ContratoBloc extends Bloc<ContratoEvent, ContratoState> {
         '🚀 ContratoBloc: Cargando contratos del hospital ${event.hospitalId}...',
       );
 
-      final List<ContratoEntity> contratos = await _repository.getByHospitalId(event.hospitalId);
+      final List<ContratoEntity> contratos =
+          await _repository.getByHospitalId(event.hospitalId);
+      final Map<String, String> hospitalNames = await _loadHospitalNames();
 
       debugPrint('✅ ContratoBloc: ${contratos.length} contratos encontrados');
-      emit(ContratoLoaded(contratos));
+      emit(ContratoLoaded(contratos, hospitalNames: hospitalNames));
     } catch (e) {
       debugPrint('❌ ContratoBloc: Error al cargar contratos por hospital: $e');
       emit(ContratoError('Error al cargar contratos por hospital: $e'));
@@ -106,14 +130,15 @@ class ContratoBloc extends Bloc<ContratoEvent, ContratoState> {
 
       await _repository.create(event.contrato);
 
-      // Recargar lista
       final List<ContratoEntity> contratos = await _repository.getAll();
+      final Map<String, String> hospitalNames = await _loadHospitalNames();
 
       debugPrint('✅ ContratoBloc: Contrato creado exitosamente');
       emit(
         ContratoOperationSuccess(
           'Contrato creado exitosamente',
           contratos,
+          hospitalNames: hospitalNames,
         ),
       );
     } catch (e) {
@@ -134,14 +159,15 @@ class ContratoBloc extends Bloc<ContratoEvent, ContratoState> {
 
       await _repository.update(event.contrato);
 
-      // Recargar lista
       final List<ContratoEntity> contratos = await _repository.getAll();
+      final Map<String, String> hospitalNames = await _loadHospitalNames();
 
       debugPrint('✅ ContratoBloc: Contrato actualizado exitosamente');
       emit(
         ContratoOperationSuccess(
           'Contrato actualizado exitosamente',
           contratos,
+          hospitalNames: hospitalNames,
         ),
       );
     } catch (e) {
@@ -160,14 +186,15 @@ class ContratoBloc extends Bloc<ContratoEvent, ContratoState> {
 
       await _repository.delete(event.id);
 
-      // Recargar lista
       final List<ContratoEntity> contratos = await _repository.getAll();
+      final Map<String, String> hospitalNames = await _loadHospitalNames();
 
       debugPrint('✅ ContratoBloc: Contrato eliminado exitosamente');
       emit(
         ContratoOperationSuccess(
           'Contrato eliminado exitosamente',
           contratos,
+          hospitalNames: hospitalNames,
         ),
       );
     } catch (e) {
@@ -188,13 +215,19 @@ class ContratoBloc extends Bloc<ContratoEvent, ContratoState> {
 
       await _repository.toggleActivo(event.id, activo: event.activo);
 
-      // Recargar lista
       final List<ContratoEntity> contratos = await _repository.getAll();
+      final Map<String, String> hospitalNames = await _loadHospitalNames();
 
       final String mensaje =
           event.activo ? 'Contrato activado' : 'Contrato desactivado';
       debugPrint('✅ ContratoBloc: $mensaje');
-      emit(ContratoOperationSuccess(mensaje, contratos));
+      emit(
+        ContratoOperationSuccess(
+          mensaje,
+          contratos,
+          hospitalNames: hospitalNames,
+        ),
+      );
     } catch (e) {
       debugPrint('❌ ContratoBloc: Error al cambiar estado del contrato: $e');
       emit(ContratoError('Error al cambiar estado del contrato: $e'));

@@ -139,6 +139,12 @@ class CrudPermissions {
       AppModule.vehiculos: false,
       AppModule.servicios: false,
     },
+
+    UserRole.jefeTaller: <AppModule, bool>{
+      AppModule.personal: false,
+      AppModule.vehiculos: true,
+      AppModule.servicios: false,
+    },
   };
 
   // ==========================================
@@ -214,6 +220,13 @@ class CrudPermissions {
       AppModule.personal: true,
       AppModule.vehiculos: true,
       AppModule.servicios: true,
+      AppModule.usuariosRoles: false,
+    },
+
+    UserRole.jefeTaller: <AppModule, bool>{
+      AppModule.personal: true, // Solo lectura
+      AppModule.vehiculos: true,
+      AppModule.servicios: true, // Solo lectura
       AppModule.usuariosRoles: false,
     },
   };
@@ -293,6 +306,13 @@ class CrudPermissions {
       AppModule.servicios: false,
       AppModule.usuariosRoles: false,
     },
+
+    UserRole.jefeTaller: <AppModule, bool>{
+      AppModule.personal: false,
+      AppModule.vehiculos: true,
+      AppModule.servicios: false,
+      AppModule.usuariosRoles: false,
+    },
   };
 
   // ==========================================
@@ -329,6 +349,7 @@ class CrudPermissions {
     UserRole.sanitario: <AppModule, bool>{},
     UserRole.gestor: <AppModule, bool>{},
     UserRole.tecnico: <AppModule, bool>{},
+    UserRole.jefeTaller: <AppModule, bool>{},
     UserRole.operador: <AppModule, bool>{},
   };
 }

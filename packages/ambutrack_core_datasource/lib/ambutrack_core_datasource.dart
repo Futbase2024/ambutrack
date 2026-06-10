@@ -416,6 +416,22 @@ export 'src/datasources/agenda_pendientes/agenda_pendiente_factory.dart'
 export 'src/datasources/agenda_pendientes/implementations/supabase/supabase_agenda_pendiente_datasource.dart';
 export 'src/datasources/agenda_pendientes/models/agenda_pendiente_supabase_model.dart';
 
+// ✅ TALLER - Catálogo de Talleres
+export 'src/datasources/talleres/entities/taller_entity.dart';
+export 'src/datasources/talleres/talleres_contract.dart';
+export 'src/datasources/talleres/talleres_factory.dart'
+    show TalleresDataSourceFactory;
+export 'src/datasources/talleres/implementations/supabase/supabase_talleres_datasource.dart';
+export 'src/datasources/talleres/models/taller_supabase_model.dart';
+
+// ✅ TALLER - Proveedores
+export 'src/datasources/proveedores_taller/entities/proveedor_taller_entity.dart';
+export 'src/datasources/proveedores_taller/proveedores_taller_contract.dart';
+export 'src/datasources/proveedores_taller/proveedores_taller_factory.dart'
+    show ProveedoresTallerDataSourceFactory;
+export 'src/datasources/proveedores_taller/implementations/supabase/supabase_proveedores_taller_datasource.dart';
+export 'src/datasources/proveedores_taller/models/proveedor_taller_supabase_model.dart';
+
 // Utils - Utilidades públicas
 export 'src/utils/exceptions/datasource_exception.dart';
 export 'src/utils/typedefs/datasource_typedefs.dart';

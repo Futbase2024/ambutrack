@@ -19,6 +19,7 @@ import 'package:ambutrack_web/features/personal/domain/entities/tipo_contrato_en
 import 'package:ambutrack_web/features/personal/presentation/bloc/personal_bloc.dart';
 import 'package:ambutrack_web/features/personal/presentation/bloc/personal_event.dart';
 import 'package:ambutrack_web/features/personal/presentation/bloc/personal_state.dart';
+import 'package:ambutrack_web/features/personal/presentation/widgets/asignacion_default_section.dart';
 import 'package:ambutrack_web/features/personal/presentation/widgets/configuracion_validaciones_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -71,6 +72,12 @@ class _PersonalFormDialogState extends State<PersonalFormDialog> {
   // Configuración de validaciones de turnos
   ConfiguracionValidacionEntity? _configuracionValidaciones;
 
+  // Asignación por defecto
+  String? _contratoAsignadoId;
+  String? _baseId;
+  String? _dotacionId;
+  String? _vehiculoId;
+
   // Listas para dropdowns
   List<ProvinciaEntity> _provincias = <ProvinciaEntity>[];
   List<PoblacionEntity> _poblaciones = <PoblacionEntity>[];
@@ -78,6 +85,12 @@ class _PersonalFormDialogState extends State<PersonalFormDialog> {
   List<TipoContratoEntity> _contratos = <TipoContratoEntity>[];
   List<EmpresaEntity> _empresas = <EmpresaEntity>[];
   List<CategoriaPersonalEntity> _categoriasPersonal = <CategoriaPersonalEntity>[];
+
+  // Listas para asignación por defecto
+  List<ContratoEntity> _contratosCliente = <ContratoEntity>[];
+  List<BaseCentroEntity> _bases = <BaseCentroEntity>[];
+  List<DotacionEntity> _dotaciones = <DotacionEntity>[];
+  List<VehiculoEntity> _vehiculos = <VehiculoEntity>[];
 
   final TablasMaestrasService _tablasMaestrasService = TablasMaestrasService();
 
@@ -143,6 +156,23 @@ class _PersonalFormDialogState extends State<PersonalFormDialog> {
     final List<CategoriaPersonalEntity> categorias = await _tablasMaestrasService.getCategorias();
     debugPrint('⏱️ Categorías cargadas en ${DateTime.now().difference(t5).inMilliseconds}ms');
 
+    // Cargar datos para asignación por defecto (en paralelo)
+    final DateTime t6 = DateTime.now();
+    final List<ContratoEntity> contratosCliente = await _tablasMaestrasService.getContratosCliente();
+    debugPrint('⏱️ Contratos cliente cargados en ${DateTime.now().difference(t6).inMilliseconds}ms');
+
+    final DateTime t7 = DateTime.now();
+    final List<BaseCentroEntity> bases = await _tablasMaestrasService.getBases();
+    debugPrint('⏱️ Bases cargadas en ${DateTime.now().difference(t7).inMilliseconds}ms');
+
+    final DateTime t8 = DateTime.now();
+    final List<DotacionEntity> dotaciones = await _tablasMaestrasService.getDotaciones();
+    debugPrint('⏱️ Dotaciones cargadas en ${DateTime.now().difference(t8).inMilliseconds}ms');
+
+    final DateTime t9 = DateTime.now();
+    final List<VehiculoEntity> vehiculos = await _tablasMaestrasService.getVehiculos();
+    debugPrint('⏱️ Vehículos cargados en ${DateTime.now().difference(t9).inMilliseconds}ms');
+
     if (mounted) {
       setState(() {
         _provincias = provincias;
@@ -150,6 +180,10 @@ class _PersonalFormDialogState extends State<PersonalFormDialog> {
         _contratos = contratos;
         _empresas = empresas;
         _categoriasPersonal = categorias;
+        _contratosCliente = contratosCliente;
+        _bases = bases;
+        _dotaciones = dotaciones;
+        _vehiculos = vehiculos;
 
         // Asignar valores DESPUÉS de cargar las listas
         if (p != null) {
@@ -159,6 +193,10 @@ class _PersonalFormDialogState extends State<PersonalFormDialog> {
           _contratoId = p.contratoId;
           _empresaIdFk = p.empresaId;
           _categoriaIdFk = p.categoriaId;
+          _contratoAsignadoId = p.contratoAsignadoId;
+          _baseId = p.baseId;
+          _dotacionId = p.dotacionId;
+          _vehiculoId = p.vehiculoId;
         }
       });
 
@@ -486,6 +524,31 @@ class _PersonalFormDialogState extends State<PersonalFormDialog> {
                   });
                 },
               ),
+
+              // Asignación por Defecto
+              const SizedBox(height: AppSizes.spacingLarge),
+              AsignacionDefaultSection(
+                contratoAsignadoId: _contratoAsignadoId,
+                baseId: _baseId,
+                dotacionId: _dotacionId,
+                vehiculoId: _vehiculoId,
+                contratos: _contratosCliente,
+                bases: _bases,
+                dotaciones: _dotaciones,
+                vehiculos: _vehiculos,
+                onContratoChanged: (String? value) {
+                  setState(() => _contratoAsignadoId = value);
+                },
+                onBaseChanged: (String? value) {
+                  setState(() => _baseId = value);
+                },
+                onDotacionChanged: (String? value) {
+                  setState(() => _dotacionId = value);
+                },
+                onVehiculoChanged: (String? value) {
+                  setState(() => _vehiculoId = value);
+                },
+              ),
             ],
           ),
         ),
@@ -807,6 +870,10 @@ class _PersonalFormDialogState extends State<PersonalFormDialog> {
         categoriaId: _categoriaIdFk,
         categoriaServicio: _categoriaServicio,
         configuracionValidaciones: _configuracionValidaciones,
+        contratoAsignadoId: _contratoAsignadoId,
+        baseId: _baseId,
+        dotacionId: _dotacionId,
+        vehiculoId: _vehiculoId,
         createdAt: widget.persona?.createdAt ?? DateTime.now(),
         createdBy: widget.persona?.createdBy ?? userId,
         updatedAt: _isEditing ? DateTime.now() : null,

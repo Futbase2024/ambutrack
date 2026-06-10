@@ -1,102 +1,146 @@
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/features/home/presentation/widgets/stat_card.dart';
 import 'package:flutter/material.dart';
 
-/// Tarjetas de estadísticas con gradientes para el dashboard principal
+/// Tarjetas de estadísticas para el dashboard principal.
 ///
-/// Sigue el diseño Material Design 3 con gradientes profesionales
-/// y animaciones sutiles en hover.
+/// Todas las cards comparten el mismo diseño: fondo blanco con borde
+/// de color temático, valor grande y botón añadir opcional.
 class DashboardStatsCards extends StatelessWidget {
   const DashboardStatsCards({
     super.key,
     required this.serviciosActivos,
     required this.disponibles,
-    required this.enMantenimiento,
+    required this.mantenimientosProgramados,
+    required this.mantenimientosEnProceso,
+    required this.mantenimientosCompletados,
     required this.personalActivo,
-    this.serviciosChange = '+5.2%',
-    this.disponiblesChange = '+2.1%',
-    this.mantenimientoChange = '+12%',
-    this.personalChange = '-3%',
+    required this.pendientesHoy,
+    required this.incidenciasAbiertas,
+    this.onAddPendiente,
+    this.onAddIncidencia,
+    this.onAddMantenimiento,
+    this.onTapServicios,
+    this.onTapVehiculos,
+    this.onTapMantenimiento,
+    this.onTapPersonal,
+    this.onTapAgenda,
+    this.onTapIncidencias,
   });
 
   final int serviciosActivos;
   final int disponibles;
-  final int enMantenimiento;
+  final int mantenimientosProgramados;
+  final int mantenimientosEnProceso;
+  final int mantenimientosCompletados;
   final int personalActivo;
+  final int pendientesHoy;
+  final int incidenciasAbiertas;
 
-  final String serviciosChange;
-  final String disponiblesChange;
-  final String mantenimientoChange;
-  final String personalChange;
+  final VoidCallback? onAddPendiente;
+  final VoidCallback? onAddIncidencia;
+  final VoidCallback? onAddMantenimiento;
+  final VoidCallback? onTapServicios;
+  final VoidCallback? onTapVehiculos;
+  final VoidCallback? onTapMantenimiento;
+  final VoidCallback? onTapPersonal;
+  final VoidCallback? onTapAgenda;
+  final VoidCallback? onTapIncidencias;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        // Responsive: 4 columnas en desktop, 2 en tablet, 1 en móvil
-        int crossAxisCount = 4;
+        // Responsive: 6 columnas en desktop, 3 en tablet, 2 en móvil
+        int crossAxisCount = 6;
         if (constraints.maxWidth < 1200) {
-          crossAxisCount = 2;
+          crossAxisCount = 3;
         }
         if (constraints.maxWidth < 600) {
-          crossAxisCount = 1;
+          crossAxisCount = 2;
         }
 
+        // Aspect ratio dinámico: llena el espacio del Flexible(flex: 4)
+        const double crossSpacing = 16;
+        const double mainSpacing = 16;
+        final double cellWidth =
+            (constraints.maxWidth - (crossAxisCount - 1) * crossSpacing) /
+                crossAxisCount;
+        // 6 cards en 1 fila → cellHeight = availableHeight
+        final double cellHeight = constraints.maxHeight;
+        final double aspectRatio =
+            cellHeight.isFinite ? (cellWidth / cellHeight) : 1.55;
+
         return GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.8,
+          crossAxisSpacing: crossSpacing,
+          mainAxisSpacing: mainSpacing,
+          childAspectRatio: aspectRatio.clamp(0.8, 3.0),
           children: <Widget>[
-            _GradientStatCard(
-              title: 'Servicios Activos',
+            StatCard(
+              title: 'Servicios',
               value: _formatNumber(serviciosActivos),
-              change: serviciosChange,
               icon: Icons.medical_services_outlined,
-              gradient: const LinearGradient(
-                colors: <Color>[AppColors.primary, AppColors.primaryLight],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              shadowColor: AppColors.primary,
+              accentColor: AppColors.primary,
+              onTap: onTapServicios,
             ),
-            _GradientStatCard(
-              title: 'Disponibles',
+            StatCard(
+              title: 'Vehículos',
               value: disponibles.toString(),
-              change: disponiblesChange,
               icon: Icons.check_circle_outline,
-              gradient: const LinearGradient(
-                colors: <Color>[AppColors.secondary, AppColors.secondaryLight],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              shadowColor: AppColors.secondary,
+              accentColor: AppColors.secondary,
+              onTap: onTapVehiculos,
             ),
-            _GradientStatCard(
-              title: 'En Mantenimiento',
-              value: enMantenimiento.toString(),
-              change: mantenimientoChange,
+            StatCard(
+              title: 'Mantenimiento',
+              value: (mantenimientosProgramados + mantenimientosEnProceso)
+                  .toString(),
+              subtitle: 'activos',
               icon: Icons.build_outlined,
-              gradient: const LinearGradient(
-                colors: <Color>[AppColors.warning, Color(0xFFFBBF24)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              shadowColor: AppColors.warning,
+              accentColor: AppColors.warning,
+              detalles: <StatCardDetalle>[
+                StatCardDetalle(
+                  label: 'Programados',
+                  count: mantenimientosProgramados,
+                  color: AppColors.info,
+                ),
+                StatCardDetalle(
+                  label: 'En proceso',
+                  count: mantenimientosEnProceso,
+                  color: AppColors.warning,
+                ),
+                StatCardDetalle(
+                  label: 'Completados',
+                  count: mantenimientosCompletados,
+                  color: AppColors.success,
+                ),
+              ],
+              onTap: onTapMantenimiento,
+              onAdd: onAddMantenimiento,
             ),
-            _GradientStatCard(
-              title: 'Personal Activo',
+            StatCard(
+              title: 'Personal',
               value: personalActivo.toString(),
-              change: personalChange,
-              changeIsPositive: false,
               icon: Icons.badge_outlined,
-              gradient: const LinearGradient(
-                colors: <Color>[Color(0xFF7C3AED), Color(0xFFA78BFA)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              shadowColor: const Color(0xFF7C3AED),
+              accentColor: const Color(0xFF7C3AED),
+              onTap: onTapPersonal,
+            ),
+            StatCard(
+              title: 'Agenda Pend.',
+              value: pendientesHoy.toString(),
+              icon: Icons.event_note,
+              accentColor: AppColors.info,
+              onTap: onTapAgenda,
+              onAdd: onAddPendiente,
+            ),
+            StatCard(
+              title: 'Incidencias',
+              value: incidenciasAbiertas.toString(),
+              subtitle: incidenciasAbiertas == 1 ? 'abierta' : 'abiertas',
+              icon: Icons.report_problem_outlined,
+              accentColor: AppColors.error,
+              onTap: onTapIncidencias,
+              onAdd: onAddIncidencia,
             ),
           ],
         );
@@ -109,175 +153,5 @@ class DashboardStatsCards extends StatelessWidget {
       return '${(number / 1000).toStringAsFixed(1)}k'.replaceAll('.0', '');
     }
     return number.toString();
-  }
-}
-
-/// Tarjeta individual con gradiente y efecto hover
-class _GradientStatCard extends StatefulWidget {
-  const _GradientStatCard({
-    required this.title,
-    required this.value,
-    required this.change,
-    required this.icon,
-    required this.gradient,
-    required this.shadowColor,
-    this.changeIsPositive = true,
-  });
-
-  final String title;
-  final String value;
-  final String change;
-  final IconData icon;
-  final LinearGradient gradient;
-  final Color shadowColor;
-  final bool changeIsPositive;
-
-  @override
-  State<_GradientStatCard> createState() => _GradientStatCardState();
-}
-
-class _GradientStatCardState extends State<_GradientStatCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _rotationAnimation;
-  bool _isHovered = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-    _rotationAnimation = Tween<double>(begin: 0.12, end: 0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onHoverChanged(bool isHovered) {
-    if (isHovered != _isHovered) {
-      setState(() => _isHovered = isHovered);
-      if (isHovered) {
-        _controller.forward();
-      } else {
-        _controller.reverse();
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => _onHoverChanged(true),
-      onExit: (_) => _onHoverChanged(false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          gradient: widget.gradient,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: widget.shadowColor.withValues(alpha: _isHovered ? 0.3 : 0.15),
-              blurRadius: _isHovered ? 20 : 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: <Widget>[
-            // Icono decorativo de fondo
-            Positioned(
-              right: -8,
-              bottom: -8,
-              child: AnimatedBuilder(
-                animation: _rotationAnimation,
-                builder: (BuildContext context, Widget? child) {
-                  return Transform.rotate(
-                    angle: _rotationAnimation.value * 3.14159,
-                    child: Opacity(
-                      opacity: 0.1,
-                      child: Icon(
-                        widget.icon,
-                        size: 80,
-                        color: Colors.white,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            // Contenido principal
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  // Título con icono pequeño
-                  Row(
-                    children: <Widget>[
-                      Icon(
-                        widget.icon,
-                        size: 18,
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        widget.title,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Valor y cambio
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: <Widget>[
-                      Text(
-                        widget.value,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -1,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          widget.change,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

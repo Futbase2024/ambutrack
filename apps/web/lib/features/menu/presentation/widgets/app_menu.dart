@@ -1,15 +1,20 @@
+import 'package:ambutrack_web/core/auth/enums/user_role.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
 import 'package:ambutrack_web/features/menu/domain/entities/menu_item.dart';
 import 'package:ambutrack_web/features/menu/domain/repositories/menu_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Menú superior de navegación de AmbuTrack
 ///
-/// Proporciona navegación principal a todas las secciones de la aplicación
-/// con un diseño responsive y dropdown menus para subsecciones.
+/// Obtiene el rol reactivamente del [AuthBloc] para que el menú
+/// se reconstruya automáticamente cuando cambie el estado de auth,
+/// evitando que los items desaparezcan tras un hot restart.
 class AppMenu extends StatefulWidget {
   const AppMenu({super.key});
 
@@ -43,6 +48,15 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
     ));
   }
 
+  /// Obtiene el rol actual del [AuthBloc] de forma reactiva.
+  UserRole _getCurrentRole() {
+    final AuthState authState = context.watch<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      return UserRole.fromString(authState.user.rol);
+    }
+    return UserRole.operador;
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -64,12 +78,17 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
 
   /// Menú para pantallas grandes (desktop/tablet)
   Widget _buildDesktopMenu() {
-    final List<MenuItem> mainItems = _menuRepository.getMainMenuItems();
+    final List<MenuItem> mainItems = _menuRepository.getMainMenuItemsForRole(_getCurrentRole());
+
+    // Separar items de navegación de los especiales (configuración, usuario)
+    final List<MenuItem> navItems = mainItems
+        .where((MenuItem item) => item.key != 'configuracion' && item.key != 'usuario')
+        .toList();
+
     final List<Widget> menuWidgets = <Widget>[];
 
-    // Agregar solo items principales (excluyendo configuración y usuario)
-    for (int i = 0; i < mainItems.length - 2; i++) {
-      final MenuItem item = mainItems[i];
+    for (int i = 0; i < navItems.length; i++) {
+      final MenuItem item = navItems[i];
 
       if (item.hasChildren) {
         menuWidgets.add(_buildDropdownMenuItem(item));
@@ -78,7 +97,7 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
       }
 
       // Agregar separador entre items (excepto después del último)
-      if (i < mainItems.length - 3) {
+      if (i < navItems.length - 1) {
         menuWidgets.add(const SizedBox(width: 4));
       }
     }
@@ -104,7 +123,7 @@ class _AppMenuState extends State<AppMenu> with TickerProviderStateMixin {
 
   /// Menú para dispositivos móviles
   Widget _buildMobileMenu() {
-    final List<MenuItem> mobileItems = _menuRepository.getMobileMenuItems();
+    final List<MenuItem> mobileItems = _menuRepository.getMobileMenuItemsForRole(_getCurrentRole());
 
     return DecoratedBox(
       decoration: BoxDecoration(

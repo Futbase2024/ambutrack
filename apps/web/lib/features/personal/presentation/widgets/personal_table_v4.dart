@@ -63,29 +63,43 @@ class _PersonalTableV4State extends State<PersonalTableV4> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<PersonalBloc, PersonalState>(
-      listener: (BuildContext context, PersonalState state) {
+      listener: (BuildContext context, PersonalState state) async {
         if (_isDeleting && _loadingDialogContext != null) {
           if (state is PersonalLoaded || state is PersonalError) {
             final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
             final int durationMs = elapsed.inMilliseconds;
 
+            // Guardar contexto del loading antes de resetear estado
+            final BuildContext loadingCtx = _loadingDialogContext!;
+
+            // Resetear estado inmediatamente para prevenir re-entrada
             setState(() {
               _isDeleting = false;
               _loadingDialogContext = null;
               _deleteStartTime = null;
             });
 
+            // Cerrar loading dialog usando rootNavigator
+            Navigator.of(loadingCtx, rootNavigator: true).pop();
+
+            // Esperar a que el Navigator complete la transición
+            await Future<void>.delayed(const Duration(milliseconds: 200));
+
+            if (!context.mounted) {
+              return;
+            }
+
             if (state is PersonalError) {
-              CrudOperationHandler.handleDeleteError(
+              await CrudOperationHandler.handleDeleteError(
                 context: context,
-                isDeleting: true,
+                isDeleting: false,
                 entityName: 'Personal',
                 errorMessage: state.message,
               );
             } else if (state is PersonalLoaded) {
-              CrudOperationHandler.handleDeleteSuccess(
+              await CrudOperationHandler.handleDeleteSuccess(
                 context: context,
-                isDeleting: true,
+                isDeleting: false,
                 entityName: 'Personal',
                 durationMs: durationMs,
               );

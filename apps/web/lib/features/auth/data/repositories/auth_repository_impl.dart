@@ -9,7 +9,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Implementación del repositorio de autenticación
 @LazySingleton(as: AuthRepository)
 class AuthRepositoryImpl implements AuthRepository {
-  AuthRepositoryImpl(this._authService);
+  AuthRepositoryImpl(this._authService) {
+    _eagerInit();
+  }
 
   final AuthService _authService;
   SupabaseClient get _supabase => Supabase.instance.client;
@@ -54,6 +56,23 @@ class AuthRepositoryImpl implements AuthRepository {
         return _cachedUser = UserMapper.fromSupabaseUser(user);
       }
     });
+  }
+
+  /// Carga inicial de datos del usuario para poblar el cache antes del primer render
+  Future<void> _eagerInit() async {
+    try {
+      final User? authUser = _authService.currentUser;
+      if (authUser == null || _cachedUser != null) {
+        return;
+      }
+      final Map<String, dynamic>? usuarioData = await _fetchUsuarioData(authUser.id);
+      if (usuarioData != null) {
+        _cachedUser = UserMapper.fromSupabaseUserAndUsuario(authUser, usuarioData);
+        debugPrint('✅ AuthRepository: Cache poblado en eager init');
+      }
+    } catch (e) {
+      debugPrint('❌ AuthRepository: Error en eager init: $e');
+    }
   }
 
   /// Sincroniza los datos del usuario en background y actualiza el cache
@@ -115,13 +134,18 @@ class AuthRepositoryImpl implements AuthRepository {
       // ✅ Consultar tabla usuarios para obtener datos completos
       final Map<String, dynamic>? usuarioData = await _fetchUsuarioData(authUser.id);
 
+      UserEntity userEntity;
       if (usuarioData != null) {
-        return UserMapper.fromSupabaseUserAndUsuario(authUser, usuarioData);
+        userEntity = UserMapper.fromSupabaseUserAndUsuario(authUser, usuarioData);
       } else {
         // Fallback: usar solo datos de auth.users
         debugPrint('⚠️ AuthRepository: Usuario no encontrado en tabla usuarios, usando solo auth.users');
-        return UserMapper.fromSupabaseUser(authUser);
+        userEntity = UserMapper.fromSupabaseUser(authUser);
       }
+
+      _cachedUser = userEntity;
+      debugPrint('✅ AuthRepository: Cache actualizado tras login por email');
+      return userEntity;
     } else {
       throw result.error ?? Exception('Error desconocido al iniciar sesión');
     }
@@ -143,13 +167,18 @@ class AuthRepositoryImpl implements AuthRepository {
       // ✅ Consultar tabla usuarios para obtener datos completos
       final Map<String, dynamic>? usuarioData = await _fetchUsuarioData(authUser.id);
 
+      UserEntity userEntity;
       if (usuarioData != null) {
-        return UserMapper.fromSupabaseUserAndUsuario(authUser, usuarioData);
+        userEntity = UserMapper.fromSupabaseUserAndUsuario(authUser, usuarioData);
       } else {
         // Fallback: usar solo datos de auth.users
         debugPrint('⚠️ AuthRepository: Usuario no encontrado en tabla usuarios, usando solo auth.users');
-        return UserMapper.fromSupabaseUser(authUser);
+        userEntity = UserMapper.fromSupabaseUser(authUser);
       }
+
+      _cachedUser = userEntity;
+      debugPrint('✅ AuthRepository: Cache actualizado tras login por DNI');
+      return userEntity;
     } else {
       throw result.error ?? Exception('Error desconocido al iniciar sesión con DNI');
     }

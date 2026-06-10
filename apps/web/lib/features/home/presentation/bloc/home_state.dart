@@ -40,6 +40,10 @@ class HomeLoaded extends HomeState {
     required this.vehiculosUrgenciasTotal,
     required this.vehiculosProgramadosDisponibles,
     required this.vehiculosProgramadosTotal,
+    required this.mantenimientosProgramados,
+    required this.mantenimientosEnProceso,
+    required this.mantenimientosCompletados,
+    required this.mantenimientosProximosOVencidos,
   });
 
   final bool isConnected;
@@ -67,6 +71,12 @@ class HomeLoaded extends HomeState {
   final int vehiculosProgramadosDisponibles;
   final int vehiculosProgramadosTotal;
 
+  // Métricas de mantenimientos preventivos (por estado)
+  final int mantenimientosProgramados;
+  final int mantenimientosEnProceso;
+  final int mantenimientosCompletados;
+  final List<MantenimientoEntity> mantenimientosProximosOVencidos;
+
   @override
   List<Object?> get props => <Object?>[
         isConnected,
@@ -87,6 +97,10 @@ class HomeLoaded extends HomeState {
         vehiculosUrgenciasTotal,
         vehiculosProgramadosDisponibles,
         vehiculosProgramadosTotal,
+        mantenimientosProgramados,
+        mantenimientosEnProceso,
+        mantenimientosCompletados,
+        mantenimientosProximosOVencidos,
       ];
 }
 

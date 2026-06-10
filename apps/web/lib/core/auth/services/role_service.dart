@@ -82,6 +82,16 @@ class RoleService {
     return role;
   }
 
+  /// Obtiene el rol del usuario actual de forma síncrona
+  /// Usa el usuario en cache del AuthRepository
+  UserRole getCurrentUserRoleSync() {
+    final String? rolString = _authRepository.currentUser?.rol;
+    if (rolString == null || rolString.isEmpty) {
+      return UserRole.operador;
+    }
+    return UserRole.fromString(rolString);
+  }
+
   /// Verifica si el usuario actual tiene acceso a un módulo
   Future<bool> hasAccessToModule(AppModule module) async {
     final UserRole role = await getCurrentUserRole();

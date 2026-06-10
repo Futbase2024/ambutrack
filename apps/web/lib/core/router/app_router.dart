@@ -52,6 +52,8 @@ import 'package:ambutrack_web/features/tablas/provincias/presentation/pages/prov
 import 'package:ambutrack_web/features/tablas/tipos_paciente/presentation/pages/tipos_paciente_page.dart';
 import 'package:ambutrack_web/features/tablas/tipos_traslado/presentation/pages/tipos_traslado_page.dart';
 import 'package:ambutrack_web/features/tablas/tipos_vehiculo/presentation/pages/tipos_vehiculo_page.dart';
+import 'package:ambutrack_web/features/taller/presentation/pages/proveedores_taller_page.dart';
+import 'package:ambutrack_web/features/taller/presentation/pages/talleres_page.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/pages/planificar_servicios_page.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/pages/rutas_tecnicos_page.dart';
 import 'package:ambutrack_web/features/turnos/presentation/pages/plantillas_turnos_page.dart';
@@ -933,17 +935,22 @@ final GoRouter appRouter = GoRouter(
         ),
       ),
         ),
+        // Catálogo de Talleres
+        GoRoute(
+          path: '/taller/talleres',
+          name: 'taller_talleres',
+          pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
+        key: state.pageKey,
+        child: const TalleresPage(),
+      ),
+        ),
         // Gestión de Proveedores
         GoRoute(
           path: '/taller/proveedores',
           name: 'taller_proveedores',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Gestión de Proveedores',
-          subtitle: 'Administración de proveedores',
-          icon: Icons.business,
-        ),
+        child: const ProveedoresTallerPage(),
       ),
         ),
 

@@ -41,24 +41,38 @@ class CrudOperationHandler {
   /// [isEditing] - true para actualización, false para creación
   /// [entityName] - Nombre de la entidad procesada
   /// [onComplete] - Callback opcional para ejecutar después de cerrar
-  static void handleSuccess({
+  static Future<void> handleSuccess({
     required BuildContext context,
     required bool isSaving,
     required bool isEditing,
     required String entityName,
     VoidCallback? onComplete,
-  }) {
+  }) async {
     debugPrint('✅ $entityName guardada exitosamente, cerrando diálogo');
+
+    if (!context.mounted) {
+      return;
+    }
 
     // Cerrar loading overlay si está abierto
     if (isSaving) {
       Navigator.of(context).pop(); // Cierra loading overlay
+      // Esperar un frame para que el Navigator se desbloquee
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    if (!context.mounted) {
+      return;
     }
 
     Navigator.of(context).pop(); // Cierra el formulario
 
     // Ejecutar callback si existe
     onComplete?.call();
+
+    if (!context.mounted) {
+      return;
+    }
 
     // Mostrar mensaje de éxito
     ScaffoldMessenger.of(context).showSnackBar(
@@ -80,17 +94,27 @@ class CrudOperationHandler {
   /// [isSaving] - Estado de guardado para determinar si cerrar el overlay
   /// [errorMessage] - Mensaje de error a mostrar
   /// [onComplete] - Callback opcional para ejecutar después de manejar el error
-  static void handleError({
+  static Future<void> handleError({
     required BuildContext context,
     required bool isSaving,
     required String errorMessage,
     VoidCallback? onComplete,
-  }) {
+  }) async {
     debugPrint('❌ Error al guardar - $errorMessage');
+
+    if (!context.mounted) {
+      return;
+    }
 
     // Cerrar loading overlay si está abierto
     if (isSaving) {
       Navigator.of(context).pop(); // Cierra loading overlay
+      // Esperar un frame para que el Navigator se desbloquee
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    if (!context.mounted) {
+      return;
     }
 
     // Ejecutar callback si existe

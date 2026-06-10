@@ -58,33 +58,39 @@ class _ProvinciaTableState extends State<ProvinciaTable> {
           if (state is ProvinciaLoaded || state is ProvinciaError) {
             final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
 
+            // Guardar contexto del loading antes de resetear estado
+            final BuildContext loadingCtx = _loadingDialogContext!;
+
+            // Resetear estado inmediatamente para prevenir re-entrada
+            setState(() {
+              _isDeleting = false;
+              _loadingDialogContext = null;
+              _deleteStartTime = null;
+            });
+
+            // Cerrar loading dialog usando rootNavigator
+            Navigator.of(loadingCtx, rootNavigator: true).pop();
+
+            // Esperar a que el Navigator complete la transición
+            await Future<void>.delayed(const Duration(milliseconds: 200));
+
+            if (!context.mounted) {
+              return;
+            }
+
             if (state is ProvinciaError) {
               await CrudOperationHandler.handleDeleteError(
-                context: _loadingDialogContext!,
-                isDeleting: _isDeleting,
+                context: context,
+                isDeleting: false,
                 entityName: 'Provincia',
                 errorMessage: state.message,
-                onClose: () {
-                  setState(() {
-                    _isDeleting = false;
-                    _loadingDialogContext = null;
-                    _deleteStartTime = null;
-                  });
-                },
               );
             } else if (state is ProvinciaLoaded) {
               await CrudOperationHandler.handleDeleteSuccess(
-                context: _loadingDialogContext!,
-                isDeleting: _isDeleting,
+                context: context,
+                isDeleting: false,
                 entityName: 'Provincia',
                 durationMs: elapsed.inMilliseconds,
-                onClose: () {
-                  setState(() {
-                    _isDeleting = false;
-                    _loadingDialogContext = null;
-                    _deleteStartTime = null;
-                  });
-                },
               );
             }
           }

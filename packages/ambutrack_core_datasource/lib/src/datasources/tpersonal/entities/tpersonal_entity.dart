@@ -27,6 +27,10 @@ class TPersonalEntity extends Equatable {
     this.empresaId,
     this.categoriaId,
     this.usuarioId,
+    this.contratoAsignadoId,
+    this.baseId,
+    this.dotacionId,
+    this.vehiculoId,
     this.createdBy,
     this.updatedAt,
     this.updatedBy,
@@ -56,6 +60,10 @@ class TPersonalEntity extends Equatable {
   final String? empresaId;
   final String? categoriaId;
   final String? usuarioId;
+  final String? contratoAsignadoId;
+  final String? baseId;
+  final String? dotacionId;
+  final String? vehiculoId;
   final String? createdBy;
   final DateTime? updatedAt;
   final String? updatedBy;
@@ -89,6 +97,10 @@ class TPersonalEntity extends Equatable {
         empresaId,
         categoriaId,
         usuarioId,
+        contratoAsignadoId,
+        baseId,
+        dotacionId,
+        vehiculoId,
         createdBy,
         updatedAt,
         updatedBy,
@@ -119,6 +131,10 @@ class TPersonalEntity extends Equatable {
     String? empresaId,
     String? categoriaId,
     String? usuarioId,
+    String? contratoAsignadoId,
+    String? baseId,
+    String? dotacionId,
+    String? vehiculoId,
     String? createdBy,
     DateTime? updatedAt,
     String? updatedBy,
@@ -148,6 +164,10 @@ class TPersonalEntity extends Equatable {
       empresaId: empresaId ?? this.empresaId,
       categoriaId: categoriaId ?? this.categoriaId,
       usuarioId: usuarioId ?? this.usuarioId,
+      contratoAsignadoId: contratoAsignadoId ?? this.contratoAsignadoId,
+      baseId: baseId ?? this.baseId,
+      dotacionId: dotacionId ?? this.dotacionId,
+      vehiculoId: vehiculoId ?? this.vehiculoId,
       createdBy: createdBy ?? this.createdBy,
       updatedAt: updatedAt ?? this.updatedAt,
       updatedBy: updatedBy ?? this.updatedBy,

@@ -51,32 +51,44 @@ class _EquipamientoPersonalTableState extends State<EquipamientoPersonalTable> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<EquipamientoPersonalBloc, EquipamientoPersonalState>(
-      listener: (BuildContext context, EquipamientoPersonalState state) {
+      listener: (BuildContext context, EquipamientoPersonalState state) async {
         if (_isDeleting && _loadingDialogContext != null) {
           if (state is EquipamientoPersonalLoaded || state is EquipamientoPersonalError) {
             final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
 
+            // Guardar contexto del loading antes de resetear estado
+            final BuildContext loadingCtx = _loadingDialogContext!;
+
+            // Resetear estado inmediatamente para prevenir re-entrada
+            setState(() {
+              _isDeleting = false;
+              _loadingDialogContext = null;
+              _deleteStartTime = null;
+            });
+
+            // Cerrar loading dialog usando rootNavigator
+            Navigator.of(loadingCtx, rootNavigator: true).pop();
+
+            // Esperar a que el Navigator complete la transición
+            await Future<void>.delayed(const Duration(milliseconds: 200));
+
+            if (!context.mounted) {
+              return;
+            }
+
             if (state is EquipamientoPersonalLoaded) {
-              CrudOperationHandler.handleDeleteSuccess(
+              await CrudOperationHandler.handleDeleteSuccess(
                 context: context,
-                isDeleting: _isDeleting,
+                isDeleting: false,
                 entityName: 'Equipamiento',
                 durationMs: elapsed.inMilliseconds,
-                onClose: () => setState(() {
-                  _isDeleting = false;
-                  _loadingDialogContext = null;
-                }),
               );
             } else if (state is EquipamientoPersonalError) {
-              CrudOperationHandler.handleDeleteError(
+              await CrudOperationHandler.handleDeleteError(
                 context: context,
-                isDeleting: _isDeleting,
+                isDeleting: false,
                 entityName: 'Equipamiento',
                 errorMessage: state.message,
-                onClose: () => setState(() {
-                  _isDeleting = false;
-                  _loadingDialogContext = null;
-                }),
               );
             }
           }

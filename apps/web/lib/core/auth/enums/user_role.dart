@@ -40,6 +40,10 @@ enum UserRole {
   /// - Módulos: mantenimiento, talleres, repuestos
   tecnico('tecnico', 'Técnico', 'Mantenimiento de vehículos'),
 
+  /// Gestión de mantenimiento y taller
+  /// - Módulos: taller, almacén, vehículos (mantenimiento), informes flota
+  jefeTaller('jefe_taller', 'Jefe de Taller', 'Gestión de mantenimiento y taller'),
+
   /// Solo lectura (rol heredado)
   /// - Módulos: Consulta sin modificación
   operador('operador', 'Operador', 'Solo lectura');
@@ -70,11 +74,12 @@ enum UserRole {
   /// Verifica si el rol es de administración
   bool get isAdmin => this == UserRole.admin;
 
-  /// Verifica si el rol es de gestión (admin, jefe_personal, jefe_trafico)
+  /// Verifica si el rol es de gestión (admin, jefe_personal, jefe_trafico, jefe_taller)
   bool get isManager =>
       this == UserRole.admin ||
       this == UserRole.jefePersonal ||
-      this == UserRole.jefeTrafic;
+      this == UserRole.jefeTrafic ||
+      this == UserRole.jefeTaller;
 
   /// Verifica si el rol es operativo (conductor, sanitario)
   bool get isOperative => this == UserRole.conductor || this == UserRole.sanitario;

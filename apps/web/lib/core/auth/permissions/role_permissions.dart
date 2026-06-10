@@ -69,7 +69,7 @@ class RolePermissions {
     UserRole.admin: AppModule.values,
 
     // ===== JEFE DE PERSONAL =====
-    // Gestión RRHH, turnos, ausencias, vacaciones
+    // Gestión RRHH, turnos, ausencias, vacaciones, tablas, administración
     UserRole.jefePersonal: <AppModule>[
       AppModule.dashboard,
       AppModule.miPerfil,
@@ -88,12 +88,33 @@ class RolePermissions {
       AppModule.plantillasTurnos,
       AppModule.dotaciones,
       AppModule.asignaciones,
+      // Tablas maestras
+      AppModule.centrosHospitalarios,
+      AppModule.motivosTraslado,
+      AppModule.tiposTraslado,
+      AppModule.motivosCancelacion,
+      AppModule.localidades,
+      AppModule.provincias,
+      AppModule.tiposVehiculo,
+      AppModule.facultativos,
+      AppModule.tiposPaciente,
+      AppModule.protocolos,
+      AppModule.categoriasVehiculos,
+      AppModule.especialidades,
       // Reportes
       AppModule.reportesPersonal,
+      // Administración
+      AppModule.incidencias,
+      AppModule.usuariosRoles,
+      AppModule.permisosAcceso,
+      AppModule.auditorias,
+      AppModule.configuracionGeneral,
+      // Configuración
+      AppModule.configuracion,
     ],
 
     // ===== JEFE DE TRÁFICO =====
-    // Operaciones, servicios, vehículos
+    // Operaciones, servicios, vehículos, tablas, tráfico, administración
     UserRole.jefeTrafic: <AppModule>[
       AppModule.dashboard,
       AppModule.miPerfil,
@@ -103,6 +124,9 @@ class RolePermissions {
       AppModule.urgentes,
       AppModule.planificar,
       AppModule.historico,
+      AppModule.agendaPendientes,
+      // Personal
+      AppModule.personal,
       // Vehículos
       AppModule.vehiculos,
       AppModule.mantenimiento,
@@ -121,26 +145,95 @@ class RolePermissions {
       // Operaciones
       AppModule.operaciones,
       AppModule.incidencias,
+      // Tráfico
+      AppModule.traficoTiempoReal,
+      AppModule.traficoAlertas,
+      AppModule.traficoRutasAlternativas,
+      AppModule.traficoIntegracion,
+      AppModule.traficoPrioridadSemaforica,
+      // Taller
+      AppModule.talleres,
+      AppModule.ordenesReparacion,
+      AppModule.historialReparaciones,
+      AppModule.controlRepuestos,
+      AppModule.alertasMantenimiento,
+      AppModule.proveedores,
+      // Tablas maestras
+      AppModule.centrosHospitalarios,
+      AppModule.motivosTraslado,
+      AppModule.tiposTraslado,
+      AppModule.motivosCancelacion,
+      AppModule.localidades,
+      AppModule.provincias,
+      AppModule.tiposVehiculo,
+      AppModule.facultativos,
+      AppModule.tiposPaciente,
+      AppModule.protocolos,
+      AppModule.categoriasVehiculos,
+      AppModule.especialidades,
       // Reportes
       AppModule.reportesServicios,
       AppModule.estadisticasFlota,
+      AppModule.reportesSatisfaccion,
+      AppModule.reportesCostes,
+      // Administración
+      AppModule.contratos,
+      AppModule.incidencias,
+      AppModule.usuariosRoles,
+      AppModule.permisosAcceso,
+      AppModule.auditorias,
+      AppModule.configuracionGeneral,
+      // Configuración
+      AppModule.configuracion,
     ],
 
     // ===== COORDINADOR =====
-    // Supervisión operativa e incidencias
+    // Supervisión operativa, incidencias, tráfico, tablas, administración
     UserRole.coordinador: <AppModule>[
       AppModule.dashboard,
       AppModule.miPerfil,
       // Servicios
       AppModule.servicios,
+      AppModule.pacientes,
       AppModule.urgentes,
+      AppModule.planificar,
       AppModule.historico,
+      AppModule.agendaPendientes,
       // Cuadrantes
       AppModule.cuadrantes,
+      AppModule.dotaciones,
+      AppModule.asignaciones,
       // Operaciones
       AppModule.operaciones,
       AppModule.incidencias,
       AppModule.comunicaciones,
+      // Tráfico
+      AppModule.traficoTiempoReal,
+      AppModule.traficoAlertas,
+      AppModule.traficoRutasAlternativas,
+      AppModule.traficoIntegracion,
+      AppModule.traficoPrioridadSemaforica,
+      // Tablas maestras
+      AppModule.centrosHospitalarios,
+      AppModule.motivosTraslado,
+      AppModule.tiposTraslado,
+      AppModule.motivosCancelacion,
+      AppModule.localidades,
+      AppModule.provincias,
+      AppModule.tiposVehiculo,
+      AppModule.facultativos,
+      AppModule.tiposPaciente,
+      AppModule.protocolos,
+      AppModule.categoriasVehiculos,
+      AppModule.especialidades,
+      // Administración
+      AppModule.incidencias,
+      AppModule.usuariosRoles,
+      AppModule.permisosAcceso,
+      AppModule.auditorias,
+      AppModule.configuracionGeneral,
+      // Configuración
+      AppModule.configuracion,
     ],
 
     // ===== ADMINISTRATIVO =====
@@ -159,6 +252,9 @@ class RolePermissions {
       AppModule.vehiculos,
       // Calendario
       AppModule.calendario,
+      // Administración (contratos + docs)
+      AppModule.contratos,
+      AppModule.incidencias,
     ],
 
     // ===== CONDUCTOR =====
@@ -181,8 +277,8 @@ class RolePermissions {
       AppModule.misAusencias,
     ],
 
-    // ===== GESTOR =====
-    // Gestión de flota (rol heredado)
+    // ===== GESTOR DE FLOTA =====
+    // Gestión de flota + taller
     UserRole.gestor: <AppModule>[
       AppModule.dashboard,
       AppModule.miPerfil,
@@ -194,10 +290,17 @@ class RolePermissions {
       AppModule.historialAverias,
       AppModule.stockEquipamiento,
       AppModule.estadisticasFlota,
+      // Taller
+      AppModule.talleres,
+      AppModule.ordenesReparacion,
+      AppModule.historialReparaciones,
+      AppModule.controlRepuestos,
+      AppModule.alertasMantenimiento,
+      AppModule.proveedores,
     ],
 
     // ===== TÉCNICO =====
-    // Mantenimiento (rol heredado)
+    // Mantenimiento + taller + almacén
     UserRole.tecnico: <AppModule>[
       AppModule.dashboard,
       AppModule.miPerfil,
@@ -205,10 +308,63 @@ class RolePermissions {
       AppModule.itv,
       AppModule.historialAverias,
       AppModule.stockEquipamiento,
+      // Taller
+      AppModule.talleres,
+      AppModule.ordenesReparacion,
+      AppModule.historialReparaciones,
+      AppModule.controlRepuestos,
+      AppModule.alertasMantenimiento,
+      AppModule.proveedores,
+      // Almacén
+      AppModule.almacenDashboard,
+      AppModule.almacenMovimientos,
+      AppModule.almacenProveedores,
+      AppModule.almacenProductos,
+    ],
+
+    // ===== JEFE DE TALLER =====
+    // Gestión de mantenimiento, taller, almacén, vehículos, informes flota
+    UserRole.jefeTaller: <AppModule>[
+      AppModule.dashboard,
+      AppModule.miPerfil,
+      // Vehículos
+      AppModule.vehiculos,
+      AppModule.mantenimiento,
+      AppModule.itv,
+      AppModule.documentacionVehiculos,
+      AppModule.consumoKm,
+      AppModule.historialAverias,
+      AppModule.stockEquipamiento,
+      // Taller (completo)
+      AppModule.ordenesReparacion,
+      AppModule.historialReparaciones,
+      AppModule.controlRepuestos,
+      AppModule.alertasMantenimiento,
+      AppModule.proveedores,
+      // Almacén (completo)
+      AppModule.almacenDashboard,
+      AppModule.almacenMovimientos,
+      AppModule.almacenProveedores,
+      AppModule.almacenProductos,
+      // Informes (flota)
+      AppModule.estadisticasFlota,
+      // Tablas (referencia)
+      AppModule.centrosHospitalarios,
+      AppModule.motivosTraslado,
+      AppModule.tiposTraslado,
+      AppModule.motivosCancelacion,
+      AppModule.localidades,
+      AppModule.provincias,
+      AppModule.tiposVehiculo,
+      AppModule.facultativos,
+      AppModule.tiposPaciente,
+      AppModule.protocolos,
+      AppModule.categoriasVehiculos,
+      AppModule.especialidades,
     ],
 
     // ===== OPERADOR =====
-    // Solo lectura (rol heredado)
+    // Solo lectura
     UserRole.operador: <AppModule>[
       AppModule.dashboard,
       AppModule.miPerfil,

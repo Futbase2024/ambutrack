@@ -297,6 +297,18 @@ import 'package:ambutrack_web/features/tablas/tipos_vehiculo/domain/repositories
     as _i308;
 import 'package:ambutrack_web/features/tablas/tipos_vehiculo/presentation/bloc/tipo_vehiculo_bloc.dart'
     as _i402;
+import 'package:ambutrack_web/features/taller/data/repositories/proveedor_taller_repository_impl.dart'
+    as _i344;
+import 'package:ambutrack_web/features/taller/data/repositories/taller_repository_impl.dart'
+    as _i806;
+import 'package:ambutrack_web/features/taller/domain/repositories/proveedor_taller_repository.dart'
+    as _i596;
+import 'package:ambutrack_web/features/taller/domain/repositories/taller_repository.dart'
+    as _i384;
+import 'package:ambutrack_web/features/taller/presentation/bloc/proveedor_taller_bloc.dart'
+    as _i997;
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart'
+    as _i205;
 import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/rutas_bloc.dart'
     as _i281;
 import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/trafico_diario_bloc.dart'
@@ -533,6 +545,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i931.FacultativoRepository>(
       () => _i42.FacultativoRepositoryImpl(),
     );
+    gh.lazySingleton<_i596.ProveedorTallerRepository>(
+      () => _i344.ProveedorTallerRepositoryImpl(),
+    );
     gh.lazySingleton<_i393.TurnosRepository>(
       () => _i212.TurnosRepositoryImpl(),
     );
@@ -556,6 +571,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i739.MotivoCancelacionRepository>(
       () => _i800.MotivoCancelacionRepositoryImpl(),
+    );
+    gh.lazySingleton<_i384.TallerRepository>(
+      () => _i806.TallerRepositoryImpl(),
     );
     gh.factory<_i402.TipoVehiculoBloc>(
       () => _i402.TipoVehiculoBloc(gh<_i308.TipoVehiculoRepository>()),
@@ -610,6 +628,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i229.PacienteRepository>(
       () => _i1045.PacienteRepositoryImpl(),
+    );
+    gh.factory<_i205.TallerBloc>(
+      () => _i205.TallerBloc(gh<_i384.TallerRepository>()),
     );
     gh.factory<_i762.HistorialMedicoBloc>(
       () => _i762.HistorialMedicoBloc(gh<_i645.HistorialMedicoRepository>()),
@@ -688,6 +709,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1037.NotificacionesRepository>(),
         gh<_i373.PersonalRepository>(),
       ),
+    );
+    gh.factory<_i997.ProveedorTallerBloc>(
+      () => _i997.ProveedorTallerBloc(gh<_i596.ProveedorTallerRepository>()),
     );
     gh.factory<_i158.AgendaPendienteBloc>(
       () => _i158.AgendaPendienteBloc(
@@ -838,17 +862,18 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i750.RoleService>(),
       ),
     );
-    gh.factory<_i79.ServiciosBloc>(
-      () => _i79.ServiciosBloc(
-        gh<_i450.ServicioRepository>(),
-        gh<_i750.RoleService>(),
-      ),
-    );
     gh.factory<_i848.HomeBloc>(
       () => _i848.HomeBloc(
         gh<_i321.NetworkInfo>(),
         gh<_i145.VehiculoRepository>(),
         gh<_i660.TrasladoRepository>(),
+        gh<_i23.MantenimientoRepository>(),
+      ),
+    );
+    gh.factory<_i79.ServiciosBloc>(
+      () => _i79.ServiciosBloc(
+        gh<_i450.ServicioRepository>(),
+        gh<_i750.RoleService>(),
       ),
     );
     return this;

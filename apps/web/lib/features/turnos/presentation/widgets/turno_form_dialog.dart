@@ -11,7 +11,10 @@ import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/contratos/domain/repositories/contrato_repository.dart';
 import 'package:ambutrack_web/features/cuadrante/bases/domain/repositories/bases_repository.dart';
 import 'package:ambutrack_web/features/cuadrante/dotaciones/domain/repositories/dotaciones_repository.dart';
+import 'package:ambutrack_web/features/personal/data/services/tablas_maestras_service.dart';
+import 'package:ambutrack_web/features/personal/domain/entities/categoria_personal_entity.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
+import 'package:ambutrack_web/features/turnos/domain/repositories/plantilla_turno_repository.dart';
 import 'package:ambutrack_web/features/turnos/presentation/bloc/turnos_bloc.dart';
 import 'package:ambutrack_web/features/turnos/presentation/bloc/turnos_event.dart';
 import 'package:ambutrack_web/features/turnos/presentation/bloc/turnos_state.dart';
@@ -85,6 +88,14 @@ class _TurnoFormDialogState extends State<TurnoFormDialog> {
   List<DotacionEntity> _dotacionesDisponibles = <DotacionEntity>[];
   bool _isLoadingDotaciones = false;
 
+  // Categorías/Función desde BBDD
+  List<CategoriaPersonalEntity> _categoriasDisponibles = <CategoriaPersonalEntity>[];
+  bool _isLoadingCategorias = false;
+
+  // Plantillas de turno desde BBDD
+  List<PlantillaTurnoEntity> _plantillasDisponibles = <PlantillaTurnoEntity>[];
+  bool _isLoadingPlantillas = false;
+
   @override
   void initState() {
     super.initState();
@@ -125,9 +136,14 @@ class _TurnoFormDialogState extends State<TurnoFormDialog> {
       _categoriaPersonal = widget.turno!.categoriaPersonal;
       _idDotacion = widget.turno!.idDotacion;
     } else {
-      // Si se pasa personal, usar su ID
+      // Si se pasa personal, usar su ID y pre-rellenar datos
       if (widget.personal != null) {
         _idPersonal = widget.personal!.id;
+        _categoriaPersonal = widget.personal!.categoria;
+        _idVehiculo = widget.personal!.vehiculoId;
+        _idDotacion = widget.personal!.dotacionId;
+        _idContrato = widget.personal!.contratoAsignadoId;
+        _idBase = widget.personal!.baseId;
       }
 
       // Si se pasa fecha de inicio, usarla
@@ -170,6 +186,8 @@ class _TurnoFormDialogState extends State<TurnoFormDialog> {
     _loadBases();
     _loadVehiculos();
     _loadDotaciones();
+    _loadCategorias();
+    _loadPlantillas();
   }
 
   /// Listener para detectar cuando un campo de hora pierde el foco
@@ -519,32 +537,8 @@ class _TurnoFormDialogState extends State<TurnoFormDialog> {
     );
   }
 
-  /// Selector de plantilla de turno
+  /// Selector de plantilla de turno desde BBDD
   Widget _buildPlantillaSelector() {
-    const List<Map<String, dynamic>> plantillasPredefinidas = <Map<String, dynamic>>[
-      <String, dynamic>{
-        'id': '12h_dia',
-        'nombre': '☀️ 12h Día',
-        'horaInicio': '08:00',
-        'horaFin': '20:00',
-        'color': AppColors.turnoTurquesa,
-      },
-      <String, dynamic>{
-        'id': '12h_noche',
-        'nombre': '🌙 12h Noche',
-        'horaInicio': '20:00',
-        'horaFin': '08:00',
-        'color': AppColors.turnoAzul,
-      },
-      <String, dynamic>{
-        'id': '24h',
-        'nombre': '🚨 24 Horas',
-        'horaInicio': '08:00',
-        'horaFin': '08:00',
-        'color': AppColors.turnoMorado,
-      },
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -557,74 +551,73 @@ class _TurnoFormDialogState extends State<TurnoFormDialog> {
           ),
         ),
         const SizedBox(height: AppSizes.spacingSmall),
-        AppDropdown<String?>(
-          value: _idPlantillaSeleccionada,
-          hint: 'Selecciona una plantilla (opcional)',
-          prefixIcon: Icons.auto_awesome,
-          items: <AppDropdownItem<String?>>[
-            const AppDropdownItem<String?>(
-              value: null,
-              label: 'Sin plantilla',
-            ),
-            ...plantillasPredefinidas.map((Map<String, dynamic> plantilla) {
-              return AppDropdownItem<String?>(
-                value: plantilla['id'] as String,
-                label: plantilla['nombre'] as String,
-                icon: Icons.circle,
-                iconColor: plantilla['color'] as Color,
-              );
-            }),
-          ],
-          onChanged: (String? id) {
-            if (id == null) {
-              // Si se limpia la plantilla, habilitar de nuevo los badges
-              setState(() {
-                _idPlantillaSeleccionada = null;
-              });
-              return;
-            }
+        if (_isLoadingPlantillas)
+          const Center(child: CircularProgressIndicator())
+        else
+          AppDropdown<String?>(
+            value: _idPlantillaSeleccionada,
+            hint: 'Selecciona una plantilla (opcional)',
+            prefixIcon: Icons.auto_awesome,
+            items: <AppDropdownItem<String?>>[
+              const AppDropdownItem<String?>(
+                value: null,
+                label: 'Sin plantilla',
+              ),
+              ..._plantillasDisponibles.map((PlantillaTurnoEntity plantilla) {
+                return AppDropdownItem<String?>(
+                  value: plantilla.id,
+                  label: plantilla.nombre,
+                  icon: Icons.circle,
+                  iconColor: _parseHexColor(plantilla.color),
+                );
+              }),
+            ],
+            onChanged: (String? id) {
+              if (id == null) {
+                setState(() {
+                  _idPlantillaSeleccionada = null;
+                });
+                return;
+              }
 
-            final Map<String, dynamic>? plantilla = plantillasPredefinidas
-                .cast<Map<String, dynamic>?>()
-                .firstWhere(
-                  (Map<String, dynamic>? p) => p?['id'] == id,
-                  orElse: () => null,
+              try {
+                final PlantillaTurnoEntity plantilla = _plantillasDisponibles.firstWhere(
+                  (PlantillaTurnoEntity p) => p.id == id,
                 );
 
-            if (plantilla != null) {
-              setState(() {
-                _idPlantillaSeleccionada = id;
-                _horaInicioController.text = plantilla['horaInicio'] as String;
-                _horaFinController.text = plantilla['horaFin'] as String;
+                setState(() {
+                  _idPlantillaSeleccionada = id;
+                  _horaInicioController.text = plantilla.horaInicio;
+                  _horaFinController.text = plantilla.horaFin;
 
-                // Detectar si cruza medianoche
-                if (_cruzaMedianoche(
-                  plantilla['horaInicio'] as String,
-                  plantilla['horaFin'] as String,
-                )) {
-                  _fechaFin = _fechaInicio.add(const Duration(days: 1));
-                  debugPrint('🌙 Turno cruza medianoche: ${plantilla['nombre']} | Ajustando fechaFin');
-                } else {
-                  _fechaFin = _fechaInicio;
-                }
+                  if (_cruzaMedianoche(plantilla.horaInicio, plantilla.horaFin)) {
+                    _fechaFin = _fechaInicio.add(const Duration(days: 1));
+                    debugPrint('🌙 Turno cruza medianoche: ${plantilla.nombre} | Ajustando fechaFin');
+                  } else {
+                    _fechaFin = _fechaInicio;
+                  }
 
-                // Ajustar tipoTurno según la plantilla
-                if (id == '12h_noche' || id == '24h') {
-                  _tipoTurno = TipoTurno.noche;
-                } else {
-                  _tipoTurno = TipoTurno.personalizado;
-                }
+                  _tipoTurno = plantilla.tipoTurno;
+                  _isCustomTime = true;
 
-                // Habilitar edición de horas cuando se selecciona plantilla
-                _isCustomTime = true;
-
-                debugPrint('✅ Plantilla aplicada: ${plantilla['nombre']} | Badges deshabilitados');
-              });
-            }
-          },
-        ),
+                  debugPrint('✅ Plantilla aplicada: ${plantilla.nombre} | Badges deshabilitados');
+                });
+              } catch (e) {
+                debugPrint('❌ Error al seleccionar plantilla: $e');
+              }
+            },
+          ),
       ],
     );
+  }
+
+  Color _parseHexColor(String? hex) {
+    if (hex == null || hex.isEmpty) {
+      return AppColors.primary;
+    }
+    final String cleanHex = hex.replaceFirst('#', '');
+    final int value = int.parse(cleanHex, radix: 16);
+    return Color(0xFF000000 | value);
   }
 
   Widget _buildFechaFields() {
@@ -1307,6 +1300,107 @@ class _TurnoFormDialogState extends State<TurnoFormDialog> {
     }
   }
 
+  /// Carga las categorías desde TablasMaestrasService
+  Future<void> _loadCategorias() async {
+    setState(() {
+      _isLoadingCategorias = true;
+    });
+
+    try {
+      final List<CategoriaPersonalEntity> categorias = await TablasMaestrasService().getCategorias();
+
+      // Ordenar alfabéticamente
+      categorias.sort((CategoriaPersonalEntity a, CategoriaPersonalEntity b) =>
+          a.categoria.toLowerCase().compareTo(b.categoria.toLowerCase()));
+
+      // Si la categoría asignada no está en la lista, agregarla
+      if (_categoriaPersonal != null && _categoriaPersonal!.isNotEmpty) {
+        final bool categoriaEnLista = categorias.any(
+          (CategoriaPersonalEntity c) => c.categoria == _categoriaPersonal,
+        );
+        if (!categoriaEnLista) {
+          debugPrint('⚠️ Categoría "$_categoriaPersonal" no está en BBDD, forzando inclusión');
+          categorias.insert(
+            0,
+            CategoriaPersonalEntity(
+              id: '',
+              nombre: '',
+              categoria: _categoriaPersonal!,
+            ),
+          );
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _categoriasDisponibles = categorias;
+          _isLoadingCategorias = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error al cargar categorías: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingCategorias = false;
+        });
+      }
+    }
+  }
+
+  /// Carga las plantillas de turno desde el repositorio
+  Future<void> _loadPlantillas() async {
+    setState(() {
+      _isLoadingPlantillas = true;
+    });
+
+    try {
+      final PlantillaTurnoRepository repository = getIt<PlantillaTurnoRepository>();
+      final List<PlantillaTurnoEntity> plantillas = await repository.getAll();
+
+      // Filtrar solo plantillas activas y ordenar alfabéticamente
+      final List<PlantillaTurnoEntity> plantillasActivas = plantillas
+          .where((PlantillaTurnoEntity p) => p.activo)
+          .toList()
+        ..sort((PlantillaTurnoEntity a, PlantillaTurnoEntity b) =>
+            a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase()));
+
+      // Si la plantilla asignada no está en la lista, agregarla
+      if (_idPlantillaSeleccionada != null && _idPlantillaSeleccionada!.isNotEmpty) {
+        final bool plantillaEnLista = plantillasActivas.any(
+          (PlantillaTurnoEntity p) => p.id == _idPlantillaSeleccionada,
+        );
+        if (!plantillaEnLista) {
+          try {
+            final PlantillaTurnoEntity plantillaAsignada = plantillas.firstWhere(
+              (PlantillaTurnoEntity p) => p.id == _idPlantillaSeleccionada,
+            );
+            plantillasActivas.insert(0, plantillaAsignada);
+            debugPrint('⚠️ Plantilla asignada no está activa, incluida en lista: ${plantillaAsignada.nombre}');
+          } catch (e) {
+            debugPrint('⚠️ Plantilla asignada no encontrada, limpiando: $_idPlantillaSeleccionada');
+            if (mounted) {
+              setState(() => _idPlantillaSeleccionada = null);
+            }
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _plantillasDisponibles = plantillasActivas;
+          _isLoadingPlantillas = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error al cargar plantillas: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingPlantillas = false;
+        });
+      }
+    }
+  }
+
   /// Construye el selector de vehículo con búsqueda
   Widget _buildVehiculoSelector() {
     return Column(
@@ -1536,29 +1630,8 @@ class _TurnoFormDialogState extends State<TurnoFormDialog> {
     );
   }
 
-  /// Construye el selector de categoría/función (requerido)
+  /// Construye el selector de categoría/función desde BBDD
   Widget _buildCategoriaSelector() {
-    // Opciones de categoría/función predefinidas
-    const List<String> categorias = <String>[
-      'TES',
-      'Conductor',
-      'Camillero',
-      'Médico',
-      'Enfermero',
-      'Administrativo',
-    ];
-
-    // Validar que la categoría actual esté en la lista
-    // Si no lo está, limpiarla (puede ser un valor legacy)
-    if (_categoriaPersonal != null && !categorias.contains(_categoriaPersonal)) {
-      debugPrint('⚠️ Categoría "$_categoriaPersonal" no es válida, limpiando...');
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() => _categoriaPersonal = null);
-        }
-      });
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -1571,30 +1644,33 @@ class _TurnoFormDialogState extends State<TurnoFormDialog> {
           ),
         ),
         const SizedBox(height: AppSizes.spacingSmall),
-        AppDropdown<String?>(
-          value: _categoriaPersonal,
-          hint: 'Selecciona la función',
-          prefixIcon: Icons.work,
-          items: <AppDropdownItem<String?>>[
-            const AppDropdownItem<String?>(
-              value: null,
-              label: 'Sin función',
-            ),
-            ...categorias.map((String categoria) {
-              return AppDropdownItem<String?>(
-                value: categoria,
-                label: categoria,
-                icon: Icons.badge,
-                iconColor: AppColors.secondaryLight,
-              );
-            }),
-          ],
-          onChanged: (String? value) {
-            setState(() {
-              _categoriaPersonal = value;
-            });
-          },
-        ),
+        if (_isLoadingCategorias)
+          const Center(child: CircularProgressIndicator())
+        else
+          AppDropdown<String?>(
+            value: _categoriaPersonal,
+            hint: 'Selecciona la función',
+            prefixIcon: Icons.work,
+            items: <AppDropdownItem<String?>>[
+              const AppDropdownItem<String?>(
+                value: null,
+                label: 'Sin función',
+              ),
+              ..._categoriasDisponibles.map((CategoriaPersonalEntity cat) {
+                return AppDropdownItem<String?>(
+                  value: cat.categoria,
+                  label: cat.categoria,
+                  icon: Icons.badge,
+                  iconColor: AppColors.secondaryLight,
+                );
+              }),
+            ],
+            onChanged: (String? value) {
+              setState(() {
+                _categoriaPersonal = value;
+              });
+            },
+          ),
       ],
     );
   }

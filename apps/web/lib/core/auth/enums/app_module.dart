@@ -121,6 +121,60 @@ enum AppModule {
   /// Indicadores de calidad
   indicadoresCalidad('indicadores_calidad', 'Indicadores', '/informes/indicadores-calidad'),
 
+  /// Satisfacción del paciente
+  reportesSatisfaccion('reportes_satisfaccion', 'Satisfacción', '/informes/satisfaccion-paciente'),
+
+  /// Costes operativos
+  reportesCostes('reportes_costes', 'Costes', '/informes/costes-operativos'),
+
+  // === TRÁFICO ===
+  /// Estado en tiempo real
+  traficoTiempoReal('trafico_tiempo_real', 'Tiempo Real', '/trafico/tiempo-real'),
+
+  /// Alertas viales
+  traficoAlertas('trafico_alertas', 'Alertas Viales', '/trafico/alertas'),
+
+  /// Rutas alternativas
+  traficoRutasAlternativas('trafico_rutas_alternativas', 'Rutas Alternativas', '/trafico/rutas-alternativas'),
+
+  /// Integración con mapas/DGT
+  traficoIntegracion('trafico_integracion', 'Integración Mapas', '/trafico/integracion-mapas'),
+
+  /// Prioridad semafórica
+  traficoPrioridadSemaforica('trafico_prioridad_semaforica', 'Prioridad Semafórica', '/trafico/prioridad-semaforica'),
+
+  // === TALLER ===
+  /// Catálogo de talleres
+  talleres('talleres', 'Talleres', '/taller/talleres'),
+
+  /// Órdenes de reparación
+  ordenesReparacion('ordenes_reparacion', 'Órdenes Reparación', '/taller/ordenes-reparacion'),
+
+  /// Historial de reparaciones
+  historialReparaciones('historial_reparaciones', 'Historial Reparaciones', '/taller/historial-reparaciones'),
+
+  /// Control de repuestos
+  controlRepuestos('control_repuestos', 'Control Repuestos', '/taller/control-repuestos'),
+
+  /// Alertas de mantenimiento
+  alertasMantenimiento('alertas_mantenimiento', 'Alertas Mantenimiento', '/taller/alertas-mantenimiento'),
+
+  /// Proveedores de taller
+  proveedores('proveedores', 'Proveedores', '/taller/proveedores'),
+
+  // === ALMACÉN ===
+  /// Dashboard de almacén
+  almacenDashboard('almacen_dashboard', 'Almacén', '/almacen/dashboard'),
+
+  /// Movimientos de stock
+  almacenMovimientos('almacen_movimientos', 'Movimientos Stock', '/almacen/movimientos'),
+
+  /// Proveedores de almacén
+  almacenProveedores('almacen_proveedores', 'Proveedores Almacén', '/almacen/proveedores'),
+
+  /// Productos
+  almacenProductos('almacen_productos', 'Productos', '/almacen/productos'),
+
   // === TABLAS MAESTRAS ===
   /// Centros hospitalarios
   centrosHospitalarios('centros_hospitalarios', 'Centros', '/tablas/centros-hospitalarios'),
@@ -131,11 +185,32 @@ enum AppModule {
   /// Tipos de traslado
   tiposTraslado('tipos_traslado', 'Tipos Traslado', '/tablas/tipos-traslado'),
 
+  /// Motivos de cancelación
+  motivosCancelacion('motivos_cancelacion', 'Motivos Cancelación', '/tablas/motivos-cancelacion'),
+
   /// Localidades
   localidades('localidades', 'Localidades', '/tablas/localidades'),
 
   /// Provincias
   provincias('provincias', 'Provincias', '/tablas/provincias'),
+
+  /// Tipos de vehículo
+  tiposVehiculo('tipos_vehiculo', 'Tipos Vehículo', '/tablas/tipos-vehiculo'),
+
+  /// Facultativos
+  facultativos('facultativos', 'Facultativos', '/tablas/facultativos'),
+
+  /// Tipos de paciente
+  tiposPaciente('tipos_paciente', 'Tipos Paciente', '/tablas/tipos-paciente'),
+
+  /// Protocolos y normativas
+  protocolos('protocolos', 'Protocolos', '/tablas/protocolos'),
+
+  /// Categorías de vehículos
+  categoriasVehiculos('categorias_vehiculos', 'Categorías Vehículos', '/tablas/categorias-vehiculos'),
+
+  /// Especialidades médicas
+  especialidades('especialidades', 'Especialidades', '/tablas/especialidades'),
 
   // === ADMINISTRACIÓN ===
   /// Contratos
@@ -152,6 +227,10 @@ enum AppModule {
 
   /// Configuración general
   configuracionGeneral('configuracion_general', 'Configuración', '/administracion/configuracion-general'),
+
+  // === CONFIGURACIÓN ===
+  /// Configuración general de la aplicación
+  configuracion('configuracion', 'Configuración', '/configuracion'),
 
   // === MÓDULOS PROPIOS (para conductor/sanitario) ===
   /// Mis turnos

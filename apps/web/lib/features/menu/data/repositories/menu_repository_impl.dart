@@ -1,4 +1,6 @@
+import 'package:ambutrack_web/core/auth/enums/user_role.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/features/menu/data/repositories/menu_filter.dart';
 import 'package:ambutrack_web/features/menu/domain/entities/menu_item.dart';
 import 'package:ambutrack_web/features/menu/domain/repositories/menu_repository.dart';
 import 'package:flutter/material.dart';
@@ -429,6 +431,12 @@ class MenuRepositoryImpl implements MenuRepository {
       icon: Icons.construction,
       children: <MenuItem>[
         MenuItem(
+          key: 'taller_talleres',
+          label: 'Catálogo de Talleres',
+          icon: Icons.home_repair_service,
+          route: '/taller/talleres',
+        ),
+        MenuItem(
           key: 'taller_ordenes_reparacion',
           label: 'Órdenes de Reparación',
           icon: Icons.build,
@@ -686,8 +694,18 @@ class MenuRepositoryImpl implements MenuRepository {
   }
 
   @override
+  List<MenuItem> getMainMenuItemsForRole(UserRole role) {
+    return MenuFilter.filterForRole(_mainMenuItems, role);
+  }
+
+  @override
   List<MenuItem> getMobileMenuItems() {
     return List<MenuItem>.unmodifiable(_mobileMenuItems);
+  }
+
+  @override
+  List<MenuItem> getMobileMenuItemsForRole(UserRole role) {
+    return MenuFilter.filterForRole(_mobileMenuItems, role);
   }
 
   @override

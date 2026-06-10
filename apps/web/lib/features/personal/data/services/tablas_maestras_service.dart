@@ -27,6 +27,10 @@ class TablasMaestrasService {
   static List<TipoContratoEntity>? _cachedContratos;
   static List<EmpresaEntity>? _cachedEmpresas;
   static List<CategoriaPersonalEntity>? _cachedCategorias;
+  static List<ContratoEntity>? _cachedContratosCliente;
+  static List<BaseCentroEntity>? _cachedBases;
+  static List<DotacionEntity>? _cachedDotaciones;
+  static List<VehiculoEntity>? _cachedVehiculos;
   static final Map<String, List<PoblacionEntity>> _cachedPoblaciones = <String, List<PoblacionEntity>>{};
 
   static DateTime? _lastFetchProvincias;
@@ -34,6 +38,10 @@ class TablasMaestrasService {
   static DateTime? _lastFetchContratos;
   static DateTime? _lastFetchEmpresas;
   static DateTime? _lastFetchCategorias;
+  static DateTime? _lastFetchContratosCliente;
+  static DateTime? _lastFetchBases;
+  static DateTime? _lastFetchDotaciones;
+  static DateTime? _lastFetchVehiculos;
 
   // Duración del caché (24 horas para tablas maestras que casi no cambian)
   static const Duration _cacheDuration = Duration(hours: 24);
@@ -42,6 +50,7 @@ class TablasMaestrasService {
   Future<List<ProvinciaEntity>> getProvincias() async {
     // Verificar caché
     if (_cachedProvincias != null &&
+        _cachedProvincias!.isNotEmpty &&
         _lastFetchProvincias != null &&
         DateTime.now().difference(_lastFetchProvincias!) < _cacheDuration) {
       debugPrint('⚡ TablasMaestrasService: Usando caché de provincias (${_cachedProvincias!.length} items)');
@@ -65,9 +74,11 @@ class TablasMaestrasService {
             .toList()
           ..sort((ProvinciaEntity a, ProvinciaEntity b) => a.nombre.compareTo(b.nombre));
 
-        // Actualizar caché
-        _cachedProvincias = provincias;
-        _lastFetchProvincias = DateTime.now();
+        // Solo cachear si hay datos
+        if (provincias.isNotEmpty) {
+          _cachedProvincias = provincias;
+          _lastFetchProvincias = DateTime.now();
+        }
 
         return provincias;
       }
@@ -117,8 +128,9 @@ class TablasMaestrasService {
 
   /// Obtiene todos los puestos de trabajo (con caché de 24h)
   Future<List<PuestoEntity>> getPuestos() async {
-    // Verificar caché
+    // Verificar caché (solo si tiene datos)
     if (_cachedPuestos != null &&
+        _cachedPuestos!.isNotEmpty &&
         _lastFetchPuestos != null &&
         DateTime.now().difference(_lastFetchPuestos!) < _cacheDuration) {
       debugPrint('⚡ TablasMaestrasService: Usando caché de puestos (${_cachedPuestos!.length} items)');
@@ -132,9 +144,14 @@ class TablasMaestrasService {
 
       final List<PuestoEntity> puestos = response.map(PuestoEntity.fromMap).toList();
 
-      // Actualizar caché
-      _cachedPuestos = puestos;
-      _lastFetchPuestos = DateTime.now();
+      // Solo cachear si hay datos (evitar cachear listas vacías por fallos temporales)
+      if (puestos.isNotEmpty) {
+        _cachedPuestos = puestos;
+        _lastFetchPuestos = DateTime.now();
+        debugPrint('✅ Puestos cargados: ${puestos.length} items (cacheado)');
+      } else {
+        debugPrint('⚠️ Puestos: respuesta vacía, no se cachea');
+      }
 
       return puestos;
     } catch (e) {
@@ -144,9 +161,10 @@ class TablasMaestrasService {
   }
 
   /// Obtiene todos los tipos de contrato laboral (con caché de 24h)
+  /// Se usa en el desplegable de "Tipo de Contrato" del formulario de Personal
   Future<List<TipoContratoEntity>> getContratos() async {
-    // Verificar caché
     if (_cachedContratos != null &&
+        _cachedContratos!.isNotEmpty &&
         _lastFetchContratos != null &&
         DateTime.now().difference(_lastFetchContratos!) < _cacheDuration) {
       debugPrint('⚡ TablasMaestrasService: Usando caché de tipos de contrato (${_cachedContratos!.length} items)');
@@ -162,9 +180,14 @@ class TablasMaestrasService {
           .map(TipoContratoEntity.fromMap)
           .toList();
 
-      // Actualizar caché
-      _cachedContratos = contratos;
-      _lastFetchContratos = DateTime.now();
+      // Solo cachear si hay datos (evitar cachear listas vacías por fallos temporales)
+      if (contratos.isNotEmpty) {
+        _cachedContratos = contratos;
+        _lastFetchContratos = DateTime.now();
+        debugPrint('✅ Tipos de contrato cargados: ${contratos.length} items (cacheado)');
+      } else {
+        debugPrint('⚠️ Tipos de contrato: respuesta vacía, no se cachea');
+      }
 
       return contratos;
     } catch (e) {
@@ -177,6 +200,7 @@ class TablasMaestrasService {
   Future<List<EmpresaEntity>> getEmpresas() async {
     // Verificar caché
     if (_cachedEmpresas != null &&
+        _cachedEmpresas!.isNotEmpty &&
         _lastFetchEmpresas != null &&
         DateTime.now().difference(_lastFetchEmpresas!) < _cacheDuration) {
       debugPrint('⚡ TablasMaestrasService: Usando caché de empresas (${_cachedEmpresas!.length} items)');
@@ -190,9 +214,11 @@ class TablasMaestrasService {
 
       final List<EmpresaEntity> empresas = response.map(EmpresaEntity.fromMap).toList();
 
-      // Actualizar caché
-      _cachedEmpresas = empresas;
-      _lastFetchEmpresas = DateTime.now();
+      // Solo cachear si hay datos
+      if (empresas.isNotEmpty) {
+        _cachedEmpresas = empresas;
+        _lastFetchEmpresas = DateTime.now();
+      }
 
       return empresas;
     } catch (e) {
@@ -203,8 +229,9 @@ class TablasMaestrasService {
 
   /// Obtiene todas las categorías de personal (con caché de 24h)
   Future<List<CategoriaPersonalEntity>> getCategorias() async {
-    // Verificar caché
+    // Verificar caché (solo si tiene datos)
     if (_cachedCategorias != null &&
+        _cachedCategorias!.isNotEmpty &&
         _lastFetchCategorias != null &&
         DateTime.now().difference(_lastFetchCategorias!) < _cacheDuration) {
       debugPrint('⚡ TablasMaestrasService: Usando caché de categorías (${_cachedCategorias!.length} items)');
@@ -218,14 +245,147 @@ class TablasMaestrasService {
 
       final List<CategoriaPersonalEntity> categorias = response.map(CategoriaPersonalEntity.fromMap).toList();
 
-      // Actualizar caché
-      _cachedCategorias = categorias;
-      _lastFetchCategorias = DateTime.now();
+      // Solo cachear si hay datos (evitar cachear listas vacías por fallos temporales)
+      if (categorias.isNotEmpty) {
+        _cachedCategorias = categorias;
+        _lastFetchCategorias = DateTime.now();
+        debugPrint('✅ Categorías cargadas: ${categorias.length} items (cacheado)');
+      } else {
+        debugPrint('⚠️ Categorías: respuesta vacía, no se cachea');
+      }
 
       return categorias;
     } catch (e) {
       debugPrint('❌ Error al obtener categorías: $e');
       return <CategoriaPersonalEntity>[];
+    }
+  }
+
+  /// Obtiene todos los contratos/cliente (contratos) con caché de 24h
+  Future<List<ContratoEntity>> getContratosCliente() async {
+    if (_cachedContratosCliente != null &&
+        _cachedContratosCliente!.isNotEmpty &&
+        _lastFetchContratosCliente != null &&
+        DateTime.now().difference(_lastFetchContratosCliente!) < _cacheDuration) {
+      debugPrint('⚡ TablasMaestrasService: Usando caché de contratos cliente (${_cachedContratosCliente!.length} items)');
+      return _cachedContratosCliente!;
+    }
+
+    try {
+      debugPrint('🔍 TablasMaestrasService: Cargando contratos cliente desde Supabase...');
+      final List<Map<String, dynamic>> response =
+          await _supabase.from('contratos').select().order('codigo');
+
+      final List<ContratoEntity> contratos = response
+          .map((Map<String, dynamic> json) => ContratoSupabaseModel.fromJson(json).toEntity())
+          .toList();
+
+      // Solo cachear si hay datos
+      if (contratos.isNotEmpty) {
+        _cachedContratosCliente = contratos;
+        _lastFetchContratosCliente = DateTime.now();
+      }
+
+      return contratos;
+    } catch (e) {
+      debugPrint('❌ Error al obtener contratos cliente: $e');
+      return <ContratoEntity>[];
+    }
+  }
+
+  /// Obtiene todas las bases con caché de 24h
+  Future<List<BaseCentroEntity>> getBases() async {
+    if (_cachedBases != null &&
+        _cachedBases!.isNotEmpty &&
+        _lastFetchBases != null &&
+        DateTime.now().difference(_lastFetchBases!) < _cacheDuration) {
+      debugPrint('⚡ TablasMaestrasService: Usando caché de bases (${_cachedBases!.length} items)');
+      return _cachedBases!;
+    }
+
+    try {
+      debugPrint('🔍 TablasMaestrasService: Cargando bases desde Supabase...');
+      final List<Map<String, dynamic>> response =
+          await _supabase.from('bases').select().order('nombre');
+
+      final List<BaseCentroEntity> bases = response
+          .map(BaseCentroEntity.fromJson)
+          .toList();
+
+      // Solo cachear si hay datos
+      if (bases.isNotEmpty) {
+        _cachedBases = bases;
+        _lastFetchBases = DateTime.now();
+      }
+
+      return bases;
+    } catch (e) {
+      debugPrint('❌ Error al obtener bases: $e');
+      return <BaseCentroEntity>[];
+    }
+  }
+
+  /// Obtiene todas las dotaciones con caché de 24h
+  Future<List<DotacionEntity>> getDotaciones() async {
+    if (_cachedDotaciones != null &&
+        _cachedDotaciones!.isNotEmpty &&
+        _lastFetchDotaciones != null &&
+        DateTime.now().difference(_lastFetchDotaciones!) < _cacheDuration) {
+      debugPrint('⚡ TablasMaestrasService: Usando caché de dotaciones (${_cachedDotaciones!.length} items)');
+      return _cachedDotaciones!;
+    }
+
+    try {
+      debugPrint('🔍 TablasMaestrasService: Cargando dotaciones desde Supabase...');
+      final List<Map<String, dynamic>> response =
+          await _supabase.from('dotaciones').select().order('nombre');
+
+      final List<DotacionEntity> dotaciones = response
+          .map(DotacionEntity.fromJson)
+          .toList();
+
+      // Solo cachear si hay datos
+      if (dotaciones.isNotEmpty) {
+        _cachedDotaciones = dotaciones;
+        _lastFetchDotaciones = DateTime.now();
+      }
+
+      return dotaciones;
+    } catch (e) {
+      debugPrint('❌ Error al obtener dotaciones: $e');
+      return <DotacionEntity>[];
+    }
+  }
+
+  /// Obtiene todos los vehículos con caché de 24h
+  Future<List<VehiculoEntity>> getVehiculos() async {
+    if (_cachedVehiculos != null &&
+        _cachedVehiculos!.isNotEmpty &&
+        _lastFetchVehiculos != null &&
+        DateTime.now().difference(_lastFetchVehiculos!) < _cacheDuration) {
+      debugPrint('⚡ TablasMaestrasService: Usando caché de vehículos (${_cachedVehiculos!.length} items)');
+      return _cachedVehiculos!;
+    }
+
+    try {
+      debugPrint('🔍 TablasMaestrasService: Cargando vehículos desde Supabase...');
+      final List<Map<String, dynamic>> response =
+          await _supabase.from('tvehiculos').select().order('matricula');
+
+      final List<VehiculoEntity> vehiculos = response
+          .map((Map<String, dynamic> json) => VehiculoSupabaseModel.fromJson(json).toEntity())
+          .toList();
+
+      // Solo cachear si hay datos
+      if (vehiculos.isNotEmpty) {
+        _cachedVehiculos = vehiculos;
+        _lastFetchVehiculos = DateTime.now();
+      }
+
+      return vehiculos;
+    } catch (e) {
+      debugPrint('❌ Error al obtener vehículos: $e');
+      return <VehiculoEntity>[];
     }
   }
 
@@ -241,12 +401,20 @@ class TablasMaestrasService {
     _cachedContratos = null;
     _cachedEmpresas = null;
     _cachedCategorias = null;
+    _cachedContratosCliente = null;
+    _cachedBases = null;
+    _cachedDotaciones = null;
+    _cachedVehiculos = null;
     _cachedPoblaciones.clear();
     _lastFetchProvincias = null;
     _lastFetchPuestos = null;
     _lastFetchContratos = null;
     _lastFetchEmpresas = null;
     _lastFetchCategorias = null;
+    _lastFetchContratosCliente = null;
+    _lastFetchBases = null;
+    _lastFetchDotaciones = null;
+    _lastFetchVehiculos = null;
   }
 
   /// Invalida caché de una tabla específica
@@ -259,9 +427,6 @@ class TablasMaestrasService {
       case 'tpuestos':
         _cachedPuestos = null;
         _lastFetchPuestos = null;
-      case 'tcontratos':
-        _cachedContratos = null;
-        _lastFetchContratos = null;
       case 'tempresas':
         _cachedEmpresas = null;
         _lastFetchEmpresas = null;
@@ -270,6 +435,21 @@ class TablasMaestrasService {
         _lastFetchCategorias = null;
       case 'tpoblaciones':
         _cachedPoblaciones.clear();
+      case 'contratos':
+        _cachedContratosCliente = null;
+        _lastFetchContratosCliente = null;
+      case 'tcontratos':
+        _cachedContratos = null;
+        _lastFetchContratos = null;
+      case 'bases':
+        _cachedBases = null;
+        _lastFetchBases = null;
+      case 'dotaciones':
+        _cachedDotaciones = null;
+        _lastFetchDotaciones = null;
+      case 'tvehiculos':
+        _cachedVehiculos = null;
+        _lastFetchVehiculos = null;
       default:
         debugPrint('⚠️ Tabla desconocida: $tableName');
     }
@@ -294,6 +474,10 @@ class TablasMaestrasService {
       getContratos().then((_) => debugPrint('✅ Contratos recargados')),
       getEmpresas().then((_) => debugPrint('✅ Empresas recargadas')),
       getCategorias().then((_) => debugPrint('✅ Categorías recargadas')),
+      getContratosCliente().then((_) => debugPrint('✅ Contratos cliente recargados')),
+      getBases().then((_) => debugPrint('✅ Bases recargadas')),
+      getDotaciones().then((_) => debugPrint('✅ Dotaciones recargadas')),
+      getVehiculos().then((_) => debugPrint('✅ Vehículos recargados')),
     ]);
 
     debugPrint('♻️ TablasMaestrasService: ✅ Todas las tablas maestras recargadas');

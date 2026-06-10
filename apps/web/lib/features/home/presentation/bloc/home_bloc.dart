@@ -2,9 +2,12 @@ import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/network/network_info.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_event.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_state.dart';
+import 'package:ambutrack_web/features/mantenimiento/domain/repositories/mantenimiento_repository.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/repositories/traslado_repository.dart';
 import 'package:ambutrack_web/features/vehiculos/domain/repositories/vehiculo_repository.dart';
 import 'package:bloc/bloc.dart';
+import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 
 /// BLoC para manejar el estado de la página Home
@@ -17,6 +20,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     this._networkInfo,
     this._vehiculoRepository,
     this._trasladoRepository,
+    this._mantenimientoRepository,
   ) : super(const HomeInitial()) {
     on<HomeStarted>(_onHomeStarted);
     on<HomeRefreshed>(_onHomeRefreshed);
@@ -25,6 +29,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final NetworkInfo _networkInfo;
   final VehiculoRepository _vehiculoRepository;
   final TrasladoRepository _trasladoRepository;
+  final MantenimientoRepository _mantenimientoRepository;
 
   Future<void> _onHomeStarted(
     HomeStarted event,
@@ -102,6 +107,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           .length;
       final int serviciosEnProceso = serviciosActivos.length;
 
+      // Mantenimientos preventivos (carga aislada: no rompe el dashboard si falla)
+      final MantenimientoStats mantStats = await _cargarMantenimientos();
+
       emit(HomeLoaded(
         isConnected: isConnected,
         vehiculosDisponibles: disponibles,
@@ -121,6 +129,10 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         vehiculosUrgenciasTotal: vehiculosUrgenciasTotal,
         vehiculosProgramadosDisponibles: vehiculosProgramadosDisp,
         vehiculosProgramadosTotal: vehiculosProgramadosTotal,
+        mantenimientosProgramados: mantStats.programados,
+        mantenimientosEnProceso: mantStats.enProceso,
+        mantenimientosCompletados: mantStats.completados,
+        mantenimientosProximosOVencidos: mantStats.proximosOVencidos,
       ));
     } on Exception catch (e) {
       emit(HomeError(message: e.toString()));
@@ -201,6 +213,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           .length;
       final int serviciosEnProceso = serviciosActivos.length;
 
+      // Mantenimientos preventivos (carga aislada: no rompe el dashboard si falla)
+      final MantenimientoStats mantStats = await _cargarMantenimientos();
+
       emit(HomeLoaded(
         isConnected: isConnected,
         vehiculosDisponibles: disponibles,
@@ -220,9 +235,70 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         vehiculosUrgenciasTotal: vehiculosUrgenciasTotal,
         vehiculosProgramadosDisponibles: vehiculosProgramadosDisp,
         vehiculosProgramadosTotal: vehiculosProgramadosTotal,
+        mantenimientosProgramados: mantStats.programados,
+        mantenimientosEnProceso: mantStats.enProceso,
+        mantenimientosCompletados: mantStats.completados,
+        mantenimientosProximosOVencidos: mantStats.proximosOVencidos,
       ));
     } on Exception catch (e) {
       emit(HomeError(message: e.toString()));
     }
   }
+
+  /// Carga los mantenimientos preventivos de forma aislada.
+  ///
+  /// Si la carga falla, devuelve contadores en 0 y lista vacía para no
+  /// romper el resto del dashboard.
+  Future<MantenimientoStats> _cargarMantenimientos() async {
+    List<MantenimientoEntity> todos = <MantenimientoEntity>[];
+    try {
+      final Either<Exception, List<MantenimientoEntity>> result =
+          await _mantenimientoRepository.getAll();
+      result.fold(
+        (Exception e) =>
+            debugPrint('⚠️ HomeBloc: error cargando mantenimientos: $e'),
+        (List<MantenimientoEntity> lista) => todos = lista,
+      );
+    } on Exception catch (e) {
+      debugPrint('⚠️ HomeBloc: excepción cargando mantenimientos: $e');
+    }
+
+    final DateTime hoy =
+        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    return MantenimientoStats(
+      programados: todos
+          .where((MantenimientoEntity m) =>
+              m.estado == EstadoMantenimiento.programado)
+          .length,
+      enProceso: todos
+          .where((MantenimientoEntity m) =>
+              m.estado == EstadoMantenimiento.enProceso)
+          .length,
+      completados: todos
+          .where((MantenimientoEntity m) =>
+              m.estado == EstadoMantenimiento.completado)
+          .length,
+      proximosOVencidos: todos
+          .where((MantenimientoEntity m) =>
+              m.estado == EstadoMantenimiento.programado &&
+              m.fechaProgramada != null &&
+              m.fechaProgramada!.difference(hoy).inDays <= 7)
+          .toList(),
+    );
+  }
+}
+
+/// Métricas de mantenimientos preventivos agrupadas por estado.
+class MantenimientoStats {
+  const MantenimientoStats({
+    required this.programados,
+    required this.enProceso,
+    required this.completados,
+    required this.proximosOVencidos,
+  });
+
+  final int programados;
+  final int enProceso;
+  final int completados;
+  final List<MantenimientoEntity> proximosOVencidos;
 }

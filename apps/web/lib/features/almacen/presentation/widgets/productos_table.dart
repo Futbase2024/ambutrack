@@ -45,34 +45,40 @@ class _ProductosTableState extends State<ProductosTable> {
           if (state is ProductoLoaded || state is ProductoError) {
             final Duration elapsed = DateTime.now().difference(_deleteStartTime!);
 
+            // Guardar contexto del loading antes de resetear estado
+            final BuildContext loadingCtx = _loadingDialogContext!;
+
+            // Resetear estado inmediatamente para prevenir re-entrada
+            setState(() {
+              _isDeleting = false;
+              _loadingDialogContext = null;
+              _deleteStartTime = null;
+            });
+
+            // Cerrar loading dialog usando rootNavigator
+            Navigator.of(loadingCtx, rootNavigator: true).pop();
+
+            // Esperar a que el Navigator complete la transición
+            await Future<void>.delayed(const Duration(milliseconds: 200));
+
+            if (!context.mounted) {
+              return;
+            }
+
             // Manejar resultado con CrudOperationHandler
             if (state is ProductoError) {
               await CrudOperationHandler.handleDeleteError(
-                context: _loadingDialogContext!,
-                isDeleting: _isDeleting,
+                context: context,
+                isDeleting: false,
                 entityName: 'Producto',
                 errorMessage: state.message,
-                onClose: () {
-                  setState(() {
-                    _isDeleting = false;
-                    _loadingDialogContext = null;
-                    _deleteStartTime = null;
-                  });
-                },
               );
             } else if (state is ProductoLoaded) {
               await CrudOperationHandler.handleDeleteSuccess(
-                context: _loadingDialogContext!,
-                isDeleting: _isDeleting,
+                context: context,
+                isDeleting: false,
                 entityName: 'Producto',
                 durationMs: elapsed.inMilliseconds,
-                onClose: () {
-                  setState(() {
-                    _isDeleting = false;
-                    _loadingDialogContext = null;
-                    _deleteStartTime = null;
-                  });
-                },
               );
             }
           }
