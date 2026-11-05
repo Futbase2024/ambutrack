@@ -337,8 +337,10 @@ class AusenciasBloc extends Bloc<AusenciasEvent, AusenciasState> {
       await _ausenciaRepository.delete(event.id);
       debugPrint('🚀 AusenciasBloc: ✅ Servidor sincronizado (ausencia eliminada)');
 
-      // 3️⃣ REFETCH SILENCIOSO (garantiza consistencia)
-      await _refetchFromServer(emit);
+      // 3️⃣ REFETCH SILENCIOSO (garantiza consistencia) + estado de éxito
+      final List<AusenciaEntity> ausencias = await _ausenciaRepository.getAll();
+      final List<TipoAusenciaEntity> tiposAusencia = await _tipoAusenciaRepository.getAll();
+      emit(AusenciaDeleted(ausencias: ausencias, tiposAusencia: tiposAusencia, deletedId: event.id));
       debugPrint('🚀 AusenciasBloc: ✅ Datos sincronizados desde servidor');
     } catch (e, stack) {
       debugPrint('🚀 AusenciasBloc: ❌ Error al eliminar: $e');

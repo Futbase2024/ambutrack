@@ -23,7 +23,6 @@ class ConsumoCombustibleBloc
 
   final ConsumoCombustibleRepository _consumoRepository;
   final VehiculoRepository _vehiculosRepository;
-  static const int _itemsPerPage = 25;
 
   List<ConsumoCombustibleEntity> _allRegistros = <ConsumoCombustibleEntity>[];
   List<VehiculoEntity> _vehiculos = <VehiculoEntity>[];
@@ -87,7 +86,7 @@ class ConsumoCombustibleBloc
       _allRegistros = registros;
       _filtroVehiculoId = vehiculoId;
 
-      await _emitLoaded(emit);
+      _emitFiltered(emit);
     } catch (e) {
       debugPrint('⛽ ConsumoCombustibleBloc: ❌ Error: $e');
       emit(ConsumoCombustibleState.error(e.toString()));
@@ -112,7 +111,7 @@ class ConsumoCombustibleBloc
       _filtroFechaInicio = fechaInicio;
       _filtroFechaFin = fechaFin;
 
-      await _emitLoaded(emit);
+      _emitFiltered(emit);
     } catch (e) {
       debugPrint('⛽ ConsumoCombustibleBloc: ❌ Error: $e');
       emit(ConsumoCombustibleState.error(e.toString()));
@@ -173,7 +172,7 @@ class ConsumoCombustibleBloc
     debugPrint('⛽ ConsumoCombustibleBloc: Filtrando por vehículo: $vehiculoId');
     _filtroVehiculoId = vehiculoId;
     emit(const ConsumoCombustibleState.loading());
-    await _applyFiltersAndEmit(emit);
+    _emitFiltered(emit);
   }
 
   Future<void> _onFilterByFecha(
@@ -186,7 +185,7 @@ class ConsumoCombustibleBloc
     _filtroFechaInicio = fechaInicio;
     _filtroFechaFin = fechaFin;
     emit(const ConsumoCombustibleState.loading());
-    await _applyFiltersAndEmit(emit);
+    _emitFiltered(emit);
   }
 
   Future<void> _onClearFilters(Emitter<ConsumoCombustibleState> emit) async {
@@ -198,12 +197,14 @@ class ConsumoCombustibleBloc
     await _loadAndEmit(emit);
   }
 
+  /// La paginación se hace en la vista (client-side) sobre el listado completo:
+  /// el evento se mantiene por compatibilidad y solo reemite el estado actual.
   Future<void> _onChangePage(
     Emitter<ConsumoCombustibleState> emit, {
     required int page,
   }) async {
-    debugPrint('⛽ ConsumoCombustibleBloc: Cambiando a página: $page');
-    await _applyFiltersAndEmit(emit, page: page);
+    debugPrint('⛽ ConsumoCombustibleBloc: changePage($page) ignorado (paginación en la vista)');
+    _emitFiltered(emit);
   }
 
   Future<void> _onSubscribeToVehiculo(
@@ -223,7 +224,7 @@ class ConsumoCombustibleBloc
             '⛽ ConsumoCombustibleBloc: 📢 Stream actualizado: ${registros.length} registros');
         _allRegistros = registros;
         // Emitir estado sin recargar desde el repositorio
-        _emitPaginatedState(emit);
+        _emitFiltered(emit);
       },
       onError: (Object error) {
         debugPrint('⛽ ConsumoCombustibleBloc: ❌ Error en stream: $error');
@@ -242,7 +243,7 @@ class ConsumoCombustibleBloc
     try {
       final List<ConsumoCombustibleEntity> registros = await _consumoRepository.getAll();
       _allRegistros = registros;
-      await _emitLoaded(emit);
+      _emitFiltered(emit);
     } catch (e) {
       debugPrint('⛽ ConsumoCombustibleBloc: ❌ Error al cargar: $e');
       emit(ConsumoCombustibleState.error(e.toString()));
@@ -260,105 +261,35 @@ class ConsumoCombustibleBloc
     }
   }
 
-  Future<void> _emitLoaded(Emitter<ConsumoCombustibleState> emit) async {
-    await _applyFiltersAndEmit(emit);
+  /// Registros que cumplen los filtros de vehículo y rango de fechas
+  List<ConsumoCombustibleEntity> _filtered() {
+    final DateTime? inicio = _filtroFechaInicio;
+    final DateTime? fin = _filtroFechaFin?.add(const Duration(days: 1));
+    return _allRegistros
+        .where(
+          (ConsumoCombustibleEntity r) =>
+              (_filtroVehiculoId == null || r.vehiculoId == _filtroVehiculoId) &&
+              (inicio == null || !r.fecha.isBefore(inicio)) &&
+              (fin == null || r.fecha.isBefore(fin)),
+        )
+        .toList();
   }
 
-  Future<void> _applyFiltersAndEmit(
-    Emitter<ConsumoCombustibleState> emit, {
-    int page = 1,
-  }) async {
-    List<ConsumoCombustibleEntity> filtered = _allRegistros;
-
-    // Aplicar filtro por vehículo
-    if (_filtroVehiculoId != null) {
-      filtered = filtered
-          .where((ConsumoCombustibleEntity r) => r.vehiculoId == _filtroVehiculoId)
-          .toList();
-    }
-
-    // Aplicar filtro por rango de fechas
-    if (_filtroFechaInicio != null) {
-      filtered = filtered
-          .where((ConsumoCombustibleEntity r) =>
-              r.fecha.isAfter(_filtroFechaInicio!) ||
-              r.fecha.isAtSameMomentAs(_filtroFechaInicio!))
-          .toList();
-    }
-
-    if (_filtroFechaFin != null) {
-      final DateTime fin = _filtroFechaFin!.add(const Duration(days: 1));
-      filtered = filtered
-          .where((ConsumoCombustibleEntity r) => r.fecha.isBefore(fin))
-          .toList();
-    }
-
-    // Calcular paginación
-    final int totalPages = (filtered.length / _itemsPerPage).ceil();
-    final int startIndex = (page - 1) * _itemsPerPage;
-    final int endIndex = startIndex + _itemsPerPage;
-    final List<ConsumoCombustibleEntity> paginated = startIndex < filtered.length
-        ? filtered.sublist(startIndex, endIndex.clamp(0, filtered.length))
-        : <ConsumoCombustibleEntity>[];
-
-    // Calcular estadísticas
-    final Map<String, double> estadisticas = await _calculateEstadisticas(filtered);
-
-    emit(
-      ConsumoCombustibleState.loaded(
-        registros: paginated,
-        vehiculos: _vehiculos,
-        currentPage: page,
-        totalPages: totalPages > 0 ? totalPages : 1,
-        estadisticas: estadisticas,
-        filtroVehiculoId: _filtroVehiculoId,
-        filtroFechaInicio: _filtroFechaInicio,
-        filtroFechaFin: _filtroFechaFin,
-      ),
+  /// Emite el listado COMPLETO filtrado con sus estadísticas.
+  ///
+  /// `currentPage`/`totalPages` se fijan a 1: la vista pagina en cliente.
+  void _emitFiltered(Emitter<ConsumoCombustibleState> emit) {
+    final List<ConsumoCombustibleEntity> filtered = _filtered();
+    debugPrint(
+      '⛽ ConsumoCombustibleBloc: ${filtered.length} de ${_allRegistros.length} registros tras filtros',
     );
-  }
-
-  void _emitPaginatedState(Emitter<ConsumoCombustibleState> emit) {
-    List<ConsumoCombustibleEntity> filtered = _allRegistros;
-
-    // Aplicar filtro por vehículo
-    if (_filtroVehiculoId != null) {
-      filtered = filtered
-          .where((ConsumoCombustibleEntity r) => r.vehiculoId == _filtroVehiculoId)
-          .toList();
-    }
-
-    // Aplicar filtro por rango de fechas
-    if (_filtroFechaInicio != null) {
-      filtered = filtered
-          .where((ConsumoCombustibleEntity r) =>
-              r.fecha.isAfter(_filtroFechaInicio!) ||
-              r.fecha.isAtSameMomentAs(_filtroFechaInicio!))
-          .toList();
-    }
-
-    if (_filtroFechaFin != null) {
-      final DateTime fin = _filtroFechaFin!.add(const Duration(days: 1));
-      filtered = filtered
-          .where((ConsumoCombustibleEntity r) => r.fecha.isBefore(fin))
-          .toList();
-    }
-
-    // Calcular paginación (página 1 por defecto para stream)
-    final int totalPages = (filtered.length / _itemsPerPage).ceil();
-    const int startIndex = 0;
-    const int endIndex = _itemsPerPage;
-    final List<ConsumoCombustibleEntity> paginated = startIndex < filtered.length
-        ? filtered.sublist(startIndex, endIndex.clamp(0, filtered.length))
-        : <ConsumoCombustibleEntity>[];
-
     emit(
       ConsumoCombustibleState.loaded(
-        registros: paginated,
+        registros: filtered,
         vehiculos: _vehiculos,
         currentPage: 1,
-        totalPages: totalPages > 0 ? totalPages : 1,
-        estadisticas: const <String, double>{},
+        totalPages: 1,
+        estadisticas: _calculateEstadisticas(filtered),
         filtroVehiculoId: _filtroVehiculoId,
         filtroFechaInicio: _filtroFechaInicio,
         filtroFechaFin: _filtroFechaFin,
@@ -366,9 +297,9 @@ class ConsumoCombustibleBloc
     );
   }
 
-  Future<Map<String, double>> _calculateEstadisticas(
+  Map<String, double> _calculateEstadisticas(
     List<ConsumoCombustibleEntity> registros,
-  ) async {
+  ) {
     if (registros.isEmpty) {
       return const <String, double>{
         'consumo_promedio': 0.0,

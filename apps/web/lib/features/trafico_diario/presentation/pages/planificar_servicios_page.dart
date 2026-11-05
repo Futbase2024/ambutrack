@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/widgets/gestion_frame/gestion_frame.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
 import 'package:ambutrack_web/features/personal/domain/repositories/personal_repository.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/entities/servicio_entity.dart';
@@ -300,58 +301,55 @@ class _PlanificarServiciosViewState extends State<_PlanificarServiciosView> {
 
             return Scaffold(
               backgroundColor: AppColors.backgroundLight,
-              body: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
+              body: GestionFrame(
+                toolbar: ServiciosHeader(
+                  selectedDay: _selectedDay,
+                  show14DaysView: _show14DaysView,
+                  onToggle14DaysView: () {
+                    setState(() {
+                      _show14DaysView = !_show14DaysView;
+                    });
+                  },
+                  onDayChanged: (DateTime newDay) {
+                    setState(() {
+                      _selectedDay = newDay;
+                      _trasladosAlreadyRequested = false; // Permite nueva carga
+                    });
+                    serviciosState.whenOrNull(
+                      loaded: (
+                        List<ServicioEntity> servicios,
+                        String searchQuery,
+                        int? yearFilter,
+                        String? estadoFilter,
+                        bool isRefreshing,
+                        ServicioEntity? selectedServicio,
+                        bool isLoadingDetails,
+                      ) {
+                        if (servicios.isNotEmpty) {
+                          final List<String> servicioIds = servicios
+                              .map((ServicioEntity s) => s.id)
+                              .whereType<String>()
+                              .toList();
+
+                          context.read<TraficoDiarioBloc>().add(
+                                TraficoDiarioEvent.loadTrasladosRequested(
+                                  idsServiciosRecurrentes: servicioIds,
+                                  fecha: newDay,
+                                ),
+                              );
+                        }
+                      },
+                    );
+                  },
+                ),
+                statusBar: PlanificarServiciosStatusBar(
+                  trasladosDelDia: trasladosPendientes.length,
+                  seleccionados: _trasladosSeleccionados.length,
+                  trasladosGeneradosHasta: trasladosGeneradosHasta,
+                ),
+                content: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    // Header con selector de fecha
-                    ServiciosHeader(
-                      selectedDay: _selectedDay,
-                      trasladosGeneradosHasta: trasladosGeneradosHasta,
-                      show14DaysView: _show14DaysView,
-                      onToggle14DaysView: () {
-                        setState(() {
-                          _show14DaysView = !_show14DaysView;
-                        });
-                      },
-                      onDayChanged: (DateTime newDay) {
-                        setState(() {
-                          _selectedDay = newDay;
-                          // Resetear flag cuando cambia la fecha para permitir nueva carga
-                          _trasladosAlreadyRequested = false;
-                        });
-
-                        // Recargar traslados para la nueva fecha
-                        serviciosState.whenOrNull(
-                          loaded: (
-                            List<ServicioEntity> servicios,
-                            String searchQuery,
-                            int? yearFilter,
-                            String? estadoFilter,
-                            bool isRefreshing,
-                            ServicioEntity? selectedServicio,
-                            bool isLoadingDetails,
-                          ) {
-                            if (servicios.isNotEmpty) {
-                              final List<String> servicioIds = servicios
-                                  .map((ServicioEntity s) => s.id)
-                                  .whereType<String>()
-                                  .toList();
-
-                              context.read<TraficoDiarioBloc>().add(
-                                    TraficoDiarioEvent.loadTrasladosRequested(
-                                      idsServiciosRecurrentes: servicioIds,
-                                      fecha: newDay,
-                                    ),
-                                  );
-                            }
-                          },
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-
                     // Vista de 14 días (opcional)
                     if (_show14DaysView)
                       Traslados14DaysView(
@@ -393,7 +391,7 @@ class _PlanificarServiciosViewState extends State<_PlanificarServiciosView> {
                         },
                       ),
 
-                    if (_show14DaysView) const SizedBox(height: 12),
+                    if (_show14DaysView) const SizedBox(height: 8),
 
                     // Tabla de traslados
                     Expanded(

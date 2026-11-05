@@ -2,17 +2,17 @@ import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
-import 'package:ambutrack_web/core/widgets/headers/page_header.dart';
+import 'package:ambutrack_web/core/widgets/gestion_frame/gestion_frame.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/entities/servicio_entity.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/servicios_bloc.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/servicios_event.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/servicios_state.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/servicio_form_wizard_dialog.dart';
+import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/servicios_page_bars.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/servicios_side_panel.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/servicios_table.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 /// Página de gestión de servicios
@@ -110,32 +110,35 @@ class _ServiciosViewState extends State<_ServiciosView> {
       builder: (BuildContext context, ServiciosState state) {
         return Scaffold(
           backgroundColor: AppColors.backgroundLight,
-          body: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSizes.paddingXl,
-              AppSizes.paddingXl,
-              AppSizes.paddingXl,
-              AppSizes.paddingLarge,
+          body: GestionFrame(
+            toolbar: ServiciosToolbar(
+              state: state,
+              onNuevo: _showNewServicioDialog,
+              onEditar: (ServicioEntity s) => _handleEditar(context, s),
+              onEliminar: (ServicioEntity s) => _handleEliminar(context, s),
+              onFinalizar: (ServicioEntity s) => _handleFinalizar(context, s),
+              onSuspender: (ServicioEntity s) => _handleSuspender(context, s),
+              onReanudar: (ServicioEntity s) => _handleReanudar(context, s),
+              onExcluir: (ServicioEntity s) => _handleExcluir(context, s),
             ),
-            child: Column(
+            filterBar: ServiciosFilterBar(
+              searchController: _searchController,
+              onSearchChanged: (_) => _applyFilters(),
+              year: _yearSeleccionado,
+              onYearChanged: (int value) {
+                setState(() => _yearSeleccionado = value);
+                _applyFilters();
+              },
+              estado: _estadoSeleccionado,
+              onEstadoChanged: (String? value) {
+                setState(() => _estadoSeleccionado = value);
+                _applyFilters();
+              },
+            ),
+            statusBar: ServiciosStatusBar(state: state),
+            content: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                PageHeader(
-                  config: PageHeaderConfig(
-                    icon: Icons.medical_services,
-                    title: 'Gestión de Servicios',
-                    subtitle:
-                        'Administra los servicios de ambulancias y traslados',
-                    addButtonLabel: 'NUEVO',
-                    stats: _buildHeaderStats(state),
-                    extra: _buildCompactFilters(state),
-                    onAdd: _showNewServicioDialog,
-                  ),
-                ),
-                const SizedBox(height: AppSizes.spacing),
-                _buildActionBar(state),
-                const SizedBox(height: AppSizes.spacing),
-
                 // Contenido principal: Tabla (50%) + Panel lateral (50%)
                 Expanded(
                   child: Row(
@@ -149,7 +152,7 @@ class _ServiciosViewState extends State<_ServiciosView> {
                         ),
                       ),
 
-                      const SizedBox(width: AppSizes.spacing),
+                      const SizedBox(width: AppSizes.spacingSmall),
 
                       // Panel lateral derecho con pestañas (50%)
                       Expanded(
@@ -188,443 +191,6 @@ class _ServiciosViewState extends State<_ServiciosView> {
     if (mounted) {
       context.read<ServiciosBloc>().add(const ServiciosEvent.loadRequested());
     }
-  }
-
-  List<HeaderStat> _buildHeaderStats(ServiciosState state) {
-    return state.maybeWhen(
-      loaded: (List<ServicioEntity> servicios, String searchQuery,
-          int? yearFilter, String? estadoFilter, bool isRefreshing,
-          ServicioEntity? selectedServicio, bool isLoadingDetails) {
-        final int total = servicios.length;
-        final int activos =
-            servicios.where((ServicioEntity s) => s.estado == 'ACTIVO').length;
-        final int suspendidos = servicios
-            .where((ServicioEntity s) => s.estado == 'SUSPENDIDO')
-            .length;
-        return <HeaderStat>[
-          HeaderStat(value: total.toString(), icon: Icons.medical_services),
-          HeaderStat(value: activos.toString(), icon: Icons.check_circle),
-          HeaderStat(value: suspendidos.toString(), icon: Icons.pause_circle),
-        ];
-      },
-      orElse: () => const <HeaderStat>[
-        HeaderStat(value: '-', icon: Icons.medical_services),
-        HeaderStat(value: '-', icon: Icons.check_circle),
-        HeaderStat(value: '-', icon: Icons.pause_circle),
-      ],
-    );
-  }
-
-  Widget _buildCompactFilters(ServiciosState state) {
-    return Wrap(
-      spacing: AppSizes.spacing,
-      runSpacing: AppSizes.spacing,
-      alignment: WrapAlignment.end,
-      children: <Widget>[
-        SizedBox(
-          width: 250,
-          child: _buildSearchField(),
-        ),
-        SizedBox(
-          width: 120,
-          child: _buildYearSelector(),
-        ),
-        SizedBox(
-          width: 180,
-          child: _buildEstadoSelector(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionBar(ServiciosState state) {
-    final ServicioEntity? selectedServicio = state.maybeWhen(
-      loaded: (
-        List<ServicioEntity> servicios,
-        String searchQuery,
-        int? yearFilter,
-        String? estadoFilter,
-        bool isRefreshing,
-        ServicioEntity? selectedServicio,
-        bool isLoadingDetails,
-      ) =>
-          selectedServicio,
-      orElse: () => null,
-    );
-
-    final bool hasSelection = selectedServicio != null;
-    final bool isActive = hasSelection && selectedServicio.estado == 'ACTIVO';
-    final bool isSuspended =
-        hasSelection && selectedServicio.estado == 'SUSPENDIDO';
-
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingSmall),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(color: AppColors.gray200),
-      ),
-      child: Wrap(
-        spacing: AppSizes.spacingSmall,
-        runSpacing: AppSizes.spacingSmall,
-        children: <Widget>[
-          _buildCompactButton(
-            label: 'EDITAR',
-            icon: Icons.edit,
-            color: AppColors.primary.withValues(alpha: 0.8),
-            onPressed: hasSelection
-                ? () => _handleEditar(context, selectedServicio)
-                : null,
-          ),
-          _buildCompactButton(
-            label: 'ELIMINAR',
-            icon: Icons.delete_outline,
-            color: AppColors.primary.withValues(alpha: 0.8),
-            onPressed: hasSelection
-                ? () => _handleEliminar(context, selectedServicio)
-                : null,
-          ),
-          _buildCompactButton(
-            label: 'FINALIZAR',
-            icon: Icons.done_all,
-            color: AppColors.primary.withValues(alpha: 0.8),
-            onPressed: isActive
-                ? () => _handleFinalizar(context, selectedServicio)
-                : null,
-          ),
-          _buildCompactButton(
-            label: 'SUSPENDER',
-            icon: Icons.pause_circle_outline,
-            color: AppColors.primary.withValues(alpha: 0.8),
-            onPressed: isActive
-                ? () => _handleSuspender(context, selectedServicio)
-                : null,
-          ),
-          _buildCompactButton(
-            label: 'REANUDAR',
-            icon: Icons.play_circle_outline,
-            color: AppColors.success.withValues(alpha: 0.8),
-            onPressed: isSuspended
-                ? () => _handleReanudar(context, selectedServicio)
-                : null,
-          ),
-          _buildCompactButton(
-            label: 'EXCLUIR',
-            icon: Icons.block,
-            color: AppColors.primary.withValues(alpha: 0.8),
-            onPressed: isActive
-                ? () => _handleExcluir(context, selectedServicio)
-                : null,
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Campo de búsqueda
-  Widget _buildSearchField() {
-    return SizedBox(
-      height: 36,
-      child: TextField(
-        controller: _searchController,
-        onChanged: (_) => _applyFilters(),
-        decoration: InputDecoration(
-          hintText: 'Buscar servicio...',
-          hintStyle: GoogleFonts.inter(
-            fontSize: 13,
-            color: AppColors.textSecondaryLight,
-          ),
-          prefixIcon: const Icon(Icons.search, size: 18, color: AppColors.textSecondaryLight),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 16, color: AppColors.textSecondaryLight),
-                  onPressed: () {
-                    _searchController.clear();
-                    _applyFilters();
-                  },
-                )
-              : null,
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSizes.paddingSmall,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-            borderSide: const BorderSide(color: AppColors.gray300),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-            borderSide: const BorderSide(color: AppColors.gray300),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-            borderSide: const BorderSide(color: AppColors.primary, width: 2),
-          ),
-        ),
-        style: GoogleFonts.inter(fontSize: 13),
-      ),
-    );
-  }
-
-  /// Selector de año profesional
-  Widget _buildYearSelector() {
-    final int currentYear = DateTime.now().year;
-    final List<int> years = List<int>.generate(5, (int i) => currentYear - i);
-
-    return SizedBox(
-      width: 120,
-      height: 36,
-      child: PopupMenuButton<int>(
-        onSelected: (int value) {
-          setState(() {
-            _yearSeleccionado = value;
-          });
-          _applyFilters();
-        },
-        offset: const Offset(0, 40),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        ),
-        color: Colors.white,
-        elevation: 8,
-        itemBuilder: (BuildContext context) {
-          return years.map((int year) {
-            final bool isSelected = year == _yearSeleccionado;
-            return PopupMenuItem<int>(
-              value: year,
-              height: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: <Widget>[
-                  Icon(
-                    Icons.calendar_today,
-                    size: 16,
-                    color: isSelected ? AppColors.primary : AppColors.gray400,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    year.toString(),
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? AppColors.primary : AppColors.textPrimaryLight,
-                    ),
-                  ),
-                  const Spacer(),
-                  if (isSelected)
-                    const Icon(
-                      Icons.check,
-                      size: 18,
-                      color: AppColors.primary,
-                    ),
-                ],
-              ),
-            );
-          }).toList();
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-            border: Border.all(color: AppColors.gray300),
-          ),
-          child: Row(
-            children: <Widget>[
-              const Icon(
-                Icons.calendar_today,
-                size: 16,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                _yearSeleccionado?.toString() ?? currentYear.toString(),
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimaryLight,
-                ),
-              ),
-              const Spacer(),
-              const Icon(
-                Icons.arrow_drop_down,
-                size: 20,
-                color: AppColors.textSecondaryLight,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Selector de estado profesional
-  Widget _buildEstadoSelector() {
-    // Lista de estados incluyendo "Todos"
-    const List<String> estados = <String>[
-      'TODOS', // Valor especial que se convertirá a null
-      'ACTIVO',
-      'SUSPENDIDO',
-      'FINALIZADO',
-      'ELIMINADO',
-    ];
-
-    return SizedBox(
-      width: 180,
-      height: 36,
-      child: PopupMenuButton<String>(
-        onSelected: (String value) {
-          debugPrint('🔄 Estado seleccionado: $value (antes: $_estadoSeleccionado)');
-          setState(() {
-            _estadoSeleccionado = value == 'TODOS' ? null : value;
-            debugPrint('🔄 Estado actualizado a: $_estadoSeleccionado');
-          });
-          _applyFilters();
-        },
-        offset: const Offset(0, 40),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        ),
-        color: Colors.white,
-        elevation: 8,
-        itemBuilder: (BuildContext context) {
-          return estados.map((String estado) {
-            final String? estadoReal = estado == 'TODOS' ? null : estado;
-            final bool isSelected = estadoReal == _estadoSeleccionado;
-            final String displayText = estado == 'TODOS' ? 'Todos' : estado;
-            final Color? iconColor = estado != 'TODOS' ? _getEstadoColor(estado) : null;
-
-            return PopupMenuItem<String>(
-              value: estado,
-              height: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: <Widget>[
-                  if (estado != 'TODOS')
-                    Icon(
-                      Icons.circle,
-                      size: 8,
-                      color: iconColor,
-                    )
-                  else
-                    const Icon(
-                      Icons.filter_list,
-                      size: 16,
-                      color: AppColors.gray400,
-                    ),
-                  const SizedBox(width: 12),
-                  Text(
-                    displayText,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? AppColors.primary : AppColors.textPrimaryLight,
-                    ),
-                  ),
-                  const Spacer(),
-                  if (isSelected)
-                    const Icon(
-                      Icons.check,
-                      size: 18,
-                      color: AppColors.primary,
-                    ),
-                ],
-              ),
-            );
-          }).toList();
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-            border: Border.all(color: AppColors.gray300),
-          ),
-          child: Row(
-            children: <Widget>[
-              if (_estadoSeleccionado != null)
-                Icon(
-                  Icons.circle,
-                  size: 8,
-                  color: _getEstadoColor(_estadoSeleccionado!),
-                )
-              else
-                const Icon(
-                  Icons.filter_list,
-                  size: 16,
-                  color: AppColors.primary,
-                ),
-              const SizedBox(width: 8),
-              Text(
-                _estadoSeleccionado ?? 'Todos',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimaryLight,
-                ),
-              ),
-              const Spacer(),
-              const Icon(
-                Icons.arrow_drop_down,
-                size: 20,
-                color: AppColors.textSecondaryLight,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Obtiene el color según el estado
-  Color _getEstadoColor(String estado) {
-    switch (estado) {
-      case 'ACTIVO':
-        return AppColors.success; // Verde
-      case 'SUSPENDIDO':
-        return AppColors.warning; // Amarillo/Naranja
-      case 'FINALIZADO':
-        return AppColors.info; // Azul
-      case 'ELIMINADO':
-        return AppColors.error; // Rojo
-      default:
-        return AppColors.textSecondaryLight;
-    }
-  }
-
-  /// Construye un botón compacto para el header
-  Widget _buildCompactButton({
-    required String label,
-    required IconData icon,
-    required Color color,
-    required VoidCallback? onPressed,
-  }) {
-    return SizedBox(
-      height: 32, // Altura compacta
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 16),
-        label: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSizes.paddingMedium,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          ),
-          elevation: 0,
-        ),
-      ),
-    );
   }
 
   /// Maneja la edición de un servicio

@@ -17,7 +17,6 @@ class IncidenciaVehiculoBloc
   }
 
   final IncidenciaVehiculoRepository _repository;
-  static const int _itemsPerPage = 25;
 
   List<IncidenciaVehiculoEntity> _allIncidencias = <IncidenciaVehiculoEntity>[];
   EstadoIncidencia? _filtroEstado;
@@ -123,7 +122,7 @@ class IncidenciaVehiculoBloc
       '🔷 IncidenciaVehiculoBloc: Filtrando por estado: ${estado?.nombre ?? "Todos"}',
     );
     _filtroEstado = estado;
-    await _loadAndEmit(emit, resetPage: true);
+    _emitFiltered(emit);
   }
 
   Future<void> _onFilterByPrioridad(
@@ -134,7 +133,7 @@ class IncidenciaVehiculoBloc
       '🔷 IncidenciaVehiculoBloc: Filtrando por prioridad: ${prioridad?.nombre ?? "Todas"}',
     );
     _filtroPrioridad = prioridad;
-    await _loadAndEmit(emit, resetPage: true);
+    _emitFiltered(emit);
   }
 
   Future<void> _onFilterByTipo(
@@ -145,7 +144,7 @@ class IncidenciaVehiculoBloc
       '🔷 IncidenciaVehiculoBloc: Filtrando por tipo: ${tipo?.nombre ?? "Todos"}',
     );
     _filtroTipo = tipo;
-    await _loadAndEmit(emit, resetPage: true);
+    _emitFiltered(emit);
   }
 
   Future<void> _onClearFilters(Emitter<IncidenciaVehiculoState> emit) async {
@@ -153,111 +152,57 @@ class IncidenciaVehiculoBloc
     _filtroEstado = null;
     _filtroPrioridad = null;
     _filtroTipo = null;
-    await _loadAndEmit(emit, resetPage: true);
+    _emitFiltered(emit);
   }
 
+  /// La paginación se hace en la vista (client-side) sobre el listado completo:
+  /// el evento se mantiene por compatibilidad y solo reemite el estado actual.
   Future<void> _onChangePage(
     Emitter<IncidenciaVehiculoState> emit, {
     required int page,
   }) async {
-    debugPrint('🔷 IncidenciaVehiculoBloc: Cambiando a página $page');
-    await _loadAndEmit(emit, pageOverride: page);
+    debugPrint('🔷 IncidenciaVehiculoBloc: changePage($page) ignorado (paginación en la vista)');
+    _emitFiltered(emit);
   }
 
-  Future<void> _loadAndEmit(
-    Emitter<IncidenciaVehiculoState> emit, {
-    bool resetPage = false,
-    int? pageOverride,
-  }) async {
+  /// Recarga todas las incidencias del repositorio y emite el listado filtrado
+  Future<void> _loadAndEmit(Emitter<IncidenciaVehiculoState> emit) async {
     try {
       _allIncidencias = await _repository.getAll();
       debugPrint(
         '🔷 IncidenciaVehiculoBloc: ✅ ${_allIncidencias.length} incidencias cargadas',
       );
-
-      // Aplicar filtros
-      List<IncidenciaVehiculoEntity> incidenciasFiltradas = _allIncidencias;
-
-      if (_filtroEstado != null) {
-        incidenciasFiltradas = incidenciasFiltradas
-            .where((IncidenciaVehiculoEntity i) => i.estado == _filtroEstado)
-            .toList();
-        debugPrint(
-          '🔷 IncidenciaVehiculoBloc: Filtro estado aplicado: ${incidenciasFiltradas.length} resultados',
-        );
-      }
-
-      if (_filtroPrioridad != null) {
-        incidenciasFiltradas = incidenciasFiltradas
-            .where((IncidenciaVehiculoEntity i) => i.prioridad == _filtroPrioridad)
-            .toList();
-        debugPrint(
-          '🔷 IncidenciaVehiculoBloc: Filtro prioridad aplicado: ${incidenciasFiltradas.length} resultados',
-        );
-      }
-
-      if (_filtroTipo != null) {
-        incidenciasFiltradas = incidenciasFiltradas
-            .where((IncidenciaVehiculoEntity i) => i.tipo == _filtroTipo)
-            .toList();
-        debugPrint(
-          '🔷 IncidenciaVehiculoBloc: Filtro tipo aplicado: ${incidenciasFiltradas.length} resultados',
-        );
-      }
-
-      // Calcular paginación
-      final int totalItems = incidenciasFiltradas.length;
-      final int totalPages = (totalItems / _itemsPerPage).ceil();
-
-      int currentPage = 1;
-      if (resetPage) {
-        currentPage = 1;
-      } else if (pageOverride != null) {
-        currentPage = pageOverride.clamp(1, totalPages > 0 ? totalPages : 1);
-      } else {
-        // Usar pattern matching de Freezed para acceder a currentPage del estado loaded
-        currentPage = state.maybeWhen(
-          loaded: (
-            List<IncidenciaVehiculoEntity> incidencias,
-            int currentPage,
-            int totalPages,
-            EstadoIncidencia? filtroEstado,
-            PrioridadIncidencia? filtroPrioridad,
-            TipoIncidencia? filtroTipo,
-          ) =>
-              currentPage,
-          orElse: () => 1,
-        );
-        currentPage = currentPage.clamp(1, totalPages > 0 ? totalPages : 1);
-      }
-
-      // Obtener items de la página actual
-      final int startIndex = (currentPage - 1) * _itemsPerPage;
-      final int endIndex = (startIndex + _itemsPerPage).clamp(0, totalItems);
-
-      final List<IncidenciaVehiculoEntity> paginatedItems =
-          incidenciasFiltradas.sublist(
-        startIndex.clamp(0, totalItems),
-        endIndex,
-      );
-
-      debugPrint(
-        '🔷 IncidenciaVehiculoBloc: Página $currentPage de $totalPages (${paginatedItems.length} items)',
-      );
-
-      emit(
-        IncidenciaVehiculoState.loaded(
-          incidencias: paginatedItems,
-          currentPage: currentPage,
-          totalPages: totalPages,
-          filtroEstado: _filtroEstado,
-          filtroPrioridad: _filtroPrioridad,
-          filtroTipo: _filtroTipo,
-        ),
-      );
+      _emitFiltered(emit);
     } catch (e) {
       debugPrint('🔷 IncidenciaVehiculoBloc: ❌ Error al cargar: $e');
       emit(IncidenciaVehiculoState.error(e.toString()));
     }
+  }
+
+  /// Emite el listado COMPLETO filtrado por estado/prioridad/tipo.
+  ///
+  /// `currentPage`/`totalPages` se fijan a 1: la vista pagina en cliente.
+  void _emitFiltered(Emitter<IncidenciaVehiculoState> emit) {
+    final List<IncidenciaVehiculoEntity> filtradas = _allIncidencias
+        .where(
+          (IncidenciaVehiculoEntity i) =>
+              (_filtroEstado == null || i.estado == _filtroEstado) &&
+              (_filtroPrioridad == null || i.prioridad == _filtroPrioridad) &&
+              (_filtroTipo == null || i.tipo == _filtroTipo),
+        )
+        .toList();
+    debugPrint(
+      '🔷 IncidenciaVehiculoBloc: ${filtradas.length} de ${_allIncidencias.length} incidencias tras filtros',
+    );
+    emit(
+      IncidenciaVehiculoState.loaded(
+        incidencias: filtradas,
+        currentPage: 1,
+        totalPages: 1,
+        filtroEstado: _filtroEstado,
+        filtroPrioridad: _filtroPrioridad,
+        filtroTipo: _filtroTipo,
+      ),
+    );
   }
 }

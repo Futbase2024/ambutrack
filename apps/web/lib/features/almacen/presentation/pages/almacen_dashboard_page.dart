@@ -4,6 +4,7 @@ import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/badges/status_badge.dart';
+import 'package:ambutrack_web/core/widgets/gestion_frame/gestion_frame.dart';
 import 'package:ambutrack_web/core/widgets/tables/app_data_grid_v5.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/producto/producto_bloc.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/producto/producto_event.dart';
@@ -78,98 +79,18 @@ class _AlmacenDashboardViewState extends State<_AlmacenDashboardView>
     return SafeArea(
       child: Scaffold(
         backgroundColor: AppColors.backgroundLight,
-        body: Padding(
-          padding: const EdgeInsets.all(AppSizes.paddingLarge),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        body: GestionFrame(
+          toolbar: AlmacenHeader(tabController: _tabController),
+          filterBar: AlmacenCategoryTabs(controller: _tabController),
+          statusBar: const AlmacenStatusBar(),
+          contentPadding: const EdgeInsets.all(AppSizes.paddingMedium),
+          content: TabBarView(
+            controller: _tabController,
             children: <Widget>[
-              // Header del dashboard con estadísticas
-              AlmacenHeader(tabIndex: _tabController.index),
-              const SizedBox(height: AppSizes.spacing),
-
-              // Tabs de categorías
-              _buildCategoryTabs(),
-              const SizedBox(height: AppSizes.spacing),
-
-              // Contenido de cada tab
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: const <Widget>[
-                    _StockTabView(categoria: CategoriaProducto.medicacion),
-                    _StockTabView(categoria: CategoriaProducto.electromedicina),
-                    _StockTabView(categoria: CategoriaProducto.fungibles),
-                    _StockTabView(categoria: CategoriaProducto.gasesMedicinales),
-                    _StockTabView(categoria: CategoriaProducto.otros),
-                  ],
-                ),
-              ),
+              for (final CategoriaProducto c in almacenCategoriasTabs) _StockTabView(categoria: c),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  /// Construye las pestañas de categorías
-  Widget _buildCategoryTabs() {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.radius),
-        border: Border.all(color: AppColors.gray200),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        labelColor: AppColors.primary,
-        unselectedLabelColor: AppColors.textSecondaryLight,
-        indicatorColor: AppColors.primary,
-        indicatorWeight: 3,
-        tabs: <Widget>[
-          _buildTab(
-            icon: CategoriaProducto.medicacion.icon,
-            label: CategoriaProducto.medicacion.label,
-          ),
-          _buildTab(
-            icon: CategoriaProducto.electromedicina.icon,
-            label: CategoriaProducto.electromedicina.label,
-          ),
-          _buildTab(
-            icon: CategoriaProducto.fungibles.icon,
-            label: CategoriaProducto.fungibles.label,
-          ),
-          _buildTab(
-            icon: CategoriaProducto.gasesMedicinales.icon,
-            label: CategoriaProducto.gasesMedicinales.label,
-          ),
-          _buildTab(
-            icon: CategoriaProducto.otros.icon,
-            label: CategoriaProducto.otros.label,
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Construye un tab individual
-  Widget _buildTab({required String icon, required String label}) {
-    return Tab(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Text(
-            icon,
-            style: const TextStyle(fontSize: 24),
-          ),
-          const SizedBox(width: AppSizes.spacingSmall),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }

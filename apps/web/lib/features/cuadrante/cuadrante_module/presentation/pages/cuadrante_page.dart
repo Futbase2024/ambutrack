@@ -1,4 +1,5 @@
 import 'package:ambutrack_web/core/di/locator.dart';
+import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/bloc/cuadrante_bloc.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/bloc/cuadrante_event.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/widgets/cuadrante_view.dart';
@@ -23,7 +24,10 @@ class CuadrantePage extends StatelessWidget {
             create: (BuildContext context) => getIt<TurnosBloc>(),
           ),
         ],
-        child: const CuadranteView(),
+        child: const Scaffold(
+          backgroundColor: AppColors.backgroundLight,
+          body: CuadranteView(),
+        ),
       ),
     );
   }

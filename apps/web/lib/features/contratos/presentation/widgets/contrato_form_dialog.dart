@@ -1,10 +1,12 @@
+import 'dart:async';
+
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/utils/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
 import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/contratos/presentation/bloc/bloc.dart';
 import 'package:flutter/material.dart';
@@ -146,27 +148,27 @@ class _ContratoFormDialogState extends State<ContratoFormDialog> {
 
     return BlocListener<ContratoBloc, ContratoState>(
       listener: (BuildContext context, ContratoState state) {
-        if (_isSaving) {
-          if (state is ContratoLoaded) {
-            CrudOperationHandler.handleSuccess(
-              context: context,
-              isSaving: _isSaving,
-              isEditing: widget.contrato != null,
-              entityName: 'Contrato',
-              onComplete: () {
-                setState(() => _isSaving = false);
-              },
-            );
-          } else if (state is ContratoError) {
-            CrudOperationHandler.handleError(
-              context: context,
-              isSaving: _isSaving,
-              errorMessage: state.message,
-              onComplete: () {
-                setState(() => _isSaving = false);
-              },
-            );
-          }
+        if (!_isSaving) {
+          return;
+        }
+        void reset() => _isSaving = false;
+        if (state is ContratoOperationSuccess) {
+          CrudOperationHandler.handleSuccess(
+            context: context,
+            isSaving: true,
+            isEditing: widget.contrato != null,
+            entityName: 'Contrato',
+            onClose: reset,
+          );
+        } else if (state is ContratoError) {
+          CrudOperationHandler.handleError(
+            context: context,
+            isSaving: true,
+            isEditing: widget.contrato != null,
+            entityName: 'Contrato',
+            errorMessage: state.message,
+            onClose: reset,
+          );
         }
       },
       child: AppDialog(
@@ -450,10 +452,17 @@ class _ContratoFormDialogState extends State<ContratoFormDialog> {
 
     setState(() => _isSaving = true);
 
-    CrudOperationHandler.showLoadingOverlay(
-      context: context,
-      isEditing: widget.contrato != null,
-      entityName: 'Contrato',
+    final bool isEditing = widget.contrato != null;
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext _) => AppLoadingOverlay(
+          message: isEditing ? 'Actualizando contrato...' : 'Creando contrato...',
+          color: isEditing ? AppColors.secondary : AppColors.primary,
+          icon: isEditing ? Icons.edit : Icons.add_circle_outline,
+        ),
+      ),
     );
 
     if (widget.contrato == null) {

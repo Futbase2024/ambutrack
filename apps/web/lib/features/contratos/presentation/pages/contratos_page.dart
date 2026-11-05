@@ -1,16 +1,11 @@
-import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/headers/page_header.dart';
 import 'package:ambutrack_web/features/contratos/presentation/bloc/bloc.dart';
-import 'package:ambutrack_web/features/contratos/presentation/widgets/contrato_form_dialog.dart';
-import 'package:ambutrack_web/features/contratos/presentation/widgets/contrato_table_v4.dart';
-import 'package:ambutrack_web/features/contratos/presentation/widgets/contratos_filters.dart';
+import 'package:ambutrack_web/features/contratos/presentation/widgets/gestion/contratos_gestion_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Página principal de gestión de contratos
+/// Página de gestión de contratos (layout tipo programa de gestión)
 class ContratosPage extends StatelessWidget {
   const ContratosPage({super.key});
 
@@ -19,131 +14,10 @@ class ContratosPage extends StatelessWidget {
     return SafeArea(
       child: BlocProvider<ContratoBloc>.value(
         value: getIt<ContratoBloc>(),
-        child: const _ContratosView(),
-      ),
-    );
-  }
-}
-
-class _ContratosView extends StatefulWidget {
-  const _ContratosView();
-
-  @override
-  State<_ContratosView> createState() => _ContratosViewState();
-}
-
-class _ContratosViewState extends State<_ContratosView> {
-  ContratosFilterData _filterData = const ContratosFilterData();
-
-  @override
-  void initState() {
-    super.initState();
-    final ContratoBloc bloc = context.read<ContratoBloc>();
-    if (bloc.state is ContratoInitial) {
-      bloc.add(const ContratoLoadRequested());
-    }
-  }
-
-  void _onFilterChanged(ContratosFilterData filterData) {
-    setState(() {
-      _filterData = filterData;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSizes.paddingXl,
-          AppSizes.paddingXl,
-          AppSizes.paddingXl,
-          AppSizes.paddingLarge,
+        child: const Scaffold(
+          backgroundColor: AppColors.backgroundLight,
+          body: ContratosGestionView(),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            BlocBuilder<ContratoBloc, ContratoState>(
-              builder: (BuildContext context, ContratoState state) {
-                return PageHeader(
-                  config: PageHeaderConfig(
-                    icon: Icons.description,
-                    title: 'Gestión de Contratos',
-                    subtitle:
-                        'Gestiona los contratos con centros hospitalarios y servicios',
-                    addButtonLabel: 'Nuevo Contrato',
-                    stats: _buildHeaderStats(state),
-                    onAdd: _showCreateDialog,
-                    extra: ContratosFilters(
-                      onFilterChanged: _onFilterChanged,
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: AppSizes.spacing),
-
-            Expanded(
-              child: ContratoTableV4(filterData: _filterData),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Construye las estadísticas del header
-  List<HeaderStat> _buildHeaderStats(ContratoState state) {
-    String total = '-';
-    String activos = '-';
-    String vigentes = '-';
-
-    if (state is ContratoLoaded) {
-      total = state.contratos.length.toString();
-      activos = state.contratos
-          .where((ContratoEntity c) => c.activo)
-          .length
-          .toString();
-      vigentes = state.contratos
-          .where((ContratoEntity c) => c.esVigente)
-          .length
-          .toString();
-    } else if (state is ContratoOperationSuccess) {
-      total = state.contratos.length.toString();
-      activos = state.contratos
-          .where((ContratoEntity c) => c.activo)
-          .length
-          .toString();
-      vigentes = state.contratos
-          .where((ContratoEntity c) => c.esVigente)
-          .length
-          .toString();
-    }
-
-    return <HeaderStat>[
-      HeaderStat(
-        value: total,
-        icon: Icons.description,
-      ),
-      HeaderStat(
-        value: activos,
-        icon: Icons.check_circle,
-      ),
-      HeaderStat(
-        value: vigentes,
-        icon: Icons.event_available,
-      ),
-    ];
-  }
-
-  Future<void> _showCreateDialog() async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) => BlocProvider<ContratoBloc>.value(
-        value: context.read<ContratoBloc>(),
-        child: const ContratoFormDialog(),
       ),
     );
   }
