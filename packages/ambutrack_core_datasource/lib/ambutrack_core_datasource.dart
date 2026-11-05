@@ -432,6 +432,17 @@ export 'src/datasources/proveedores_taller/proveedores_taller_factory.dart'
 export 'src/datasources/proveedores_taller/implementations/supabase/supabase_proveedores_taller_datasource.dart';
 export 'src/datasources/proveedores_taller/models/proveedor_taller_supabase_model.dart';
 
+// ✅ TALLER - Órdenes de Reparación
+export 'src/datasources/ordenes_reparacion/entities/orden_reparacion_entity.dart';
+export 'src/datasources/ordenes_reparacion/entities/orden_reparacion_enums.dart';
+export 'src/datasources/ordenes_reparacion/entities/repuesto_orden_entity.dart';
+export 'src/datasources/ordenes_reparacion/ordenes_reparacion_contract.dart';
+export 'src/datasources/ordenes_reparacion/ordenes_reparacion_factory.dart'
+    show OrdenesReparacionDataSourceFactory;
+export 'src/datasources/ordenes_reparacion/implementations/supabase/supabase_ordenes_reparacion_datasource.dart';
+export 'src/datasources/ordenes_reparacion/models/orden_reparacion_supabase_model.dart';
+export 'src/datasources/ordenes_reparacion/models/repuesto_orden_supabase_model.dart';
+
 // Utils - Utilidades públicas
 export 'src/utils/exceptions/datasource_exception.dart';
 export 'src/utils/typedefs/datasource_typedefs.dart';

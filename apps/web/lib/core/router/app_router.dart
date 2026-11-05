@@ -52,6 +52,7 @@ import 'package:ambutrack_web/features/tablas/provincias/presentation/pages/prov
 import 'package:ambutrack_web/features/tablas/tipos_paciente/presentation/pages/tipos_paciente_page.dart';
 import 'package:ambutrack_web/features/tablas/tipos_traslado/presentation/pages/tipos_traslado_page.dart';
 import 'package:ambutrack_web/features/tablas/tipos_vehiculo/presentation/pages/tipos_vehiculo_page.dart';
+import 'package:ambutrack_web/features/taller/presentation/pages/ordenes_reparacion_page.dart';
 import 'package:ambutrack_web/features/taller/presentation/pages/proveedores_taller_page.dart';
 import 'package:ambutrack_web/features/taller/presentation/pages/talleres_page.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/pages/planificar_servicios_page.dart';
@@ -889,11 +890,7 @@ final GoRouter appRouter = GoRouter(
           name: 'taller_ordenes_reparacion',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Órdenes de Reparación',
-          subtitle: 'Gestión de reparaciones',
-          icon: Icons.build,
-        ),
+        child: const OrdenesReparacionPage(),
       ),
         ),
         // Historial de Reparaciones

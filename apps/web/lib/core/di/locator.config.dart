@@ -297,16 +297,24 @@ import 'package:ambutrack_web/features/tablas/tipos_vehiculo/domain/repositories
     as _i308;
 import 'package:ambutrack_web/features/tablas/tipos_vehiculo/presentation/bloc/tipo_vehiculo_bloc.dart'
     as _i402;
+import 'package:ambutrack_web/features/taller/data/repositories/orden_reparacion_repository_impl.dart'
+    as _i120;
 import 'package:ambutrack_web/features/taller/data/repositories/proveedor_taller_repository_impl.dart'
     as _i344;
 import 'package:ambutrack_web/features/taller/data/repositories/taller_repository_impl.dart'
     as _i806;
+import 'package:ambutrack_web/features/taller/domain/repositories/orden_reparacion_repository.dart'
+    as _i16;
 import 'package:ambutrack_web/features/taller/domain/repositories/proveedor_taller_repository.dart'
     as _i596;
 import 'package:ambutrack_web/features/taller/domain/repositories/taller_repository.dart'
     as _i384;
+import 'package:ambutrack_web/features/taller/presentation/bloc/orden_reparacion_bloc.dart'
+    as _i540;
 import 'package:ambutrack_web/features/taller/presentation/bloc/proveedor_taller_bloc.dart'
     as _i997;
+import 'package:ambutrack_web/features/taller/presentation/bloc/repuesto_orden_bloc.dart'
+    as _i561;
 import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart'
     as _i205;
 import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/rutas_bloc.dart'
@@ -456,6 +464,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i681.ServicioRecurrenteRepository>(
       () => _i820.ServicioRecurrenteRepositoryImpl(),
+    );
+    gh.lazySingleton<_i16.OrdenReparacionRepository>(
+      () => _i120.OrdenReparacionRepositoryImpl(),
     );
     gh.lazySingleton<_i321.StockVestuarioRepository>(
       () => _i541.StockVestuarioRepositoryImpl(),
@@ -717,6 +728,12 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i158.AgendaPendienteBloc(
         repository: gh<_i998.AgendaPendienteRepository>(),
       ),
+    );
+    gh.factory<_i540.OrdenReparacionBloc>(
+      () => _i540.OrdenReparacionBloc(gh<_i16.OrdenReparacionRepository>()),
+    );
+    gh.factory<_i561.RepuestoOrdenBloc>(
+      () => _i561.RepuestoOrdenBloc(gh<_i16.OrdenReparacionRepository>()),
     );
     gh.lazySingleton<_i750.RoleService>(
       () => _i750.RoleService(

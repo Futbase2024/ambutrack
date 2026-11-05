@@ -15,10 +15,12 @@ class TallerFormDialogShell extends StatelessWidget {
     required this.header,
     required this.fields,
     required this.actions,
+    this.maxWidth = 600,
     super.key,
   });
 
   final GlobalKey<FormState> formKey;
+  final double maxWidth;
   final Widget header;
   final Widget fields;
   final Widget actions;
@@ -31,7 +33,7 @@ class TallerFormDialogShell extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
         ),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+          constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: 700),
           child: Padding(
             padding: const EdgeInsets.all(AppSizes.paddingXl),
             child: Form(
