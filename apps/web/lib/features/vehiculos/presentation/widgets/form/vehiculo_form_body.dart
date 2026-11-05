@@ -93,10 +93,6 @@ class VehiculoFormBody extends StatelessWidget {
                     onChanged: (VehiculoEstado? v) => _set(() => data.estado = v ?? data.estado),
                   ),
                 ),
-                GestionFormRow(
-                  label: 'Conductor',
-                  child: GestionTextField(controller: data.conductor, hint: 'Nombre del conductor'),
-                ),
               ],
             ),
           ],
@@ -105,7 +101,6 @@ class VehiculoFormBody extends StatelessWidget {
         GestionFormColumns(
           children: <Widget>[
             GestionFormRow(label: 'Camillas', child: GestionIntField(controller: data.camillas)),
-            GestionFormRow(label: 'Sillas de ruedas', child: GestionIntField(controller: data.sillaRuedas)),
             GestionFormRow(label: 'Asientos pac.', child: GestionIntField(controller: data.sentados)),
           ],
         ),
@@ -169,14 +164,6 @@ class VehiculoFormBody extends StatelessWidget {
           label: 'Observaciones',
           multiline: true,
           child: GestionTextField(controller: data.observaciones, hint: 'Notas adicionales', maxLines: 3),
-        ),
-        GestionFormRow(
-          label: 'Activo',
-          child: GestionSwitchField(
-            value: data.activo,
-            text: 'Vehículo activo',
-            onChanged: (bool v) => _set(() => data.activo = v),
-          ),
         ),
       ],
     );

@@ -29,6 +29,8 @@ class GestionFormDialog extends StatelessWidget {
     this.isSaving = false,
     this.saveLabel,
     this.onCancel,
+    this.readOnly = false,
+    this.destructive = false,
     super.key,
   });
 
@@ -45,6 +47,12 @@ class GestionFormDialog extends StatelessWidget {
   final bool isEditing;
   final bool isSaving;
   final String? saveLabel;
+
+  /// Ficha de solo consulta: el pie muestra únicamente "Cerrar" (que ejecuta [onSave])
+  final bool readOnly;
+
+  /// Acción principal destructiva (botón en rojo, sin atajo Ctrl+Intro)
+  final bool destructive;
 
   void _cancel(BuildContext context) {
     if (isSaving) {
@@ -67,8 +75,8 @@ class GestionFormDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
-        const SingleActivator(LogicalKeyboardKey.enter, control: true): _save,
-        const SingleActivator(LogicalKeyboardKey.enter, meta: true): _save,
+        if (!destructive) const SingleActivator(LogicalKeyboardKey.enter, control: true): _save,
+        if (!destructive) const SingleActivator(LogicalKeyboardKey.enter, meta: true): _save,
         const SingleActivator(LogicalKeyboardKey.escape): () => _cancel(context),
       },
       child: Dialog(
@@ -99,10 +107,7 @@ class GestionFormDialog extends StatelessWidget {
                     child: Form(
                       key: formKey,
                       child: FocusTraversalGroup(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: children,
-                        ),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
                       ),
                     ),
                   ),
@@ -110,6 +115,8 @@ class GestionFormDialog extends StatelessWidget {
                 _Footer(
                   isEditing: isEditing,
                   isSaving: isSaving,
+                  readOnly: readOnly,
+                  destructive: destructive,
                   saveLabel: saveLabel,
                   onSave: _save,
                   onCancel: () => _cancel(context),
@@ -177,6 +184,8 @@ class _Footer extends StatelessWidget {
   const _Footer({
     required this.isEditing,
     required this.isSaving,
+    required this.readOnly,
+    required this.destructive,
     required this.onSave,
     required this.onCancel,
     this.saveLabel,
@@ -184,9 +193,21 @@ class _Footer extends StatelessWidget {
 
   final bool isEditing;
   final bool isSaving;
+  final bool readOnly;
+  final bool destructive;
   final String? saveLabel;
   final VoidCallback onSave;
   final VoidCallback onCancel;
+
+  IconData get _icon {
+    if (readOnly) {
+      return Icons.check;
+    }
+    if (destructive) {
+      return Icons.delete_outline;
+    }
+    return isEditing ? Icons.save_outlined : Icons.add;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -200,28 +221,40 @@ class _Footer extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          const Text.rich(
-            TextSpan(
-              children: <InlineSpan>[
-                TextSpan(text: '*', style: TextStyle(color: AppColors.error)),
-                TextSpan(text: ' Obligatorio     Ctrl+Intro guardar · Esc cancelar'),
-              ],
+          if (readOnly)
+            const Text('Esc cerrar', style: hint)
+          else
+            Text.rich(
+              TextSpan(
+                children: <InlineSpan>[
+                  const TextSpan(
+                    text: '*',
+                    style: TextStyle(color: AppColors.error),
+                  ),
+                  TextSpan(
+                    text: destructive
+                        ? ' Obligatorio     Esc cancelar'
+                        : ' Obligatorio     Ctrl+Intro guardar · Esc cancelar',
+                  ),
+                ],
+              ),
+              style: hint,
             ),
-            style: hint,
-          ),
           const Spacer(),
-          OutlinedButton(
-            onPressed: isSaving ? null : onCancel,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.gray700,
-              side: const BorderSide(color: AppColors.gray300),
-              minimumSize: const Size(96, 36),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-              textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          if (!readOnly) ...<Widget>[
+            OutlinedButton(
+              onPressed: isSaving ? null : onCancel,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.gray700,
+                side: const BorderSide(color: AppColors.gray300),
+                minimumSize: const Size(96, 36),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              child: const Text('Cancelar'),
             ),
-            child: const Text('Cancelar'),
-          ),
-          const SizedBox(width: 8),
+            const SizedBox(width: 8),
+          ],
           FilledButton.icon(
             onPressed: isSaving ? null : onSave,
             icon: isSaving
@@ -230,10 +263,17 @@ class _Footer extends StatelessWidget {
                     height: 14,
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
-                : Icon(isEditing ? Icons.save_outlined : Icons.add, size: 16),
-            label: Text(saveLabel ?? (isEditing ? 'Actualizar' : 'Guardar')),
+                : Icon(_icon, size: 16),
+            label: Text(
+              saveLabel ??
+                  (readOnly
+                      ? 'Cerrar'
+                      : isEditing
+                      ? 'Actualizar'
+                      : 'Guardar'),
+            ),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: destructive ? AppColors.error : AppColors.primary,
               minimumSize: const Size(112, 36),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
               textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),

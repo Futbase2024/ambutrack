@@ -19,13 +19,11 @@ class VehiculoFormData {
           text: original?.anioFabricacion.toString() ?? DateTime.now().year.toString(),
         ),
         numeroSerie = TextEditingController(text: original?.numeroBastidor ?? ''),
-        conductor = TextEditingController(),
         ubicacion = TextEditingController(text: original?.ubicacionActual ?? ''),
         kmActual = TextEditingController(
           text: original?.kmActual == null ? '0' : GestionFormParse.formatEntero(original!.kmActual),
         ),
         camillas = TextEditingController(text: original?.capacidadCamilla?.toString() ?? ''),
-        sillaRuedas = TextEditingController(),
         sentados = TextEditingController(text: original?.capacidadPasajeros?.toString() ?? ''),
         kmProxMantenimiento = TextEditingController(
           text: GestionFormParse.formatEntero(original?.kmProximoMantenimiento),
@@ -33,7 +31,6 @@ class VehiculoFormData {
         observaciones = TextEditingController(text: original?.observaciones ?? '');
 
   VehiculoEstado estado;
-  bool activo = true;
   DateTime? fechaAdquisicion;
   DateTime? fechaProximaItv;
   DateTime? fechaUltimoMantenimiento;
@@ -45,11 +42,9 @@ class VehiculoFormData {
   final TextEditingController modelo;
   final TextEditingController anio;
   final TextEditingController numeroSerie;
-  final TextEditingController conductor;
   final TextEditingController ubicacion;
   final TextEditingController kmActual;
   final TextEditingController camillas;
-  final TextEditingController sillaRuedas;
   final TextEditingController sentados;
   final TextEditingController kmProxMantenimiento;
   final TextEditingController observaciones;
@@ -71,11 +66,9 @@ class VehiculoFormData {
       modelo,
       anio,
       numeroSerie,
-      conductor,
       ubicacion,
       kmActual,
       camillas,
-      sillaRuedas,
       sentados,
       kmProxMantenimiento,
       observaciones,
