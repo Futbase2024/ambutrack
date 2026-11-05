@@ -19,6 +19,12 @@ import 'package:ambutrack_web/core/services/geocoding_service.dart' as _i1071;
 import 'package:ambutrack_web/core/services/pdf_ruta_service.dart' as _i30;
 import 'package:ambutrack_web/core/services/routing_service.dart' as _i1033;
 import 'package:ambutrack_web/core/services/ruta_service.dart' as _i686;
+import 'package:ambutrack_web/features/administracion/auditoria/data/repositories/audit_log_repository_impl.dart'
+    as _i955;
+import 'package:ambutrack_web/features/administracion/auditoria/domain/repositories/audit_log_repository.dart'
+    as _i157;
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/bloc/auditoria_bloc.dart'
+    as _i511;
 import 'package:ambutrack_web/features/administracion/multicentro/data/repositories/empresas_tenant_repository_impl.dart'
     as _i108;
 import 'package:ambutrack_web/features/administracion/multicentro/domain/repositories/empresas_tenant_repository.dart'
@@ -507,6 +513,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i571.VestuarioRepository>(
       () => _i321.VestuarioRepositoryImpl(),
+    );
+    gh.lazySingleton<_i157.AuditLogRepository>(
+      () => _i955.AuditLogRepositoryImpl(),
     );
     gh.lazySingleton<_i388.MenuRepository>(() => _i216.MenuRepositoryImpl());
     gh.lazySingleton<_i172.ExcepcionFestivoRepository>(
@@ -1019,6 +1028,13 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i223.CuadranteAsignacionRepository>(),
         gh<_i922.ContratoRepository>(),
         gh<_i731.StockRepository>(),
+      ),
+    );
+    gh.factory<_i511.AuditoriaBloc>(
+      () => _i511.AuditoriaBloc(
+        gh<_i157.AuditLogRepository>(),
+        gh<_i66.UsuariosRepository>(),
+        gh<_i750.RoleService>(),
       ),
     );
     return this;

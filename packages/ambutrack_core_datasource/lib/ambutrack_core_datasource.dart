@@ -459,6 +459,11 @@ export 'src/datasources/empresas_tenant/empresas_tenant_contract.dart';
 export 'src/datasources/empresas_tenant/empresas_tenant_factory.dart'
     show EmpresasTenantDataSourceFactory;
 
+// ✅ ADMINISTRACIÓN - Auditoría general (tabla `audit_log`, solo lectura)
+export 'src/datasources/audit_log/audit_log_contract.dart';
+export 'src/datasources/audit_log/audit_log_factory.dart' show AuditLogDataSourceFactory;
+export 'src/datasources/audit_log/entities/audit_log_entity.dart';
+
 // NO exportar implementaciones específicas (Firebase, REST)
 // NO exportar mixins internos
 // NO exportar barrels internos
