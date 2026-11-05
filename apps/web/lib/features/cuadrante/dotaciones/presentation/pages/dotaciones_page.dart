@@ -156,6 +156,7 @@ class _DotacionesViewState extends State<_DotacionesView> {
   Future<void> _showCreateDialog() async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) =>
           BlocProvider<DotacionesBloc>.value(
             value: context.read<DotacionesBloc>(),

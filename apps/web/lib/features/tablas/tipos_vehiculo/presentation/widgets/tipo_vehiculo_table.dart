@@ -212,6 +212,7 @@ class _TipoVehiculoTableState extends State<TipoVehiculoTable> {
   Future<void> _editTipo(BuildContext context, TipoVehiculoEntity tipo) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<TipoVehiculoBloc>.value(
         value: context.read<TipoVehiculoBloc>(),
         child: TipoVehiculoFormDialog(tipoVehiculo: tipo),

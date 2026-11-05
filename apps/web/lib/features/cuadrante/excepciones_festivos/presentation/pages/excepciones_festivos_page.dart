@@ -163,6 +163,7 @@ class _ExcepcionesFestivosViewState extends State<_ExcepcionesFestivosView> {
   Future<void> _showCreateDialog() async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) =>
           BlocProvider<ExcepcionesFestivosBloc>.value(
             value: context.read<ExcepcionesFestivosBloc>(),

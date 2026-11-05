@@ -155,6 +155,7 @@ class _LocalidadesViewState extends State<_LocalidadesView> {
   Future<void> _showCreateDialog(BuildContext context) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<LocalidadBloc>.value(
         value: context.read<LocalidadBloc>(),
         child: const LocalidadFormDialog(),

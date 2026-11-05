@@ -116,6 +116,7 @@ class _BasesViewState extends State<_BasesView> {
   Future<void> _showCreateDialog(BuildContext context) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<BasesBloc>.value(
         value: context.read<BasesBloc>(),
         child: const BaseFormDialog(),

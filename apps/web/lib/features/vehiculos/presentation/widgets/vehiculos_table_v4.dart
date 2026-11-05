@@ -138,6 +138,7 @@ class _VehiculosTableV4State extends State<VehiculosTableV4> {
   Future<void> _editVehiculo(BuildContext context, VehiculoEntity vehiculo) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return BlocProvider<VehiculosBloc>.value(
           value: context.read<VehiculosBloc>(),

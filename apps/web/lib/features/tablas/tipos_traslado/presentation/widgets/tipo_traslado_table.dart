@@ -213,6 +213,7 @@ class _TipoTrasladoTableState extends State<TipoTrasladoTable> {
   Future<void> _editTipo(BuildContext context, TipoTrasladoEntity tipo) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<TipoTrasladoBloc>.value(
         value: context.read<TipoTrasladoBloc>(),
         child: TipoTrasladoFormDialog(tipo: tipo),

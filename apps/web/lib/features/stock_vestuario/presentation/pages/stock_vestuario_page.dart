@@ -181,6 +181,7 @@ class _StockVestuarioViewState extends State<_StockVestuarioView> {
     if (mounted) {
       await showDialog<void>(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext dialogContext) {
           return BlocProvider<StockVestuarioBloc>.value(
             value: stockVestuarioBloc,

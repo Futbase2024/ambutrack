@@ -522,6 +522,7 @@ class _CuadranteHeaderState extends State<CuadranteHeader> {
   Future<void> _mostrarDialogoCopiarSemana(BuildContext context) async {
     final CopiarSemanaResult? resultado = await showDialog<CopiarSemanaResult>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return CopiarSemanaDialog(
           semanaActual: widget.state.primerDiaSemana,

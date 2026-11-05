@@ -226,6 +226,7 @@ class _ProvinciaTableState extends State<ProvinciaTable> {
   Future<void> _editProvincia(BuildContext context, ProvinciaEntity provincia) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<ProvinciaBloc>.value(
         value: context.read<ProvinciaBloc>(),
         child: ProvinciaFormDialog(provincia: provincia),

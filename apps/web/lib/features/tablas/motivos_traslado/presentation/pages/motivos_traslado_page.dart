@@ -136,6 +136,7 @@ class _MotivosTrasladoViewState extends State<_MotivosTrasladoView> {
   Future<void> _showCreateDialog(BuildContext context) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<MotivoTrasladoBloc>.value(
         value: context.read<MotivoTrasladoBloc>(),
         child: const MotivoTrasladoFormDialog(),

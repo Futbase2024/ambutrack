@@ -139,6 +139,7 @@ class _FacultativoViewState extends State<_FacultativoView> {
   Future<void> _showCreateDialog(BuildContext context) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<FacultativoBloc>.value(
         value: context.read<FacultativoBloc>(),
         child: const FacultativoFormDialog(),

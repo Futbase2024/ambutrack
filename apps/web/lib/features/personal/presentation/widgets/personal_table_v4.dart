@@ -491,6 +491,7 @@ class _PersonalTableV4State extends State<PersonalTableV4> {
   void _editPersonal(BuildContext context, PersonalEntity persona) {
     showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return BlocProvider<PersonalBloc>.value(
           value: context.read<PersonalBloc>(),

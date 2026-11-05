@@ -224,8 +224,8 @@ class _RolBadge extends StatelessWidget {
         return 'Sanitario';
       case 'jefe_personal':
         return 'Jefe de Personal';
-      case 'gestor_flota':
-        return 'Gestor de Flota';
+      case 'jefe_mantenimiento':
+        return 'Jefe de Mantenimiento';
       default:
         // Capitalizar primera letra y reemplazar guiones bajos por espacios
         return role.replaceAll('_', ' ').split(' ')

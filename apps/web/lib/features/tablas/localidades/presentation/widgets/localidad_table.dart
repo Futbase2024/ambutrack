@@ -220,6 +220,7 @@ class _LocalidadTableState extends State<LocalidadTable> {
   Future<void> _editLocalidad(BuildContext context, LocalidadEntity localidad) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<LocalidadBloc>.value(
         value: context.read<LocalidadBloc>(),
         child: LocalidadFormDialog(localidad: localidad),

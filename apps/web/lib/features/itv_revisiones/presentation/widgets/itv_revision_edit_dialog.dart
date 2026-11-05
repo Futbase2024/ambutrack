@@ -4,9 +4,12 @@ import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
 import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/dropdowns/app_searchable_dropdown.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/bloc/itv_revision_bloc.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/bloc/itv_revision_event.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/bloc/itv_revision_state.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -33,7 +36,7 @@ class _ItvRevisionEditDialogState extends State<ItvRevisionEditDialog> {
   late DateTime _fecha;
   late DateTime? _fechaVencimiento;
   late TextEditingController _kmVehiculoController;
-  late TextEditingController _tallerController;
+  TallerEntity? _tallerSeleccionado;
   late TextEditingController _numeroDocumentoController;
   late TextEditingController _costoTotalController;
   late TextEditingController _observacionesController;
@@ -58,9 +61,7 @@ class _ItvRevisionEditDialogState extends State<ItvRevisionEditDialog> {
     _kmVehiculoController = TextEditingController(
       text: widget.itvRevision.kmVehiculo.toString(),
     );
-    _tallerController = TextEditingController(
-      text: widget.itvRevision.taller ?? '',
-    );
+    // _tallerSeleccionado se resolverá cuando TallerBloc cargue los datos
     _numeroDocumentoController = TextEditingController(
       text: widget.itvRevision.numeroDocumento ?? '',
     );
@@ -75,7 +76,6 @@ class _ItvRevisionEditDialogState extends State<ItvRevisionEditDialog> {
   @override
   void dispose() {
     _kmVehiculoController.dispose();
-    _tallerController.dispose();
     _numeroDocumentoController.dispose();
     _costoTotalController.dispose();
     _observacionesController.dispose();
@@ -303,11 +303,7 @@ class _ItvRevisionEditDialogState extends State<ItvRevisionEditDialog> {
         Row(
           children: <Widget>[
             Expanded(
-              child: _buildTextField(
-                controller: _tallerController,
-                label: 'Taller',
-                hint: 'Nombre del taller',
-              ),
+              child: _buildTallerSelector(),
             ),
             const SizedBox(width: AppSizes.spacing),
             Expanded(
@@ -352,6 +348,50 @@ class _ItvRevisionEditDialogState extends State<ItvRevisionEditDialog> {
         fontWeight: FontWeight.bold,
         color: AppColors.secondary,
       ),
+    );
+  }
+
+  Widget _buildTallerSelector() {
+    return BlocBuilder<TallerBloc, TallerState>(
+      builder: (BuildContext context, TallerState state) {
+        final List<TallerEntity> talleres = state is TallerLoaded
+            ? state.talleres.where((TallerEntity t) => t.activo).toList()
+            : <TallerEntity>[];
+
+        // Pre-seleccionar taller si existe en la ITV
+        if (_tallerSeleccionado == null && widget.itvRevision.taller != null) {
+          final String tallerNombre = widget.itvRevision.taller!;
+          try {
+            _tallerSeleccionado = talleres.firstWhere(
+              (TallerEntity t) => t.nombre == tallerNombre,
+            );
+          } catch (_) {
+            // El taller guardado ya no existe en la tabla
+          }
+        }
+
+        return AppSearchableDropdown<TallerEntity>(
+          value: _tallerSeleccionado,
+          label: 'Taller',
+          hint: 'Selecciona un taller',
+          prefixIcon: Icons.store,
+          searchHint: 'Buscar por nombre...',
+          items: <AppSearchableDropdownItem<TallerEntity>>[
+            ...talleres.map(
+              (TallerEntity t) => AppSearchableDropdownItem<TallerEntity>(
+                value: t,
+                label: t.nombre,
+                icon: Icons.store,
+                iconColor: AppColors.secondary,
+              ),
+            ),
+          ],
+          onChanged: (TallerEntity? value) {
+            setState(() => _tallerSeleccionado = value);
+          },
+          displayStringForOption: (TallerEntity taller) => taller.nombre,
+        );
+      },
     );
   }
 
@@ -477,7 +517,7 @@ class _ItvRevisionEditDialogState extends State<ItvRevisionEditDialog> {
       resultado: _resultado,
       kmVehiculo: double.tryParse(_kmVehiculoController.text) ?? widget.itvRevision.kmVehiculo,
       fechaVencimiento: _fechaVencimiento,
-      taller: _tallerController.text.isEmpty ? null : _tallerController.text,
+      taller: _tallerSeleccionado?.nombre,
       numeroDocumento: _numeroDocumentoController.text.isEmpty ? null : _numeroDocumentoController.text,
       costoTotal: double.tryParse(_costoTotalController.text) ?? widget.itvRevision.costoTotal,
       observaciones: _observacionesController.text.isEmpty ? null : _observacionesController.text,

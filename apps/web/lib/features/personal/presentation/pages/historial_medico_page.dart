@@ -188,6 +188,7 @@ class _HistorialMedicoViewState extends State<_HistorialMedicoView> {
     if (mounted) {
       await showDialog<void>(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext dialogContext) {
           return BlocProvider<HistorialMedicoBloc>.value(
             value: historialBloc,

@@ -125,6 +125,7 @@ class _VehiculosViewState extends State<_VehiculosView> {
     try {
       await showDialog<void>(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext dialogContext) {
           return BlocProvider<VehiculosBloc>.value(
             value: context.read<VehiculosBloc>(),

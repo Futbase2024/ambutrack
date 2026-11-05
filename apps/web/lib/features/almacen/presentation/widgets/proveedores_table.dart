@@ -370,6 +370,7 @@ class _ProveedoresTableState extends State<ProveedoresTable> {
   Future<void> _editProveedor(BuildContext context, ProveedorEntity proveedor) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<ProveedoresBloc>.value(
         value: context.read<ProveedoresBloc>(),
         child: ProveedorFormDialog(proveedor: proveedor),

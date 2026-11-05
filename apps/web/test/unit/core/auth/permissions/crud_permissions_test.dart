@@ -180,8 +180,8 @@ void main() {
       });
     });
 
-    group('Gestor', () {
-      const UserRole role = UserRole.gestor;
+    group('Jefe de Mantenimiento', () {
+      const UserRole role = UserRole.jefeMantenimiento;
 
       test('NO tiene acceso a Personal', () {
         expect(CrudPermissions.canCreate(role, AppModule.personal), false);
@@ -190,8 +190,8 @@ void main() {
         expect(CrudPermissions.canDelete(role, AppModule.personal), false);
       });
 
-      test('puede leer y actualizar Vehículos', () {
-        expect(CrudPermissions.canCreate(role, AppModule.vehiculos), false);
+      test('puede crear, leer y actualizar Vehículos', () {
+        expect(CrudPermissions.canCreate(role, AppModule.vehiculos), true);
         expect(CrudPermissions.canRead(role, AppModule.vehiculos), true);
         expect(CrudPermissions.canUpdate(role, AppModule.vehiculos), true);
         expect(CrudPermissions.canDelete(role, AppModule.vehiculos), false);
@@ -285,9 +285,9 @@ void main() {
         expect(permissions.canDelete, false);
       });
 
-      test('retorna modelo sin permisos para Gestor en Personal', () {
+      test('retorna modelo sin permisos para Jefe de Mantenimiento en Personal', () {
         final CrudPermissionsModel permissions = CrudPermissions.getPermissions(
-          UserRole.gestor,
+          UserRole.jefeMantenimiento,
           AppModule.personal,
         );
 

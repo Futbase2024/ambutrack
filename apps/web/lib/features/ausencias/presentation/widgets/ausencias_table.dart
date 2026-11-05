@@ -117,6 +117,7 @@ class _AusenciasTableState extends State<AusenciasTable> {
   Future<void> _editAusencia(BuildContext context, AusenciaEntity ausencia) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return BlocProvider<AusenciasBloc>.value(
           value: context.read<AusenciasBloc>(),

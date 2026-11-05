@@ -4,9 +4,12 @@ import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
 import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/dropdowns/app_searchable_dropdown.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/bloc/mantenimiento_bloc.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/bloc/mantenimiento_event.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/bloc/mantenimiento_state.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -37,7 +40,7 @@ class _MantenimientoEditDialogState extends State<MantenimientoEditDialog> {
   late TextEditingController _kmVehiculoController;
   late TextEditingController _descripcionController;
   late TextEditingController _trabajosRealizadosController;
-  late TextEditingController _tallerController;
+  TallerEntity? _tallerSeleccionado;
   late TextEditingController _mecanicoController;
   late TextEditingController _numeroOrdenController;
   late TextEditingController _costoManoObraController;
@@ -74,9 +77,7 @@ class _MantenimientoEditDialogState extends State<MantenimientoEditDialog> {
     _trabajosRealizadosController = TextEditingController(
       text: widget.mantenimiento.trabajosRealizados ?? '',
     );
-    _tallerController = TextEditingController(
-      text: widget.mantenimiento.taller ?? '',
-    );
+    // _tallerSeleccionado se resolverá cuando TallerBloc cargue los datos
     _mecanicoController = TextEditingController(
       text: widget.mantenimiento.mecanicoResponsable ?? '',
     );
@@ -105,7 +106,6 @@ class _MantenimientoEditDialogState extends State<MantenimientoEditDialog> {
     _kmVehiculoController.dispose();
     _descripcionController.dispose();
     _trabajosRealizadosController.dispose();
-    _tallerController.dispose();
     _mecanicoController.dispose();
     _numeroOrdenController.dispose();
     _costoManoObraController.dispose();
@@ -296,10 +296,7 @@ class _MantenimientoEditDialogState extends State<MantenimientoEditDialog> {
         Row(
           children: <Widget>[
             Expanded(
-              child: _buildTextField(
-                label: 'Taller',
-                controller: _tallerController,
-              ),
+              child: _buildTallerSelector(),
             ),
             const SizedBox(width: AppSizes.spacing),
             Expanded(
@@ -437,6 +434,50 @@ class _MantenimientoEditDialogState extends State<MantenimientoEditDialog> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTallerSelector() {
+    return BlocBuilder<TallerBloc, TallerState>(
+      builder: (BuildContext context, TallerState state) {
+        final List<TallerEntity> talleres = state is TallerLoaded
+            ? state.talleres.where((TallerEntity t) => t.activo).toList()
+            : <TallerEntity>[];
+
+        // Pre-seleccionar taller si existe en el mantenimiento
+        if (_tallerSeleccionado == null && widget.mantenimiento.taller != null) {
+          final String tallerNombre = widget.mantenimiento.taller!;
+          try {
+            _tallerSeleccionado = talleres.firstWhere(
+              (TallerEntity t) => t.nombre == tallerNombre,
+            );
+          } catch (_) {
+            // El taller guardado ya no existe en la tabla, no pre-seleccionar
+          }
+        }
+
+        return AppSearchableDropdown<TallerEntity>(
+          value: _tallerSeleccionado,
+          label: 'Taller',
+          hint: 'Selecciona un taller',
+          prefixIcon: Icons.store,
+          searchHint: 'Buscar por nombre...',
+          items: <AppSearchableDropdownItem<TallerEntity>>[
+            ...talleres.map(
+              (TallerEntity t) => AppSearchableDropdownItem<TallerEntity>(
+                value: t,
+                label: t.nombre,
+                icon: Icons.store,
+                iconColor: AppColors.secondary,
+              ),
+            ),
+          ],
+          onChanged: (TallerEntity? value) {
+            setState(() => _tallerSeleccionado = value);
+          },
+          displayStringForOption: (TallerEntity taller) => taller.nombre,
+        );
+      },
     );
   }
 
@@ -590,7 +631,7 @@ class _MantenimientoEditDialogState extends State<MantenimientoEditDialog> {
       trabajosRealizados: _trabajosRealizadosController.text.isEmpty
           ? null
           : _trabajosRealizadosController.text,
-      taller: _tallerController.text.isEmpty ? null : _tallerController.text,
+      taller: _tallerSeleccionado?.nombre,
       mecanicoResponsable: _mecanicoController.text.isEmpty ? null : _mecanicoController.text,
       numeroOrden: _numeroOrdenController.text.isEmpty ? null : _numeroOrdenController.text,
       costoManoObra: _costoManoObraController.text.isEmpty

@@ -52,20 +52,13 @@ class _UsuarioFormDialogState extends State<UsuarioFormDialog> {
   bool _isSaving = false;
   bool _obscurePassword = true;
   bool _isLoadingEmpresas = false;
+  bool _isLoadingRoles = false;
 
   List<Map<String, dynamic>> _empresas = <Map<String, dynamic>>[];
+  List<Map<String, dynamic>> _roles = <Map<String, dynamic>>[];
 
   bool get _isEditing => widget.usuario != null;
 
-  // Roles disponibles
-  static const List<Map<String, String>> _roles = <Map<String, String>>[
-    <String, String>{'value': 'admin', 'label': 'Administrador'},
-    <String, String>{'value': 'coordinador', 'label': 'Coordinador'},
-    <String, String>{'value': 'conductor', 'label': 'Conductor'},
-    <String, String>{'value': 'sanitario', 'label': 'Sanitario'},
-    <String, String>{'value': 'jefe_personal', 'label': 'Jefe de Personal'},
-    <String, String>{'value': 'gestor_flota', 'label': 'Gestor de Flota'},
-  ];
 
   @override
   void initState() {
@@ -90,6 +83,7 @@ class _UsuarioFormDialogState extends State<UsuarioFormDialog> {
     _selectedEmpresaId = user?.empresaId;
     _activo = user?.activo ?? true;
 
+    _loadRoles();
     _loadEmpresas();
   }
 
@@ -130,6 +124,27 @@ class _UsuarioFormDialogState extends State<UsuarioFormDialog> {
     } catch (e) {
       debugPrint('❌ Error al cargar empresas: $e');
       setState(() => _isLoadingEmpresas = false);
+    }
+  }
+
+  /// Carga los roles desde la tabla 'roles' de Supabase
+  Future<void> _loadRoles() async {
+    setState(() => _isLoadingRoles = true);
+
+    try {
+      final SupabaseClient supabase = Supabase.instance.client;
+      final List<dynamic> response = await supabase
+          .from('roles')
+          .select('id, nombre, descripcion')
+          .order('nombre');
+
+      setState(() {
+        _roles = response.cast<Map<String, dynamic>>();
+        _isLoadingRoles = false;
+      });
+    } catch (e) {
+      debugPrint('❌ Error al cargar roles: $e');
+      setState(() => _isLoadingRoles = false);
     }
   }
 
@@ -468,21 +483,48 @@ class _UsuarioFormDialogState extends State<UsuarioFormDialog> {
   }
 
   Widget _buildRolDropdown() {
+    if (_isLoadingRoles) {
+      return TextFormField(
+        enabled: false,
+        decoration: InputDecoration(
+          labelText: 'Rol *',
+          hintText: 'Cargando roles...',
+          prefixIcon: const Icon(Icons.admin_panel_settings, color: AppColors.gray400),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+          ),
+          filled: true,
+          fillColor: AppColors.gray50,
+        ),
+      );
+    }
+
     return AppDropdown<String>(
       value: _selectedRol,
       label: 'Rol *',
       hint: 'Seleccionar rol',
       prefixIcon: Icons.admin_panel_settings,
       items: _roles
-          .map((Map<String, String> rol) => AppDropdownItem<String>(
-                value: rol['value']!,
-                label: rol['label']!,
+          .map((Map<String, dynamic> rol) => AppDropdownItem<String>(
+                value: rol['nombre'] as String,
+                label: _formatRolLabel(rol['nombre'] as String),
               ))
           .toList(),
       onChanged: (String? value) {
         setState(() => _selectedRol = value);
       },
     );
+  }
+
+  /// Formatea el nombre del rol para mostrar en el dropdown
+  /// Ej: 'jefe_personal' → 'Jefe Personal'
+  static String _formatRolLabel(String rolName) {
+    return rolName
+        .split('_')
+        .map((String word) => word.isNotEmpty
+            ? '${word[0].toUpperCase()}${word.substring(1)}'
+            : word)
+        .join(' ');
   }
 
   Widget _buildEmpresaDropdown() {

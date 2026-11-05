@@ -515,6 +515,7 @@ class _AsignacionesTableState extends State<AsignacionesTable> {
   Future<void> _editAsignacion(BuildContext context, AsignacionVehiculoTurnoEntity asignacion) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return BlocProvider<AsignacionesBloc>.value(
           value: context.read<AsignacionesBloc>(),

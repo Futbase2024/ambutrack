@@ -9,6 +9,8 @@ import 'package:ambutrack_web/features/itv_revisiones/presentation/bloc/itv_revi
 import 'package:ambutrack_web/features/itv_revisiones/presentation/widgets/itv_revision_form_dialog.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/widgets/itv_revisiones_filters.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/widgets/itv_revisiones_table_v4.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_event.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_event.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +30,9 @@ class ItvRevisionesPage extends StatelessWidget {
           ),
           BlocProvider<ItvRevisionBloc>(
             create: (BuildContext context) => getIt<ItvRevisionBloc>()..add(const ItvRevisionLoadRequested()),
+          ),
+          BlocProvider<TallerBloc>(
+            create: (BuildContext context) => getIt<TallerBloc>()..add(const TallerLoadRequested()),
           ),
         ],
         child: const _ItvRevisionesView(),
@@ -94,6 +99,7 @@ class _ItvRevisionesViewState extends State<_ItvRevisionesView> {
     try {
       await showDialog<void>(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext dialogContext) {
           return MultiBlocProvider(
             providers: <BlocProvider<dynamic>>[
@@ -102,6 +108,9 @@ class _ItvRevisionesViewState extends State<_ItvRevisionesView> {
               ),
               BlocProvider<ItvRevisionBloc>.value(
                 value: context.read<ItvRevisionBloc>(),
+              ),
+              BlocProvider<TallerBloc>.value(
+                value: context.read<TallerBloc>(),
               ),
             ],
             child: const ItvRevisionFormDialog(),

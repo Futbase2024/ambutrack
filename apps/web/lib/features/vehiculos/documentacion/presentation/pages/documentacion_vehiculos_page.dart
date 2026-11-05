@@ -38,7 +38,7 @@ class _DocumentacionVehiculosPageState extends State<DocumentacionVehiculosPage>
       ),
     );
 
-    if (!mounted || result == null) {
+    if (!context.mounted || result == null) {
       return;
     }
 
@@ -81,7 +81,7 @@ class _DocumentacionVehiculosPageState extends State<DocumentacionVehiculosPage>
       icon: Icons.delete_outline,
     );
 
-    if (confirmed == true && mounted) {
+    if (confirmed == true && context.mounted) {
       context.read<DocumentacionVehiculosBloc>().add(
         DocumentacionVehiculoDeleteRequested(documento.id),
       );

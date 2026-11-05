@@ -411,7 +411,7 @@ class ConsumoCombustibleBloc
 
   @override
   Future<void> close() async {
-    _streamSubscription?.cancel();
+    await _streamSubscription?.cancel();
     await super.close();
   }
 }

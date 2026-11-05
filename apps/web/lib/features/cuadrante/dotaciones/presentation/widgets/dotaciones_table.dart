@@ -254,6 +254,7 @@ class _DotacionesTableState extends State<DotacionesTable> {
   ) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return BlocProvider<DotacionesBloc>.value(
           value: context.read<DotacionesBloc>(),

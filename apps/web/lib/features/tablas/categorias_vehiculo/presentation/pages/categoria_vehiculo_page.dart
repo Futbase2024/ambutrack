@@ -139,6 +139,7 @@ class _CategoriasVehiculoViewState extends State<_CategoriasVehiculoView> {
   Future<void> _showCreateDialog(BuildContext context) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<CategoriaVehiculoBloc>.value(
         value: context.read<CategoriaVehiculoBloc>(),
         child: const CategoriaVehiculoFormDialog(),

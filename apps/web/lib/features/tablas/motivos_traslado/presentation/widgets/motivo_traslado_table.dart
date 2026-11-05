@@ -213,6 +213,7 @@ class _MotivoTrasladoTableState extends State<MotivoTrasladoTable> {
   Future<void> _editMotivo(BuildContext context, MotivoTrasladoEntity motivo) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<MotivoTrasladoBloc>.value(
         value: context.read<MotivoTrasladoBloc>(),
         child: MotivoTrasladoFormDialog(motivo: motivo),

@@ -181,6 +181,7 @@ class _EquipamientoViewState extends State<_EquipamientoView> {
     if (mounted) {
       await showDialog<void>(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext dialogContext) {
           return BlocProvider<EquipamientoPersonalBloc>.value(
             value: equipamientoBloc,

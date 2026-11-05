@@ -201,6 +201,7 @@ class _VestuarioViewState extends State<_VestuarioView> {
     if (mounted) {
       await showDialog<void>(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext dialogContext) {
           return MultiBlocProvider(
             providers: <BlocProvider<dynamic>>[

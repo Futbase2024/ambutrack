@@ -277,11 +277,12 @@ class RolePermissions {
       AppModule.misAusencias,
     ],
 
-    // ===== GESTOR DE FLOTA =====
-    // Gestión de flota + taller
-    UserRole.gestor: <AppModule>[
+    // ===== GESTOR DE FLOTA / JEFE DE MANTENIMIENTO =====
+    // Gestión de flota, taller, almacén, vehículos, informes flota
+    UserRole.jefeMantenimiento: <AppModule>[
       AppModule.dashboard,
       AppModule.miPerfil,
+      // Vehículos
       AppModule.vehiculos,
       AppModule.mantenimiento,
       AppModule.itv,
@@ -297,6 +298,24 @@ class RolePermissions {
       AppModule.controlRepuestos,
       AppModule.alertasMantenimiento,
       AppModule.proveedores,
+      // Almacén
+      AppModule.almacenDashboard,
+      AppModule.almacenMovimientos,
+      AppModule.almacenProveedores,
+      AppModule.almacenProductos,
+      // Tablas (referencia)
+      AppModule.centrosHospitalarios,
+      AppModule.motivosTraslado,
+      AppModule.tiposTraslado,
+      AppModule.motivosCancelacion,
+      AppModule.localidades,
+      AppModule.provincias,
+      AppModule.tiposVehiculo,
+      AppModule.facultativos,
+      AppModule.tiposPaciente,
+      AppModule.protocolos,
+      AppModule.categoriasVehiculos,
+      AppModule.especialidades,
     ],
 
     // ===== TÉCNICO =====
@@ -320,47 +339,6 @@ class RolePermissions {
       AppModule.almacenMovimientos,
       AppModule.almacenProveedores,
       AppModule.almacenProductos,
-    ],
-
-    // ===== JEFE DE TALLER =====
-    // Gestión de mantenimiento, taller, almacén, vehículos, informes flota
-    UserRole.jefeTaller: <AppModule>[
-      AppModule.dashboard,
-      AppModule.miPerfil,
-      // Vehículos
-      AppModule.vehiculos,
-      AppModule.mantenimiento,
-      AppModule.itv,
-      AppModule.documentacionVehiculos,
-      AppModule.consumoKm,
-      AppModule.historialAverias,
-      AppModule.stockEquipamiento,
-      // Taller (completo)
-      AppModule.ordenesReparacion,
-      AppModule.historialReparaciones,
-      AppModule.controlRepuestos,
-      AppModule.alertasMantenimiento,
-      AppModule.proveedores,
-      // Almacén (completo)
-      AppModule.almacenDashboard,
-      AppModule.almacenMovimientos,
-      AppModule.almacenProveedores,
-      AppModule.almacenProductos,
-      // Informes (flota)
-      AppModule.estadisticasFlota,
-      // Tablas (referencia)
-      AppModule.centrosHospitalarios,
-      AppModule.motivosTraslado,
-      AppModule.tiposTraslado,
-      AppModule.motivosCancelacion,
-      AppModule.localidades,
-      AppModule.provincias,
-      AppModule.tiposVehiculo,
-      AppModule.facultativos,
-      AppModule.tiposPaciente,
-      AppModule.protocolos,
-      AppModule.categoriasVehiculos,
-      AppModule.especialidades,
     ],
 
     // ===== OPERADOR =====

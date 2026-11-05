@@ -8,6 +8,8 @@ import 'package:ambutrack_web/features/mantenimiento/presentation/bloc/mantenimi
 import 'package:ambutrack_web/features/mantenimiento/presentation/widgets/mantenimiento_form_dialog.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/widgets/mantenimiento_table_v4.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/widgets/mantenimientos_filters.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_event.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_event.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_state.dart';
@@ -28,6 +30,9 @@ class MantenimientoPreventivoPageV2 extends StatelessWidget {
           ),
           BlocProvider<MantenimientoBloc>(
             create: (BuildContext context) => getIt<MantenimientoBloc>()..add(const MantenimientoLoadRequested()),
+          ),
+          BlocProvider<TallerBloc>(
+            create: (BuildContext context) => getIt<TallerBloc>()..add(const TallerLoadRequested()),
           ),
         ],
         child: const _MantenimientoPreventivoView(),
@@ -121,6 +126,7 @@ class _MantenimientoPreventivoViewState extends State<_MantenimientoPreventivoVi
     try {
       await showDialog<void>(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext dialogContext) {
           return MultiBlocProvider(
             providers: <BlocProvider<dynamic>>[
@@ -129,6 +135,9 @@ class _MantenimientoPreventivoViewState extends State<_MantenimientoPreventivoVi
               ),
               BlocProvider<MantenimientoBloc>.value(
                 value: context.read<MantenimientoBloc>(),
+              ),
+              BlocProvider<TallerBloc>.value(
+                value: context.read<TallerBloc>(),
               ),
             ],
             child: const MantenimientoFormDialog(),

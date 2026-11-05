@@ -261,7 +261,9 @@ class _StockEquipamientoTableState extends State<StockEquipamientoTable> {
     List<VehiculoStockResumenEntity> vehiculos,
   ) {
     final String query = widget.searchQuery.toLowerCase();
-    if (query.isEmpty) return vehiculos;
+    if (query.isEmpty) {
+      return vehiculos;
+    }
     return vehiculos.where((VehiculoStockResumenEntity v) {
       return v.matricula.toLowerCase().contains(query) ||
           v.marca.toLowerCase().contains(query) ||

@@ -140,6 +140,7 @@ class _ContratosViewState extends State<_ContratosView> {
   Future<void> _showCreateDialog() async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<ContratoBloc>.value(
         value: context.read<ContratoBloc>(),
         child: const ContratoFormDialog(),

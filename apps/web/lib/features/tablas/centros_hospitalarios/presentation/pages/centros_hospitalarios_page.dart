@@ -244,6 +244,7 @@ class _CentrosHospitalariosViewState extends State<_CentrosHospitalariosView> {
   Future<void> _showCreateDialog(BuildContext context) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) =>
           BlocProvider<CentroHospitalarioBloc>.value(
         value: context.read<CentroHospitalarioBloc>(),

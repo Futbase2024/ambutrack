@@ -264,6 +264,7 @@ class _AsignacionesTableStyledState extends State<AsignacionesTableStyled> {
   ) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) =>
           BlocProvider<AsignacionesBloc>.value(
             value: context.read<AsignacionesBloc>(),

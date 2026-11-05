@@ -12,6 +12,8 @@ import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/bloc/mantenimiento_bloc.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/bloc/mantenimiento_event.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/bloc/mantenimiento_state.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_state.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_state.dart';
 import 'package:flutter/material.dart';
@@ -36,6 +38,7 @@ class _MantenimientoFormDialogState extends State<MantenimientoFormDialog> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   VehiculoEntity? _vehiculoSeleccionado;
+  TallerEntity? _tallerSeleccionado;
   DateTime _fecha = DateTime.now();
   DateTime? _fechaProgramada;
   late TextEditingController _kmVehiculoController;
@@ -123,6 +126,8 @@ class _MantenimientoFormDialogState extends State<MantenimientoFormDialog> {
               _buildVehiculoSelector(),
               const SizedBox(height: AppSizes.spacing),
               _buildTipoMantenimiento(),
+              const SizedBox(height: AppSizes.spacing),
+              _buildTallerSelector(),
               const SizedBox(height: AppSizes.spacing),
               _buildFechas(),
               const SizedBox(height: AppSizes.spacing),
@@ -260,6 +265,75 @@ class _MantenimientoFormDialogState extends State<MantenimientoFormDialog> {
         if (value != null) {
           setState(() => _tipoMantenimiento = value);
         }
+      },
+    );
+  }
+
+  Widget _buildTallerSelector() {
+    return BlocBuilder<TallerBloc, TallerState>(
+      builder: (BuildContext context, TallerState state) {
+        if (state is TallerLoading) {
+          return Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.paddingLarge,
+              vertical: AppSizes.paddingXl,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.primarySurface,
+              borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: <Widget>[
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  ),
+                ),
+                const SizedBox(width: AppSizes.paddingLarge),
+                Text(
+                  'Cargando talleres...',
+                  style: GoogleFonts.inter(
+                    fontSize: AppSizes.fontMedium,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final List<TallerEntity> talleres = state is TallerLoaded
+            ? state.talleres.where((TallerEntity t) => t.activo).toList()
+            : <TallerEntity>[];
+
+        return AppSearchableDropdown<TallerEntity>(
+          value: _tallerSeleccionado,
+          label: 'Taller',
+          hint: 'Selecciona un taller',
+          prefixIcon: Icons.store,
+          searchHint: 'Buscar por nombre o especialidad...',
+          items: <AppSearchableDropdownItem<TallerEntity>>[
+            ...talleres.map(
+              (TallerEntity t) => AppSearchableDropdownItem<TallerEntity>(
+                value: t,
+                label: t.nombre,
+                icon: Icons.store,
+                iconColor: AppColors.secondary,
+              ),
+            ),
+          ],
+          onChanged: (TallerEntity? value) {
+            setState(() => _tallerSeleccionado = value);
+          },
+          displayStringForOption: (TallerEntity taller) => taller.nombre,
+        );
       },
     );
   }
@@ -556,6 +630,7 @@ class _MantenimientoFormDialogState extends State<MantenimientoFormDialog> {
         kmVehiculo: double.parse(_kmVehiculoController.text.trim()),
         tipoMantenimiento: _tipoMantenimiento,
         descripcion: _descripcionController.text.trim(),
+        taller: _tallerSeleccionado?.nombre,
         costoTotal: double.parse(_costoTotalController.text.trim()),
         estado: EstadoMantenimiento.programado,
         fechaProgramada: _fechaProgramada,

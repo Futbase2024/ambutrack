@@ -32,7 +32,7 @@ class CentroHospitalarioTable extends StatefulWidget {
   final List<CentroHospitalarioEntity> centros;
   final int? sortColumnIndex;
   final bool sortAscending;
-  final void Function(int columnIndex, bool ascending) onSort;
+  final DataColumnSortCallback onSort;
   final int currentPage;
   final int totalPages;
   final int totalItems;
@@ -133,6 +133,7 @@ class _CentroHospitalarioTableState extends State<CentroHospitalarioTable> {
   Future<void> _editCentro(CentroHospitalarioEntity centro) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<CentroHospitalarioBloc>.value(
         value: context.read<CentroHospitalarioBloc>(),
         child: CentroHospitalarioFormDialog(centro: centro),
@@ -154,7 +155,7 @@ class _CentroHospitalarioTableState extends State<CentroHospitalarioTable> {
       },
     );
 
-    if (confirmed == true && context.mounted) {
+    if (confirmed == true && mounted) {
       debugPrint('Eliminando centro: ${centro.nombre} (${centro.id})');
 
       BuildContext? loadingContext;
@@ -185,7 +186,7 @@ class _CentroHospitalarioTableState extends State<CentroHospitalarioTable> {
         ),
       );
 
-      if (context.mounted) {
+      if (mounted) {
         context.read<CentroHospitalarioBloc>().add(CentroHospitalarioDeleteRequested(centro.id));
       }
     }
@@ -271,8 +272,8 @@ class CentroHospitalarioFilterBar extends StatelessWidget {
                     value: statusFilter.isEmpty ? null : statusFilter,
                     hint: Text('Estado', style: GoogleFonts.inter(fontSize: 13, color: AppColors.gray500)),
                     items: const <DropdownMenuItem<String>>[
-                      DropdownMenuItem(value: 'activo', child: Text('Activos')),
-                      DropdownMenuItem(value: 'inactivo', child: Text('Inactivos')),
+                      DropdownMenuItem<String>(value: 'activo', child: Text('Activos')),
+                      DropdownMenuItem<String>(value: 'inactivo', child: Text('Inactivos')),
                     ],
                     onChanged: (String? value) => onStatusChanged(value ?? ''),
                     borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
@@ -330,7 +331,7 @@ class _DataTable extends StatelessWidget {
   final List<CentroHospitalarioEntity> centros;
   final int? sortColumnIndex;
   final bool sortAscending;
-  final void Function(int columnIndex, bool ascending) onSort;
+  final DataColumnSortCallback onSort;
   final void Function(CentroHospitalarioEntity) onEdit;
   final void Function(CentroHospitalarioEntity) onDelete;
 

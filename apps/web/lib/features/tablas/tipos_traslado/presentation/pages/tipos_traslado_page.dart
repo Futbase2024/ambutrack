@@ -137,6 +137,7 @@ class _TiposTrasladoViewState extends State<_TiposTrasladoView> {
   Future<void> _showCreateDialog(BuildContext context) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<TipoTrasladoBloc>.value(
         value: context.read<TipoTrasladoBloc>(),
         child: const TipoTrasladoFormDialog(),

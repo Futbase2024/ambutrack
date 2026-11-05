@@ -12,6 +12,8 @@ import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/bloc/itv_revision_bloc.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/bloc/itv_revision_event.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/bloc/itv_revision_state.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_state.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_state.dart';
 import 'package:flutter/material.dart';
@@ -40,7 +42,7 @@ class _ItvRevisionFormDialogState extends State<ItvRevisionFormDialog> {
   final EstadoItvRevision _estado = EstadoItvRevision.pendiente;
   late TextEditingController _kmVehiculoController;
   late TextEditingController _observacionesController;
-  late TextEditingController _tallerController;
+  TallerEntity? _tallerSeleccionado;
   late TextEditingController _numeroDocumentoController;
   late TextEditingController _costoTotalController;
   bool _isSaving = false;
@@ -50,7 +52,6 @@ class _ItvRevisionFormDialogState extends State<ItvRevisionFormDialog> {
     super.initState();
     _kmVehiculoController = TextEditingController();
     _observacionesController = TextEditingController();
-    _tallerController = TextEditingController();
     _numeroDocumentoController = TextEditingController();
     _costoTotalController = TextEditingController(text: '0.00');
   }
@@ -59,7 +60,6 @@ class _ItvRevisionFormDialogState extends State<ItvRevisionFormDialog> {
   void dispose() {
     _kmVehiculoController.dispose();
     _observacionesController.dispose();
-    _tallerController.dispose();
     _numeroDocumentoController.dispose();
     _costoTotalController.dispose();
     super.dispose();
@@ -358,10 +358,7 @@ class _ItvRevisionFormDialogState extends State<ItvRevisionFormDialog> {
     return Row(
       children: <Widget>[
         Expanded(
-          child: TextFormField(
-            controller: _tallerController,
-            decoration: const InputDecoration(labelText: 'Taller', prefixIcon: Icon(Icons.garage, size: 18)),
-          ),
+          child: _buildTallerSelector(),
         ),
         const SizedBox(width: AppSizes.spacing),
         Expanded(
@@ -371,6 +368,38 @@ class _ItvRevisionFormDialogState extends State<ItvRevisionFormDialog> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTallerSelector() {
+    return BlocBuilder<TallerBloc, TallerState>(
+      builder: (BuildContext context, TallerState state) {
+        final List<TallerEntity> talleres = state is TallerLoaded
+            ? state.talleres.where((TallerEntity t) => t.activo).toList()
+            : <TallerEntity>[];
+
+        return AppSearchableDropdown<TallerEntity>(
+          value: _tallerSeleccionado,
+          label: 'Taller',
+          hint: 'Selecciona un taller',
+          prefixIcon: Icons.store,
+          searchHint: 'Buscar por nombre...',
+          items: <AppSearchableDropdownItem<TallerEntity>>[
+            ...talleres.map(
+              (TallerEntity t) => AppSearchableDropdownItem<TallerEntity>(
+                value: t,
+                label: t.nombre,
+                icon: Icons.store,
+                iconColor: AppColors.secondary,
+              ),
+            ),
+          ],
+          onChanged: (TallerEntity? value) {
+            setState(() => _tallerSeleccionado = value);
+          },
+          displayStringForOption: (TallerEntity taller) => taller.nombre,
+        );
+      },
     );
   }
 
@@ -441,7 +470,7 @@ class _ItvRevisionFormDialogState extends State<ItvRevisionFormDialog> {
         kmVehiculo: double.parse(_kmVehiculoController.text.trim()),
         fechaVencimiento: _fechaVencimiento,
         observaciones: _observacionesController.text.trim().isEmpty ? null : _observacionesController.text.trim(),
-        taller: _tallerController.text.trim().isEmpty ? null : _tallerController.text.trim(),
+        taller: _tallerSeleccionado?.nombre,
         numeroDocumento: _numeroDocumentoController.text.trim().isEmpty ? null : _numeroDocumentoController.text.trim(),
         costoTotal: double.parse(_costoTotalController.text.trim()),
         estado: _estado,

@@ -166,6 +166,7 @@ class _AusenciasViewState extends State<_AusenciasView> {
     if (mounted) {
       await showDialog<void>(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext dialogContext) {
           return BlocProvider<AusenciasBloc>.value(
             value: ausenciasBloc,

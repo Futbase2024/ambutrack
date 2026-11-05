@@ -122,9 +122,9 @@ class CrudPermissions {
       AppModule.servicios: false,
     },
 
-    UserRole.gestor: <AppModule, bool>{
+    UserRole.jefeMantenimiento: <AppModule, bool>{
       AppModule.personal: false,
-      AppModule.vehiculos: false, // Solo actualiza
+      AppModule.vehiculos: true,
       AppModule.servicios: false,
     },
 
@@ -137,12 +137,6 @@ class CrudPermissions {
     UserRole.operador: <AppModule, bool>{
       AppModule.personal: false,
       AppModule.vehiculos: false,
-      AppModule.servicios: false,
-    },
-
-    UserRole.jefeTaller: <AppModule, bool>{
-      AppModule.personal: false,
-      AppModule.vehiculos: true,
       AppModule.servicios: false,
     },
   };
@@ -202,7 +196,7 @@ class CrudPermissions {
       AppModule.usuariosRoles: false,
     },
 
-    UserRole.gestor: <AppModule, bool>{
+    UserRole.jefeMantenimiento: <AppModule, bool>{
       AppModule.personal: false,
       AppModule.vehiculos: true,
       AppModule.servicios: false,
@@ -220,13 +214,6 @@ class CrudPermissions {
       AppModule.personal: true,
       AppModule.vehiculos: true,
       AppModule.servicios: true,
-      AppModule.usuariosRoles: false,
-    },
-
-    UserRole.jefeTaller: <AppModule, bool>{
-      AppModule.personal: true, // Solo lectura
-      AppModule.vehiculos: true,
-      AppModule.servicios: true, // Solo lectura
       AppModule.usuariosRoles: false,
     },
   };
@@ -286,7 +273,7 @@ class CrudPermissions {
       AppModule.usuariosRoles: false,
     },
 
-    UserRole.gestor: <AppModule, bool>{
+    UserRole.jefeMantenimiento: <AppModule, bool>{
       AppModule.personal: false,
       AppModule.vehiculos: true, // Estado/mantenimiento
       AppModule.servicios: false,
@@ -303,13 +290,6 @@ class CrudPermissions {
     UserRole.operador: <AppModule, bool>{
       AppModule.personal: false,
       AppModule.vehiculos: false,
-      AppModule.servicios: false,
-      AppModule.usuariosRoles: false,
-    },
-
-    UserRole.jefeTaller: <AppModule, bool>{
-      AppModule.personal: false,
-      AppModule.vehiculos: true,
       AppModule.servicios: false,
       AppModule.usuariosRoles: false,
     },
@@ -347,9 +327,8 @@ class CrudPermissions {
     UserRole.administrativo: <AppModule, bool>{},
     UserRole.conductor: <AppModule, bool>{},
     UserRole.sanitario: <AppModule, bool>{},
-    UserRole.gestor: <AppModule, bool>{},
+    UserRole.jefeMantenimiento: <AppModule, bool>{},
     UserRole.tecnico: <AppModule, bool>{},
-    UserRole.jefeTaller: <AppModule, bool>{},
     UserRole.operador: <AppModule, bool>{},
   };
 }

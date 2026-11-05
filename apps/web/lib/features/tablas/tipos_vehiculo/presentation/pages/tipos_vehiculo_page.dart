@@ -146,6 +146,7 @@ class _TiposVehiculoViewState extends State<_TiposVehiculoView> {
   void _showCreateDialog(BuildContext context) {
     showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<TipoVehiculoBloc>.value(
         value: context.read<TipoVehiculoBloc>(),
         child: const TipoVehiculoFormDialog(),

@@ -172,6 +172,7 @@ class _BasesTableState extends State<BasesTable> {
   Future<void> _editBase(BuildContext context, BaseCentroEntity base) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<BasesBloc>.value(
         value: context.read<BasesBloc>(), child: BaseFormDialog(base: base),
       ),

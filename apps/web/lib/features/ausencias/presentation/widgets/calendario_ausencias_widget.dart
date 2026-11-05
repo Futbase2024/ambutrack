@@ -516,6 +516,7 @@ class _CalendarioAusenciasWidgetState
 
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return BlocProvider<AusenciasBloc>.value(
           value: context.read<AusenciasBloc>(),

@@ -480,6 +480,7 @@ class _VestuarioTableState extends State<VestuarioTable> {
 
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return MultiBlocProvider(
           providers: <BlocProvider<dynamic>>[

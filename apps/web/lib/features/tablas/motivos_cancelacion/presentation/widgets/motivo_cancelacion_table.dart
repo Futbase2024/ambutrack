@@ -213,6 +213,7 @@ class _MotivoCancelacionTableState extends State<MotivoCancelacionTable> {
   Future<void> _editMotivo(BuildContext context, MotivoCancelacionEntity motivo) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<MotivoCancelacionBloc>.value(
         value: context.read<MotivoCancelacionBloc>(),
         child: MotivoCancelacionFormDialog(motivo: motivo),

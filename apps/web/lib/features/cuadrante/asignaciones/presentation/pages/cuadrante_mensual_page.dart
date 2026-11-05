@@ -96,6 +96,7 @@ class _CuadranteMensualViewState extends State<_CuadranteMensualView> {
   Future<void> _onCrearAsignacion(DateTime fecha) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return BlocProvider<CuadranteAsignacionesBloc>.value(
           value: context.read<CuadranteAsignacionesBloc>(),
@@ -113,6 +114,7 @@ class _CuadranteMensualViewState extends State<_CuadranteMensualView> {
   Future<void> _onEditarAsignacion(CuadranteAsignacionEntity asignacion) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return BlocProvider<CuadranteAsignacionesBloc>.value(
           value: context.read<CuadranteAsignacionesBloc>(),

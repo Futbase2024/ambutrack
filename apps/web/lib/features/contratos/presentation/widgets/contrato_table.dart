@@ -429,6 +429,7 @@ class _ContratoTableState extends State<ContratoTable> {
   Future<void> _editContrato(BuildContext context, ContratoEntity contrato) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<ContratoBloc>.value(
         value: context.read<ContratoBloc>(),
         child: ContratoFormDialog(contrato: contrato),

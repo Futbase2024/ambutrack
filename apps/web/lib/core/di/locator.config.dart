@@ -862,18 +862,25 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i750.RoleService>(),
       ),
     );
+    gh.factory<_i79.ServiciosBloc>(
+      () => _i79.ServiciosBloc(
+        gh<_i450.ServicioRepository>(),
+        gh<_i750.RoleService>(),
+      ),
+    );
     gh.factory<_i848.HomeBloc>(
       () => _i848.HomeBloc(
         gh<_i321.NetworkInfo>(),
         gh<_i145.VehiculoRepository>(),
         gh<_i660.TrasladoRepository>(),
         gh<_i23.MantenimientoRepository>(),
-      ),
-    );
-    gh.factory<_i79.ServiciosBloc>(
-      () => _i79.ServiciosBloc(
-        gh<_i450.ServicioRepository>(),
         gh<_i750.RoleService>(),
+        gh<_i27.IncidenciaRepository>(),
+        gh<_i836.ItvRevisionRepository>(),
+        gh<_i829.AusenciaRepository>(),
+        gh<_i223.CuadranteAsignacionRepository>(),
+        gh<_i922.ContratoRepository>(),
+        gh<_i731.StockRepository>(),
       ),
     );
     return this;

@@ -212,6 +212,7 @@ class _TipoPacienteTableState extends State<TipoPacienteTable> {
   Future<void> _editTipo(BuildContext context, TipoPacienteEntity tipo) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<TipoPacienteBloc>.value(
         value: context.read<TipoPacienteBloc>(),
         child: TipoPacienteFormDialog(tipoPaciente: tipo),

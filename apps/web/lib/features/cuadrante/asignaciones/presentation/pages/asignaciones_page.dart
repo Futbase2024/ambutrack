@@ -192,6 +192,7 @@ class _AsignacionesViewState extends State<_AsignacionesView> {
   Future<void> _showCreateDialog() async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) =>
           BlocProvider<AsignacionesBloc>.value(
             value: context.read<AsignacionesBloc>(),

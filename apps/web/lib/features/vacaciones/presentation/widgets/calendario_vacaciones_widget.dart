@@ -514,6 +514,7 @@ class _CalendarioVacacionesWidgetState
 
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return BlocProvider<VacacionesBloc>.value(
           value: context.read<VacacionesBloc>(),

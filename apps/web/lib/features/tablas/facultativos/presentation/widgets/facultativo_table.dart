@@ -219,6 +219,7 @@ class _FacultativoTableState extends State<FacultativoTable> {
   Future<void> _editFacultativo(BuildContext context, FacultativoEntity facultativo) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<FacultativoBloc>.value(
         value: context.read<FacultativoBloc>(),
         child: FacultativoFormDialog(facultativo: facultativo),

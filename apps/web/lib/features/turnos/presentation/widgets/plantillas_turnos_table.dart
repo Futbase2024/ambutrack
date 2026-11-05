@@ -383,6 +383,7 @@ class _PlantillasTurnosTableState extends State<PlantillasTurnosTable> {
   Future<void> _crearPlantilla(BuildContext context) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return PlantillaTurnoFormDialog(
           onSave: (PlantillaTurnoEntity plantilla) {
@@ -402,6 +403,7 @@ class _PlantillasTurnosTableState extends State<PlantillasTurnosTable> {
   ) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return PlantillaTurnoFormDialog(
           plantilla: plantilla,

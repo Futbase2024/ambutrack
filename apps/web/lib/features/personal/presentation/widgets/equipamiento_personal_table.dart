@@ -318,6 +318,7 @@ class _EquipamientoPersonalTableState extends State<EquipamientoPersonalTable> {
   void _showEditDialog(BuildContext context, EquipamientoPersonalEntity item) {
     showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return BlocProvider<EquipamientoPersonalBloc>.value(
           value: context.read<EquipamientoPersonalBloc>(),

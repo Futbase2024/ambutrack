@@ -212,6 +212,7 @@ class _EspecialidadTableState extends State<EspecialidadTable> {
   Future<void> _editEspecialidad(BuildContext context, EspecialidadEntity especialidad) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<EspecialidadBloc>.value(
         value: context.read<EspecialidadBloc>(),
         child: EspecialidadFormDialog(especialidad: especialidad),

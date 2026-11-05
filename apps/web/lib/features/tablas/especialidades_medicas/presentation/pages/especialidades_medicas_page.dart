@@ -139,6 +139,7 @@ class _EspecialidadesMedicasViewState extends State<_EspecialidadesMedicasView> 
   Future<void> _showCreateDialog(BuildContext context) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<EspecialidadBloc>.value(
         value: context.read<EspecialidadBloc>(),
         child: const EspecialidadFormDialog(),

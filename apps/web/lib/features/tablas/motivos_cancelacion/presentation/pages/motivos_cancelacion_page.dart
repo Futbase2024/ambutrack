@@ -137,6 +137,7 @@ class _MotivosCancelacionViewState extends State<_MotivosCancelacionView> {
   Future<void> _showCreateDialog(BuildContext context) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<MotivoCancelacionBloc>.value(
         value: context.read<MotivoCancelacionBloc>(),
         child: const MotivoCancelacionFormDialog(),

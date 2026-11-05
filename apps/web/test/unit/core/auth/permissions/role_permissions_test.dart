@@ -20,9 +20,10 @@ void main() {
       });
 
       test('Dashboard NO permite acceso a rutas administrativas', () {
+        // Conductor tiene Dashboard pero ningún módulo de administración
         expect(
           RolePermissions.hasAccessToRoute(
-            UserRole.jefePersonal,
+            UserRole.conductor,
             '/administracion/usuarios-roles',
           ),
           isFalse,
@@ -41,7 +42,7 @@ void main() {
 
         for (final String route in prohibitedRoutes) {
           expect(
-            RolePermissions.hasAccessToRoute(UserRole.jefePersonal, route),
+            RolePermissions.hasAccessToRoute(UserRole.conductor, route),
             isFalse,
             reason: 'Dashboard no debe permitir acceso a $route',
           );
@@ -115,30 +116,40 @@ void main() {
         }
       });
 
-      test('Jefe Personal NO tiene acceso a rutas de administración', () {
-        final List<String> prohibitedRoutes = <String>[
+      test('Jefe Personal tiene acceso a administración de usuarios', () {
+        final List<String> allowedRoutes = <String>[
           '/administracion/usuarios-roles',
           '/administracion/configuracion-general',
           '/administracion/auditorias-logs',
           '/administracion/permisos-acceso',
         ];
 
-        for (final String route in prohibitedRoutes) {
+        for (final String route in allowedRoutes) {
           expect(
             RolePermissions.hasAccessToRoute(UserRole.jefePersonal, route),
-            isFalse,
-            reason: 'Jefe Personal NO debe tener acceso a $route',
+            isTrue,
+            reason: 'Jefe Personal debe tener acceso a $route',
           );
         }
       });
 
-      test('Jefe de Tráfico NO tiene acceso a usuarios-roles', () {
+      test('Jefe Personal NO tiene acceso a contratos', () {
+        expect(
+          RolePermissions.hasAccessToRoute(
+            UserRole.jefePersonal,
+            '/administracion/contratos',
+          ),
+          isFalse,
+        );
+      });
+
+      test('Jefe de Tráfico tiene acceso a usuarios-roles', () {
         expect(
           RolePermissions.hasAccessToRoute(
             UserRole.jefeTrafic,
             '/administracion/usuarios-roles',
           ),
-          isFalse,
+          isTrue,
         );
       });
     });
@@ -258,28 +269,45 @@ void main() {
           // Este es el bug que se descubrió: Dashboard (/) permitía acceso a TODO
           // porque todas las rutas empiezan con /
 
-          expect(
-            RolePermissions.hasAccessToRoute(
-              UserRole.jefePersonal,
-              '/administracion/usuarios-roles',
-            ),
-            isFalse,
-            reason: 'Este era el bug crítico: Dashboard permitía bypass de permisos',
-          );
+          // Se usa un rol con Dashboard pero sin módulos de administración
+          for (final UserRole role in <UserRole>[UserRole.conductor, UserRole.sanitario]) {
+            expect(
+              RolePermissions.hasAccessToRoute(
+                role,
+                '/administracion/usuarios-roles',
+              ),
+              isFalse,
+              reason: 'Este era el bug crítico: Dashboard permitía bypass de permisos',
+            );
+          }
         },
       );
+
+      test('Jefes y coordinador SÍ pueden gestionar usuarios', () {
+        final List<UserRole> rolesWithUserManagement = <UserRole>[
+          UserRole.admin,
+          UserRole.jefePersonal,
+          UserRole.jefeTrafic,
+          UserRole.coordinador,
+        ];
+
+        for (final UserRole role in rolesWithUserManagement) {
+          expect(
+            RolePermissions.hasAccessToRoute(role, '/administracion/usuarios-roles'),
+            isTrue,
+            reason: '$role debe poder gestionar usuarios',
+          );
+        }
+      });
 
       test(
         'CRÍTICO: Usuarios sin privilegios no pueden acceder a gestión de usuarios',
         () {
           final List<UserRole> rolesWithoutUserManagement = <UserRole>[
-            UserRole.jefePersonal,
-            UserRole.jefeTrafic,
-            UserRole.coordinador,
             UserRole.administrativo,
             UserRole.conductor,
             UserRole.sanitario,
-            UserRole.gestor,
+            UserRole.jefeMantenimiento,
             UserRole.tecnico,
             UserRole.operador,
           ];

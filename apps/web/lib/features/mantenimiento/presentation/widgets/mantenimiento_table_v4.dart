@@ -15,6 +15,7 @@ import 'package:ambutrack_web/features/mantenimiento/presentation/bloc/mantenimi
 import 'package:ambutrack_web/features/mantenimiento/presentation/widgets/mantenimiento_edit_dialog.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/widgets/mantenimiento_view_dialog.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/widgets/mantenimientos_filters.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_state.dart';
 import 'package:flutter/material.dart';
@@ -90,9 +91,17 @@ class _MantenimientoTableV4State extends State<MantenimientoTableV4> {
   Future<void> _editMantenimiento(BuildContext context, MantenimientoEntity mantenimiento) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
-        return BlocProvider<MantenimientoBloc>.value(
-          value: context.read<MantenimientoBloc>(),
+        return MultiBlocProvider(
+          providers: <BlocProvider<dynamic>>[
+            BlocProvider<MantenimientoBloc>.value(
+              value: context.read<MantenimientoBloc>(),
+            ),
+            BlocProvider<TallerBloc>.value(
+              value: context.read<TallerBloc>(),
+            ),
+          ],
           child: MantenimientoEditDialog(mantenimiento: mantenimiento),
         );
       },

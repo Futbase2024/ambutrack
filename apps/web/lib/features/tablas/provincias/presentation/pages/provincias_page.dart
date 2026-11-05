@@ -155,6 +155,7 @@ class _ProvinciasViewState extends State<_ProvinciasView> {
   Future<void> _showCreateDialog(BuildContext context) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<ProvinciaBloc>.value(
         value: context.read<ProvinciaBloc>(),
         child: const ProvinciaFormDialog(),

@@ -139,6 +139,7 @@ class _TiposPacienteViewState extends State<_TiposPacienteView> {
   Future<void> _showCreateDialog(BuildContext context) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) => BlocProvider<TipoPacienteBloc>.value(
         value: context.read<TipoPacienteBloc>(),
         child: const TipoPacienteFormDialog(),

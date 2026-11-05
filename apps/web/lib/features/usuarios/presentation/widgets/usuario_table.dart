@@ -521,7 +521,7 @@ class _UsuarioTableState extends State<UsuarioTable> {
         return AppColors.success;
       case 'jefe_personal':
         return AppColors.secondary;
-      case 'gestor_flota':
+      case 'jefe_mantenimiento':
         return AppColors.warning;
       default:
         return AppColors.textSecondaryLight;
@@ -540,8 +540,8 @@ class _UsuarioTableState extends State<UsuarioTable> {
         return 'Sanitario';
       case 'jefe_personal':
         return 'Jefe de Personal';
-      case 'gestor_flota':
-        return 'Gestor de Flota';
+      case 'jefe_mantenimiento':
+        return 'Jefe de Mantenimiento';
       default:
         return rol.replaceAll('_', ' ').split(' ').map((String word) {
           return word.isEmpty ? '' : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';

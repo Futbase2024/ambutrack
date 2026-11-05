@@ -256,6 +256,7 @@ class _ExcepcionesFestivosTableState extends State<ExcepcionesFestivosTable> {
   void _editItem(BuildContext context, ExcepcionFestivoEntity item) {
     showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) =>
           BlocProvider<ExcepcionesFestivosBloc>.value(
             value: context.read<ExcepcionesFestivosBloc>(),

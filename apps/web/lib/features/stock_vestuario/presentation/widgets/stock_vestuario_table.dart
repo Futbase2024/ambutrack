@@ -356,6 +356,7 @@ class _StockVestuarioTableState extends State<StockVestuarioTable> {
 
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return BlocProvider<StockVestuarioBloc>.value(
           value: stockVestuarioBloc,

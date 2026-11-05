@@ -133,6 +133,7 @@ class _VacacionesViewState extends State<_VacacionesView> {
     debugPrint('=== Botón Agregar Vacación presionado ===');
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return BlocProvider<VacacionesBloc>.value(
           value: context.read<VacacionesBloc>(),

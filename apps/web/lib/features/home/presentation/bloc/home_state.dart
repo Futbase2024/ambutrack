@@ -44,6 +44,17 @@ class HomeLoaded extends HomeState {
     required this.mantenimientosEnProceso,
     required this.mantenimientosCompletados,
     required this.mantenimientosProximosOVencidos,
+    // ─── Campos opcionales por rol (defaults = 0, sin breaking changes) ───
+    this.incidenciasAbiertas = 0,
+    this.ausenciasPendientes = 0,
+    this.turnosHoy = 0,
+    this.contratosVigentes = 0,
+    this.itvProximasVencer = 0,
+    this.ordenesAbiertas = 0,
+    this.stockBajo = 0,
+    this.misTurnosHoy = 0,
+    this.misServiciosHoy = 0,
+    this.misAusenciasActivas = 0,
   });
 
   final bool isConnected;
@@ -77,6 +88,25 @@ class HomeLoaded extends HomeState {
   final int mantenimientosCompletados;
   final List<MantenimientoEntity> mantenimientosProximosOVencidos;
 
+  // ─── Datos por rol (cargados bajo demanda) ──────────────────────
+  // Incidencias / RRHH
+  final int incidenciasAbiertas;
+  final int ausenciasPendientes;
+  final int turnosHoy;
+
+  // Administración
+  final int contratosVigentes;
+
+  // Taller / Mantenimiento
+  final int itvProximasVencer;
+  final int ordenesAbiertas;
+  final int stockBajo;
+
+  // Self-service (conductor / sanitario)
+  final int misTurnosHoy;
+  final int misServiciosHoy;
+  final int misAusenciasActivas;
+
   @override
   List<Object?> get props => <Object?>[
         isConnected,
@@ -101,6 +131,16 @@ class HomeLoaded extends HomeState {
         mantenimientosEnProceso,
         mantenimientosCompletados,
         mantenimientosProximosOVencidos,
+        incidenciasAbiertas,
+        ausenciasPendientes,
+        turnosHoy,
+        contratosVigentes,
+        itvProximasVencer,
+        ordenesAbiertas,
+        stockBajo,
+        misTurnosHoy,
+        misServiciosHoy,
+        misAusenciasActivas,
       ];
 }
 

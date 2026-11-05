@@ -15,6 +15,7 @@ import 'package:ambutrack_web/features/itv_revisiones/presentation/bloc/itv_revi
 import 'package:ambutrack_web/features/itv_revisiones/presentation/widgets/itv_revision_edit_dialog.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/widgets/itv_revision_view_dialog.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/widgets/itv_revisiones_filters.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_state.dart';
 import 'package:flutter/material.dart';
@@ -97,9 +98,17 @@ class _ItvRevisionesTableV4State extends State<ItvRevisionesTableV4> {
   Future<void> _editItvRevision(BuildContext context, ItvRevisionEntity itvRevision) async {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
-        return BlocProvider<ItvRevisionBloc>.value(
-          value: context.read<ItvRevisionBloc>(),
+        return MultiBlocProvider(
+          providers: <BlocProvider<dynamic>>[
+            BlocProvider<ItvRevisionBloc>.value(
+              value: context.read<ItvRevisionBloc>(),
+            ),
+            BlocProvider<TallerBloc>.value(
+              value: context.read<TallerBloc>(),
+            ),
+          ],
           child: ItvRevisionEditDialog(itvRevision: itvRevision),
         );
       },

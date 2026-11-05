@@ -41,11 +41,34 @@ class UsuariosRepositoryImpl implements UsuariosRepository {
     debugPrint('📦 UsuariosRepository: Creando usuario ${usuario.email}');
 
     try {
-      // 1. Crear en auth.users usando AuthService
+      // Extraer nombre y apellidos del displayName
+      String? nombre;
+      String? apellidos;
+      if (usuario.displayName != null && usuario.displayName!.isNotEmpty) {
+        final List<String> parts = usuario.displayName!.trim().split(' ');
+        if (parts.length >= 2) {
+          nombre = parts.first;
+          apellidos = parts.sublist(1).join(' ');
+        } else {
+          nombre = usuario.displayName;
+        }
+      }
+
+      // ⚠️ Guardar sesión del admin ANTES de signUp
+      // signUp() cambia la sesión activa al nuevo usuario
+      final Session? adminSession = _supabase.auth.currentSession;
+      final String? adminRefreshToken = adminSession?.refreshToken;
+      debugPrint('  → Sesión del admin guardada');
+
+      // 1. Crear en auth.users con metadata (nombre, apellidos, dni)
       debugPrint('  → Paso 1: Creando en auth.users');
-      final AuthResult<AuthResponse> authResult = await _authService.signUpWithEmailAndPassword(
+      final AuthResult<AuthResponse> authResult =
+          await _authService.signUpWithMetadata(
         email: usuario.email,
         password: password,
+        nombre: nombre,
+        apellidos: apellidos,
+        dni: usuario.dni,
       );
 
       if (authResult.isFailure) {
@@ -56,8 +79,31 @@ class UsuariosRepositoryImpl implements UsuariosRepository {
       final String authUserId = authResult.data!.user!.id;
       debugPrint('  ✅ Usuario creado en auth.users con ID: $authUserId');
 
-      // 2. Crear en tabla usuarios con el ID generado por auth.users
-      debugPrint('  → Paso 2: Creando en tabla usuarios');
+      // 2. Restaurar sesión del admin INMEDIATAMENTE
+      if (adminRefreshToken != null) {
+        debugPrint('  → Restaurando sesión del admin...');
+        await _supabase.auth.setSession(adminRefreshToken);
+        debugPrint('  ✅ Sesión del admin restaurada');
+      }
+
+      // 3. Auto-confirmar email del usuario creado
+      debugPrint('  → Paso 2: Auto-confirmando email del usuario');
+      try {
+        await _supabase.rpc<bool>(
+          'auto_confirm_user',
+          params: <String, dynamic>{'user_id': authUserId},
+        );
+        debugPrint('  ✅ Email confirmado automáticamente');
+      } catch (e) {
+        debugPrint('  ⚠️ No se pudo auto-confirmar email: $e');
+        // No bloqueamos la creación por esto
+      }
+
+      // 4. Actualizar en tabla usuarios
+      // El trigger on_auth_user_created ya insertó una fila básica con
+      // los datos del metadata que pasamos a signUp.
+      // Hacemos un UPDATE con todos los datos completos (rol, empresa, etc.)
+      debugPrint('  → Paso 2: Actualizando en tabla usuarios con datos completos');
       final UserEntity usuarioCompleto = UserEntity(
         id: authUserId,
         email: usuario.email,
@@ -76,12 +122,25 @@ class UsuariosRepositoryImpl implements UsuariosRepository {
         },
       );
 
-      final UserEntity usuarioCreado = await _dataSource.create(usuarioCompleto);
+      final UserEntity usuarioCreado = await _dataSource.update(usuarioCompleto);
       debugPrint('✅ UsuariosRepository: Usuario creado completamente');
 
       return usuarioCreado;
     } catch (e) {
       debugPrint('❌ UsuariosRepository: Error al crear usuario - $e');
+
+      // Intentar restaurar sesión del admin en caso de error
+      try {
+        final Session? adminSession = _supabase.auth.currentSession;
+        if (adminSession == null) {
+          debugPrint('  ⚠️ Intentando restaurar sesión del admin tras error...');
+          // Intentar refrescar sesión para recuperar
+          await _supabase.auth.refreshSession();
+        }
+      } catch (_) {
+        // No propagar error de restauración
+      }
+
       rethrow;
     }
   }
