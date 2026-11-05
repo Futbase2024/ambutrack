@@ -2,10 +2,7 @@ import 'dart:async';
 
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/producto/producto_bloc.dart';
@@ -13,12 +10,12 @@ import 'package:ambutrack_web/features/almacen/presentation/bloc/producto/produc
 import 'package:ambutrack_web/features/almacen/presentation/bloc/stock/stock_bloc.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/stock/stock_event.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/stock/stock_state.dart';
+import 'package:ambutrack_web/features/almacen/presentation/widgets/form/almacen_cantidad_stepper.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_event.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Diálogo para transferir stock entre almacenes o vehículos
 class StockTransferenciaFormDialog extends StatefulWidget {
@@ -138,18 +135,12 @@ class _StockTransferenciaFormDialogState extends State<StockTransferenciaFormDia
 
   /// Guardar transferencia
   Future<void> _onSave() async {
-    if (!_formKey.currentState!.validate()) {
+    if (_isLoading || !_formKey.currentState!.validate()) {
       return;
     }
 
-    // Validación: Vehículo seleccionado
+    // El vehículo destino se valida en su propio campo
     if (_vehiculoSeleccionado == null) {
-      await CrudOperationHandler.handleWarning(
-        context: context,
-        title: 'Campo Requerido',
-        message: 'Debes seleccionar el vehículo de destino.',
-        details: 'Selecciona un vehículo activo de la lista',
-      );
       return;
     }
 
@@ -222,271 +213,113 @@ class _StockTransferenciaFormDialogState extends State<StockTransferenciaFormDia
           );
         }
       },
-      child: AppDialog(
-        title: 'Transferir Stock',
-        content: _isLoading
-          ? const Center(
-              child: AppLoadingIndicator(
-                message: 'Cargando datos...',
-                size: 100,
-              ),
-            )
-          : Form(
-              key: _formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    // === SECCIÓN: INFORMACIÓN DEL PRODUCTO ===
-                    if (_producto != null) ...<Widget>[
-                      _buildProductoInfo(),
-                      const SizedBox(height: AppSizes.spacing),
-                      const Divider(),
-                      const SizedBox(height: AppSizes.spacing),
-                    ],
-
-                    // === SECCIÓN: CANTIDAD A TRANSFERIR ===
-                    _buildSectionTitle('Cantidad a Transferir'),
-                    const SizedBox(height: AppSizes.spacing),
-                    _buildCantidadSection(),
-                    const SizedBox(height: AppSizes.spacing),
-                    const Divider(),
-                    const SizedBox(height: AppSizes.spacing),
-
-                    // === SECCIÓN: VEHÍCULO DESTINO ===
-                    _buildSectionTitle('Vehículo de Destino'),
-                    const SizedBox(height: AppSizes.spacing),
-
-                    // Vehículo destino
-                    Text(
-                      'Vehículo *',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimaryLight,
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.spacingSmall),
-                    AppDropdown<String>(
-                      value: _vehiculoSeleccionado,
-                      hint: 'Selecciona el vehículo',
-                      prefixIcon: Icons.local_shipping,
-                      items: _vehiculosDisponibles
-                          .map(
-                            (String vehiculo) => AppDropdownItem<String>(
-                              value: vehiculo,
-                              label: vehiculo,
-                              icon: Icons.directions_car,
-                              iconColor: AppColors.secondary,
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (String? value) {
-                        setState(() {
-                          _vehiculoSeleccionado = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: AppSizes.spacing),
-                    const Divider(),
-                    const SizedBox(height: AppSizes.spacing),
-
-                    // === SECCIÓN: MOTIVO ===
-                    _buildSectionTitle('Motivo de la Transferencia'),
-                    const SizedBox(height: AppSizes.spacing),
-                    TextFormField(
-                      controller: _motivoController,
-                      maxLines: 3,
-                      textInputAction: TextInputAction.newline,
-                      decoration: InputDecoration(
-                        labelText: 'Motivo *',
-                        hintText: 'Describe el motivo de la transferencia',
-                        prefixIcon: const Icon(Icons.description, size: 20),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                        ),
-                      ),
-                      validator: (String? value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'El motivo es obligatorio';
-                        }
-                        return null;
-                        },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        actions: <Widget>[
-          AppButton(
-            onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-            label: 'Cancelar',
-            variant: AppButtonVariant.text,
-          ),
-          AppButton(
-            onPressed: _isSaving ? null : _onSave,
-            label: 'Transferir',
-            icon: Icons.send,
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Info del producto
-  Widget _buildProductoInfo() {
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      decoration: BoxDecoration(
-        color: AppColors.info.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(color: AppColors.info.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: GestionFormDialog(
+        title: 'Transferir stock',
+        subtitle: _producto?.nombre,
+        icon: Icons.local_shipping_outlined,
+        size: GestionFormSize.small,
+        formKey: _formKey,
+        isSaving: _isSaving,
+        saveLabel: 'Transferir',
+        onSave: _onSave,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Icon(
-                (_producto?.categoria?.icon ?? '') == '💊'
-                    ? Icons.medication
-                    : (_producto?.categoria?.icon ?? '') == '⚡'
-                        ? Icons.electrical_services
-                        : Icons.medical_services,
-                color: AppColors.info,
-                size: 24,
-              ),
-              const SizedBox(width: AppSizes.spacingSmall),
-              Expanded(
-                child: Text(
-                  _producto!.nombre,
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimaryLight,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSizes.spacingSmall),
-          Text(
-            'Categoría: ${_producto?.categoria?.label ?? '-'}',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: AppColors.textSecondaryLight,
-            ),
-          ),
-          Text(
-            'Disponible: ${widget.stock.cantidadActual} ${_producto?.unidadMedida ?? ''}',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.success,
-            ),
-          ),
-          if (widget.stock.ubicacionFisica != null)
-            Text(
-              'Ubicación: ${widget.stock.ubicacionFisica}',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: AppColors.textSecondaryLight,
-              ),
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.all(32),
+              child: AppLoadingIndicator(message: 'Cargando datos...'),
+            )
+          else
+            _TransferenciaBody(
+              stock: widget.stock,
+              producto: _producto,
+              cantidad: _cantidadTransferir,
+              onCantidad: (int v) => setState(() => _cantidadTransferir = v),
+              vehiculos: _vehiculosDisponibles,
+              vehiculo: _vehiculoSeleccionado,
+              onVehiculo: (String? v) => setState(() => _vehiculoSeleccionado = v),
+              motivo: _motivoController,
             ),
         ],
       ),
     );
   }
+}
 
-  /// Sección de cantidad a transferir
-  Widget _buildCantidadSection() {
+/// Campos del formulario de transferencia de stock
+class _TransferenciaBody extends StatelessWidget {
+  const _TransferenciaBody({
+    required this.stock,
+    required this.producto,
+    required this.cantidad,
+    required this.onCantidad,
+    required this.vehiculos,
+    required this.vehiculo,
+    required this.onVehiculo,
+    required this.motivo,
+  });
+
+  final StockEntity stock;
+  final ProductoEntity? producto;
+  final int cantidad;
+  final ValueChanged<int> onCantidad;
+  final List<String> vehiculos;
+  final String? vehiculo;
+  final ValueChanged<String?> onVehiculo;
+  final TextEditingController motivo;
+
+  @override
+  Widget build(BuildContext context) {
+    final ProductoEntity? p = producto;
+    final String unidad = p?.unidadMedida ?? '';
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text(
-          'Cantidad a Transferir *',
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimaryLight,
+        const GestionFormSection(title: 'Origen', first: true),
+        if (p != null) ...<Widget>[
+          GestionFormRow(label: 'Producto', child: GestionFormReadOnly(value: p.nombre)),
+          GestionFormRow(label: 'Categoría', child: GestionFormReadOnly(value: p.categoria?.label ?? '-')),
+        ],
+        GestionFormRow(
+          label: 'Disponible',
+          child: GestionFormReadOnly(value: '${stock.cantidadActual} $unidad'.trim()),
+        ),
+        if (stock.ubicacionFisica != null)
+          GestionFormRow(label: 'Ubicación', child: GestionFormReadOnly(value: stock.ubicacionFisica!)),
+        const GestionFormSection(title: 'Transferencia'),
+        GestionFormRow(
+          label: 'Cantidad',
+          required: true,
+          child: AlmacenCantidadStepper(
+            value: cantidad.toDouble(),
+            min: 1,
+            max: stock.cantidadActual.toDouble(),
+            unit: p != null ? unidad : null,
+            onChanged: (double v) => onCantidad(v.toInt()),
           ),
         ),
-        const SizedBox(height: AppSizes.spacingSmall),
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSizes.paddingMedium,
-            vertical: AppSizes.paddingSmall,
-          ),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.gray300),
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          ),
-          child: Row(
-            children: <Widget>[
-              const Icon(Icons.inventory_2, size: 20, color: AppColors.textSecondaryLight),
-              const SizedBox(width: AppSizes.spacingSmall),
-              IconButton(
-                icon: const Icon(Icons.remove, size: 20),
-                onPressed: _cantidadTransferir > 1
-                    ? () => setState(() => _cantidadTransferir--)
-                    : null,
-                color: AppColors.primary,
-              ),
-              Expanded(
-                child: Column(
-                  children: <Widget>[
-                    Text(
-                      '$_cantidadTransferir',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    if (_producto != null)
-                      Text(
-                        _producto?.unidadMedida ?? '',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppColors.textSecondaryLight,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.add, size: 20),
-                onPressed: _cantidadTransferir < widget.stock.cantidadActual
-                    ? () => setState(() => _cantidadTransferir++)
-                    : null,
-                color: AppColors.primary,
-              ),
-            ],
+        GestionFormRow(
+          label: 'Vehículo',
+          required: true,
+          child: GestionSearchField<String>(
+            value: vehiculo,
+            required: true,
+            hint: 'Selecciona el vehículo',
+            options: vehiculos.map((String v) => GestionOption<String>(v, v)).toList(growable: false),
+            onChanged: onVehiculo,
           ),
         ),
-        const SizedBox(height: AppSizes.spacingSmall),
-        Text(
-          'Máximo: ${widget.stock.cantidadActual} ${_producto?.unidadMedida ?? ""}',
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            color: AppColors.textSecondaryLight,
+        GestionFormRow(
+          label: 'Motivo',
+          required: true,
+          multiline: true,
+          child: GestionTextField(
+            controller: motivo,
+            hint: 'Motivo de la transferencia',
+            maxLines: 3,
+            validator: (String? v) => (v == null || v.trim().isEmpty) ? 'El motivo es obligatorio' : null,
           ),
         ),
       ],
-    );
-  }
-
-  /// Título de sección
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: AppColors.primary,
-      ),
     );
   }
 }

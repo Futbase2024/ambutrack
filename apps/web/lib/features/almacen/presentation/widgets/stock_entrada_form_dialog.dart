@@ -1,11 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/constants/almacen_constants.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_searchable_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/producto/producto_bloc.dart';
@@ -13,10 +9,9 @@ import 'package:ambutrack_web/features/almacen/presentation/bloc/producto/produc
 import 'package:ambutrack_web/features/almacen/presentation/bloc/stock/stock_bloc.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/stock/stock_event.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/stock/stock_state.dart';
+import 'package:ambutrack_web/features/almacen/presentation/widgets/form/stock_entrada_form_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 /// Diálogo para registrar una nueva entrada de stock en el Almacén General
@@ -71,22 +66,6 @@ class _StockEntradaFormDialogState extends State<StockEntradaFormDialog> {
     super.dispose();
   }
 
-  /// Incrementar cantidad
-  void _incrementarCantidad() {
-    setState(() {
-      _cantidad++;
-    });
-  }
-
-  /// Decrementar cantidad
-  void _decrementarCantidad() {
-    if (_cantidad > 1) {
-      setState(() {
-        _cantidad--;
-      });
-    }
-  }
-
   /// Obtener productos filtrados por categoría
   List<ProductoEntity> _getProductosFiltrados(List<ProductoEntity> productos) {
     if (_categoriaSeleccionada == null) {
@@ -95,197 +74,16 @@ class _StockEntradaFormDialogState extends State<StockEntradaFormDialog> {
     return productos.where((ProductoEntity p) => p.categoria == _categoriaSeleccionada).toList();
   }
 
-  /// Obtener label de categoría en español
-  String _getCategoriaLabel(CategoriaProducto categoria) {
-    switch (categoria) {
-      case CategoriaProducto.medicacion:
-        return 'Medicamento';
-      case CategoriaProducto.electromedicina:
-        return 'Electromedicina';
-      case CategoriaProducto.fungibles:
-        return 'Fungible';
-      case CategoriaProducto.materialAmbulancia:
-        return 'Material';
-      case CategoriaProducto.gasesMedicinales:
-        return 'Gas Medicinal';
-      case CategoriaProducto.otros:
-        return 'Otro';
-    }
-  }
-
-  /// Selector de fecha de caducidad
-  Widget _buildDatePicker() {
-    final DateFormat formatter = DateFormat('dd/MM/yyyy');
-    final String dateText = _fechaCaducidad != null ? formatter.format(_fechaCaducidad!) : '';
-
-    return InkWell(
-      onTap: () async {
-        final DateTime? picked = await showDatePicker(
-          context: context,
-          initialDate: _fechaCaducidad ?? DateTime.now().add(const Duration(days: 365)),
-          firstDate: DateTime.now(),
-          lastDate: DateTime.now().add(const Duration(days: 3650)),
-          locale: const Locale('es', 'ES'),
-        );
-
-        if (picked != null && mounted) {
-          setState(() {
-            _fechaCaducidad = picked;
-          });
-        }
-      },
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: 'Fecha de Caducidad',
-          hintText: 'Selecciona fecha',
-          prefixIcon: const Icon(Icons.calendar_today),
-          suffixIcon: _fechaCaducidad != null
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () {
-                    setState(() {
-                      _fechaCaducidad = null;
-                    });
-                  },
-                )
-              : null,
-          border: const OutlineInputBorder(),
-        ),
-        child: Text(
-          dateText.isEmpty ? '' : dateText,
-          style: TextStyle(
-            color: dateText.isEmpty ? AppColors.textSecondaryLight : AppColors.textPrimaryLight,
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Widget de cantidad con botones +/-
-  Widget _buildCantidadSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          'Cantidad *',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimaryLight,
-          ),
-        ),
-        const SizedBox(height: AppSizes.spacingSmall),
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSizes.paddingMedium,
-            vertical: AppSizes.paddingSmall,
-          ),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.gray300),
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              // Botón decrementar
-              IconButton(
-                onPressed: _cantidad > 1 ? _decrementarCantidad : null,
-                icon: const Icon(Icons.remove),
-                color: _cantidad > 1 ? AppColors.primary : AppColors.gray400,
-                iconSize: 24,
-              ),
-
-              // Valor actual
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.paddingLarge,
-                  vertical: AppSizes.paddingSmall,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                ),
-                child: Text(
-                  '$_cantidad',
-                  style: GoogleFonts.inter(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-
-              // Botón incrementar
-              IconButton(
-                onPressed: _incrementarCantidad,
-                icon: const Icon(Icons.add),
-                color: AppColors.primary,
-                iconSize: 24,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   void _onSave() {
-    if (!_formKey.currentState!.validate()) {
+    if (context.read<ProductoBloc>().state is ProductoLoading || !_formKey.currentState!.validate()) {
       return;
     }
 
-    if (_categoriaSeleccionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes seleccionar una categoría'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+    // Categoría, producto, lote, nº de serie y caducidad se validan en sus propios campos
+    if (_categoriaSeleccionada == null || _productoSeleccionado == null) {
       return;
     }
-
-    if (_productoSeleccionado == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes seleccionar un producto'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-
-    // Validaciones condicionales según producto
     final ProductoEntity producto = _productoSeleccionado!;
-
-    if (producto.loteObligatorio && _loteController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('El lote es obligatorio para este producto'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-
-    if (producto.numeroSerieObligatorio && _numeroSerieController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('El número de serie es obligatorio para este producto'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-
-    if (producto.tieneCaducidad && _fechaCaducidad == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('La fecha de caducidad es obligatoria para este producto'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
 
     setState(() {
       _isSaving = true;
@@ -352,191 +150,68 @@ class _StockEntradaFormDialogState extends State<StockEntradaFormDialog> {
       },
       child: BlocBuilder<ProductoBloc, ProductoState>(
         builder: (BuildContext context, ProductoState productoState) {
-          if (productoState is ProductoLoading) {
-            return AppDialog(
-              title: 'Nueva Entrada de Stock',
-              content: const Center(
-                child: AppLoadingIndicator(
-                  message: 'Cargando productos...',
-                  size: 100,
+          final List<ProductoEntity> productos =
+              productoState is ProductoLoaded ? productoState.productos : <ProductoEntity>[];
+          return GestionFormDialog(
+            title: 'Nueva entrada de stock',
+            icon: Icons.move_to_inbox_outlined,
+            size: GestionFormSize.small,
+            formKey: _formKey,
+            isSaving: _isSaving,
+            onSave: _onSave,
+            children: <Widget>[
+              if (productoState is ProductoLoading)
+                const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: AppLoadingIndicator(message: 'Cargando productos...'),
+                )
+              else
+                StockEntradaFormBody(
+                  categoria: _categoriaSeleccionada,
+                  onCategoria: _onCategoriaChanged,
+                  productos: _getProductosFiltrados(productos),
+                  producto: _productoSeleccionado,
+                  onProducto: _onProductoChanged,
+                  lote: _loteController,
+                  numeroSerie: _numeroSerieController,
+                  observaciones: _observacionesController,
+                  fechaCaducidad: _fechaCaducidad,
+                  onFechaCaducidad: (DateTime? v) => setState(() => _fechaCaducidad = v),
+                  cantidad: _cantidad,
+                  onCantidad: (int v) => setState(() => _cantidad = v),
                 ),
-              ),
-              actions: <Widget>[
-                AppButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  label: 'Cancelar',
-                  variant: AppButtonVariant.text,
-                ),
-              ],
-            );
-          }
-
-          final List<ProductoEntity> productos = productoState is ProductoLoaded ? productoState.productos : <ProductoEntity>[];
-          final List<ProductoEntity> productosFiltrados = _getProductosFiltrados(productos);
-
-          // Mostrar campos condicionales según producto seleccionado
-          final bool mostrarLote = _productoSeleccionado?.loteObligatorio ?? false;
-          final bool mostrarNumeroSerie = _productoSeleccionado?.numeroSerieObligatorio ?? false;
-          final bool mostrarFechaCaducidad = _productoSeleccionado?.tieneCaducidad ?? false;
-
-          return AppDialog(
-            title: 'Nueva Entrada de Stock',
-            content: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  // Selector de categoría
-                  AppDropdown<CategoriaProducto>(
-                    value: _categoriaSeleccionada,
-                    label: 'Categoría *',
-                    hint: 'Selecciona categoría',
-                    prefixIcon: Icons.category,
-                    items: CategoriaProducto.values
-                        .map(
-                          (CategoriaProducto cat) => AppDropdownItem<CategoriaProducto>(
-                            value: cat,
-                            label: _getCategoriaLabel(cat),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (CategoriaProducto? value) {
-                      setState(() {
-                        _categoriaSeleccionada = value;
-                        _productoSeleccionado = null; // Resetear producto al cambiar categoría
-                        _loteController.clear();
-                        _numeroSerieController.clear();
-                        _fechaCaducidad = null;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: AppSizes.spacing),
-
-                  // Selector de producto (filtrado por categoría)
-                  if (_categoriaSeleccionada != null) ...<Widget>[
-                    AppSearchableDropdown<ProductoEntity>(
-                      value: _productoSeleccionado,
-                      label: 'Producto *',
-                      hint: 'Buscar producto por nombre o código',
-                      prefixIcon: Icons.inventory_2,
-                      searchHint: 'Escribe para buscar...',
-                      items: productosFiltrados
-                          .map(
-                            (ProductoEntity p) => AppSearchableDropdownItem<ProductoEntity>(
-                              value: p,
-                              label: '${p.nombre} (${p.codigo})',
-                              icon: Icons.medical_services,
-                              iconColor: p.activo ? AppColors.success : AppColors.gray400,
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (ProductoEntity? value) {
-                        setState(() {
-                          _productoSeleccionado = value;
-                          // Limpiar campos opcionales al cambiar producto
-                          if (value != null) {
-                            if (!value.loteObligatorio) {
-                              _loteController.clear();
-                            }
-                            if (!value.numeroSerieObligatorio) {
-                              _numeroSerieController.clear();
-                            }
-                            if (!value.tieneCaducidad) {
-                              _fechaCaducidad = null;
-                            }
-                          }
-                        });
-                      },
-                      displayStringForOption: (ProductoEntity producto) => '${producto.nombre} (${producto.codigo})',
-                    ),
-                    const SizedBox(height: AppSizes.spacing),
-                  ],
-
-                  // Lote (condicional)
-                  if (mostrarLote) ...<Widget>[
-                    TextFormField(
-                      controller: _loteController,
-                      textInputAction: TextInputAction.next,
-                      decoration: InputDecoration(
-                        labelText: _productoSeleccionado!.loteObligatorio ? 'Lote *' : 'Lote',
-                        hintText: 'Ej: LOTE-2024-001',
-                        prefixIcon: const Icon(Icons.qr_code),
-                      ),
-                      validator: _productoSeleccionado!.loteObligatorio
-                          ? (String? value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'El lote es obligatorio';
-                              }
-                              return null;
-                            }
-                          : null,
-                    ),
-                    const SizedBox(height: AppSizes.spacing),
-                  ],
-
-                  // Número de Serie (condicional)
-                  if (mostrarNumeroSerie) ...<Widget>[
-                    TextFormField(
-                      controller: _numeroSerieController,
-                      textInputAction: TextInputAction.next,
-                      decoration: InputDecoration(
-                        labelText: _productoSeleccionado!.numeroSerieObligatorio ? 'Número de Serie *' : 'Número de Serie',
-                        hintText: 'Ej: NS-12345678',
-                        prefixIcon: const Icon(Icons.tag),
-                      ),
-                      validator: _productoSeleccionado!.numeroSerieObligatorio
-                          ? (String? value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'El número de serie es obligatorio';
-                              }
-                              return null;
-                            }
-                          : null,
-                    ),
-                    const SizedBox(height: AppSizes.spacing),
-                  ],
-
-                  // Fecha de Caducidad (condicional)
-                  if (mostrarFechaCaducidad) ...<Widget>[
-                    _buildDatePicker(),
-                    const SizedBox(height: AppSizes.spacing),
-                  ],
-
-                  // Cantidad con botones +/-
-                  _buildCantidadSelector(),
-                  const SizedBox(height: AppSizes.spacing),
-
-                  // Observaciones
-                  TextFormField(
-                    controller: _observacionesController,
-                    maxLines: 3,
-                    textInputAction: TextInputAction.newline,
-                    decoration: const InputDecoration(
-                      labelText: 'Observaciones',
-                      hintText: 'Notas adicionales sobre la entrada...',
-                      prefixIcon: Icon(Icons.notes),
-                      alignLabelWithHint: true,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: <Widget>[
-              AppButton(
-                onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                label: 'Cancelar',
-                variant: AppButtonVariant.text,
-              ),
-              AppButton(
-                onPressed: _isSaving ? null : _onSave,
-                label: 'Guardar',
-                icon: Icons.add,
-              ),
             ],
           );
         },
       ),
     );
+  }
+
+  void _onCategoriaChanged(CategoriaProducto? value) {
+    setState(() {
+      _categoriaSeleccionada = value;
+      _productoSeleccionado = null; // Resetear producto al cambiar categoría
+      _loteController.clear();
+      _numeroSerieController.clear();
+      _fechaCaducidad = null;
+    });
+  }
+
+  void _onProductoChanged(ProductoEntity? value) {
+    setState(() {
+      _productoSeleccionado = value;
+      // Limpiar campos opcionales al cambiar producto
+      if (value != null) {
+        if (!value.loteObligatorio) {
+          _loteController.clear();
+        }
+        if (!value.numeroSerieObligatorio) {
+          _numeroSerieController.clear();
+        }
+        if (!value.tieneCaducidad) {
+          _fechaCaducidad = null;
+        }
+      }
+    });
   }
 }

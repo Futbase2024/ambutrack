@@ -1,15 +1,15 @@
+import 'dart:async';
+
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/tablas/facultativos/presentation/bloc/facultativo_bloc.dart';
 import 'package:ambutrack_web/features/tablas/facultativos/presentation/bloc/facultativo_event.dart';
 import 'package:ambutrack_web/features/tablas/facultativos/presentation/bloc/facultativo_state.dart';
+import 'package:ambutrack_web/features/tablas/facultativos/presentation/widgets/form/facultativo_form_body.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -101,6 +101,9 @@ class _FacultativoFormDialogState extends State<FacultativoFormDialog> {
   }
 
   void _onSave() {
+    if (_isLoading) {
+      return;
+    }
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -110,7 +113,7 @@ class _FacultativoFormDialogState extends State<FacultativoFormDialog> {
     });
 
     // Mostrar loading overlay
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
@@ -120,7 +123,7 @@ class _FacultativoFormDialogState extends State<FacultativoFormDialog> {
           icon: _isEditing ? Icons.edit : Icons.add_circle_outline,
         );
       },
-    );
+    ));
 
     final FacultativoEntity facultativo = FacultativoEntity(
       id: widget.facultativo?.id ?? const Uuid().v4(),
@@ -181,216 +184,37 @@ class _FacultativoFormDialogState extends State<FacultativoFormDialog> {
           );
         }
       },
-      child: AppDialog(
+      child: GestionFormDialog(
         title: _isEditing ? 'Editar Facultativo' : 'Nuevo Facultativo',
-        content: _isLoading
-            ? const Center(
-                child: AppLoadingIndicator(
-                  message: 'Cargando datos...',
-                  size: 80,
-                ),
-              )
-            : Form(
-                key: _formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      TextFormField(
-                        controller: _nombreController,
-                        textInputAction: TextInputAction.next,
-                        inputFormatters: <TextInputFormatter>[
-                          UpperCaseTextFormatter(),
-                        ],
-                        decoration: InputDecoration(
-                          labelText: 'Nombre *',
-                          prefixIcon: const Icon(Icons.person, color: AppColors.gray400),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        validator: (String? value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'El nombre es obligatorio';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _apellidosController,
-                        textInputAction: TextInputAction.next,
-                        inputFormatters: <TextInputFormatter>[
-                          UpperCaseTextFormatter(),
-                        ],
-                        decoration: InputDecoration(
-                          labelText: 'Apellidos *',
-                          prefixIcon: const Icon(Icons.badge, color: AppColors.gray400),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        validator: (String? value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Los apellidos son obligatorios';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _numColegiadoController,
-                        textInputAction: TextInputAction.next,
-                        decoration: InputDecoration(
-                          labelText: 'Nº Colegiado',
-                          hintText: 'Ej: 28/1234567',
-                          prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.gray400),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      AppDropdown<String>(
-                        label: 'Especialidad',
-                        hint: 'Selecciona una especialidad',
-                        value: _especialidadId,
-                        prefixIcon: Icons.medical_services,
-                        items: _especialidades
-                            .map((EspecialidadEntity e) => AppDropdownItem<String>(
-                                  value: e.id,
-                                  label: e.nombre,
-                                  icon: Icons.local_hospital,
-                                ))
-                            .toList(),
-                        onChanged: (String? value) {
-                          setState(() {
-                            _especialidadId = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _telefonoController,
-                        textInputAction: TextInputAction.next,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          labelText: 'Teléfono',
-                          hintText: 'Ej: 612345678',
-                          prefixIcon: const Icon(Icons.phone, color: AppColors.gray400),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _emailController,
-                        textInputAction: TextInputAction.done,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          labelText: 'Email',
-                          hintText: 'ejemplo@hospital.com',
-                          prefixIcon: const Icon(Icons.email, color: AppColors.gray400),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        validator: (String? value) {
-                          if (value != null &&
-                              value.trim().isNotEmpty &&
-                              !value.contains('@')) {
-                            return 'Email inválido';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.gray50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.gray300),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        child: Row(
-                          children: <Widget>[
-                            Icon(
-                              _activo ? Icons.check_circle : Icons.cancel,
-                              color: _activo ? AppColors.success : AppColors.error,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  const Text(
-                                    'Estado',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textPrimaryLight,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  Text(
-                                    _activo
-                                        ? 'El facultativo está activo'
-                                        : 'El facultativo está inactivo',
-                                    style: const TextStyle(
-                                      color: AppColors.textSecondaryLight,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Switch(
-                              value: _activo,
-                              onChanged: (bool value) {
-                                setState(() {
-                                  _activo = value;
-                                });
-                              },
-                              activeTrackColor: AppColors.success,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+        subtitle: _isEditing ? widget.facultativo!.nombreCompleto : null,
+        icon: Icons.person_outline,
+        formKey: _formKey,
+        isEditing: _isEditing,
+        isSaving: _isSaving,
+        onSave: _onSave,
+        children: <Widget>[
+          if (_isLoading)
+            const Center(
+              child: AppLoadingIndicator(
+                message: 'Cargando datos...',
+                size: 80,
               ),
-        actions: <Widget>[
-          AppButton(
-            onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-            label: 'Cancelar',
-            variant: AppButtonVariant.text,
-          ),
-          AppButton(
-            onPressed: _isLoading || _isSaving ? null : _onSave,
-            label: _isEditing ? 'Actualizar' : 'Guardar',
-            icon: _isEditing ? Icons.save : Icons.add,
-          ),
+            )
+          else
+            FacultativoFormBody(
+              nombreController: _nombreController,
+              apellidosController: _apellidosController,
+              numColegiadoController: _numColegiadoController,
+              telefonoController: _telefonoController,
+              emailController: _emailController,
+              especialidades: _especialidades,
+              especialidadId: _especialidadId,
+              activo: _activo,
+              onEspecialidadChanged: (String? value) => setState(() => _especialidadId = value),
+              onActivoChanged: (bool value) => setState(() => _activo = value),
+            ),
         ],
       ),
-    );
-  }
-}
-
-class UpperCaseTextFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    return TextEditingValue(
-      text: newValue.text.toUpperCase(),
-      selection: newValue.selection,
     );
   }
 }

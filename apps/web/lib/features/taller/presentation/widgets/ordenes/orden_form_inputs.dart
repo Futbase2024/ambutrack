@@ -1,28 +1,24 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
-import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/features/taller/presentation/widgets/ordenes/orden_ui_helpers.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Convierte texto a double admitiendo coma decimal. Vacío → null
-double? parseDecimal(String text) {
-  final String v = text.trim().replaceAll(',', '.');
-  return v.isEmpty ? null : double.tryParse(v);
-}
+/// Convierte texto a double admitiendo formato español ("1.234,50"). Vacío → null
+double? parseDecimal(String text) => GestionFormParse.decimal(text);
 
-/// Convierte texto a entero. Vacío → null
-int? parseEntero(String text) {
-  final String v = text.trim();
-  return v.isEmpty ? null : int.tryParse(v);
-}
+/// Convierte texto a entero admitiendo separador de miles ("12.500"). Vacío → null
+int? parseEntero(String text) => GestionFormParse.entero(text);
 
-/// Formatea un número para un campo de texto (sin decimales si es entero)
+/// Formatea un decimal en formato español para un campo de texto (0 o null → vacío)
 String numeroATexto(num? value) {
   if (value == null || value == 0) {
     return '';
   }
-  return value == value.roundToDouble() ? value.toInt().toString() : value.toString();
+  return GestionFormParse.formatDecimal(value.toDouble());
 }
+
+/// Formatea un entero con separador de miles para un campo de texto (null → vacío)
+String enteroATexto(num? value) => GestionFormParse.formatEntero(value);
 
 /// Controllers de texto del formulario de orden
 class OrdenFormControllers {
@@ -51,8 +47,8 @@ class OrdenFormControllers {
   ];
 
   void populate(OrdenReparacionEntity o) {
-    kmEntrada.text = o.kilometrajeEntrada?.toString() ?? '';
-    kmSalida.text = o.kilometrajeSalida?.toString() ?? '';
+    kmEntrada.text = enteroATexto(o.kilometrajeEntrada);
+    kmSalida.text = enteroATexto(o.kilometrajeSalida);
     diagnostico.text = o.diagnostico ?? '';
     trabajos.text = o.trabajosRealizados ?? '';
     mecanico.text = o.mecanicoNombre ?? '';
@@ -70,20 +66,19 @@ class OrdenFormControllers {
   }
 }
 
-/// Campo numérico (entero o decimal) con validación >= 0
-class OrdenNumberField extends StatelessWidget {
-  const OrdenNumberField({required this.controller, required this.label, this.integer = false, super.key});
+/// Campo decimal (p.ej. horas) en formato español con validación >= 0
+class OrdenDecimalField extends StatelessWidget {
+  const OrdenDecimalField({required this.controller, this.unit, super.key});
 
   final TextEditingController controller;
-  final String label;
-  final bool integer;
+  final String? unit;
 
-  String? _validate(String? value) {
+  static String? _validate(String? value) {
     final String text = value?.trim() ?? '';
     if (text.isEmpty) {
       return null;
     }
-    final num? parsed = integer ? parseEntero(text) : parseDecimal(text);
+    final double? parsed = parseDecimal(text);
     if (parsed == null) {
       return 'Número no válido';
     }
@@ -92,62 +87,14 @@ class OrdenNumberField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
+    return GestionTextField(
       controller: controller,
-      keyboardType: TextInputType.numberWithOptions(decimal: !integer),
-      textInputAction: TextInputAction.next,
-      inputFormatters: <TextInputFormatter>[
-        FilteringTextInputFormatter.allow(integer ? RegExp('[0-9]') : RegExp('[0-9.,]')),
-      ],
-      decoration: InputDecoration(
-        labelText: label,
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
-      ),
+      hint: '0,00',
+      suffixText: unit,
+      textAlign: TextAlign.end,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: <TextInputFormatter>[FilteringTextInputFormatter.allow(RegExp(r'[\d.,]'))],
       validator: _validate,
-    );
-  }
-}
-
-/// Campo de solo lectura que abre un selector de fecha
-class OrdenFechaField extends StatelessWidget {
-  const OrdenFechaField({required this.label, required this.fecha, required this.onTap, super.key});
-
-  final String label;
-  final DateTime fecha;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
-        ),
-        child: Text(formatFecha(fecha)),
-      ),
-    );
-  }
-}
-
-/// Mensaje de error bajo un campo personalizado
-class OrdenFieldError extends StatelessWidget {
-  const OrdenFieldError({required this.message, super.key});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 12, top: 6),
-      child: Text(message, style: const TextStyle(fontSize: 12, color: AppColors.error)),
     );
   }
 }
@@ -178,7 +125,7 @@ class OrdenFormCallbacks {
     required this.onTaller,
     required this.onOrigen,
     required this.onPrioridad,
-    required this.onPickFecha,
+    required this.onFecha,
     required this.onSeguro,
   });
 
@@ -186,6 +133,6 @@ class OrdenFormCallbacks {
   final ValueChanged<String?> onTaller;
   final ValueChanged<OrigenOrdenReparacion> onOrigen;
   final ValueChanged<PrioridadOrdenReparacion> onPrioridad;
-  final VoidCallback onPickFecha;
+  final ValueChanged<DateTime> onFecha;
   final ValueChanged<bool> onSeguro;
 }

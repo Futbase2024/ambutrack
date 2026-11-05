@@ -8,7 +8,6 @@ import 'package:ambutrack_web/features/itv_revisiones/presentation/bloc/itv_revi
 import 'package:ambutrack_web/features/itv_revisiones/presentation/widgets/gestion/itv_detail_panel.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/widgets/gestion/itv_gestion_bars.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/widgets/gestion/itv_gestion_columns.dart';
-import 'package:ambutrack_web/features/itv_revisiones/presentation/widgets/itv_revision_edit_dialog.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/widgets/itv_revision_form_dialog.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/widgets/itv_revision_view_dialog.dart';
 import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart';
@@ -100,10 +99,14 @@ class _ItvGestionViewState extends State<ItvGestionView> {
       barrierDismissible: false,
       builder: (BuildContext _) => MultiBlocProvider(
         providers: <BlocProvider<dynamic>>[
+          BlocProvider<VehiculosBloc>.value(value: context.read<VehiculosBloc>()),
           BlocProvider<ItvRevisionBloc>.value(value: context.read<ItvRevisionBloc>()),
           BlocProvider<TallerBloc>.value(value: context.read<TallerBloc>()),
         ],
-        child: ItvRevisionEditDialog(itvRevision: item),
+        child: ItvRevisionFormDialog(
+          itvRevision: item,
+          vehiculoMatricula: _matriculaDe(item),
+        ),
       ),
     );
   }
@@ -113,6 +116,19 @@ class _ItvGestionViewState extends State<ItvGestionView> {
       context: context,
       builder: (BuildContext _) => ItvRevisionViewDialog(itvRevision: item),
     );
+  }
+
+  String? _matriculaDe(ItvRevisionEntity item) {
+    final VehiculosState st = context.read<VehiculosBloc>().state;
+    if (st is! VehiculosLoaded) {
+      return null;
+    }
+    for (final VehiculoEntity v in st.vehiculos) {
+      if (v.id == item.vehiculoId) {
+        return v.matricula;
+      }
+    }
+    return null;
   }
 
   Future<void> _confirmDelete(ItvRevisionEntity item, Map<String, VehiculoEntity> vehiculos) async {

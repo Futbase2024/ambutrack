@@ -1,9 +1,8 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../../../../core/theme/app_colors.dart';
-import '../../../../../../../core/theme/app_sizes.dart';
+import '../../../../../../../core/widgets/gestion/form/gestion_form.dart';
 import '../../models/modalidad_servicio.dart';
 import '../../models/trayecto_data.dart';
 import 'widgets/revision_datos_generales.dart';
@@ -64,54 +63,17 @@ class Step4Revision extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         _buildHeader(),
-        const SizedBox(height: 12),
         _buildContenido(),
       ],
     );
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[
-            AppColors.primary.withValues(alpha: 0.1),
-            Colors.white,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Row(
-        children: <Widget>[
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Icon(Icons.fact_check, color: Colors.white, size: 18),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              isEditMode
-                  ? 'Revisión Final - Verifica los datos antes de editar'
-                  : 'Revisión Final - Verifica los datos antes de crear',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimaryLight,
-              ),
-            ),
-          ),
-        ],
-      ),
+    return GestionFormSection(
+      title: isEditMode
+          ? 'Revisión final · verifica los datos antes de actualizar'
+          : 'Revisión final · verifica los datos antes de crear',
+      first: true,
     );
   }
 
@@ -139,7 +101,7 @@ class Step4Revision extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
 
           // Tarjeta 2: Modalidad + Trayectos
           Expanded(
@@ -167,18 +129,11 @@ class Step4Revision extends StatelessWidget {
 
   Widget _buildTarjeta({required Widget child}) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.radius),
-        border: Border.all(color: AppColors.gray300, width: 1.5),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: AppColors.gray400.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.gray200),
       ),
       child: child,
     );

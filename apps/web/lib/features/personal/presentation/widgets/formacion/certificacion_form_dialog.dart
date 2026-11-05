@@ -2,8 +2,10 @@ import 'dart:math';
 
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
-import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
+import 'package:ambutrack_web/core/utils/upper_case_text_formatter.dart';
+import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
+import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/features/personal/domain/repositories/certificacion_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -56,164 +58,105 @@ class _CertificacionFormDialogState extends State<CertificacionFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AppDialog(
-      title: _isEditing ? 'Editar Certificación' : 'Nueva Certificación',
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              // Código
-              TextFormField(
+    return GestionFormDialog(
+      title: _isEditing ? 'Editar certificación' : 'Nueva certificación',
+      subtitle: _isEditing ? '${widget.item!.codigo} · ${widget.item!.nombre}' : null,
+      icon: Icons.workspace_premium_outlined,
+      formKey: _formKey,
+      isEditing: _isEditing,
+      isSaving: _isSaving,
+      onSave: _saveCertificacion,
+      children: <Widget>[
+        const GestionFormSection(title: 'Datos de la certificación', first: true),
+        GestionFormColumns(
+          children: <Widget>[
+            GestionFormRow(
+              label: 'Código',
+              required: true,
+              child: GestionTextField(
                 controller: _codigoController,
-                decoration: const InputDecoration(
-                  labelText: 'Código *',
-                  hintText: 'Ej: SVA, ACLS, PHTLS',
-                  border: OutlineInputBorder(),
-                ),
-                textCapitalization: TextCapitalization.characters,
+                hint: 'Ej: SVA, ACLS',
                 inputFormatters: <TextInputFormatter>[
                   UpperCaseTextFormatter(),
                   LengthLimitingTextInputFormatter(10),
                 ],
-                validator: (String? value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Ingresa el código';
-                  }
-                  if (value.length < 2) {
-                    return 'El código debe tener al menos 2 caracteres';
-                  }
-                  return null;
-                },
+                validator: _validarCodigo,
               ),
-              const SizedBox(height: 16),
-
-              // Nombre
-              TextFormField(
-                controller: _nombreController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre *',
-                  hintText: 'Ej: Soporte Vital Avanzado',
-                  border: OutlineInputBorder(),
-                ),
-                textCapitalization: TextCapitalization.words,
-                validator: (String? value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Ingresa el nombre';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Descripción
-              TextFormField(
-                controller: _descripcionController,
-                decoration: const InputDecoration(
-                  labelText: 'Descripción',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-                textCapitalization: TextCapitalization.sentences,
-              ),
-              const SizedBox(height: 16),
-
-              // Vigencia y Horas
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: TextFormField(
-                      controller: _vigenciaMesesController,
-                      decoration: const InputDecoration(
-                        labelText: 'Vigencia (meses) *',
-                        border: OutlineInputBorder(),
-                        suffixText: 'meses',
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: <TextInputFormatter>[
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      validator: (String? value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Requerido';
-                        }
-                        final int? meses = int.tryParse(value);
-                        if (meses == null || meses < 1) {
-                          return 'Mínimo 1 mes';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _horasRequeridasController,
-                      decoration: const InputDecoration(
-                        labelText: 'Horas Req.',
-                        border: OutlineInputBorder(),
-                        suffixText: 'horas',
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: <TextInputFormatter>[
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      validator: (String? value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Requerido';
-                        }
-                        final int? horas = int.tryParse(value);
-                        if (horas == null || horas < 0) {
-                          return 'Mínimo 0';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Activa
-              SwitchListTile(
-                title: const Text('Certificación Activa'),
-                subtitle: const Text('Las inactivas no se muestran en los formularios'),
+            ),
+            GestionFormRow(
+              label: 'Estado',
+              child: GestionSwitchField(
                 value: _isActive,
-                onChanged: (bool value) {
-                  setState(() {
-                    _isActive = value;
-                  });
-                },
+                text: _isActive ? 'Activa' : 'Inactiva',
+                onChanged: (bool value) => setState(() => _isActive = value),
               ),
-            ],
+            ),
+          ],
+        ),
+        GestionFormRow(
+          label: 'Nombre',
+          required: true,
+          child: GestionTextField(
+            controller: _nombreController,
+            hint: 'Ej: Soporte Vital Avanzado',
+            validator: (String? value) => (value == null || value.isEmpty) ? 'Ingresa el nombre' : null,
           ),
         ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+        GestionFormRow(
+          label: 'Descripción',
+          multiline: true,
+          child: GestionTextField(controller: _descripcionController, maxLines: 3),
         ),
-        ElevatedButton(
-          onPressed: _isSaving ? null : _saveCertificacion,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-          ),
-          child: _isSaving
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Text('Guardar'),
+        const GestionFormSection(title: 'Requisitos'),
+        GestionFormColumns(
+          children: <Widget>[
+            GestionFormRow(
+              label: 'Vigencia',
+              required: true,
+              child: _NumeroField(
+                controller: _vigenciaMesesController,
+                unit: 'meses',
+                validator: (String? v) => _validarMinimo(v, 1, 'Mínimo 1 mes'),
+              ),
+            ),
+            GestionFormRow(
+              label: 'Horas req.',
+              required: true,
+              child: _NumeroField(
+                controller: _horasRequeridasController,
+                unit: 'horas',
+                validator: (String? v) => _validarMinimo(v, 0, 'Mínimo 0'),
+              ),
+            ),
+          ],
+        ),
+        const Text(
+          'Las certificaciones inactivas no se muestran en los formularios.',
+          style: GestionFormStyle.hint,
         ),
       ],
     );
+  }
+
+  static String? _validarCodigo(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Ingresa el código';
+    }
+    if (value.length < 2) {
+      return 'El código debe tener al menos 2 caracteres';
+    }
+    return null;
+  }
+
+  static String? _validarMinimo(String? value, int minimo, String mensaje) {
+    if (value == null || value.isEmpty) {
+      return 'Requerido';
+    }
+    final int? n = int.tryParse(value);
+    if (n == null || n < minimo) {
+      return mensaje;
+    }
+    return null;
   }
 
   Future<void> _saveCertificacion() async {
@@ -247,20 +190,28 @@ class _CertificacionFormDialogState extends State<CertificacionFormDialog> {
       }
 
       if (mounted) {
-        Navigator.of(context).pop(true);
+        await CrudOperationHandler.handleSuccess(
+          context: context,
+          isSaving: false,
+          isEditing: _isEditing,
+          entityName: 'Certificación',
+        );
       }
     } catch (e) {
+      debugPrint('❌ CertificacionFormDialog: $e');
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _isSaving = false;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      await showResultDialog(
+        context: context,
+        title: 'Error al Guardar',
+        message: _isEditing ? 'No se pudo actualizar la certificación.' : 'No se pudo crear la certificación.',
+        details: e.toString(),
+        type: ResultType.error,
+      );
     }
   }
 
@@ -269,13 +220,24 @@ class _CertificacionFormDialogState extends State<CertificacionFormDialog> {
   }
 }
 
-/// Formatter para convertir texto a mayúsculas
-class UpperCaseTextFormatter extends TextInputFormatter {
+/// Entero sin signo alineado a la derecha con unidad
+class _NumeroField extends StatelessWidget {
+  const _NumeroField({required this.controller, required this.unit, required this.validator});
+
+  final TextEditingController controller;
+  final String unit;
+  final FormFieldValidator<String> validator;
+
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    return TextEditingValue(
-      text: newValue.text.toUpperCase(),
-      selection: newValue.selection,
+  Widget build(BuildContext context) {
+    return GestionTextField(
+      controller: controller,
+      hint: '0',
+      suffixText: unit,
+      textAlign: TextAlign.end,
+      keyboardType: TextInputType.number,
+      inputFormatters: <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly],
+      validator: validator,
     );
   }
 }

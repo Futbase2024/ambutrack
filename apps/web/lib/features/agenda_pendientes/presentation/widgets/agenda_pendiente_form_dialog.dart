@@ -1,12 +1,10 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
-import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
+import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/features/agenda_pendientes/presentation/bloc/agenda_pendiente_bloc.dart';
 import 'package:ambutrack_web/features/agenda_pendientes/presentation/bloc/agenda_pendiente_event.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Muestra el diálogo de formulario para crear/editar un pendiente
@@ -85,72 +83,29 @@ class _AgendaPendienteFormDialogState
 
   @override
   Widget build(BuildContext context) {
-    return AppDialog(
-      title: _isEditing ? 'Editar Pendiente' : 'Nuevo Pendiente',
-      icon: Icons.event_note,
-      type: _isEditing ? AppDialogType.edit : AppDialogType.create,
-      content: _FormContent(
-        formKey: _formKey,
-        nombreController: _nombreController,
-        domicilioController: _domicilioController,
-        localidadController: _localidadController,
-        descripcionController: _descripcionController,
-        fechaSeleccionada: _fechaSeleccionada,
-        onFechaTap: _seleccionarFecha,
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-          child: Text(
-            'Cancelar',
-            style: GoogleFonts.inter(
-              color: AppColors.gray600,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        ElevatedButton(
-          onPressed: _isSaving ? null : _onSave,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: _isSaving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text(
-                  _isEditing ? 'Actualizar' : 'Guardar',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                ),
+    return GestionFormDialog(
+      title: _isEditing ? 'Editar pendiente' : 'Nuevo pendiente',
+      subtitle: _isEditing ? widget.pendiente!.nombreApellidos : null,
+      icon: Icons.event_note_outlined,
+      formKey: _formKey,
+      isEditing: _isEditing,
+      isSaving: _isSaving,
+      onSave: _onSave,
+      children: <Widget>[
+        _FormContent(
+          nombreController: _nombreController,
+          domicilioController: _domicilioController,
+          localidadController: _localidadController,
+          descripcionController: _descripcionController,
+          fechaSeleccionada: _fechaSeleccionada,
+          onFechaChanged: (DateTime? fecha) {
+            if (fecha != null) {
+              setState(() => _fechaSeleccionada = fecha);
+            }
+          },
         ),
       ],
     );
-  }
-
-  Future<void> _seleccionarFecha() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _fechaSeleccionada ?? DateTime.now(),
-      firstDate: DateTime(2024),
-      lastDate: DateTime(2030),
-      locale: const Locale('es', 'ES'),
-    );
-
-    if (picked != null) {
-      setState(() {
-        _fechaSeleccionada = picked;
-      });
-    }
   }
 
   void _onSave() {
@@ -158,11 +113,11 @@ class _AgendaPendienteFormDialogState
       return;
     }
     if (_fechaSeleccionada == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('La fecha es obligatoria'),
-          backgroundColor: AppColors.error,
-        ),
+      showResultDialog(
+        context: context,
+        title: 'Datos incompletos',
+        message: 'La fecha es obligatoria',
+        type: ResultType.warning,
       );
       return;
     }
@@ -207,144 +162,77 @@ class _AgendaPendienteFormDialogState
 /// Contenido del formulario
 class _FormContent extends StatelessWidget {
   const _FormContent({
-    required this.formKey,
     required this.nombreController,
     required this.domicilioController,
     required this.localidadController,
     required this.descripcionController,
     required this.fechaSeleccionada,
-    required this.onFechaTap,
+    required this.onFechaChanged,
   });
 
-  final GlobalKey<FormState> formKey;
   final TextEditingController nombreController;
   final TextEditingController domicilioController;
   final TextEditingController localidadController;
   final TextEditingController descripcionController;
   final DateTime? fechaSeleccionada;
-  final VoidCallback onFechaTap;
+  final ValueChanged<DateTime?> onFechaChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: formKey,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const GestionFormSection(title: 'Contacto', first: true),
+        GestionFormRow(
+          label: 'Nombre',
+          required: true,
+          child: GestionTextField(
+            controller: nombreController,
+            hint: 'Nombre y apellidos del contacto',
+            validator: GestionFormStyle.requerido,
+          ),
+        ),
+        GestionFormColumns(
           children: <Widget>[
-            // Nombre y Apellidos (obligatorio)
-            const _FormLabel(label: 'Nombre y Apellidos *'),
-            const SizedBox(height: 4),
-            TextFormField(
-              controller: nombreController,
-              textInputAction: TextInputAction.next,
-              textCapitalization: TextCapitalization.characters,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.person_outline, size: 20),
-                hintText: 'Nombre y apellidos del contacto',
-              ),
-              validator: (String? v) =>
-                  (v == null || v.trim().isEmpty) ? 'Campo obligatorio' : null,
+            GestionFormRow(
+              label: 'Domicilio',
+              child: GestionTextField(controller: domicilioController, hint: 'Dirección'),
             ),
-            const SizedBox(height: AppSizes.spacing),
-
-            // Domicilio (opcional)
-            const _FormLabel(label: 'Domicilio'),
-            const SizedBox(height: 4),
-            TextFormField(
-              controller: domicilioController,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.home_outlined, size: 20),
-                hintText: 'Dirección (opcional)',
-              ),
-            ),
-            const SizedBox(height: AppSizes.spacing),
-
-            // Localidad (opcional)
-            const _FormLabel(label: 'Localidad'),
-            const SizedBox(height: 4),
-            TextFormField(
-              controller: localidadController,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.location_city_outlined, size: 20),
-                hintText: 'Localidad (opcional)',
-              ),
-            ),
-            const SizedBox(height: AppSizes.spacing),
-
-            // Fecha (obligatorio)
-            const _FormLabel(label: 'Fecha del servicio *'),
-            const SizedBox(height: 4),
-            TextFormField(
-              readOnly: true,
-              onTap: onFechaTap,
-              decoration: InputDecoration(
-                prefixIcon:
-                    const Icon(Icons.calendar_today_outlined, size: 20),
-                hintText: 'Selecciona una fecha',
-                suffixIcon: fechaSeleccionada != null
-                    ? const Icon(Icons.check_circle, color: AppColors.success)
-                    : null,
-              ),
-              controller: TextEditingController(
-                text: fechaSeleccionada != null
-                    ? _formatDate(fechaSeleccionada!)
-                    : '',
-              ),
-            ),
-            const SizedBox(height: AppSizes.spacing),
-
-            // Descripción (obligatorio)
-            const _FormLabel(label: 'Descripción *'),
-            const SizedBox(height: 4),
-            TextFormField(
-              controller: descripcionController,
-              textInputAction: TextInputAction.newline,
-              minLines: 4,
-              maxLines: 8,
-              decoration: const InputDecoration(
-                prefixIcon:
-                    Padding(
-                      padding: EdgeInsets.only(bottom: 24),
-                      child: Icon(Icons.description_outlined, size: 20),
-                    ),
-                hintText: 'Describe el servicio pendiente...',
-                alignLabelWithHint: true,
-              ),
-              validator: (String? v) =>
-                  (v == null || v.trim().isEmpty) ? 'Campo obligatorio' : null,
+            GestionFormRow(
+              label: 'Localidad',
+              child: GestionTextField(controller: localidadController, hint: 'Localidad'),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/'
-        '${date.month.toString().padLeft(2, '0')}/'
-        '${date.year}';
-  }
-}
-
-/// Label de formulario con estilo consistente
-class _FormLabel extends StatelessWidget {
-  const _FormLabel({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: GoogleFonts.inter(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: AppColors.gray700,
-      ),
+        const GestionFormSection(title: 'Servicio'),
+        GestionFormColumns(
+          children: <Widget>[
+            GestionFormRow(
+              label: 'Fecha',
+              required: true,
+              child: GestionDateField(
+                value: fechaSeleccionada,
+                required: true,
+                firstDate: DateTime(2024),
+                lastDate: DateTime(2030),
+                onChanged: onFechaChanged,
+              ),
+            ),
+            const SizedBox.shrink(),
+          ],
+        ),
+        GestionFormRow(
+          label: 'Descripción',
+          required: true,
+          multiline: true,
+          child: GestionTextField(
+            controller: descripcionController,
+            hint: 'Describe el servicio pendiente',
+            maxLines: 4,
+            validator: GestionFormStyle.requerido,
+          ),
+        ),
+      ],
     );
   }
 }

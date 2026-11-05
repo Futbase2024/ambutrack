@@ -1,6 +1,5 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
-import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
 import 'package:ambutrack_web/features/taller/presentation/bloc/proveedor_taller_bloc.dart';
@@ -115,120 +114,35 @@ class _ProveedorTallerFormDialogState extends State<ProveedorTallerFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return TallerFormDialogShell(
+    return GestionFormDialog(
+      title: _isEditing ? 'Editar proveedor' : 'Nuevo proveedor',
+      subtitle: _isEditing ? widget.proveedor!.nombre : null,
+      icon: Icons.local_shipping_outlined,
       formKey: _formKey,
-      header: TallerFormHeader(
-        icon: Icons.local_shipping,
-        color: AppColors.info,
-        title: _isEditing ? 'Editar Proveedor' : 'Nuevo Proveedor',
-        subtitle: _isEditing
-            ? 'Modifica los datos del proveedor'
-            : 'Registra un nuevo proveedor de repuestos o servicios',
-      ),
-      fields: _ProveedorFormFields(
-        nombreController: _nombreController,
-        nifController: _nifController,
-        formaPagoController: _formaPagoController,
-        contacto: _contacto,
-        tipo: _tipo,
-        activo: _activo,
-        onTipoChanged: (TipoProveedor value) => setState(() => _tipo = value),
-        onActivoChanged: (bool value) => setState(() => _activo = value),
-      ),
-      actions: TallerFormActions(isSaving: _isSaving, isEditing: _isEditing, onSave: _onSave),
-    );
-  }
-}
-
-class _ProveedorFormFields extends StatelessWidget {
-  const _ProveedorFormFields({
-    required this.nombreController,
-    required this.nifController,
-    required this.formaPagoController,
-    required this.contacto,
-    required this.tipo,
-    required this.activo,
-    required this.onTipoChanged,
-    required this.onActivoChanged,
-  });
-
-  final TextEditingController nombreController;
-  final TextEditingController nifController;
-  final TextEditingController formaPagoController;
-  final DatosContactoControllers contacto;
-  final TipoProveedor tipo;
-  final bool activo;
-  final ValueChanged<TipoProveedor> onTipoChanged;
-  final ValueChanged<bool> onActivoChanged;
-
-  static const SizedBox _hGap = SizedBox(width: AppSizes.spacingMedium);
-  static const SizedBox _vGap = SizedBox(height: AppSizes.spacingMedium);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      isEditing: _isEditing,
+      isSaving: _isSaving,
+      onSave: _onSave,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              flex: 3,
-              child: TallerFormField(
-                controller: nombreController,
-                label: 'Nombre *',
-                hint: 'Recambios López S.L.',
-                icon: Icons.business,
-                isRequired: true,
-              ),
-            ),
-            _hGap,
-            Expanded(
-              flex: 2,
-              child: TallerFormField(
-                controller: nifController,
-                label: 'NIF/CIF',
-                hint: 'B12345678',
-                icon: Icons.badge_outlined,
-              ),
-            ),
-          ],
+        const GestionFormSection(title: 'Datos generales', first: true),
+        TallerDatosGeneralesFields<TipoProveedor>(
+          nombre: _nombreController,
+          nombreHint: 'Recambios López S.L.',
+          nif: _nifController,
+          tipo: _tipo,
+          tipos: gestionOptionsOf<TipoProveedor>(TipoProveedor.values, (TipoProveedor t) => t.displayName),
+          tipoLabel: 'Tipo',
+          onTipoChanged: (TipoProveedor value) => setState(() => _tipo = value),
+          extra: _formaPagoController,
+          extraLabel: 'Forma de pago',
+          extraHint: 'Transferencia 30 días',
+          activo: _activo,
+          activoText: 'Proveedor operativo',
+          onActivoChanged: (bool value) => setState(() => _activo = value),
         ),
-        _vGap,
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: TallerTipoDropdown<TipoProveedor>(
-                label: 'Tipo de proveedor *',
-                value: tipo,
-                values: TipoProveedor.values,
-                labelOf: (TipoProveedor t) => t.displayName,
-                onChanged: onTipoChanged,
-              ),
-            ),
-            _hGap,
-            Expanded(
-              child: TallerFormField(
-                controller: formaPagoController,
-                label: 'Forma de Pago',
-                hint: 'Transferencia 30 días',
-                icon: Icons.payment_outlined,
-              ),
-            ),
-          ],
-        ),
-        _vGap,
         DatosContactoFields(
-          controllers: contacto,
+          controllers: _contacto,
           emailHint: 'proveedor@ejemplo.com',
           contactoHint: 'María López',
-        ),
-        _vGap,
-        TallerActivoSwitch(
-          value: activo,
-          title: 'Proveedor activo',
-          activeText: 'El proveedor está operativo',
-          inactiveText: 'El proveedor está inactivo',
-          onChanged: onActivoChanged,
         ),
       ],
     );

@@ -1,12 +1,10 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
 import 'package:ambutrack_web/core/widgets/dropdowns/app_searchable_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/models/tipo_ubicacion.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/models/trayecto_data.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'widgets/trayecto_card_widget.dart';
 
@@ -115,43 +113,38 @@ class _Step3TrayectosState extends State<Step3Trayectos> {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Trayectos del Servicio',
-                      style: GoogleFonts.inter(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimaryLight,
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.spacingSmall),
-                    Text(
-                      'Define el origen, destino y horario de cada trayecto',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: AppColors.textSecondaryLight,
-                      ),
-                    ),
-                  ],
+              const Expanded(child: GestionFormSection(title: 'Trayectos del servicio', first: true)),
+              const SizedBox(width: 12),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: OutlinedButton.icon(
+                  onPressed: _agregarTrayecto,
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Agregar trayecto'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.gray300),
+                    minimumSize: const Size(0, 32),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                  ),
                 ),
-              ),
-              AppButton(
-                onPressed: _agregarTrayecto,
-                label: 'Agregar Trayecto',
-                icon: Icons.add,
-                variant: AppButtonVariant.secondary,
               ),
             ],
           ),
-          const SizedBox(height: AppSizes.spacingLarge),
+          const Padding(
+            padding: EdgeInsets.only(bottom: 12),
+            child: Text(
+              'Define el origen, destino y horario de cada trayecto',
+              style: TextStyle(fontSize: 12.5, color: AppColors.gray500),
+            ),
+          ),
 
           // Lista de trayectos
           ...List<Widget>.generate(widget.trayectos.length, (int index) {
             return Padding(
-              padding: const EdgeInsets.only(bottom: AppSizes.spacing),
+              padding: const EdgeInsets.only(bottom: 10),
               child: TrayectoCardWidget(
                 index: index,
                 trayecto: widget.trayectos[index],
@@ -169,19 +162,16 @@ class _Step3TrayectosState extends State<Step3Trayectos> {
 
           if (widget.trayectos.isEmpty)
             Container(
-              padding: const EdgeInsets.all(AppSizes.paddingXl),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                color: AppColors.warning.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
               ),
-              child: Center(
+              child: const Center(
                 child: Text(
                   'Agrega al menos un trayecto',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: AppColors.textSecondaryLight,
-                  ),
+                  style: TextStyle(fontSize: 13, color: AppColors.gray600),
                 ),
               ),
             ),

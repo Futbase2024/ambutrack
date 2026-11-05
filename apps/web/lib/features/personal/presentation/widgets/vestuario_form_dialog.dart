@@ -1,10 +1,6 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_searchable_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
@@ -14,12 +10,13 @@ import 'package:ambutrack_web/features/personal/presentation/bloc/personal_state
 import 'package:ambutrack_web/features/personal/presentation/bloc/vestuario_bloc.dart';
 import 'package:ambutrack_web/features/personal/presentation/bloc/vestuario_event.dart';
 import 'package:ambutrack_web/features/personal/presentation/bloc/vestuario_state.dart';
+import 'package:ambutrack_web/features/personal/presentation/widgets/form/personal_form_options.dart';
+import 'package:ambutrack_web/features/personal/presentation/widgets/form/vestuario_form_body.dart';
 import 'package:ambutrack_web/features/stock_vestuario/presentation/bloc/stock_vestuario_bloc.dart';
 import 'package:ambutrack_web/features/stock_vestuario/presentation/bloc/stock_vestuario_event.dart';
 import 'package:ambutrack_web/features/stock_vestuario/presentation/bloc/stock_vestuario_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:uuid/uuid.dart';
 
 /// Formulario de Vestuario con integración de Stock
@@ -138,7 +135,7 @@ class _VestuarioFormDialogState extends State<VestuarioFormDialog> {
 
   /// Guardar asignación de vestuario
   void _onSave() {
-    if (!_formKey.currentState!.validate()) {
+    if (_isLoading || !_formKey.currentState!.validate()) {
       return;
     }
 
@@ -214,321 +211,117 @@ class _VestuarioFormDialogState extends State<VestuarioFormDialog> {
     }
   }
 
-  /// Seleccionar fecha de entrega
-  Future<void> _selectFechaEntrega() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _fechaEntrega,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-      locale: const Locale('es', 'ES'),
-    );
+  void _onVestuarioState(BuildContext context, VestuarioState state) {
+    if (!_isSaving) {
+      return;
+    }
+    if (state is VestuarioLoaded) {
+      CrudOperationHandler.handleSuccess(
+        context: context,
+        isSaving: _isSaving,
+        isEditing: _isEditing,
+        entityName: 'Asignación de Vestuario',
+        onClose: () => setState(() => _isSaving = false),
+      );
+    } else if (state is VestuarioError) {
+      CrudOperationHandler.handleError(
+        context: context,
+        isSaving: _isSaving,
+        isEditing: _isEditing,
+        entityName: 'Asignación de Vestuario',
+        errorMessage: state.message,
+        onClose: () => setState(() => _isSaving = false),
+      );
+    }
+  }
 
-    if (picked != null && picked != _fechaEntrega) {
+  void _onPersonalState(BuildContext context, PersonalState state) {
+    if (state is PersonalLoaded) {
       setState(() {
-        _fechaEntrega = picked;
+        _personalList = state.personal;
+        if (_isEditing && _selectedPersonal == null) {
+          _selectedPersonal = _personalList.firstWhere(
+            (PersonalEntity p) => p.id == widget.item!.personalId,
+            orElse: () => _personalList.first,
+          );
+        }
       });
     }
   }
 
+  void _onStockState(BuildContext context, StockVestuarioState state) {
+    if (state is StockVestuarioLoaded) {
+      setState(() {
+        _stockList = state.items;
+        _isLoading = false;
+      });
+      _procesarStock(state.items);
+    }
+  }
+
+  void _onPrendaChanged(String? value) {
+    setState(() {
+      _prendaSeleccionada = value;
+      _tallaSeleccionada = null;
+      _stockSeleccionado = null;
+    });
+    if (value != null) {
+      _actualizarTallasDisponibles(value);
+    }
+  }
+
+  void _onTallaChanged(String? value) {
+    setState(() {
+      _tallaSeleccionada = value;
+      _stockSeleccionado = null;
+    });
+    if (value != null && _prendaSeleccionada != null) {
+      _actualizarStockSeleccionado(_prendaSeleccionada!, value);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<VestuarioBloc, VestuarioState>(
-      listener: (BuildContext context, VestuarioState state) {
-        if (state is VestuarioLoaded) {
-          CrudOperationHandler.handleSuccess(
-            context: context,
-            isSaving: _isSaving,
-            isEditing: _isEditing,
-            entityName: 'Asignación de Vestuario',
-            onClose: () => setState(() => _isSaving = false),
-          );
-        } else if (state is VestuarioError) {
-          CrudOperationHandler.handleError(
-            context: context,
-            isSaving: _isSaving,
-            isEditing: _isEditing,
-            entityName: 'Asignación de Vestuario',
-            errorMessage: state.message,
-            onClose: () => setState(() => _isSaving = false),
-          );
-        }
-      },
-      child: BlocListener<PersonalBloc, PersonalState>(
-        listener: (BuildContext context, PersonalState state) {
-          if (state is PersonalLoaded) {
-            setState(() {
-              _personalList = state.personal;
-              if (_isEditing && _selectedPersonal == null) {
-                _selectedPersonal = _personalList.firstWhere(
-                  (PersonalEntity p) => p.id == widget.item!.personalId,
-                  orElse: () => _personalList.first,
-                );
-              }
-            });
-          }
-        },
-        child: BlocListener<StockVestuarioBloc, StockVestuarioState>(
-          listener: (BuildContext context, StockVestuarioState state) {
-            if (state is StockVestuarioLoaded) {
-              setState(() {
-                _stockList = state.items;
-                _isLoading = false;
-              });
-              _procesarStock(state.items);
-            }
-          },
-          child: AppDialog(
-            title: _isEditing ? 'Editar Asignación de Vestuario' : 'Nueva Asignación de Vestuario',
-            maxWidth: 700,
-            content: _isLoading
-                ? const Center(
-                    child: AppLoadingIndicator(
-                      message: 'Cargando datos...',
-                      size: 100,
-                    ),
-                  )
-                : Form(
-                    key: _formKey,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          // Personal
-                          AppSearchableDropdown<PersonalEntity>(
-                            value: _selectedPersonal,
-                            label: 'Personal *',
-                            hint: 'Buscar personal...',
-                            prefixIcon: Icons.person,
-                            enabled: !_isEditing,
-                            items: _personalList
-                                .map(
-                                  (PersonalEntity p) => AppSearchableDropdownItem<PersonalEntity>(
-                                    value: p,
-                                    label: '${p.nombre} ${p.apellidos}',
-                                    icon: Icons.person,
-                                    iconColor: p.activo ? AppColors.success : AppColors.inactive,
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (PersonalEntity? value) {
-                              setState(() {
-                                _selectedPersonal = value;
-                              });
-                            },
-                            displayStringForOption: (PersonalEntity p) =>
-                                '${p.nombre} ${p.apellidos}',
-                          ),
-                          const SizedBox(height: AppSizes.spacing),
-
-                          // Prenda (desde stock)
-                          AppDropdown<String>(
-                            value: _prendaSeleccionada,
-                            label: 'Prenda disponible en Stock *',
-                            hint: 'Selecciona una prenda',
-                            prefixIcon: Icons.checkroom,
-                            enabled: _prendasDisponibles.isNotEmpty,
-                            items: _prendasDisponibles
-                                .map(
-                                  (String prenda) => AppDropdownItem<String>(
-                                    value: prenda,
-                                    label: prenda,
-                                    icon: Icons.checkroom,
-                                    iconColor: AppColors.primary,
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (String? value) {
-                              setState(() {
-                                _prendaSeleccionada = value;
-                                _tallaSeleccionada = null;
-                                _stockSeleccionado = null;
-                              });
-                              if (value != null) {
-                                _actualizarTallasDisponibles(value);
-                              }
-                            },
-                          ),
-                          const SizedBox(height: AppSizes.spacing),
-
-                          // Talla (según prenda seleccionada)
-                          AppDropdown<String>(
-                            value: _tallaSeleccionada,
-                            label: 'Talla *',
-                            hint: _prendaSeleccionada == null
-                                ? 'Primero selecciona una prenda'
-                                : 'Selecciona una talla',
-                            prefixIcon: Icons.straighten,
-                            enabled: _prendaSeleccionada != null && _tallasDisponibles.isNotEmpty,
-                            items: _tallasDisponibles
-                                .map(
-                                  (String talla) => AppDropdownItem<String>(
-                                    value: talla,
-                                    label: talla,
-                                    icon: Icons.straighten,
-                                    iconColor: AppColors.secondary,
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (String? value) {
-                              setState(() {
-                                _tallaSeleccionada = value;
-                                _stockSeleccionado = null;
-                              });
-                              if (value != null && _prendaSeleccionada != null) {
-                                _actualizarStockSeleccionado(_prendaSeleccionada!, value);
-                              }
-                            },
-                          ),
-                          const SizedBox(height: AppSizes.spacing),
-
-                          // Información de Stock
-                          if (_stockSeleccionado != null)
-                            Container(
-                              padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                              decoration: BoxDecoration(
-                                color: _stockSeleccionado!.sinStock
-                                    ? AppColors.error.withValues(alpha: 0.1)
-                                    : _stockSeleccionado!.tieneStockBajo
-                                        ? AppColors.warning.withValues(alpha: 0.1)
-                                        : AppColors.success.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                                border: Border.all(
-                                  color: _stockSeleccionado!.sinStock
-                                      ? AppColors.error
-                                      : _stockSeleccionado!.tieneStockBajo
-                                          ? AppColors.warning
-                                          : AppColors.success,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Row(
-                                    children: <Widget>[
-                                      Icon(
-                                        _stockSeleccionado!.sinStock
-                                            ? Icons.error_outline
-                                            : _stockSeleccionado!.tieneStockBajo
-                                                ? Icons.warning_amber
-                                                : Icons.check_circle_outline,
-                                        color: _stockSeleccionado!.sinStock
-                                            ? AppColors.error
-                                            : _stockSeleccionado!.tieneStockBajo
-                                                ? AppColors.warning
-                                                : AppColors.success,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: AppSizes.spacingSmall),
-                                      Text(
-                                        'Stock Disponible',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.textPrimaryLight,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: AppSizes.spacingSmall),
-                                  Text(
-                                    'Disponible: ${_stockSeleccionado!.cantidadDisponible} / ${_stockSeleccionado!.cantidadTotal}',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      color: AppColors.textSecondaryLight,
-                                    ),
-                                  ),
-                                  if (_stockSeleccionado!.marca != null)
-                                    Text(
-                                      'Marca: ${_stockSeleccionado!.marca}',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 13,
-                                        color: AppColors.textSecondaryLight,
-                                      ),
-                                    ),
-                                  if (_stockSeleccionado!.color != null)
-                                    Text(
-                                      'Color: ${_stockSeleccionado!.color}',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 13,
-                                        color: AppColors.textSecondaryLight,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          if (_stockSeleccionado != null) const SizedBox(height: AppSizes.spacing),
-
-                          // Cantidad
-                          TextFormField(
-                            controller: _cantidadController,
-                            keyboardType: TextInputType.number,
-                            textInputAction: TextInputAction.next,
-                            decoration: const InputDecoration(
-                              labelText: 'Cantidad *',
-                              hintText: 'Ingrese la cantidad',
-                              prefixIcon: Icon(Icons.numbers),
-                            ),
-                            validator: (String? value) {
-                              if (value == null || value.isEmpty) {
-                                return 'La cantidad es obligatoria';
-                              }
-                              final int? cantidad = int.tryParse(value);
-                              if (cantidad == null || cantidad <= 0) {
-                                return 'Ingrese una cantidad válida';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: AppSizes.spacing),
-
-                          // Fecha de Entrega
-                          InkWell(
-                            onTap: _selectFechaEntrega,
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Fecha Entrega *',
-                                prefixIcon: Icon(Icons.calendar_today),
-                              ),
-                              child: Text(
-                                '${_fechaEntrega.day.toString().padLeft(2, '0')}/${_fechaEntrega.month.toString().padLeft(2, '0')}/${_fechaEntrega.year}',
-                                style: GoogleFonts.inter(fontSize: 14),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: AppSizes.spacing),
-
-                          // Observaciones
-                          TextFormField(
-                            controller: _observacionesController,
-                            maxLines: 3,
-                            textInputAction: TextInputAction.newline,
-                            decoration: const InputDecoration(
-                              labelText: 'Observaciones',
-                              hintText: 'Observaciones adicionales (opcional)',
-                              prefixIcon: Icon(Icons.notes),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-            actions: <Widget>[
-              AppButton(
-                onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                label: 'Cancelar',
-                variant: AppButtonVariant.text,
-              ),
-              AppButton(
-                onPressed: _isSaving ? null : _onSave,
-                label: _isEditing ? 'Actualizar' : 'Guardar',
-                icon: _isEditing ? Icons.save : Icons.add,
-              ),
-            ],
-          ),
-        ),
+    return MultiBlocListener(
+      listeners: <BlocListener<dynamic, dynamic>>[
+        BlocListener<VestuarioBloc, VestuarioState>(listener: _onVestuarioState),
+        BlocListener<PersonalBloc, PersonalState>(listener: _onPersonalState),
+        BlocListener<StockVestuarioBloc, StockVestuarioState>(listener: _onStockState),
+      ],
+      child: GestionFormDialog(
+        title: _isEditing ? 'Editar asignación de vestuario' : 'Nueva asignación de vestuario',
+        subtitle: _isEditing && _selectedPersonal != null ? PersonalFormOptions.etiqueta(_selectedPersonal!) : null,
+        icon: Icons.checkroom_outlined,
+        formKey: _formKey,
+        isEditing: _isEditing,
+        isSaving: _isSaving,
+        onSave: _onSave,
+        children: _isLoading
+            ? const <Widget>[AppLoadingIndicator(message: 'Cargando datos...', size: 100)]
+            : <Widget>[
+                VestuarioFormBody(
+                  isEditing: _isEditing,
+                  personalList: _personalList,
+                  selectedPersonal: _selectedPersonal,
+                  prendas: _prendasDisponibles,
+                  prenda: _prendaSeleccionada,
+                  tallas: _tallasDisponibles,
+                  talla: _tallaSeleccionada,
+                  stock: _stockSeleccionado,
+                  cantidad: _cantidadController,
+                  fechaEntrega: _fechaEntrega,
+                  observaciones: _observacionesController,
+                  onPersonalChanged: (String? id) =>
+                      setState(() => _selectedPersonal = PersonalFormOptions.buscar(_personalList, id)),
+                  onPrendaChanged: _onPrendaChanged,
+                  onTallaChanged: _onTallaChanged,
+                  onFechaChanged: (DateTime picked) {
+                    if (picked != _fechaEntrega) {
+                      setState(() => _fechaEntrega = picked);
+                    }
+                  },
+                ),
+              ],
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/taller/domain/repositories/proveedor_taller_repository.dart';
@@ -110,7 +111,7 @@ class _RepuestoFormDialogState extends State<RepuestoFormDialog> {
   }
 
   void _onSave() {
-    if (!_formKey.currentState!.validate()) {
+    if (_loading || !_formKey.currentState!.validate()) {
       return;
     }
     setState(() => _isSaving = true);
@@ -161,32 +162,34 @@ class _RepuestoFormDialogState extends State<RepuestoFormDialog> {
   Widget build(BuildContext context) {
     return BlocListener<RepuestoOrdenBloc, RepuestoOrdenState>(
       listener: _onBlocResult,
-      child: TallerFormDialogShell(
+      child: GestionFormDialog(
+        title: _isEditing ? 'Editar repuesto' : 'Añadir repuesto',
+        subtitle: _isEditing ? widget.repuesto!.descripcion : null,
+        icon: Icons.settings_suggest_outlined,
         formKey: _formKey,
-        header: TallerFormHeader(
-          icon: Icons.settings_suggest_outlined,
-          color: AppColors.primary,
-          title: _isEditing ? 'Editar Repuesto' : 'Añadir Repuesto',
-          subtitle: 'Pieza o material utilizado en la reparación',
-        ),
-        fields: _loading
-            ? const Padding(
-                padding: EdgeInsets.all(32),
-                child: AppLoadingIndicator(message: 'Cargando proveedores...'),
-              )
-            : RepuestoFormFields(
-                descripcion: _descripcion,
-                referencia: _referencia,
-                cantidad: _cantidad,
-                precio: _precio,
-                observaciones: _observaciones,
-                proveedores: _proveedores,
-                proveedorId: _proveedorId,
-                estado: _estado,
-                onProveedor: (String? v) => setState(() => _proveedorId = v),
-                onEstado: (EstadoRepuesto v) => setState(() => _estado = v),
-              ),
-        actions: TallerFormActions(isSaving: _isSaving || _loading, isEditing: _isEditing, onSave: _onSave),
+        isEditing: _isEditing,
+        isSaving: _isSaving,
+        onSave: _onSave,
+        children: <Widget>[
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.all(32),
+              child: AppLoadingIndicator(message: 'Cargando proveedores...'),
+            )
+          else
+            RepuestoFormFields(
+              descripcion: _descripcion,
+              referencia: _referencia,
+              cantidad: _cantidad,
+              precio: _precio,
+              observaciones: _observaciones,
+              proveedores: _proveedores,
+              proveedorId: _proveedorId,
+              estado: _estado,
+              onProveedor: (String? v) => setState(() => _proveedorId = v),
+              onEstado: (EstadoRepuesto v) => setState(() => _estado = v),
+            ),
+        ],
       ),
     );
   }

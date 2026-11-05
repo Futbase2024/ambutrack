@@ -1,5 +1,4 @@
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/features/taller/presentation/widgets/form/taller_form_components.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:flutter/material.dart';
 
 /// Controllers de los datos de dirección y contacto comunes a Taller y Proveedor
@@ -50,7 +49,7 @@ class DatosContactoControllers {
   }
 }
 
-/// Campos de dirección, teléfono, email, contacto y observaciones
+/// Secciones de dirección, contacto y observaciones (estilo gestión)
 class DatosContactoFields extends StatelessWidget {
   const DatosContactoFields({
     required this.controllers,
@@ -63,76 +62,70 @@ class DatosContactoFields extends StatelessWidget {
   final String emailHint;
   final String contactoHint;
 
-  static const SizedBox _hGap = SizedBox(width: AppSizes.spacingMedium);
-  static const SizedBox _vGap = SizedBox(height: AppSizes.spacingMedium);
-
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        TallerFormField(
-          controller: controllers.direccion,
+        const GestionFormSection(title: 'Dirección'),
+        GestionFormRow(
           label: 'Dirección',
-          hint: 'Polígono Industrial, Nave 5',
-          icon: Icons.location_on_outlined,
+          child: GestionTextField(controller: controllers.direccion, hint: 'Polígono Industrial, Nave 5'),
         ),
-        _vGap,
-        Row(
+        GestionFormColumns(
           children: <Widget>[
-            Expanded(
-              flex: 3,
-              child: TallerFormField(controller: controllers.ciudad, label: 'Ciudad', hint: 'Madrid'),
+            GestionFormRow(
+              label: 'Ciudad',
+              child: GestionTextField(controller: controllers.ciudad, hint: 'Madrid'),
             ),
-            _hGap,
-            Expanded(
-              flex: 3,
-              child: TallerFormField(controller: controllers.provincia, label: 'Provincia', hint: 'Madrid'),
-            ),
-            _hGap,
-            Expanded(
-              flex: 2,
-              child: TallerFormField(controller: controllers.codigoPostal, label: 'C.P.', hint: '28001'),
+            GestionFormRow(
+              label: 'Provincia',
+              child: GestionTextField(controller: controllers.provincia, hint: 'Madrid'),
             ),
           ],
         ),
-        _vGap,
-        Row(
+        GestionFormColumns(
           children: <Widget>[
-            Expanded(
-              child: TallerFormField(
+            GestionFormRow(
+              label: 'C.P.',
+              child: GestionTextField(controller: controllers.codigoPostal, hint: '28001'),
+            ),
+            const SizedBox.shrink(),
+          ],
+        ),
+        const GestionFormSection(title: 'Contacto'),
+        GestionFormColumns(
+          children: <Widget>[
+            GestionFormRow(
+              label: 'Teléfono',
+              child: GestionTextField(
                 controller: controllers.telefono,
-                label: 'Teléfono',
                 hint: '912345678',
-                icon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
               ),
             ),
-            _hGap,
-            Expanded(
-              child: TallerFormField(
+            GestionFormRow(
+              label: 'Email',
+              child: GestionTextField(
                 controller: controllers.email,
-                label: 'Email',
                 hint: emailHint,
-                icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
               ),
             ),
           ],
         ),
-        _vGap,
-        TallerFormField(
-          controller: controllers.contactoNombre,
-          label: 'Persona de contacto',
-          hint: contactoHint,
-          icon: Icons.person_outline,
+        GestionFormRow(
+          label: 'Persona contacto',
+          child: GestionTextField(controller: controllers.contactoNombre, hint: contactoHint),
         ),
-        _vGap,
-        TallerFormField(
-          controller: controllers.observaciones,
+        GestionFormRow(
           label: 'Observaciones',
-          hint: 'Notas adicionales...',
-          maxLines: 2,
+          multiline: true,
+          child: GestionTextField(
+            controller: controllers.observaciones,
+            hint: 'Notas adicionales',
+            maxLines: 2,
+          ),
         ),
       ],
     );

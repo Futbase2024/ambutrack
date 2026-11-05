@@ -1,10 +1,6 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/theme/app_text_styles.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/features/cuadrante/bases/presentation/bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -29,6 +25,11 @@ class _BaseFormDialogState extends State<BaseFormDialog> {
 
   bool get _isEditing => widget.base != null;
 
+  static const List<GestionOption<String>> _tipos = <GestionOption<String>>[
+    GestionOption<String>('Permanente', 'Permanente', color: AppColors.primary),
+    GestionOption<String>('Temporal', 'Temporal', color: AppColors.warning),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -50,38 +51,58 @@ class _BaseFormDialogState extends State<BaseFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AppDialog(
-      title: _isEditing ? 'Editar Base' : 'Nueva Base',
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              _InfoSection(nombreController: _nombreController),
-              const SizedBox(height: AppSizes.spacing),
-              _UbicacionSection(direccionController: _direccionController),
-              const SizedBox(height: AppSizes.spacing),
-              _ConfiguracionSection(
-                tipoSeleccionado: _tipoSeleccionado,
-                activo: _activo,
-                onTipoChanged: (String value) => setState(() => _tipoSeleccionado = value),
-                onActivoChanged: (bool value) => setState(() => _activo = value),
-              ),
-            ],
+    return GestionFormDialog(
+      title: _isEditing ? 'Editar base' : 'Nueva base',
+      subtitle: _isEditing ? widget.base!.nombre : null,
+      icon: Icons.business_outlined,
+      size: GestionFormSize.small,
+      formKey: _formKey,
+      isEditing: _isEditing,
+      saveLabel: _isEditing ? 'Actualizar' : 'Crear',
+      onSave: _onSave,
+      children: <Widget>[
+        const GestionFormSection(title: 'Datos', first: true),
+        GestionFormRow(
+          label: 'Nombre',
+          required: true,
+          child: GestionTextField(
+            controller: _nombreController,
+            hint: 'Ej: Base Central Madrid',
+            validator: (String? value) =>
+                (value == null || value.isEmpty) ? 'El nombre es obligatorio' : null,
           ),
         ),
-      ),
-      actions: <Widget>[
-        AppButton(
-          onPressed: () => Navigator.of(context).pop(),
-          label: 'Cancelar',
-          variant: AppButtonVariant.text,
+        GestionFormRow(
+          label: 'Dirección',
+          multiline: true,
+          child: GestionTextField(
+            controller: _direccionController,
+            hint: 'Calle, número, piso...',
+            maxLines: 2,
+          ),
         ),
-        AppButton(
-          onPressed: _onSave,
-          label: _isEditing ? 'Actualizar' : 'Crear',
+        const GestionFormSection(title: 'Configuración'),
+        GestionFormRow(
+          label: 'Tipo',
+          required: true,
+          child: GestionDropdownField<String>(
+            value: _tipoSeleccionado,
+            options: _tipos,
+            required: true,
+            onChanged: (String? value) {
+              if (value != null) {
+                setState(() => _tipoSeleccionado = value);
+              }
+            },
+          ),
+        ),
+        GestionFormRow(
+          label: 'Activa',
+          child: GestionSwitchField(
+            value: _activo,
+            text: _activo ? 'La base está operativa' : 'La base está desactivada',
+            onChanged: (bool value) => setState(() => _activo = value),
+          ),
         ),
       ],
     );
@@ -103,6 +124,7 @@ class _BaseFormDialogState extends State<BaseFormDialog> {
       updatedAt: DateTime.now(),
     );
 
+    debugPrint('💾 BaseFormDialog: ${_isEditing ? 'actualizando' : 'creando'} base ${base.nombre}');
     if (_isEditing) {
       context.read<BasesBloc>().add(BaseUpdateRequested(base));
     } else {
@@ -110,129 +132,5 @@ class _BaseFormDialogState extends State<BaseFormDialog> {
     }
 
     Navigator.of(context).pop();
-  }
-}
-
-/// Sección de información básica del formulario
-class _InfoSection extends StatelessWidget {
-  const _InfoSection({required this.nombreController});
-
-  final TextEditingController? nombreController;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text('Información Básica', style: AppTextStyles.h5),
-        const SizedBox(height: AppSizes.spacingSmall),
-        TextFormField(
-          controller: nombreController,
-          textInputAction: TextInputAction.next,
-          decoration: const InputDecoration(
-            labelText: 'Nombre *',
-            hintText: 'Ej: Base Central Madrid',
-            prefixIcon: Icon(Icons.business),
-          ),
-          validator: (String? value) {
-            if (value == null || value.isEmpty) {
-              return 'El nombre es obligatorio';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-}
-
-/// Sección de ubicación del formulario
-class _UbicacionSection extends StatelessWidget {
-  const _UbicacionSection({required this.direccionController});
-
-  final TextEditingController direccionController;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text('Ubicación', style: AppTextStyles.h5),
-        const SizedBox(height: AppSizes.spacingSmall),
-        TextFormField(
-          controller: direccionController,
-          textInputAction: TextInputAction.next,
-          maxLines: 2,
-          decoration: const InputDecoration(
-            labelText: 'Dirección',
-            hintText: 'Calle, número, piso...',
-            prefixIcon: Icon(Icons.location_on),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Sección de configuración del formulario
-class _ConfiguracionSection extends StatelessWidget {
-  const _ConfiguracionSection({
-    required this.tipoSeleccionado,
-    required this.activo,
-    required this.onTipoChanged,
-    required this.onActivoChanged,
-  });
-
-  final String tipoSeleccionado;
-  final bool activo;
-  final void Function(String) onTipoChanged;
-  // ignore: avoid_positional_boolean_parameters
-  final void Function(bool) onActivoChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text('Configuración', style: AppTextStyles.h5),
-        const SizedBox(height: AppSizes.spacingSmall),
-        AppDropdown<String>(
-          value: tipoSeleccionado,
-          label: 'Tipo de Base *',
-          hint: 'Selecciona tipo',
-          prefixIcon: Icons.category,
-          items: const <AppDropdownItem<String>>[
-            AppDropdownItem<String>(
-              value: 'Permanente',
-              label: 'Permanente',
-              icon: Icons.business,
-              iconColor: AppColors.primary,
-            ),
-            AppDropdownItem<String>(
-              value: 'Temporal',
-              label: 'Temporal',
-              icon: Icons.access_time,
-              iconColor: AppColors.warning,
-            ),
-          ],
-          onChanged: (String? value) {
-            if (value != null) {
-              onTipoChanged(value);
-            }
-          },
-        ),
-        const SizedBox(height: AppSizes.spacingSmall),
-        SwitchListTile(
-          title: Text('Base Activa', style: AppTextStyles.bodyBold),
-          subtitle: Text(
-            activo ? 'La base está operativa' : 'La base está desactivada',
-            style: AppTextStyles.bodySmallSecondary,
-          ),
-          value: activo,
-          onChanged: onActivoChanged,
-          activeThumbColor: AppColors.success,
-        ),
-      ],
-    );
   }
 }

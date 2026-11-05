@@ -86,15 +86,18 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext _) => IncidenciaFormModal(
-        incidencia: incidencia,
-        onSave: (IncidenciaVehiculoEntity result) async {
-          bloc.add(
-            incidencia == null
-                ? IncidenciaVehiculoEvent.createIncidencia(result)
-                : IncidenciaVehiculoEvent.updateIncidencia(result),
-          );
-        },
+      builder: (BuildContext _) => BlocProvider<VehiculosBloc>.value(
+        value: context.read<VehiculosBloc>(),
+        child: IncidenciaFormModal(
+          incidencia: incidencia,
+          onSave: (IncidenciaVehiculoEntity result) async {
+            bloc.add(
+              incidencia == null
+                  ? IncidenciaVehiculoEvent.createIncidencia(result)
+                  : IncidenciaVehiculoEvent.updateIncidencia(result),
+            );
+          },
+        ),
       ),
     );
   }
@@ -123,28 +126,29 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
 
   void _onStateChanged(BuildContext context, IncidenciaVehiculoState state) {
     state.whenOrNull<void>(
-      loaded: (
-        List<IncidenciaVehiculoEntity> incidencias,
-        int currentPage,
-        int totalPages,
-        EstadoIncidencia? filtroEstado,
-        PrioridadIncidencia? filtroPrioridad,
-        TipoIncidencia? filtroTipo,
-      ) {
-        final String? eliminado = _deletingNombre;
-        setState(() {
-          _deletingNombre = null;
-          _data = AveriasSnapshot(
-            incidencias: incidencias,
-            filtroEstado: filtroEstado,
-            filtroPrioridad: filtroPrioridad,
-            filtroTipo: filtroTipo,
-          );
-        });
-        if (eliminado != null) {
-          GestionFeedback.eliminado(context, entidad: 'Avería', nombre: eliminado);
-        }
-      },
+      loaded:
+          (
+            List<IncidenciaVehiculoEntity> incidencias,
+            int currentPage,
+            int totalPages,
+            EstadoIncidencia? filtroEstado,
+            PrioridadIncidencia? filtroPrioridad,
+            TipoIncidencia? filtroTipo,
+          ) {
+            final String? eliminado = _deletingNombre;
+            setState(() {
+              _deletingNombre = null;
+              _data = AveriasSnapshot(
+                incidencias: incidencias,
+                filtroEstado: filtroEstado,
+                filtroPrioridad: filtroPrioridad,
+                filtroTipo: filtroTipo,
+              );
+            });
+            if (eliminado != null) {
+              GestionFeedback.eliminado(context, entidad: 'Avería', nombre: eliminado);
+            }
+          },
       error: (String message) {
         _deletingNombre = null;
         if (_data != null) {
@@ -196,8 +200,7 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
             estado: data?.filtroEstado,
             onEstadoChanged: (EstadoIncidencia? v) => _filterBloc(IncidenciaVehiculoEvent.filterByEstado(v)),
             prioridad: data?.filtroPrioridad,
-            onPrioridadChanged: (PrioridadIncidencia? v) =>
-                _filterBloc(IncidenciaVehiculoEvent.filterByPrioridad(v)),
+            onPrioridadChanged: (PrioridadIncidencia? v) => _filterBloc(IncidenciaVehiculoEvent.filterByPrioridad(v)),
             tipo: data?.filtroTipo,
             onTipoChanged: (TipoIncidencia? v) => _filterBloc(IncidenciaVehiculoEvent.filterByTipo(v)),
             onClear: _hasFilters ? _clearFilters : null,

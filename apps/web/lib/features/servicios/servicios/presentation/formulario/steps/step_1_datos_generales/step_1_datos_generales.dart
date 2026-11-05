@@ -1,4 +1,5 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/steps/step_1_datos_generales/widgets/detalles_medicos_widget.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/steps/step_1_datos_generales/widgets/fechas_tratamiento_widget.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/steps/step_1_datos_generales/widgets/observaciones_field_widget.dart';
@@ -104,90 +105,84 @@ class Step1DatosGenerales extends StatelessWidget {
     return Form(
       key: formKey,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          // Layout en 2 columnas
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          GestionFormColumns(
             children: <Widget>[
               // Columna izquierda: Datos del paciente y servicio
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    PacienteSelectorWidget(
-                      paciente: pacienteSeleccionado,
-                      pacientes: pacientes,
-                      loading: loadingPacientes,
-                      onChanged: onPacienteChanged,
-                      readOnly: pacienteReadOnly,
-                    ),
-                    const SizedBox(height: 12),
-                    TipoServicioConfigWidget(
-                      motivoSeleccionado: motivoTrasladoSeleccionado,
-                      motivos: motivosTraslado,
-                      loading: loadingMotivosTraslado,
-                      onChanged: onMotivoTrasladoChanged,
-                    ),
-                    const SizedBox(height: 12),
-                    FechasTratamientoWidget(
-                      fechaInicio: fechaInicioTratamiento,
-                      fechaFin: fechaFinTratamiento,
-                      horaEnCentro: horaEnCentro,
-                      centroHospitalario: centroHospitalario,
-                      centrosHospitalarios: centrosHospitalarios,
-                      onFechaInicioChanged: onFechaInicioChanged,
-                      onFechaFinChanged: onFechaFinChanged,
-                      onHoraEnCentroChanged: onHoraEnCentroChanged,
-                      onCentroHospitalarioChanged: onCentroHospitalarioChanged,
-                    ),
-                  ],
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  const GestionFormSection(title: 'Paciente y servicio', first: true),
+                  PacienteSelectorWidget(
+                    paciente: pacienteSeleccionado,
+                    pacientes: pacientes,
+                    loading: loadingPacientes,
+                    onChanged: onPacienteChanged,
+                    readOnly: pacienteReadOnly,
+                  ),
+                  TipoServicioConfigWidget(
+                    motivoSeleccionado: motivoTrasladoSeleccionado,
+                    motivos: motivosTraslado,
+                    loading: loadingMotivosTraslado,
+                    onChanged: onMotivoTrasladoChanged,
+                  ),
+                  FechasTratamientoWidget(
+                    fechaInicio: fechaInicioTratamiento,
+                    fechaFin: fechaFinTratamiento,
+                    horaEnCentro: horaEnCentro,
+                    centroHospitalario: centroHospitalario,
+                    centrosHospitalarios: centrosHospitalarios,
+                    onFechaInicioChanged: onFechaInicioChanged,
+                    onFechaFinChanged: onFechaFinChanged,
+                    onHoraEnCentroChanged: onHoraEnCentroChanged,
+                    onCentroHospitalarioChanged: onCentroHospitalarioChanged,
+                  ),
+                ],
               ),
-              const SizedBox(width: 20),
 
               // Columna derecha: Detalles médicos
-              Expanded(
-                child: DetallesMedicosWidget(
-                  facultativoSeleccionado: facultativoSeleccionado,
-                  facultativos: facultativos,
-                  loadingFacultativos: loadingFacultativos,
-                  movilidad: movilidad,
-                  acompanantes: acompanantes,
-                  tipoAmbulancia: tipoAmbulancia,
-                  tiposVehiculo: tiposVehiculo,
-                  loadingTiposVehiculo: loadingTiposVehiculo,
-                  requiereOxigeno: requiereOxigeno,
-                  requiereMedico: requiereMedico,
-                  requiereDue: requiereDue,
-                  requiereAyudante: requiereAyudante,
-                  onFacultativoChanged: onFacultativoChanged,
-                  onMovilidadChanged: onMovilidadChanged,
-                  onAcompanantesChanged: onAcompanantesChanged,
-                  onTipoAmbulanciaChanged: onTipoAmbulanciaChanged,
-                  onRequiereOxigenoChanged: onRequiereOxigenoChanged,
-                  onRequiereMedicoChanged: onRequiereMedicoChanged,
-                  onRequiereDueChanged: onRequiereDueChanged,
-                  onRequiereAyudanteChanged: onRequiereAyudanteChanged,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  const GestionFormSection(title: 'Detalles médicos', first: true),
+                  DetallesMedicosWidget(
+                    facultativoSeleccionado: facultativoSeleccionado,
+                    facultativos: facultativos,
+                    loadingFacultativos: loadingFacultativos,
+                    movilidad: movilidad,
+                    acompanantes: acompanantes,
+                    tipoAmbulancia: tipoAmbulancia,
+                    tiposVehiculo: tiposVehiculo,
+                    loadingTiposVehiculo: loadingTiposVehiculo,
+                    requiereOxigeno: requiereOxigeno,
+                    requiereMedico: requiereMedico,
+                    requiereDue: requiereDue,
+                    requiereAyudante: requiereAyudante,
+                    onFacultativoChanged: onFacultativoChanged,
+                    onMovilidadChanged: onMovilidadChanged,
+                    onAcompanantesChanged: onAcompanantesChanged,
+                    onTipoAmbulanciaChanged: onTipoAmbulanciaChanged,
+                    onRequiereOxigenoChanged: onRequiereOxigenoChanged,
+                    onRequiereMedicoChanged: onRequiereMedicoChanged,
+                    onRequiereDueChanged: onRequiereDueChanged,
+                    onRequiereAyudanteChanged: onRequiereAyudanteChanged,
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 24),
 
-          // Observaciones Generales
+          const GestionFormSection(title: 'Observaciones'),
           ObservacionesFieldWidget(
-            label: 'Observaciones Generales',
+            label: 'Generales',
             hint: 'Describe detalles importantes del servicio...',
             value: observacionesGenerales,
             onChanged: onObservacionesGeneralesChanged,
             maxLines: 3,
           ),
-          const SizedBox(height: 16),
-
-          // Observaciones Médicas
           ObservacionesFieldWidget(
-            label: 'Observaciones Médicas',
+            label: 'Médicas',
             hint: 'Información médica relevante (alergias, precauciones, etc.)...',
             value: observacionesMedicas,
             onChanged: onObservacionesMedicasChanged,

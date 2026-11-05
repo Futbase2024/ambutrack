@@ -22,43 +22,34 @@ class RevisionSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icono, color: Colors.white, size: 20),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text(
-                titulo,
-                style: GoogleFonts.inter(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimaryLight,
-                ),
+        Row(
+          children: <Widget>[
+            Icon(icono, color: color, size: 16),
+            const SizedBox(width: 8),
+            Text(
+              titulo.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+                color: AppColors.primary,
               ),
-              if (subtitle != null) ...<Widget>[
-                const SizedBox(height: 2),
-                Text(
-                  subtitle!,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.textSecondaryLight,
-                  ),
-                ),
-              ],
-            ],
-          ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(child: Divider(height: 1, color: AppColors.gray200)),
+          ],
         ),
+        if (subtitle != null) ...<Widget>[
+          const SizedBox(height: 4),
+          Text(
+            subtitle!,
+            style: const TextStyle(fontSize: 12, color: AppColors.gray500),
+          ),
+        ],
       ],
     );
   }

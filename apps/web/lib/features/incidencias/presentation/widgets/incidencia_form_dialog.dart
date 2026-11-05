@@ -1,14 +1,13 @@
+import 'dart:async';
+
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart'
     hide EstadoIncidencia, PrioridadIncidencia;
 import 'package:ambutrack_core_datasource/incidencias.dart';
-import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_searchable_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
+import 'package:ambutrack_web/features/incidencias/presentation/widgets/form/incidencia_form_body.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_state.dart';
 import 'package:flutter/material.dart';
@@ -80,240 +79,60 @@ class _IncidenciaFormDialogState extends State<IncidenciaFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AppDialog(
-      title: _isEditing ? 'Editar Incidencia' : 'Nueva Incidencia',
+    return GestionFormDialog(
+      title: _isEditing ? 'Editar incidencia' : 'Nueva incidencia',
+      subtitle: _isEditing ? widget.incidencia!.titulo : null,
       icon: Icons.report_problem_outlined,
-      type: _isEditing ? AppDialogType.edit : AppDialogType.create,
-      maxWidth: 650,
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            // Título
-            _FormField(
-              label: 'Título *',
-              child: TextFormField(
-                controller: _tituloController,
-                decoration: const InputDecoration(
-                  hintText: 'Título de la incidencia',
-                  isDense: true,
-                ),
-                validator: (String? v) =>
-                    v == null || v.trim().isEmpty ? 'Campo obligatorio' : null,
-              ),
-            ),
-            const SizedBox(height: AppSizes.spacingMedium),
-
-            // Descripción
-            _FormField(
-              label: 'Descripción',
-              child: TextFormField(
-                controller: _descripcionController,
-                decoration: const InputDecoration(
-                  hintText: 'Descripción detallada de la incidencia',
-                  isDense: true,
-                ),
-                minLines: 4,
-                maxLines: 8,
-                textInputAction: TextInputAction.newline,
-              ),
-            ),
-            const SizedBox(height: AppSizes.spacingMedium),
-
-            // Categoría + Prioridad
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _FormField(
-                    label: 'Categoría',
-                    child: AppDropdown<CategoriaIncidencia>(
-                      value: _categoria,
-                      items: CategoriaIncidencia.values
-                          .map((CategoriaIncidencia c) => AppDropdownItem<CategoriaIncidencia>(
-                                value: c,
-                                label: c.displayName,
-                              ))
-                          .toList(),
-                      onChanged: (CategoriaIncidencia? v) =>
-                          setState(() => _categoria = v ?? _categoria),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSizes.spacingMedium),
-                Expanded(
-                  child: _FormField(
-                    label: 'Prioridad',
-                    child: AppDropdown<PrioridadIncidencia>(
-                      value: _prioridad,
-                      items: PrioridadIncidencia.values
-                          .map((PrioridadIncidencia p) => AppDropdownItem<PrioridadIncidencia>(
-                                value: p,
-                                label: p.displayName,
-                              ))
-                          .toList(),
-                      onChanged: (PrioridadIncidencia? v) =>
-                          setState(() => _prioridad = v ?? _prioridad),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSizes.spacingMedium),
-
-            // Estado + Fecha
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _FormField(
-                    label: 'Estado',
-                    child: AppDropdown<EstadoIncidencia>(
-                      value: _estado,
-                      items: EstadoIncidencia.values
-                          .map((EstadoIncidencia e) => AppDropdownItem<EstadoIncidencia>(
-                                value: e,
-                                label: e.displayName,
-                              ))
-                          .toList(),
-                      onChanged: (EstadoIncidencia? v) =>
-                          setState(() => _estado = v ?? _estado),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSizes.spacingMedium),
-                Expanded(
-                  child: _FormField(
-                    label: 'Fecha Incidencia',
-                    child: _DateField(
-                      value: _fechaIncidencia,
-                      onChanged: (DateTime d) =>
-                          setState(() => _fechaIncidencia = d),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSizes.spacingMedium),
-
-            // Hora
-            _FormField(
-              label: 'Hora',
-              child: InkWell(
-                onTap: () async {
-                  final TimeOfDay? picked = await showTimePicker(
-                    context: context,
-                    initialTime: _horaIncidencia,
-                  );
-                  if (picked != null) {
-                    setState(() => _horaIncidencia = picked);
-                  }
-                },
-                child: InputDecorationBuilder.build(
-                  _horaIncidencia.format(context),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSizes.spacingMedium),
-
-            // Selector de vehículo (solo si categoría == vehiculo)
-            if (_categoria == CategoriaIncidencia.vehiculo) ...<Widget>[
-              _buildVehiculoSelector(),
-              const SizedBox(height: AppSizes.spacingMedium),
-            ],
-
-            // Resolución + Fecha resolución (solo si estado resuelta/cerrada)
-            if (_estado == EstadoIncidencia.resuelta ||
-                _estado == EstadoIncidencia.cerrada) ...<Widget>[
-              _FormField(
-                label: 'Resolución',
-                child: TextFormField(
-                  controller: _resolucionController,
-                  decoration: const InputDecoration(
-                    hintText: 'Solución aplicada',
-                    isDense: true,
-                  ),
-                  maxLines: 2,
-                ),
-              ),
-              const SizedBox(height: AppSizes.spacingMedium),
-              _FormField(
-                label: 'Fecha Resolución',
-                child: _DateField(
-                  value: _fechaResolucion ?? DateTime.now(),
-                  onChanged: (DateTime d) =>
-                      setState(() => _fechaResolucion = d),
-                ),
-              ),
-              const SizedBox(height: AppSizes.spacingMedium),
-            ],
-          ],
-        ),
-      ),
-      actions: <Widget>[
-        AppButton(
-          label: 'Cancelar',
-          onPressed: () => Navigator.of(context).pop(),
-          variant: AppButtonVariant.outline,
-        ),
-        AppButton(
-          label: _isEditing ? 'Actualizar' : 'Guardar',
-          icon: _isEditing ? Icons.save : Icons.add,
-          onPressed: _isSaving ? null : _onSave,
-          isLoading: _isSaving,
+      formKey: _formKey,
+      isEditing: _isEditing,
+      isSaving: _isSaving,
+      onSave: _onSave,
+      children: <Widget>[
+        IncidenciaFormBody(
+          tituloController: _tituloController,
+          descripcionController: _descripcionController,
+          resolucionController: _resolucionController,
+          categoria: _categoria,
+          prioridad: _prioridad,
+          estado: _estado,
+          fechaIncidencia: _fechaIncidencia,
+          horaIncidencia: _horaIncidencia,
+          fechaResolucion: _fechaResolucion,
+          onCategoria: (CategoriaIncidencia? v) => setState(() => _categoria = v ?? _categoria),
+          onPrioridad: (PrioridadIncidencia? v) => setState(() => _prioridad = v ?? _prioridad),
+          onEstado: (EstadoIncidencia? v) => setState(() => _estado = v ?? _estado),
+          onFechaIncidencia: (DateTime? d) {
+            if (d != null) {
+              setState(() => _fechaIncidencia = d);
+            }
+          },
+          onHoraIncidencia: (TimeOfDay? t) {
+            if (t != null) {
+              setState(() => _horaIncidencia = t);
+            }
+          },
+          onFechaResolucion: (DateTime? d) {
+            if (d != null) {
+              setState(() => _fechaResolucion = d);
+            }
+          },
+          vehiculoSelector: _VehiculoSelector(
+            vehiculoId: _vehiculoId,
+            initialVehiculoId: _initialVehiculoId,
+            onChanged: _onVehiculo,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildVehiculoSelector() {
-    return _FormField(
-      label: 'Vehículo',
-      child: BlocBuilder<VehiculosBloc, VehiculosState>(
-        builder: (BuildContext context, VehiculosState state) {
-          final List<VehiculoEntity> vehiculos = state is VehiculosLoaded
-              ? state.vehiculos
-              : <VehiculoEntity>[];
-
-          // En edición, restaurar vehículo inicial
-          if (_initialVehiculoId != null && _vehiculoId == null) {
-            final Iterable<VehiculoEntity> match = vehiculos.where(
-              (VehiculoEntity v) => v.id == _initialVehiculoId,
-            );
-            if (match.isNotEmpty) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(() {
-                    _vehiculoId = match.first.id;
-                    _vehiculoMatricula = match.first.matricula;
-                  });
-                }
-              });
-            }
-          }
-
-          return AppSearchableDropdown<VehiculoEntity>(
-            label: 'Seleccionar vehículo',
-            value: vehiculos
-                .where((VehiculoEntity v) => v.id == _vehiculoId)
-                .firstOrNull,
-            items: vehiculos
-                .map((VehiculoEntity v) => AppSearchableDropdownItem<VehiculoEntity>(
-                      value: v,
-                      label: '${v.matricula} - ${v.marca} ${v.modelo}',
-                    ))
-                .toList(),
-            displayStringForOption: (VehiculoEntity v) =>
-                '${v.matricula} - ${v.marca} ${v.modelo}',
-            onChanged: (VehiculoEntity? v) {
-              setState(() {
-                _vehiculoId = v?.id;
-                _vehiculoMatricula = v?.matricula;
-              });
-            },
-          );
-        },
-      ),
-    );
+  void _onVehiculo(VehiculoEntity? v) {
+    if (mounted) {
+      setState(() {
+        _vehiculoId = v?.id;
+        _vehiculoMatricula = v?.matricula;
+      });
+    }
   }
 
   Future<void> _onSave() async {
@@ -390,6 +209,17 @@ class _IncidenciaFormDialogState extends State<IncidenciaFormDialog> {
       }
     } catch (e) {
       debugPrint('❌ Error al guardar incidencia: $e');
+      if (mounted) {
+        unawaited(
+          showResultDialog(
+            context: context,
+            title: 'No se pudo guardar',
+            message: 'Revisa los datos e inténtalo de nuevo.',
+            details: e.toString(),
+            type: ResultType.error,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -398,80 +228,42 @@ class _IncidenciaFormDialogState extends State<IncidenciaFormDialog> {
   }
 }
 
-/// Widget auxiliar para label + campo de formulario
-class _FormField extends StatelessWidget {
-  const _FormField({
-    required this.label,
-    required this.child,
-  });
-
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.gray700,
-          ),
-        ),
-        const SizedBox(height: 4),
-        child,
-      ],
-    );
-  }
-}
-
-/// Campo de fecha reutilizable
-class _DateField extends StatelessWidget {
-  const _DateField({
-    required this.value,
+/// Selector de vehículo (solo visible si la categoría es "vehículo")
+class _VehiculoSelector extends StatelessWidget {
+  const _VehiculoSelector({
+    required this.vehiculoId,
+    required this.initialVehiculoId,
     required this.onChanged,
   });
 
-  final DateTime value;
-  final ValueChanged<DateTime> onChanged;
+  final String? vehiculoId;
+  final String? initialVehiculoId;
+  final ValueChanged<VehiculoEntity?> onChanged;
+
+  static String _label(VehiculoEntity v) => '${v.matricula} - ${v.marca} ${v.modelo}';
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () async {
-        final DateTime? picked = await showDatePicker(
-          context: context,
-          initialDate: value,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2030),
-          locale: const Locale('es', 'ES'),
-        );
-        if (picked != null) {
-          onChanged(picked);
+    return BlocBuilder<VehiculosBloc, VehiculosState>(
+      builder: (BuildContext context, VehiculosState state) {
+        final List<VehiculoEntity> vehiculos = state is VehiculosLoaded ? state.vehiculos : <VehiculoEntity>[];
+
+        // En edición, restaurar vehículo inicial
+        if (initialVehiculoId != null && vehiculoId == null) {
+          final Iterable<VehiculoEntity> match = vehiculos.where((VehiculoEntity v) => v.id == initialVehiculoId);
+          if (match.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) => onChanged(match.first));
+          }
         }
+
+        return GestionSearchField<String>(
+          value: vehiculoId,
+          loading: state is! VehiculosLoaded,
+          hint: 'Buscar por matrícula, marca o modelo',
+          options: vehiculos.map((VehiculoEntity v) => GestionOption<String>(v.id, _label(v))).toList(),
+          onChanged: (String? id) => onChanged(vehiculos.where((VehiculoEntity v) => v.id == id).firstOrNull),
+        );
       },
-      child: InputDecorationBuilder.build(
-        '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}',
-      ),
-    );
-  }
-}
-
-/// Helper para construir InputDecorations consistentes
-class InputDecorationBuilder {
-  InputDecorationBuilder._();
-
-  static Widget build(String text) {
-    return InputDecorator(
-      decoration: const InputDecoration(
-        isDense: true,
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      ),
-      child: Text(text),
     );
   }
 }

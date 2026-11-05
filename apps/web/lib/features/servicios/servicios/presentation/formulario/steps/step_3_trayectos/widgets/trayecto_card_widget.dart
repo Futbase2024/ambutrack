@@ -1,8 +1,8 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/dropdowns/app_searchable_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/models/tipo_ubicacion.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/models/trayecto_data.dart';
 import 'package:flutter/material.dart';
@@ -73,11 +73,11 @@ class _TrayectoCardWidgetState extends State<TrayectoCardWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(color: AppColors.gray300),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.gray200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,18 +86,18 @@ class _TrayectoCardWidgetState extends State<TrayectoCardWidget> {
           Row(
             children: <Widget>[
               Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
+                width: 22,
+                height: 22,
+                decoration: const BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(6),
+                  shape: BoxShape.circle,
                 ),
                 child: Center(
                   child: Text(
                     '${widget.index + 1}',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),
                   ),
@@ -105,11 +105,12 @@ class _TrayectoCardWidgetState extends State<TrayectoCardWidget> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Trayecto ${widget.index + 1}',
-                style: GoogleFonts.inter(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimaryLight,
+                'TRAYECTO ${widget.index + 1}',
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                  color: AppColors.primary,
                 ),
               ),
               const Spacer(),
@@ -123,7 +124,7 @@ class _TrayectoCardWidgetState extends State<TrayectoCardWidget> {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           // Layout vertical: Primero títulos y botones, luego campos
           Column(
@@ -136,14 +137,7 @@ class _TrayectoCardWidgetState extends State<TrayectoCardWidget> {
                   Expanded(
                     child: Row(
                       children: <Widget>[
-                        Text(
-                          'Origen *',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimaryLight,
-                          ),
-                        ),
+                        const _CampoLabel(text: 'Origen'),
                         const SizedBox(width: 8),
                         _buildUbicacionButtons(
                           tipoActual: _trayecto.tipoOrigen,
@@ -158,14 +152,7 @@ class _TrayectoCardWidgetState extends State<TrayectoCardWidget> {
                   Expanded(
                     child: Row(
                       children: <Widget>[
-                        Text(
-                          'Destino *',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimaryLight,
-                          ),
-                        ),
+                        const _CampoLabel(text: 'Destino'),
                         const SizedBox(width: 8),
                         _buildUbicacionButtons(
                           tipoActual: _trayecto.tipoDestino,
@@ -177,16 +164,9 @@ class _TrayectoCardWidgetState extends State<TrayectoCardWidget> {
                   const SizedBox(width: 12),
 
                   // === HORA - Solo título ===
-                  SizedBox(
+                  const SizedBox(
                     width: 130,
-                    child: Text(
-                      'Hora *',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimaryLight,
-                      ),
-                    ),
+                    child: _CampoLabel(text: 'Hora'),
                   ),
                 ],
               ),
@@ -317,16 +297,11 @@ class _TrayectoCardWidgetState extends State<TrayectoCardWidget> {
     if (tipoUbicacion == TipoUbicacion.otroDomicilio) {
       return TextFormField(
         initialValue: domicilio,
-        decoration: InputDecoration(
-          hintText: 'Escribe la dirección',
-          prefixIcon: const Icon(Icons.edit_location, size: 18),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          isDense: true,
+        decoration: GestionFormStyle.decoration(
+          hint: 'Escribe la dirección',
+          suffix: const Icon(Icons.edit_location_outlined, size: 16, color: AppColors.gray500),
         ),
-        style: GoogleFonts.inter(fontSize: 13),
+        style: GestionFormStyle.text,
         onChanged: onDomicilioChanged,
         validator: (String? value) {
           if (value == null || value.isEmpty) {
@@ -340,26 +315,7 @@ class _TrayectoCardWidgetState extends State<TrayectoCardWidget> {
     // Centro hospitalario
     if (tipoUbicacion == TipoUbicacion.centroHospitalario) {
       if (widget.loadingCentros) {
-        return Container(
-          height: 48,
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppColors.gray50,
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-            border: Border.all(color: AppColors.gray300),
-          ),
-          child: const Row(
-            children: <Widget>[
-              SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-              SizedBox(width: 8),
-              Text('Cargando...', style: TextStyle(fontSize: 12)),
-            ],
-          ),
-        );
+        return const GestionFormReadOnly(value: 'Cargando centros…');
       }
 
       // Determinar si debe mostrarse el campo de ubicación en centro
@@ -519,30 +475,11 @@ class _TrayectoCardWidgetState extends State<TrayectoCardWidget> {
           // SOLO se muestra en: Hospital→Hospital o Altas (Hospital→Domicilio)
           TextFormField(
             initialValue: ubicacionEnCentro,
-            decoration: InputDecoration(
-              hintText: 'Ej: Urgencias, Hab-202, UCI... (opcional)',
-              labelText: 'Ubicación en centro (opcional)',
-              labelStyle: GoogleFonts.inter(
-                fontSize: 12,
-                color: AppColors.textSecondaryLight,
-              ),
-              prefixIcon: const Icon(Icons.room_outlined, size: 18, color: AppColors.textSecondaryLight),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                borderSide: const BorderSide(color: AppColors.gray300),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                borderSide: const BorderSide(color: AppColors.gray300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              isDense: true,
+            decoration: GestionFormStyle.decoration(
+              hint: 'Ubicación en centro: Urgencias, Hab-202, UCI… (opcional)',
+              suffix: const Icon(Icons.room_outlined, size: 16, color: AppColors.gray500),
             ),
-            style: AppTextStyles.tableCell,
+            style: GestionFormStyle.text,
             onChanged: onUbicacionEnCentroChanged,
           ),
         ],
@@ -578,17 +515,10 @@ class _TrayectoCardWidgetState extends State<TrayectoCardWidget> {
   Widget _buildHoraField() {
     return TextFormField(
       controller: _trayecto.horaController ?? (_trayecto.horaController = TextEditingController()),
-      decoration: InputDecoration(
-        hintText: 'HHMM',
-        prefixIcon: const Icon(Icons.access_time, size: 18),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 10,
-        ),
-        isDense: true,
+      style: GestionFormStyle.text,
+      decoration: GestionFormStyle.decoration(
+        hint: 'HHMM',
+        suffix: const Icon(Icons.schedule, size: 16, color: AppColors.gray500),
       ),
       keyboardType: TextInputType.number,
       inputFormatters: <TextInputFormatter>[
@@ -884,6 +814,26 @@ class _UbicacionOptionButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Etiqueta de campo obligatoria con el estilo de los formularios de gestión
+class _CampoLabel extends StatelessWidget {
+  const _CampoLabel({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        text: text,
+        children: const <InlineSpan>[
+          TextSpan(text: ' *', style: TextStyle(color: AppColors.error)),
+        ],
+      ),
+      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: AppColors.gray600),
     );
   }
 }

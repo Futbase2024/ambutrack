@@ -1,6 +1,5 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
-import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
 import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart';
@@ -115,118 +114,35 @@ class _TallerFormDialogState extends State<TallerFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return TallerFormDialogShell(
+    return GestionFormDialog(
+      title: _isEditing ? 'Editar taller' : 'Nuevo taller',
+      subtitle: _isEditing ? widget.taller!.nombre : null,
+      icon: Icons.construction,
       formKey: _formKey,
-      header: TallerFormHeader(
-        icon: Icons.construction,
-        color: AppColors.warning,
-        title: _isEditing ? 'Editar Taller' : 'Nuevo Taller',
-        subtitle: _isEditing ? 'Modifica los datos del taller' : 'Registra un nuevo taller mecánico',
-      ),
-      fields: _TallerFormFields(
-        nombreController: _nombreController,
-        nifController: _nifController,
-        especialidadController: _especialidadController,
-        contacto: _contacto,
-        tipo: _tipo,
-        activo: _activo,
-        onTipoChanged: (TipoTaller value) => setState(() => _tipo = value),
-        onActivoChanged: (bool value) => setState(() => _activo = value),
-      ),
-      actions: TallerFormActions(isSaving: _isSaving, isEditing: _isEditing, onSave: _onSave),
-    );
-  }
-}
-
-class _TallerFormFields extends StatelessWidget {
-  const _TallerFormFields({
-    required this.nombreController,
-    required this.nifController,
-    required this.especialidadController,
-    required this.contacto,
-    required this.tipo,
-    required this.activo,
-    required this.onTipoChanged,
-    required this.onActivoChanged,
-  });
-
-  final TextEditingController nombreController;
-  final TextEditingController nifController;
-  final TextEditingController especialidadController;
-  final DatosContactoControllers contacto;
-  final TipoTaller tipo;
-  final bool activo;
-  final ValueChanged<TipoTaller> onTipoChanged;
-  final ValueChanged<bool> onActivoChanged;
-
-  static const SizedBox _hGap = SizedBox(width: AppSizes.spacingMedium);
-  static const SizedBox _vGap = SizedBox(height: AppSizes.spacingMedium);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      isEditing: _isEditing,
+      isSaving: _isSaving,
+      onSave: _onSave,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              flex: 3,
-              child: TallerFormField(
-                controller: nombreController,
-                label: 'Nombre *',
-                hint: 'Taller Mecánico García S.L.',
-                icon: Icons.business,
-                isRequired: true,
-              ),
-            ),
-            _hGap,
-            Expanded(
-              flex: 2,
-              child: TallerFormField(
-                controller: nifController,
-                label: 'NIF/CIF',
-                hint: 'B12345678',
-                icon: Icons.badge_outlined,
-              ),
-            ),
-          ],
+        const GestionFormSection(title: 'Datos generales', first: true),
+        TallerDatosGeneralesFields<TipoTaller>(
+          nombre: _nombreController,
+          nombreHint: 'Taller Mecánico García S.L.',
+          nif: _nifController,
+          tipo: _tipo,
+          tipos: gestionOptionsOf<TipoTaller>(TipoTaller.values, (TipoTaller t) => t.displayName),
+          tipoLabel: 'Tipo',
+          onTipoChanged: (TipoTaller value) => setState(() => _tipo = value),
+          extra: _especialidadController,
+          extraLabel: 'Especialidad',
+          extraHint: 'Mecánica general',
+          activo: _activo,
+          activoText: 'Taller operativo',
+          onActivoChanged: (bool value) => setState(() => _activo = value),
         ),
-        _vGap,
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: TallerTipoDropdown<TipoTaller>(
-                label: 'Tipo de taller *',
-                value: tipo,
-                values: TipoTaller.values,
-                labelOf: (TipoTaller t) => t.displayName,
-                onChanged: onTipoChanged,
-              ),
-            ),
-            _hGap,
-            Expanded(
-              child: TallerFormField(
-                controller: especialidadController,
-                label: 'Especialidad',
-                hint: 'Mecánica general',
-                icon: Icons.build_outlined,
-              ),
-            ),
-          ],
-        ),
-        _vGap,
         DatosContactoFields(
-          controllers: contacto,
+          controllers: _contacto,
           emailHint: 'taller@ejemplo.com',
           contactoHint: 'Juan García',
-        ),
-        _vGap,
-        TallerActivoSwitch(
-          value: activo,
-          title: 'Taller activo',
-          activeText: 'El taller está operativo',
-          inactiveText: 'El taller está inactivo',
-          onChanged: onActivoChanged,
         ),
       ],
     );

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
@@ -94,19 +95,6 @@ class _OrdenFormDialogState extends State<OrdenFormDialog> {
     super.dispose();
   }
 
-  Future<void> _pickFecha() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _fechaEntrada,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      locale: const Locale('es', 'ES'),
-    );
-    if (picked != null) {
-      setState(() => _fechaEntrada = picked);
-    }
-  }
-
   String _empresaId() {
     final AuthState authState = context.read<AuthBloc>().state;
     return authState is AuthAuthenticated ? (authState.user.empresaId ?? _empresaFallback) : _empresaFallback;
@@ -152,7 +140,7 @@ class _OrdenFormDialogState extends State<OrdenFormDialog> {
   }
 
   void _onSave() {
-    if (!_formKey.currentState!.validate()) {
+    if (_loadingCatalogos || !_formKey.currentState!.validate()) {
       return;
     }
     setState(() => _isSaving = true);
@@ -213,7 +201,7 @@ class _OrdenFormDialogState extends State<OrdenFormDialog> {
     onTaller: (String? v) => setState(() => _tallerId = v),
     onOrigen: (OrigenOrdenReparacion v) => setState(() => _origen = v),
     onPrioridad: (PrioridadOrdenReparacion v) => setState(() => _prioridad = v),
-    onPickFecha: _pickFecha,
+    onFecha: (DateTime v) => setState(() => _fechaEntrada = v),
     onSeguro: (bool v) => setState(() => _cubiertoSeguro = v),
   );
 
@@ -221,29 +209,30 @@ class _OrdenFormDialogState extends State<OrdenFormDialog> {
   Widget build(BuildContext context) {
     return BlocListener<OrdenReparacionBloc, OrdenReparacionState>(
       listener: _onBlocResult,
-      child: TallerFormDialogShell(
+      child: GestionFormDialog(
+        title: _isEditing ? 'Editar orden de reparación' : 'Nueva orden de reparación',
+        subtitle: _isEditing ? widget.orden!.numeroOrden : null,
+        icon: Icons.build_outlined,
         formKey: _formKey,
-        maxWidth: 820,
-        header: TallerFormHeader(
-          icon: Icons.build,
-          color: AppColors.primary,
-          title: _isEditing ? 'Editar Orden ${widget.orden!.numeroOrden}' : 'Nueva Orden de Reparación',
-          subtitle: _isEditing ? 'Modifica los datos de la orden' : 'Registra la entrada de un vehículo en el taller',
-        ),
-        fields: _loadingCatalogos
-            ? const Padding(
-                padding: EdgeInsets.all(32),
-                child: AppLoadingIndicator(message: 'Cargando vehículos y talleres...'),
-              )
-            : OrdenFormFields(
-                controllers: _c,
-                isEditing: _isEditing,
-                vehiculos: _vehiculos,
-                talleres: _talleres,
-                selection: _selection,
-                callbacks: _callbacks,
-              ),
-        actions: TallerFormActions(isSaving: _isSaving || _loadingCatalogos, isEditing: _isEditing, onSave: _onSave),
+        isEditing: _isEditing,
+        isSaving: _isSaving,
+        onSave: _onSave,
+        children: <Widget>[
+          if (_loadingCatalogos)
+            const Padding(
+              padding: EdgeInsets.all(32),
+              child: AppLoadingIndicator(message: 'Cargando vehículos y talleres...'),
+            )
+          else
+            OrdenFormFields(
+              controllers: _c,
+              isEditing: _isEditing,
+              vehiculos: _vehiculos,
+              talleres: _talleres,
+              selection: _selection,
+              callbacks: _callbacks,
+            ),
+        ],
       ),
     );
   }

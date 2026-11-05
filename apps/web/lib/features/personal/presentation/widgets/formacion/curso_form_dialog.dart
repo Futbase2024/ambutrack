@@ -3,7 +3,9 @@ import 'dart:math';
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
+import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
+import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/features/personal/domain/repositories/certificacion_repository.dart';
 import 'package:ambutrack_web/features/personal/domain/repositories/curso_repository.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +37,12 @@ class _CursoFormDialogState extends State<CursoFormDialog> {
 
   bool get _isEditing => widget.item != null;
 
+  static const List<GestionOption<String>> _tipos = <GestionOption<String>>[
+    GestionOption<String>('presencial', 'Presencial', color: AppColors.primary),
+    GestionOption<String>('online', 'Online', color: AppColors.info),
+    GestionOption<String>('mixto', 'Mixto', color: AppColors.secondary),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +61,9 @@ class _CursoFormDialogState extends State<CursoFormDialog> {
   Future<void> _loadCertificaciones() async {
     try {
       final List<CertificacionEntity> certificaciones = await getIt<CertificacionRepository>().getActivas();
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _certificaciones.addAll(certificaciones);
       });
@@ -69,181 +80,104 @@ class _CursoFormDialogState extends State<CursoFormDialog> {
     super.dispose();
   }
 
+  void _toggleCertificacion(String id, bool value) {
+    setState(() {
+      if (value) {
+        _certificacionesSeleccionadas.add(id);
+      } else {
+        _certificacionesSeleccionadas.remove(id);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AppDialog(
-      title: _isEditing ? 'Editar Curso' : 'Nuevo Curso',
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              // Nombre
-              TextFormField(
-                controller: _nombreController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre del Curso *',
-                  hintText: 'Ej: Curso TES Avanzado 2024',
-                  border: OutlineInputBorder(),
-                ),
-                textCapitalization: TextCapitalization.words,
-                validator: (String? value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Ingresa el nombre del curso';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Descripción
-              TextFormField(
-                controller: _descripcionController,
-                decoration: const InputDecoration(
-                  labelText: 'Descripción',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-                textCapitalization: TextCapitalization.sentences,
-              ),
-              const SizedBox(height: 16),
-
-              // Tipo de curso
-              DropdownButtonFormField<String>(
-                initialValue: _tipoCurso,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo de Curso *',
-                  border: OutlineInputBorder(),
-                ),
-                items: const <DropdownMenuItem<String>>[
-                  DropdownMenuItem<String>(
-                    value: 'presencial',
-                    child: Text('Presencial'),
-                  ),
-                  DropdownMenuItem<String>(
-                    value: 'online',
-                    child: Text('Online'),
-                  ),
-                  DropdownMenuItem<String>(
-                    value: 'mixto',
-                    child: Text('Mixto'),
-                  ),
-                ],
+    return GestionFormDialog(
+      title: _isEditing ? 'Editar curso' : 'Nuevo curso',
+      subtitle: _isEditing ? widget.item!.nombre : null,
+      icon: Icons.school_outlined,
+      formKey: _formKey,
+      isEditing: _isEditing,
+      isSaving: _isSaving,
+      onSave: _saveCurso,
+      children: <Widget>[
+        const GestionFormSection(title: 'Datos del curso', first: true),
+        GestionFormRow(
+          label: 'Nombre',
+          required: true,
+          child: GestionTextField(
+            controller: _nombreController,
+            hint: 'Ej: Curso TES Avanzado 2024',
+            validator: (String? value) =>
+                (value == null || value.isEmpty) ? 'Ingresa el nombre del curso' : null,
+          ),
+        ),
+        GestionFormColumns(
+          children: <Widget>[
+            GestionFormRow(
+              label: 'Tipo',
+              required: true,
+              child: GestionDropdownField<String>(
+                value: _tipoCurso,
+                options: _tipos,
+                required: true,
                 onChanged: (String? value) {
                   if (value != null) {
-                    setState(() {
-                      _tipoCurso = value;
-                    });
+                    setState(() => _tipoCurso = value);
                   }
-                },
-                validator: (String? value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Selecciona el tipo';
-                  }
-                  return null;
                 },
               ),
-              const SizedBox(height: 16),
-
-              // Duración
-              TextFormField(
+            ),
+            GestionFormRow(
+              label: 'Duración',
+              required: true,
+              child: GestionTextField(
                 controller: _duracionHorasController,
-                decoration: const InputDecoration(
-                  labelText: 'Duración *',
-                  border: OutlineInputBorder(),
-                  suffixText: 'horas',
-                ),
+                hint: '0',
+                suffixText: 'horas',
+                textAlign: TextAlign.end,
                 keyboardType: TextInputType.number,
-                inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
-                validator: (String? value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Requerido';
-                  }
-                  final int? horas = int.tryParse(value);
-                  if (horas == null || horas < 1) {
-                    return 'Mínimo 1 hora';
-                  }
-                  return null;
-                },
+                inputFormatters: <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly],
+                validator: _validarDuracion,
               ),
-              const SizedBox(height: 16),
-
-              // Certificaciones que otorga
-              if (_certificaciones.isNotEmpty)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const Text(
-                      'Certificaciones que otorga:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ..._certificaciones.map((CertificacionEntity cert) {
-                      return CheckboxListTile(
-                        title: Text('${cert.codigo} - ${cert.nombre}'),
-                        value: _certificacionesSeleccionadas.contains(cert.id),
-                        onChanged: (bool? value) {
-                          setState(() {
-                            if (value == true) {
-                              _certificacionesSeleccionadas.add(cert.id);
-                            } else {
-                              _certificacionesSeleccionadas.remove(cert.id);
-                            }
-                          });
-                        },
-                        controlAffinity: ListTileControlAffinity.leading,
-                        contentPadding: EdgeInsets.zero,
-                      );
-                    }),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-
-              // Activo
-              SwitchListTile(
-                title: const Text('Curso Activo'),
-                subtitle: const Text('Los inactivos no se muestran en los formularios'),
-                value: _isActive,
-                onChanged: (bool value) {
-                  setState(() {
-                    _isActive = value;
-                  });
-                },
-              ),
-            ],
+            ),
+          ],
+        ),
+        GestionFormRow(
+          label: 'Descripción',
+          multiline: true,
+          child: GestionTextField(controller: _descripcionController, maxLines: 3),
+        ),
+        GestionFormRow(
+          label: 'Estado',
+          child: GestionSwitchField(
+            value: _isActive,
+            text: _isActive ? 'Activo' : 'Inactivo (no se muestra en los formularios)',
+            onChanged: (bool value) => setState(() => _isActive = value),
           ),
         ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        ElevatedButton(
-          onPressed: _isSaving ? null : _saveCurso,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-          ),
-          child: _isSaving
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Text('Guardar'),
-        ),
+        if (_certificaciones.isNotEmpty) ...<Widget>[
+          const GestionFormSection(title: 'Certificaciones que otorga'),
+          for (final CertificacionEntity cert in _certificaciones)
+            GestionCheckField(
+              value: _certificacionesSeleccionadas.contains(cert.id),
+              text: '${cert.codigo} - ${cert.nombre}',
+              onChanged: (bool value) => _toggleCertificacion(cert.id, value),
+            ),
+        ],
       ],
     );
+  }
+
+  static String? _validarDuracion(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Requerido';
+    }
+    final int? horas = int.tryParse(value);
+    if (horas == null || horas < 1) {
+      return 'Mínimo 1 hora';
+    }
+    return null;
   }
 
   Future<void> _saveCurso() async {
@@ -277,20 +211,28 @@ class _CursoFormDialogState extends State<CursoFormDialog> {
       }
 
       if (mounted) {
-        Navigator.of(context).pop(true);
+        await CrudOperationHandler.handleSuccess(
+          context: context,
+          isSaving: false,
+          isEditing: _isEditing,
+          entityName: 'Curso',
+        );
       }
     } catch (e) {
+      debugPrint('❌ CursoFormDialog: $e');
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _isSaving = false;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      await showResultDialog(
+        context: context,
+        title: 'Error al Guardar',
+        message: _isEditing ? 'No se pudo actualizar el curso.' : 'No se pudo crear el curso.',
+        details: e.toString(),
+        type: ResultType.error,
+      );
     }
   }
 

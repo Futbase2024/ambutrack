@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../../../core/theme/app_colors.dart';
 import '../../../../../../../core/theme/app_sizes.dart';
+import '../../../../../../../core/widgets/gestion/form/gestion_form.dart';
 import '../../../../../domain/entities/configuracion_dia.dart';
 import '../../../../../domain/entities/configuracion_modalidad.dart';
 import 'widgets/config_dias_alternos_tabla.dart';
@@ -53,12 +54,13 @@ class _Step2ModalidadState extends State<Step2Modalidad> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            const GestionFormSection(title: 'Modalidad del servicio', first: true),
+
             // Selector de tipo de recurrencia
             RecurrenceSelector(
               tipoSeleccionado: widget.tipoRecurrencia,
               onTipoChanged: widget.onTipoRecurrenciaChanged,
             ),
-            const SizedBox(height: AppSizes.spacingLarge),
 
             // Info del motivo de traslado (tiempo espera)
             _InfoTiempoEsperaWidget(
@@ -66,7 +68,8 @@ class _Step2ModalidadState extends State<Step2Modalidad> {
               tiempoEspera: _tiempoEspera,
               mostrarColumnaVuelta: _mostrarColumnaVuelta,
             ),
-            const SizedBox(height: AppSizes.spacingLarge),
+
+            const GestionFormSection(title: 'Configuración de días'),
 
             // Configuración específica según tipo
             Builder(
@@ -104,10 +107,10 @@ class _InfoTiempoEsperaWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: AppColors.info.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+        color: AppColors.info.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: AppColors.info.withValues(alpha: 0.3),
         ),
@@ -116,17 +119,17 @@ class _InfoTiempoEsperaWidget extends StatelessWidget {
         children: <Widget>[
           const Icon(
             Icons.info_outline,
-            size: 20,
+            size: 16,
             color: AppColors.info,
           ),
-          const SizedBox(width: AppSizes.spacingSmall),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Servicio: ${motivoTraslado.nombre} • '
               'Tiempo de espera: $tiempoEspera min • '
               '${mostrarColumnaVuelta ? "Con vuelta" : "Sin vuelta"}',
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 12.5,
                 color: AppColors.info,
                 fontWeight: FontWeight.w500,
               ),

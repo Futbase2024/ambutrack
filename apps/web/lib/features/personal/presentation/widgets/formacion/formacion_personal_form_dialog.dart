@@ -2,14 +2,15 @@ import 'dart:math';
 
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
-import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
+import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
+import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
+import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/personal/domain/repositories/certificacion_repository.dart';
 import 'package:ambutrack_web/features/personal/domain/repositories/curso_repository.dart';
 import 'package:ambutrack_web/features/personal/domain/repositories/formacion_personal_repository.dart';
+import 'package:ambutrack_web/features/personal/presentation/widgets/form/formacion_personal_form_body.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 
 /// Diálogo para crear/editar formación personal
 class FormacionPersonalFormDialog extends StatefulWidget {
@@ -71,6 +72,9 @@ class _FormacionPersonalFormDialogState extends State<FormacionPersonalFormDialo
         getIt<UsersDataSource>().getAll(),
       ]);
 
+      if (!mounted) {
+        return;
+      }
       setState(() {
         if (results[0] is List<CertificacionEntity>) {
           _certificaciones.addAll(results[0] as List<CertificacionEntity>);
@@ -81,20 +85,24 @@ class _FormacionPersonalFormDialogState extends State<FormacionPersonalFormDialo
         if (results[2] is List<UserEntity>) {
           _usuarios.addAll(results[2] as List<UserEntity>);
         }
+        _preseleccionarEdicion();
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('❌ FormacionPersonalFormDialog: error al cargar datos: $e');
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _isLoading = false;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cargar datos: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      await showResultDialog(
+        context: context,
+        title: 'Error al cargar datos',
+        message: 'No se pudieron cargar empleados, certificaciones o cursos.',
+        details: e.toString(),
+        type: ResultType.error,
+      );
     }
   }
 
@@ -106,314 +114,123 @@ class _FormacionPersonalFormDialogState extends State<FormacionPersonalFormDialo
     super.dispose();
   }
 
+  /// En edición, preselecciona empleado, certificación y curso guardados
+  void _preseleccionarEdicion() {
+    if (!_isEditing) {
+      return;
+    }
+    final FormacionPersonalEntity item = widget.item!;
+    _usuarioSeleccionado = _usuarios.where((UserEntity u) => u.id == item.personalId).firstOrNull;
+    _certificacionSeleccionada =
+        _certificaciones.where((CertificacionEntity c) => c.id == item.certificacionId).firstOrNull;
+    if (_certificacionSeleccionada == null) {
+      _cursoSeleccionado = _cursos.where((CursoEntity c) => c.id == item.cursoId).firstOrNull;
+    }
+  }
+
+  void _onUsuarioChanged(String? id) {
+    setState(() {
+      _usuarioSeleccionado = _usuarios.where((UserEntity u) => u.id == id).firstOrNull;
+      _personalIdController.text = _usuarioSeleccionado?.id ?? '';
+    });
+  }
+
+  void _onCertificacionChanged(String? id) {
+    setState(() {
+      _certificacionSeleccionada = _certificaciones.where((CertificacionEntity c) => c.id == id).firstOrNull;
+      _cursoSeleccionado = null;
+    });
+  }
+
+  void _onCursoChanged(String? id) {
+    setState(() {
+      _cursoSeleccionado = _cursos.where((CursoEntity c) => c.id == id).firstOrNull;
+      _certificacionSeleccionada = null;
+    });
+  }
+
+  void _onFechaInicioChanged(DateTime? picked) {
+    if (picked == null) {
+      return;
+    }
+    setState(() {
+      _fechaInicio = picked;
+      // Auto-calcular fecha de expiración si es certificación
+      if (_certificacionSeleccionada != null && _fechaExpiracion == null) {
+        _fechaExpiracion = picked.add(
+          Duration(days: _certificacionSeleccionada!.vigenciaMeses * 30),
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AppDialog(
-      title: _isEditing ? 'Editar Formación' : 'Nueva Formación',
-      content: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : Form(
-              key: _formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    // Personal
-                    DropdownButtonFormField<UserEntity>(
-                      initialValue: _usuarioSeleccionado,
-                      decoration: const InputDecoration(
-                        labelText: 'Empleado *',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: _usuarios
-                          .map<DropdownMenuItem<UserEntity>>((UserEntity usuario) {
-                        return DropdownMenuItem<UserEntity>(
-                          value: usuario,
-                          child: Text(usuario.displayName ?? usuario.email),
-                        );
-                      }).toList(),
-                      onChanged: (UserEntity? value) {
-                        setState(() {
-                          _usuarioSeleccionado = value;
-                          _personalIdController.text = value?.id ?? '';
-                        });
-                      },
-                      validator: (UserEntity? value) {
-                        if (value == null) {
-                          return 'Selecciona un empleado';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Tipo de formación
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: RadioListTile<String>(
-                            title: const Text('Certificación'),
-                            value: 'certificacion',
-                            // ignore: deprecated_member_use
-                            groupValue: _certificacionSeleccionada != null ? 'certificacion' : 'curso',
-                            // ignore: deprecated_member_use
-                            onChanged: (String? value) {
-                              if (value != null) {
-                                setState(() {
-                                  _certificacionSeleccionada = null;
-                                  _cursoSeleccionado = null;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                        Expanded(
-                          child: RadioListTile<String>(
-                            title: const Text('Curso'),
-                            value: 'curso',
-                            // ignore: deprecated_member_use
-                            groupValue: _cursoSeleccionado != null ? 'curso' : 'certificacion',
-                            // ignore: deprecated_member_use
-                            onChanged: (String? value) {
-                              if (value != null) {
-                                setState(() {
-                                  _cursoSeleccionado = null;
-                                  _certificacionSeleccionada = null;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Certificación
-                    if (_certificacionSeleccionada != null || _cursoSeleccionado == null)
-                      DropdownButtonFormField<CertificacionEntity>(
-                        initialValue: _certificacionSeleccionada,
-                        decoration: const InputDecoration(
-                          labelText: 'Certificación *',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: _certificaciones
-                            .map<DropdownMenuItem<CertificacionEntity>>((CertificacionEntity cert) {
-                          return DropdownMenuItem<CertificacionEntity>(
-                            value: cert,
-                            child: Text('${cert.codigo} - ${cert.nombre}'),
-                          );
-                        }).toList(),
-                        onChanged: (CertificacionEntity? value) {
-                          setState(() {
-                            _certificacionSeleccionada = value;
-                            _cursoSeleccionado = null;
-                          });
-                        },
-                      ),
-                    const SizedBox(height: 16),
-
-                    // Curso
-                    if (_cursoSeleccionado != null || _certificacionSeleccionada == null)
-                      DropdownButtonFormField<CursoEntity>(
-                        initialValue: _cursoSeleccionado,
-                        decoration: const InputDecoration(
-                          labelText: 'Curso *',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: _cursos.map<DropdownMenuItem<CursoEntity>>((CursoEntity curso) {
-                          return DropdownMenuItem<CursoEntity>(
-                            value: curso,
-                            child: Text(curso.nombre),
-                          );
-                        }).toList(),
-                        onChanged: (CursoEntity? value) {
-                          setState(() {
-                            _cursoSeleccionado = value;
-                            _certificacionSeleccionada = null;
-                          });
-                        },
-                      ),
-                    const SizedBox(height: 16),
-
-                    // Fechas
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: InkWell(
-                            onTap: () async {
-                              final DateTime? picked = await showDatePicker(
-                                context: context,
-                                initialDate: _fechaInicio ?? DateTime.now(),
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime(2030),
-                              );
-                              if (picked != null) {
-                                setState(() {
-                                  _fechaInicio = picked;
-                                  // Auto-calcular fecha de expiración si es certificación
-                                  if (_certificacionSeleccionada != null && _fechaExpiracion == null) {
-                                    _fechaExpiracion = picked.add(
-                                      Duration(days: _certificacionSeleccionada!.vigenciaMeses * 30),
-                                    );
-                                  }
-                                });
-                              }
-                            },
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Fecha Inicio *',
-                                border: OutlineInputBorder(),
-                                suffixIcon: Icon(Icons.calendar_today),
-                              ),
-                              child: Text(
-                                _fechaInicio != null
-                                    ? DateFormat('dd/MM/yyyy').format(_fechaInicio!)
-                                    : 'Selecciona fecha',
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () async {
-                              final DateTime? picked = await showDatePicker(
-                                context: context,
-                                initialDate: _fechaFin ?? DateTime.now(),
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime(2030),
-                              );
-                              if (picked != null) {
-                                setState(() {
-                                  _fechaFin = picked;
-                                });
-                              }
-                            },
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Fecha Fin *',
-                                border: OutlineInputBorder(),
-                                suffixIcon: Icon(Icons.calendar_today),
-                              ),
-                              child: Text(
-                                _fechaFin != null
-                                    ? DateFormat('dd/MM/yyyy').format(_fechaFin!)
-                                    : 'Selecciona fecha',
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    InkWell(
-                      onTap: () async {
-                        final DateTime? picked = await showDatePicker(
-                          context: context,
-                          initialDate: _fechaExpiracion ?? DateTime.now(),
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2030),
-                        );
-                        if (picked != null) {
-                          setState(() {
-                            _fechaExpiracion = picked;
-                          });
-                        }
-                      },
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Fecha Expiración *',
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today),
-                        ),
-                        child: Text(
-                          _fechaExpiracion != null
-                              ? DateFormat('dd/MM/yyyy').format(_fechaExpiracion!)
-                              : 'Selecciona fecha',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Horas acumuladas
-                    TextFormField(
-                      controller: _horasAcumuladasController,
-                      decoration: const InputDecoration(
-                        labelText: 'Horas Acumuladas',
-                        border: OutlineInputBorder(),
-                        suffixIcon: Text('horas'),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: <TextInputFormatter>[
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Observaciones
-                    TextFormField(
-                      controller: _observacionesController,
-                      decoration: const InputDecoration(
-                        labelText: 'Observaciones',
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 3,
-                    ),
-                  ],
-                ),
+    return GestionFormDialog(
+      title: _isEditing ? 'Editar formación' : 'Nueva formación',
+      subtitle: _isEditing && _usuarioSeleccionado != null
+          ? (_usuarioSeleccionado!.displayName ?? _usuarioSeleccionado!.email)
+          : null,
+      icon: Icons.school_outlined,
+      formKey: _formKey,
+      isEditing: _isEditing,
+      isSaving: _isSaving,
+      onSave: _saveFormacion,
+      children: _isLoading
+          ? const <Widget>[AppLoadingIndicator(message: 'Cargando datos...', size: 100)]
+          : <Widget>[
+              FormacionPersonalFormBody(
+                usuarios: _usuarios,
+                certificaciones: _certificaciones,
+                cursos: _cursos,
+                usuario: _usuarioSeleccionado,
+                certificacion: _certificacionSeleccionada,
+                curso: _cursoSeleccionado,
+                fechaInicio: _fechaInicio,
+                fechaFin: _fechaFin,
+                fechaExpiracion: _fechaExpiracion,
+                horas: _horasAcumuladasController,
+                observaciones: _observacionesController,
+                onUsuarioChanged: _onUsuarioChanged,
+                onCertificacionChanged: _onCertificacionChanged,
+                onCursoChanged: _onCursoChanged,
+                onFechaInicioChanged: _onFechaInicioChanged,
+                onFechaFinChanged: (DateTime? v) {
+                  if (v != null) {
+                    setState(() => _fechaFin = v);
+                  }
+                },
+                onFechaExpiracionChanged: (DateTime? v) {
+                  if (v != null) {
+                    setState(() => _fechaExpiracion = v);
+                  }
+                },
               ),
-            ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        ElevatedButton(
-          onPressed: _isSaving ? null : _saveFormacion,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-          ),
-          child: _isSaving
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Text('Guardar'),
-        ),
-      ],
+            ],
     );
   }
 
   Future<void> _saveFormacion() async {
-    if (!_formKey.currentState!.validate()) {
+    if (_isLoading || !_formKey.currentState!.validate()) {
       return;
     }
 
     // Validar que se haya seleccionado certificación o curso
     if (_certificacionSeleccionada == null && _cursoSeleccionado == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecciona una certificación o un curso'),
-          backgroundColor: AppColors.error,
-        ),
+      await CrudOperationHandler.handleWarning(
+        context: context,
+        title: 'Formación requerida',
+        message: 'Selecciona una certificación o un curso',
       );
       return;
     }
 
     // Validar fechas
     if (_fechaInicio == null || _fechaFin == null || _fechaExpiracion == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Completa todas las fechas'),
-          backgroundColor: AppColors.error,
-        ),
+      await CrudOperationHandler.handleWarning(
+        context: context,
+        title: 'Fechas incompletas',
+        message: 'Completa todas las fechas',
       );
       return;
     }
@@ -447,20 +264,29 @@ class _FormacionPersonalFormDialogState extends State<FormacionPersonalFormDialo
       }
 
       if (mounted) {
-        Navigator.of(context).pop(true); // true indica que se guardó correctamente
+        // Cierra con true (se guardó correctamente) y muestra el resultado
+        await CrudOperationHandler.handleSuccess(
+          context: context,
+          isSaving: false,
+          isEditing: _isEditing,
+          entityName: 'Formación',
+        );
       }
     } catch (e) {
+      debugPrint('❌ FormacionPersonalFormDialog: $e');
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _isSaving = false;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      await showResultDialog(
+        context: context,
+        title: 'Error al Guardar',
+        message: _isEditing ? 'No se pudo actualizar la formación.' : 'No se pudo crear la formación.',
+        details: e.toString(),
+        type: ResultType.error,
+      );
     }
   }
 

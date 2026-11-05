@@ -1,23 +1,22 @@
+import 'dart:async';
+
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_searchable_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
+import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
+import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/bloc/mantenimiento_bloc.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/bloc/mantenimiento_event.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/bloc/mantenimiento_state.dart';
-import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart';
-import 'package:ambutrack_web/features/taller/presentation/bloc/taller_state.dart';
+import 'package:ambutrack_web/features/mantenimiento/presentation/widgets/form/mantenimiento_edit_form_body.dart';
+import 'package:ambutrack_web/features/mantenimiento/presentation/widgets/form/mantenimiento_form_data.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Diálogo para editar un mantenimiento existente
+///
+/// Requiere en el contexto: MantenimientoBloc y TallerBloc.
 class MantenimientoEditDialog extends StatefulWidget {
   const MantenimientoEditDialog({
     required this.mantenimiento,
@@ -32,631 +31,106 @@ class MantenimientoEditDialog extends StatefulWidget {
 
 class _MantenimientoEditDialogState extends State<MantenimientoEditDialog> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-  late DateTime _fecha;
-  late DateTime? _fechaProgramada;
-  late DateTime? _fechaInicio;
-  late DateTime? _fechaFin;
-  late TextEditingController _kmVehiculoController;
-  late TextEditingController _descripcionController;
-  late TextEditingController _trabajosRealizadosController;
-  TallerEntity? _tallerSeleccionado;
-  late TextEditingController _mecanicoController;
-  late TextEditingController _numeroOrdenController;
-  late TextEditingController _costoManoObraController;
-  late TextEditingController _costoRepuestosController;
-  late TextEditingController _costoTotalController;
-  late TextEditingController _tiempoInoperativoController;
-  late TextEditingController _proximoKmController;
-  late DateTime? _proximaFechaSugerida;
-  late TipoMantenimiento _tipoMantenimiento;
-  late EstadoMantenimiento _estado;
+  late final MantenimientoEditFormData _data = MantenimientoEditFormData(widget.mantenimiento);
   bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    _initializeFields();
-  }
-
-  void _initializeFields() {
-    _fecha = widget.mantenimiento.fecha;
-    _fechaProgramada = widget.mantenimiento.fechaProgramada;
-    _fechaInicio = widget.mantenimiento.fechaInicio;
-    _fechaFin = widget.mantenimiento.fechaFin;
-    _proximaFechaSugerida = widget.mantenimiento.proximaFechaSugerida;
-    _tipoMantenimiento = widget.mantenimiento.tipoMantenimiento;
-    _estado = widget.mantenimiento.estado;
-
-    _kmVehiculoController = TextEditingController(
-      text: widget.mantenimiento.kmVehiculo.toString(),
-    );
-    _descripcionController = TextEditingController(
-      text: widget.mantenimiento.descripcion,
-    );
-    _trabajosRealizadosController = TextEditingController(
-      text: widget.mantenimiento.trabajosRealizados ?? '',
-    );
-    // _tallerSeleccionado se resolverá cuando TallerBloc cargue los datos
-    _mecanicoController = TextEditingController(
-      text: widget.mantenimiento.mecanicoResponsable ?? '',
-    );
-    _numeroOrdenController = TextEditingController(
-      text: widget.mantenimiento.numeroOrden ?? '',
-    );
-    _costoManoObraController = TextEditingController(
-      text: widget.mantenimiento.costoManoObra?.toStringAsFixed(2) ?? '',
-    );
-    _costoRepuestosController = TextEditingController(
-      text: widget.mantenimiento.costoRepuestos?.toStringAsFixed(2) ?? '',
-    );
-    _costoTotalController = TextEditingController(
-      text: widget.mantenimiento.costoTotal.toStringAsFixed(2),
-    );
-    _tiempoInoperativoController = TextEditingController(
-      text: widget.mantenimiento.tiempoInoperativoHoras?.toString() ?? '',
-    );
-    _proximoKmController = TextEditingController(
-      text: widget.mantenimiento.proximoKmSugerido?.toString() ?? '',
-    );
-  }
-
-  @override
   void dispose() {
-    _kmVehiculoController.dispose();
-    _descripcionController.dispose();
-    _trabajosRealizadosController.dispose();
-    _mecanicoController.dispose();
-    _numeroOrdenController.dispose();
-    _costoManoObraController.dispose();
-    _costoRepuestosController.dispose();
-    _costoTotalController.dispose();
-    _tiempoInoperativoController.dispose();
-    _proximoKmController.dispose();
+    _data.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<MantenimientoBloc, MantenimientoState>(
-      listener: (BuildContext context, MantenimientoState state) {
-        if (state is MantenimientoError) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${state.message}'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-
-        if (state is MantenimientoLoaded && _isLoading) {
-          setState(() => _isLoading = false);
-          Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Mantenimiento actualizado correctamente'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-        }
-      },
-      child: AppDialog(
-        title: 'Editar Mantenimiento\nID: ${widget.mantenimiento.id.substring(0, 12)}...',
-        icon: Icons.edit,
-        maxWidth: 900,
-        type: AppDialogType.edit,
-        content: Form(
-          key: _formKey,
-          child: _buildForm(),
-        ),
-        actions: <Widget>[
-          AppButton(
-            onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-            label: 'Cancelar',
-            variant: AppButtonVariant.text,
-          ),
-          AppButton(
-            onPressed: _isLoading ? null : _handleSubmit,
-            label: 'Guardar Cambios',
-            variant: AppButtonVariant.secondary,
-            isLoading: _isLoading,
-          ),
-        ],
-      ),
-    );
+  void _onBlocState(BuildContext context, MantenimientoState state) {
+    if (!_isLoading) {
+      return;
+    }
+    if (state is MantenimientoError) {
+      CrudOperationHandler.handleError(
+        context: context,
+        isSaving: _isLoading,
+        isEditing: true,
+        entityName: 'Mantenimiento',
+        errorMessage: state.message,
+        onClose: () => setState(() => _isLoading = false),
+      );
+    } else if (state is MantenimientoLoaded) {
+      CrudOperationHandler.handleSuccess(
+        context: context,
+        isSaving: _isLoading,
+        isEditing: true,
+        entityName: 'Mantenimiento',
+        onClose: () => setState(() => _isLoading = false),
+      );
+    }
   }
 
-  Widget _buildForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        // Información General
-        _buildSectionTitle('Información General', Icons.info_outline),
-        const SizedBox(height: AppSizes.spacing),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _buildDateField(
-                label: 'Fecha',
-                value: _fecha,
-                onChanged: (DateTime value) => setState(() => _fecha = value),
-              ),
-            ),
-            const SizedBox(width: AppSizes.spacing),
-            Expanded(
-              child: _buildNumberField(
-                label: 'Kilometraje',
-                controller: _kmVehiculoController,
-                isRequired: true,
-                suffix: 'km',
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSizes.spacing),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: AppDropdown<TipoMantenimiento>(
-                value: _tipoMantenimiento,
-                label: 'Tipo de Mantenimiento',
-                items: const <AppDropdownItem<TipoMantenimiento>>[
-                  AppDropdownItem<TipoMantenimiento>(
-                    value: TipoMantenimiento.basico,
-                    label: 'Básico',
-                    icon: Icons.build,
-                    iconColor: AppColors.info,
-                  ),
-                  AppDropdownItem<TipoMantenimiento>(
-                    value: TipoMantenimiento.completo,
-                    label: 'Completo',
-                    icon: Icons.build_circle,
-                    iconColor: AppColors.warning,
-                  ),
-                  AppDropdownItem<TipoMantenimiento>(
-                    value: TipoMantenimiento.especial,
-                    label: 'Especial',
-                    icon: Icons.star,
-                    iconColor: AppColors.secondary,
-                  ),
-                  AppDropdownItem<TipoMantenimiento>(
-                    value: TipoMantenimiento.urgente,
-                    label: 'Urgente',
-                    icon: Icons.priority_high,
-                    iconColor: AppColors.error,
-                  ),
-                ],
-                onChanged: (TipoMantenimiento? value) {
-                  if (value != null) {
-                    setState(() => _tipoMantenimiento = value);
-                  }
-                },
-              ),
-            ),
-            const SizedBox(width: AppSizes.spacing),
-            Expanded(
-              child: AppDropdown<EstadoMantenimiento>(
-                value: _estado,
-                label: 'Estado',
-                items: const <AppDropdownItem<EstadoMantenimiento>>[
-                  AppDropdownItem<EstadoMantenimiento>(
-                    value: EstadoMantenimiento.programado,
-                    label: 'Programado',
-                    icon: Icons.schedule,
-                    iconColor: AppColors.info,
-                  ),
-                  AppDropdownItem<EstadoMantenimiento>(
-                    value: EstadoMantenimiento.enProceso,
-                    label: 'En Proceso',
-                    icon: Icons.build,
-                    iconColor: AppColors.warning,
-                  ),
-                  AppDropdownItem<EstadoMantenimiento>(
-                    value: EstadoMantenimiento.completado,
-                    label: 'Completado',
-                    icon: Icons.check_circle,
-                    iconColor: AppColors.success,
-                  ),
-                  AppDropdownItem<EstadoMantenimiento>(
-                    value: EstadoMantenimiento.cancelado,
-                    label: 'Cancelado',
-                    icon: Icons.cancel,
-                    iconColor: AppColors.error,
-                  ),
-                ],
-                onChanged: (EstadoMantenimiento? value) {
-                  if (value != null) {
-                    setState(() => _estado = value);
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSizes.spacing),
-        _buildTextField(
-          label: 'Descripción',
-          controller: _descripcionController,
-          maxLines: 2,
-          isRequired: true,
-        ),
-
-        const SizedBox(height: AppSizes.spacingLarge),
-
-        // Detalles del Servicio
-        _buildSectionTitle('Detalles del Servicio', Icons.build),
-        const SizedBox(height: AppSizes.spacing),
-        _buildTextField(
-          label: 'Trabajos Realizados',
-          controller: _trabajosRealizadosController,
-          maxLines: 3,
-        ),
-        const SizedBox(height: AppSizes.spacing),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _buildTallerSelector(),
-            ),
-            const SizedBox(width: AppSizes.spacing),
-            Expanded(
-              child: _buildTextField(
-                label: 'Mecánico Responsable',
-                controller: _mecanicoController,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSizes.spacing),
-        _buildTextField(
-          label: 'Número de Orden',
-          controller: _numeroOrdenController,
-        ),
-
-        const SizedBox(height: AppSizes.spacingLarge),
-
-        // Fechas
-        _buildSectionTitle('Fechas', Icons.calendar_today),
-        const SizedBox(height: AppSizes.spacing),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _buildOptionalDateField(
-                label: 'Fecha Programada',
-                value: _fechaProgramada,
-                onChanged: (DateTime? value) => setState(() => _fechaProgramada = value),
-              ),
-            ),
-            const SizedBox(width: AppSizes.spacing),
-            Expanded(
-              child: _buildOptionalDateField(
-                label: 'Fecha Inicio',
-                value: _fechaInicio,
-                onChanged: (DateTime? value) => setState(() => _fechaInicio = value),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSizes.spacing),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _buildOptionalDateField(
-                label: 'Fecha Fin',
-                value: _fechaFin,
-                onChanged: (DateTime? value) => setState(() => _fechaFin = value),
-              ),
-            ),
-            const SizedBox(width: AppSizes.spacing),
-            Expanded(
-              child: _buildNumberField(
-                label: 'Tiempo Inoperativo (horas)',
-                controller: _tiempoInoperativoController,
-                suffix: 'h',
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: AppSizes.spacingLarge),
-
-        // Costos
-        _buildSectionTitle('Costos', Icons.euro),
-        const SizedBox(height: AppSizes.spacing),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _buildNumberField(
-                label: 'Mano de Obra',
-                controller: _costoManoObraController,
-                prefix: '€',
-              ),
-            ),
-            const SizedBox(width: AppSizes.spacing),
-            Expanded(
-              child: _buildNumberField(
-                label: 'Repuestos',
-                controller: _costoRepuestosController,
-                prefix: '€',
-              ),
-            ),
-            const SizedBox(width: AppSizes.spacing),
-            Expanded(
-              child: _buildNumberField(
-                label: 'Total',
-                controller: _costoTotalController,
-                isRequired: true,
-                prefix: '€',
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: AppSizes.spacingLarge),
-
-        // Próximo Mantenimiento
-        _buildSectionTitle('Próximo Mantenimiento Sugerido', Icons.event_available),
-        const SizedBox(height: AppSizes.spacing),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _buildNumberField(
-                label: 'Kilómetros',
-                controller: _proximoKmController,
-                suffix: 'km',
-              ),
-            ),
-            const SizedBox(width: AppSizes.spacing),
-            Expanded(
-              child: _buildOptionalDateField(
-                label: 'Fecha Sugerida',
-                value: _proximaFechaSugerida,
-                onChanged: (DateTime? value) => setState(() => _proximaFechaSugerida = value),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionTitle(String title, IconData icon) {
-    return Row(
-      children: <Widget>[
-        Icon(icon, size: 20, color: AppColors.primary),
-        const SizedBox(width: AppSizes.spacingSmall),
-        Text(
-          title,
-          style: GoogleFonts.inter(
-            fontSize: AppSizes.fontMedium,
-            fontWeight: FontWeight.w600,
-            color: AppColors.primary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTallerSelector() {
-    return BlocBuilder<TallerBloc, TallerState>(
-      builder: (BuildContext context, TallerState state) {
-        final List<TallerEntity> talleres = state is TallerLoaded
-            ? state.talleres.where((TallerEntity t) => t.activo).toList()
-            : <TallerEntity>[];
-
-        // Pre-seleccionar taller si existe en el mantenimiento
-        if (_tallerSeleccionado == null && widget.mantenimiento.taller != null) {
-          final String tallerNombre = widget.mantenimiento.taller!;
-          try {
-            _tallerSeleccionado = talleres.firstWhere(
-              (TallerEntity t) => t.nombre == tallerNombre,
-            );
-          } catch (_) {
-            // El taller guardado ya no existe en la tabla, no pre-seleccionar
-          }
-        }
-
-        return AppSearchableDropdown<TallerEntity>(
-          value: _tallerSeleccionado,
-          label: 'Taller',
-          hint: 'Selecciona un taller',
-          prefixIcon: Icons.store,
-          searchHint: 'Buscar por nombre...',
-          items: <AppSearchableDropdownItem<TallerEntity>>[
-            ...talleres.map(
-              (TallerEntity t) => AppSearchableDropdownItem<TallerEntity>(
-                value: t,
-                label: t.nombre,
-                icon: Icons.store,
-                iconColor: AppColors.secondary,
-              ),
-            ),
-          ],
-          onChanged: (TallerEntity? value) {
-            setState(() => _tallerSeleccionado = value);
-          },
-          displayStringForOption: (TallerEntity taller) => taller.nombre,
-        );
-      },
-    );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController controller,
-    int maxLines = 1,
-    bool isRequired = false,
-  }) {
-    return TextFormField(
-      controller: controller,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        ),
-      ),
-      validator: isRequired
-          ? (String? value) {
-              if (value == null || value.isEmpty) {
-                return 'Este campo es obligatorio';
-              }
-              return null;
-            }
-          : null,
-    );
-  }
-
-  Widget _buildNumberField({
-    required String label,
-    required TextEditingController controller,
-    bool isRequired = false,
-    String? prefix,
-    String? suffix,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: <TextInputFormatter>[
-        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-      ],
-      decoration: InputDecoration(
-        labelText: label,
-        prefixText: prefix,
-        suffixText: suffix,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        ),
-      ),
-      validator: isRequired
-          ? (String? value) {
-              if (value == null || value.isEmpty) {
-                return 'Este campo es obligatorio';
-              }
-              return null;
-            }
-          : null,
-    );
-  }
-
-  Widget _buildDateField({
-    required String label,
-    required DateTime value,
-    required void Function(DateTime) onChanged,
-  }) {
-    return InkWell(
-      onTap: () async {
-        final DateTime? picked = await showDatePicker(
-          context: context,
-          initialDate: value,
-          firstDate: DateTime(2000),
-          lastDate: DateTime(2100),
-        );
-        if (picked != null) {
-          onChanged(picked);
-        }
-      },
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          ),
-          suffixIcon: const Icon(Icons.calendar_today, size: 20),
-        ),
-        child: Text(DateFormat('dd/MM/yyyy').format(value)),
-      ),
-    );
-  }
-
-  Widget _buildOptionalDateField({
-    required String label,
-    required DateTime? value,
-    required void Function(DateTime?) onChanged,
-  }) {
-    return InkWell(
-      onTap: () async {
-        final DateTime? picked = await showDatePicker(
-          context: context,
-          initialDate: value ?? DateTime.now(),
-          firstDate: DateTime(2000),
-          lastDate: DateTime(2100),
-        );
-        if (picked != null) {
-          onChanged(picked);
-        }
-      },
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          ),
-          suffixIcon: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              if (value != null)
-                IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () => onChanged(null),
-                  padding: EdgeInsets.zero,
-                ),
-              const Icon(Icons.calendar_today, size: 20),
-              const SizedBox(width: 8),
-            ],
-          ),
-        ),
-        child: Text(
-          value != null ? DateFormat('dd/MM/yyyy').format(value) : 'No establecida',
-          style: TextStyle(
-            color: value != null ? AppColors.textPrimaryLight : AppColors.textSecondaryLight,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleSubmit() async {
+  void _handleSubmit() {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     setState(() => _isLoading = true);
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext _) => const AppLoadingOverlay(
+          message: 'Actualizando Mantenimiento...',
+          color: AppColors.secondary,
+          icon: Icons.edit,
+        ),
+      ),
+    );
 
-    final MantenimientoEntity updatedMantenimiento = widget.mantenimiento.copyWith(
-      fecha: _fecha,
-      kmVehiculo: double.tryParse(_kmVehiculoController.text) ?? widget.mantenimiento.kmVehiculo,
-      tipoMantenimiento: _tipoMantenimiento,
-      descripcion: _descripcionController.text,
-      trabajosRealizados: _trabajosRealizadosController.text.isEmpty
-          ? null
-          : _trabajosRealizadosController.text,
-      taller: _tallerSeleccionado?.nombre,
-      mecanicoResponsable: _mecanicoController.text.isEmpty ? null : _mecanicoController.text,
-      numeroOrden: _numeroOrdenController.text.isEmpty ? null : _numeroOrdenController.text,
-      costoManoObra: _costoManoObraController.text.isEmpty
-          ? null
-          : double.tryParse(_costoManoObraController.text),
-      costoRepuestos: _costoRepuestosController.text.isEmpty
-          ? null
-          : double.tryParse(_costoRepuestosController.text),
-      costoTotal: double.tryParse(_costoTotalController.text) ?? widget.mantenimiento.costoTotal,
-      estado: _estado,
-      fechaProgramada: _fechaProgramada,
-      fechaInicio: _fechaInicio,
-      fechaFin: _fechaFin,
-      tiempoInoperativoHoras: _tiempoInoperativoController.text.isEmpty
-          ? null
-          : double.tryParse(_tiempoInoperativoController.text),
-      proximoKmSugerido:
-          _proximoKmController.text.isEmpty ? null : int.tryParse(_proximoKmController.text),
-      proximaFechaSugerida: _proximaFechaSugerida,
+    final MantenimientoEntity m = widget.mantenimiento;
+    final MantenimientoEntity updatedMantenimiento = m.copyWith(
+      fecha: _data.fecha,
+      kmVehiculo: GestionFormParse.entero(_data.km.text)?.toDouble() ?? m.kmVehiculo,
+      tipoMantenimiento: _data.tipo,
+      descripcion: _data.descripcion.text,
+      trabajosRealizados: MantenimientoEditFormData.textOrNull(_data.trabajos),
+      taller: _data.taller,
+      mecanicoResponsable: MantenimientoEditFormData.textOrNull(_data.mecanico),
+      numeroOrden: MantenimientoEditFormData.textOrNull(_data.numeroOrden),
+      costoManoObra: MantenimientoEditFormData.decimalOrNull(_data.costeManoObra),
+      costoRepuestos: MantenimientoEditFormData.decimalOrNull(_data.costeRepuestos),
+      costoTotal: GestionFormParse.decimal(_data.costeTotal.text) ?? m.costoTotal,
+      estado: _data.estado,
+      fechaProgramada: _data.fechaProgramada,
+      fechaInicio: _data.fechaInicio,
+      fechaFin: _data.fechaFin,
+      tiempoInoperativoHoras: MantenimientoEditFormData.decimalOrNull(_data.horasInoperativo),
+      proximoKmSugerido: _data.proximoKm.text.isEmpty ? null : GestionFormParse.entero(_data.proximoKm.text),
+      proximaFechaSugerida: _data.proximaFechaSugerida,
       updatedAt: DateTime.now(),
       updatedBy: Supabase.instance.client.auth.currentUser?.id,
     );
 
+    debugPrint('🔧 MantenimientoEditDialog: Actualizando ${m.id}');
     context.read<MantenimientoBloc>().add(
           MantenimientoUpdateRequested(mantenimiento: updatedMantenimiento),
         );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String id = widget.mantenimiento.id;
+    return BlocListener<MantenimientoBloc, MantenimientoState>(
+      listener: _onBlocState,
+      child: GestionFormDialog(
+        title: 'Editar mantenimiento',
+        subtitle: 'ID ${id.length > 12 ? '${id.substring(0, 12)}…' : id}',
+        icon: Icons.build_circle_outlined,
+        size: GestionFormSize.large,
+        formKey: _formKey,
+        isEditing: true,
+        isSaving: _isLoading,
+        saveLabel: 'Guardar cambios',
+        onSave: _handleSubmit,
+        children: <Widget>[
+          MantenimientoEditFormBody(data: _data, onChanged: () => setState(() {})),
+        ],
+      ),
+    );
   }
 }

@@ -1,10 +1,11 @@
+import 'dart:async';
+
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:ambutrack_web/core/utils/upper_case_text_formatter.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
+import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/tablas/localidades/presentation/bloc/localidad_bloc.dart';
 import 'package:ambutrack_web/features/tablas/localidades/presentation/bloc/localidad_event.dart';
@@ -12,7 +13,6 @@ import 'package:ambutrack_web/features/tablas/localidades/presentation/bloc/loca
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Diálogo para crear/editar localidades
 class LocalidadFormDialog extends StatefulWidget {
@@ -31,9 +31,6 @@ class _LocalidadFormDialogState extends State<LocalidadFormDialog> {
   late TextEditingController _nombreController;
   late TextEditingController _codigoPostalController;
 
-  late FocusNode _codigoFocusNode;
-  late FocusNode _nombreFocusNode;
-  late FocusNode _codigoPostalFocusNode;
 
   List<ProvinciaEntity> _provincias = <ProvinciaEntity>[];
   String? _provinciaId;
@@ -50,9 +47,6 @@ class _LocalidadFormDialogState extends State<LocalidadFormDialog> {
     _nombreController = TextEditingController(text: l?.nombre ?? '');
     _codigoPostalController = TextEditingController(text: l?.codigoPostal ?? '');
 
-    _codigoFocusNode = FocusNode();
-    _nombreFocusNode = FocusNode();
-    _codigoPostalFocusNode = FocusNode();
 
     _loadProvincias();
   }
@@ -92,233 +86,94 @@ class _LocalidadFormDialogState extends State<LocalidadFormDialog> {
     _codigoController.dispose();
     _nombreController.dispose();
     _codigoPostalController.dispose();
-    _codigoFocusNode.dispose();
-    _nombreFocusNode.dispose();
-    _codigoPostalFocusNode.dispose();
     super.dispose();
+  }
+
+  void _onBlocState(BuildContext context, LocalidadState state) {
+    if (!_isSaving) {
+      return;
+    }
+    if (state is LocalidadLoaded) {
+      debugPrint('✅ LocalidadFormDialog: Localidad guardada exitosamente, cerrando diálogo');
+      CrudOperationHandler.handleSuccess(
+        context: context,
+        isSaving: _isSaving,
+        isEditing: _isEditing,
+        entityName: 'Localidad',
+        onClose: _resetSaving,
+      );
+    } else if (state is LocalidadError) {
+      debugPrint('❌ LocalidadFormDialog: Error al guardar localidad - ${state.message}');
+      CrudOperationHandler.handleError(
+        context: context,
+        isSaving: _isSaving,
+        isEditing: _isEditing,
+        entityName: 'Localidad',
+        errorMessage: state.message,
+        onClose: _resetSaving,
+      );
+    }
+  }
+
+  void _resetSaving() {
+    if (mounted) {
+      setState(() => _isSaving = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<LocalidadBloc, LocalidadState>(
-      listener: (BuildContext context, LocalidadState state) {
-        if (state is LocalidadLoaded) {
-          debugPrint('✅ LocalidadFormDialog: Localidad guardada exitosamente, cerrando diálogo');
-
-          // Cerrar loading overlay si está abierto
-          if (_isSaving) {
-            Navigator.of(context).pop(); // Cierra loading overlay
-          }
-
-          Navigator.of(context).pop(); // Cierra el formulario
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                _isEditing ? '✅ Localidad actualizada exitosamente' : '✅ Localidad creada exitosamente',
-              ),
-              backgroundColor: AppColors.success,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        } else if (state is LocalidadError) {
-          debugPrint('❌ LocalidadFormDialog: Error al guardar localidad - ${state.message}');
-
-          // Cerrar loading overlay si está abierto
-          if (_isSaving && mounted) {
-            Navigator.of(context).pop(); // Cierra loading overlay
-            setState(() {
-              _isSaving = false;
-            });
-          }
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('❌ Error: ${state.message}'),
-              backgroundColor: AppColors.error,
-              duration: const Duration(seconds: 5),
-            ),
-          );
-        }
-      },
-      child: AppDialog(
+      listener: _onBlocState,
+      child: GestionFormDialog(
         title: _isEditing ? 'Editar Localidad' : 'Nueva Localidad',
-        icon: _isEditing ? Icons.edit : Icons.add_location_alt,
-        maxWidth: 700,
-        type: _isEditing ? AppDialogType.edit : AppDialogType.create,
-        content: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              // Sección de información básica
-              _buildSectionTitle('Información Básica'),
-              const SizedBox(height: AppSizes.spacingMedium),
-
-              // Código y Nombre en la misma fila
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _codigoController,
-                      label: 'Código',
-                      hint: 'Ej: 28001',
-                      icon: Icons.tag,
-                      focusNode: _codigoFocusNode,
-                      nextFocusNode: _nombreFocusNode,
-                    ),
-                  ),
-                  const SizedBox(width: AppSizes.spacing),
-                  Expanded(
-                    flex: 2,
-                    child: _buildTextField(
-                      controller: _nombreController,
-                      label: 'Nombre *',
-                      hint: 'Ej: Alcalá de Henares',
-                      icon: Icons.location_city,
-                      focusNode: _nombreFocusNode,
-                      nextFocusNode: _codigoPostalFocusNode,
-                      validator: (String? value) {
-                        if (value == null || value.isEmpty) {
-                          return 'El nombre es obligatorio';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSizes.spacing),
-
-              // Código Postal
-              _buildTextField(
-                controller: _codigoPostalController,
-                label: 'Código Postal',
-                hint: 'Ej: 28801',
-                icon: Icons.mail_outline,
-                focusNode: _codigoPostalFocusNode,
-                textInputAction: TextInputAction.done,
-              ),
-              const SizedBox(height: AppSizes.spacingLarge),
-
-              // Sección de ubicación
-              _buildSectionTitle('Ubicación'),
-              const SizedBox(height: AppSizes.spacingMedium),
-
-              // Provincia Dropdown
-              if (_isLoadingProvincias)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(AppSizes.paddingMedium),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else
-                AppDropdown<String>(
-                  value: _provinciaId,
-                  label: 'Provincia',
-                  hint: 'Selecciona una provincia',
-                  prefixIcon: Icons.map,
-                  items: _provincias
-                      .map(
-                        (ProvinciaEntity provincia) => AppDropdownItem<String>(
-                          value: provincia.id,
-                          label: provincia.nombre,
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (String? value) {
-                    setState(() {
-                      _provinciaId = value;
-                    });
-                  },
-                ),
-            ],
+        subtitle: _isEditing ? widget.localidad!.nombre : null,
+        icon: Icons.location_on_outlined,
+        size: GestionFormSize.small,
+        formKey: _formKey,
+        isEditing: _isEditing,
+        isSaving: _isSaving,
+        onSave: _onSave,
+        children: <Widget>[
+          const GestionFormSection(title: 'Datos', first: true),
+          GestionFormRow(
+            label: 'Código',
+            child: GestionTextField(controller: _codigoController, hint: 'Ej: 28001'),
           ),
-        ),
-        actions: <Widget>[
-          AppButton(
-            onPressed: () => Navigator.of(context).pop(),
-            label: 'Cancelar',
-            variant: AppButtonVariant.text,
+          GestionFormRow(
+            label: 'Nombre',
+            required: true,
+            child: GestionTextField(
+              controller: _nombreController,
+              hint: 'Ej: Alcalá de Henares',
+              inputFormatters: <TextInputFormatter>[UpperCaseTextFormatter()],
+              validator: (String? value) {
+                if (value == null || value.isEmpty) {
+                  return 'El nombre es obligatorio';
+                }
+                return null;
+              },
+            ),
           ),
-          AppButton(
-            onPressed: _isSaving ? null : _onSave,
-            label: _isEditing ? 'Actualizar' : 'Crear',
-            variant: _isEditing ? AppButtonVariant.secondary : AppButtonVariant.primary,
-            icon: _isEditing ? Icons.save : Icons.add,
+          GestionFormRow(
+            label: 'Código postal',
+            child: GestionTextField(controller: _codigoPostalController, hint: 'Ej: 28801'),
+          ),
+          const GestionFormSection(title: 'Ubicación'),
+          GestionFormRow(
+            label: 'Provincia',
+            child: GestionSearchField<String>(
+              value: _provinciaId,
+              hint: 'Selecciona una provincia',
+              loading: _isLoadingProvincias,
+              options: _provincias
+                  .map((ProvinciaEntity provincia) => GestionOption<String>(provincia.id, provincia.nombre))
+                  .toList(),
+              onChanged: (String? value) => setState(() => _provinciaId = value),
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: GoogleFonts.inter(
-        fontSize: AppSizes.fontMedium,
-        fontWeight: FontWeight.bold,
-        color: AppColors.primary,
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    String? Function(String?)? validator,
-    FocusNode? focusNode,
-    FocusNode? nextFocusNode,
-    TextInputAction? textInputAction,
-  }) {
-    return TextFormField(
-      controller: controller,
-      focusNode: focusNode,
-      textInputAction: textInputAction ?? TextInputAction.next,
-      onFieldSubmitted: (_) {
-        if (nextFocusNode != null) {
-          nextFocusNode.requestFocus();
-        } else {
-          _onSave();
-        }
-      },
-      inputFormatters: label.contains('Nombre')
-          ? <TextInputFormatter>[
-              UpperCaseTextFormatter(),
-            ]
-          : null,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Icon(icon, color: AppColors.primary),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.gray300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.gray300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
-        ),
-        filled: true,
-        fillColor: Colors.white,
-      ),
-      validator: validator,
     );
   }
 
@@ -350,7 +205,7 @@ class _LocalidadFormDialogState extends State<LocalidadFormDialog> {
       _isSaving = true;
     });
 
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
@@ -360,7 +215,7 @@ class _LocalidadFormDialogState extends State<LocalidadFormDialog> {
           icon: _isEditing ? Icons.edit : Icons.add_location_alt,
         );
       },
-    );
+    ));
 
     if (_isEditing) {
       debugPrint('📝 LocalidadFormDialog: Enviando evento LocalidadUpdateRequested al BLoC...');
@@ -369,18 +224,5 @@ class _LocalidadFormDialogState extends State<LocalidadFormDialog> {
       debugPrint('➕ LocalidadFormDialog: Enviando evento LocalidadCreateRequested al BLoC...');
       context.read<LocalidadBloc>().add(LocalidadCreateRequested(localidad));
     }
-  }
-}
-
-class UpperCaseTextFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    return TextEditingValue(
-      text: newValue.text.toUpperCase(),
-      selection: newValue.selection,
-    );
   }
 }

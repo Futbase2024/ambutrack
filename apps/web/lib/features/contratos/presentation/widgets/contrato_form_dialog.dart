@@ -2,13 +2,11 @@ import 'dart:async';
 
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/contratos/presentation/bloc/bloc.dart';
 import 'package:ambutrack_web/features/contratos/presentation/widgets/form/contrato_form_fields.dart';
-import 'package:ambutrack_web/features/contratos/presentation/widgets/form/contrato_form_sections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -61,7 +59,7 @@ class _ContratoFormDialogState extends State<ContratoFormDialog> {
     _descripcionController =
         TextEditingController(text: widget.contrato?.descripcion);
     _importeController = TextEditingController(
-      text: widget.contrato?.importeMensual?.toStringAsFixed(2),
+      text: GestionFormParse.formatDecimal(widget.contrato?.importeMensual),
     );
     _condicionesController = TextEditingController();
 
@@ -111,53 +109,47 @@ class _ContratoFormDialogState extends State<ContratoFormDialog> {
     super.dispose();
   }
 
+  bool get _isEditing => widget.contrato != null;
+
+  String get _title {
+    if (widget.isViewOnly) {
+      return 'Ver contrato';
+    }
+    return _isEditing ? 'Editar contrato' : 'Nuevo contrato';
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_isLoadingHospitales) {
-      return ContratoFormLoadingDialog(
-        title: widget.contrato == null ? 'Nuevo Contrato' : 'Editar Contrato',
-      );
-    }
-
     return BlocListener<ContratoBloc, ContratoState>(
       listener: _onBlocStateChanged,
-      child: AppDialog(
-        title: widget.isViewOnly
-            ? 'Ver Contrato'
-            : (widget.contrato == null ? 'Nuevo Contrato' : 'Editar Contrato'),
-        content: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: ContratoFormFields(
-              isViewOnly: widget.isViewOnly,
-              codigoController: _codigoController,
-              importeController: _importeController,
-              descripcionController: _descripcionController,
-              hospitales: _hospitales,
-              selectedHospitalId: _selectedHospitalId,
-              tipoContrato: _tipoContrato,
-              fechaInicio: _fechaInicio,
-              fechaFin: _fechaFin,
-              activo: _activo,
-              onHospitalChanged: (String? value) => setState(() => _selectedHospitalId = value),
-              onTipoChanged: (String? value) => setState(() => _tipoContrato = value),
-              onFechaInicioChanged: (DateTime? date) => setState(() => _fechaInicio = date),
-              onFechaFinChanged: (DateTime? date) => setState(() => _fechaFin = date),
-              onActivoChanged: (bool value) => setState(() => _activo = value),
-            ),
+      child: GestionFormDialog(
+        title: _title,
+        subtitle: _isEditing ? widget.contrato!.codigo : null,
+        icon: widget.isViewOnly ? Icons.description_outlined : null,
+        formKey: _formKey,
+        isEditing: _isEditing,
+        isSaving: _isSaving,
+        saveLabel: widget.isViewOnly ? 'Cerrar' : (_isEditing ? 'Actualizar' : 'Crear'),
+        onSave: widget.isViewOnly ? () => Navigator.of(context).pop() : _onSave,
+        children: <Widget>[
+          ContratoFormFields(
+            isViewOnly: widget.isViewOnly,
+            isLoadingHospitales: _isLoadingHospitales,
+            codigoController: _codigoController,
+            importeController: _importeController,
+            descripcionController: _descripcionController,
+            hospitales: _hospitales,
+            selectedHospitalId: _selectedHospitalId,
+            tipoContrato: _tipoContrato,
+            fechaInicio: _fechaInicio,
+            fechaFin: _fechaFin,
+            activo: _activo,
+            onHospitalChanged: (String? value) => setState(() => _selectedHospitalId = value),
+            onTipoChanged: (String? value) => setState(() => _tipoContrato = value),
+            onFechaInicioChanged: (DateTime? date) => setState(() => _fechaInicio = date),
+            onFechaFinChanged: (DateTime? date) => setState(() => _fechaFin = date),
+            onActivoChanged: (bool value) => setState(() => _activo = value),
           ),
-        ),
-        actions: <Widget>[
-          AppButton(
-            onPressed: () => Navigator.of(context).pop(),
-            label: widget.isViewOnly ? 'Cerrar' : 'Cancelar',
-            variant: AppButtonVariant.text,
-          ),
-          if (!widget.isViewOnly)
-            AppButton(
-              onPressed: _onSave,
-              label: widget.contrato == null ? 'Crear' : 'Actualizar',
-            ),
         ],
       ),
     );
@@ -167,7 +159,11 @@ class _ContratoFormDialogState extends State<ContratoFormDialog> {
     if (!_isSaving) {
       return;
     }
-    void reset() => _isSaving = false;
+    void reset() {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
     if (state is ContratoOperationSuccess) {
       CrudOperationHandler.handleSuccess(
         context: context,
@@ -193,13 +189,8 @@ class _ContratoFormDialogState extends State<ContratoFormDialog> {
       return;
     }
 
-    if (_fechaInicio == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('La fecha de inicio es obligatoria'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+    // Fecha de inicio y hospital se validan en el propio campo
+    if (_fechaInicio == null || _selectedHospitalId == null) {
       return;
     }
 
@@ -213,9 +204,7 @@ class _ContratoFormDialogState extends State<ContratoFormDialog> {
           ? null
           : _descripcionController.text.trim(),
       tipoContrato: _tipoContrato,
-      importeMensual: _importeController.text.trim().isEmpty
-          ? null
-          : double.tryParse(_importeController.text.trim()),
+      importeMensual: GestionFormParse.decimal(_importeController.text),
       activo: _activo,
       createdAt: widget.contrato?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
@@ -238,6 +227,7 @@ class _ContratoFormDialogState extends State<ContratoFormDialog> {
       ),
     );
 
+    debugPrint('💾 ContratoFormDialog: ${isEditing ? 'actualizando' : 'creando'} contrato ${contrato.codigo}');
     if (widget.contrato == null) {
       context.read<ContratoBloc>().add(ContratoCreateRequested(contrato));
     } else {

@@ -1,7 +1,5 @@
-import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Widget campo de observaciones
 class ObservacionesFieldWidget extends StatelessWidget {
@@ -22,40 +20,19 @@ class ObservacionesFieldWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimaryLight,
-          ),
-        ),
-        const SizedBox(height: AppSizes.spacingSmall),
-        TextFormField(
-          initialValue: value,
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-              borderSide: const BorderSide(color: AppColors.gray300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-              borderSide: const BorderSide(color: AppColors.gray300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-            ),
-            contentPadding: const EdgeInsets.all(AppSizes.paddingMedium),
-          ),
-          onChanged: onChanged,
-        ),
-      ],
+    return GestionFormRow(
+      label: label,
+      multiline: maxLines > 1,
+      child: TextFormField(
+        initialValue: value,
+        maxLines: maxLines,
+        minLines: maxLines > 1 ? maxLines : null,
+        keyboardType: maxLines > 1 ? TextInputType.multiline : null,
+        textInputAction: maxLines > 1 ? TextInputAction.newline : TextInputAction.next,
+        style: GestionFormStyle.text,
+        decoration: GestionFormStyle.decoration(hint: hint),
+        onChanged: onChanged,
+      ),
     );
   }
 }
