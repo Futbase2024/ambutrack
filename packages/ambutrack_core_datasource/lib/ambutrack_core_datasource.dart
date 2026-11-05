@@ -370,6 +370,12 @@ export 'src/datasources/traslados/traslado_contract.dart';
 export 'src/datasources/traslados/traslado_factory.dart' show TrasladoDataSourceFactory;
 export 'src/datasources/traslados/implementations/supabase/supabase_traslado_datasource.dart';
 
+// Generación de traslados (RPC generar_traslados_periodo)
+export 'src/datasources/generacion_traslados/entities/resultado_generacion_traslados_entity.dart';
+export 'src/datasources/generacion_traslados/generacion_traslados_contract.dart';
+export 'src/datasources/generacion_traslados/generacion_traslados_factory.dart'
+    show GeneracionTrasladosDataSourceFactory;
+
 // Ambulancias y Revisiones
 export 'src/datasources/ambulancias_revisiones/entities/tipo_ambulancia_entity.dart';
 export 'src/datasources/ambulancias_revisiones/entities/ambulancia_entity.dart';
@@ -446,6 +452,12 @@ export 'src/datasources/ordenes_reparacion/models/repuesto_orden_supabase_model.
 // Utils - Utilidades públicas
 export 'src/utils/exceptions/datasource_exception.dart';
 export 'src/utils/typedefs/datasource_typedefs.dart';
+
+// ✅ ADMINISTRACIÓN - Empresas (multi-tenant, tabla `empresas`, solo lectura)
+export 'src/datasources/empresas_tenant/entities/empresa_tenant_entity.dart';
+export 'src/datasources/empresas_tenant/empresas_tenant_contract.dart';
+export 'src/datasources/empresas_tenant/empresas_tenant_factory.dart'
+    show EmpresasTenantDataSourceFactory;
 
 // NO exportar implementaciones específicas (Firebase, REST)
 // NO exportar mixins internos

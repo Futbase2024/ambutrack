@@ -193,13 +193,17 @@ class TraficoDiarioBloc extends Bloc<TraficoDiarioEvent, TraficoDiarioState> {
       // Llamar a la función RPC de Supabase para generar traslados
       final SupabaseClient client = Supabase.instance.client;
 
-      final Map<String, dynamic> response = await client.rpc<Map<String, dynamic>>(
+      final dynamic raw = await client.rpc<dynamic>(
         'generar_traslados_periodo',
         params: <String, dynamic>{
           'p_fecha_desde': DateTime.now().toIso8601String().split('T')[0],
           'p_fecha_hasta': fechaHasta.toIso8601String().split('T')[0],
         },
       );
+      // La función SQL es RETURNS TABLE → PostgREST devuelve una lista con una fila
+      final Map<String, dynamic> response = raw is List
+          ? (raw.isEmpty ? <String, dynamic>{} : Map<String, dynamic>.from(raw.first as Map<dynamic, dynamic>))
+          : Map<String, dynamic>.from(raw as Map<dynamic, dynamic>);
 
       debugPrint('✅ TraficoDiarioBloc: Traslados generados correctamente');
       debugPrint('   - Servicios procesados: ${response['servicios_procesados']}');

@@ -18,6 +18,9 @@ abstract class OrdenesReparacionDataSource {
 
   // Repuestos (el coste de repuestos de la orden lo recalcula un trigger)
   Future<List<RepuestoOrdenEntity>> getRepuestos(String ordenId);
+
+  /// Todos los repuestos de todas las órdenes (más recientes primero)
+  Future<List<RepuestoOrdenEntity>> getAllRepuestos();
   Future<RepuestoOrdenEntity> createRepuesto(RepuestoOrdenEntity entity);
   Future<RepuestoOrdenEntity> updateRepuesto(RepuestoOrdenEntity entity);
   Future<void> deleteRepuesto(String id);

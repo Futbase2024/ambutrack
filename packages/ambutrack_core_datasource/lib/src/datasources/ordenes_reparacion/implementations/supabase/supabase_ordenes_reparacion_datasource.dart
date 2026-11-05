@@ -167,6 +167,19 @@ class SupabaseOrdenesReparacionDataSource implements OrdenesReparacionDataSource
   }
 
   @override
+  Future<List<RepuestoOrdenEntity>> getAllRepuestos() async {
+    try {
+      final List<Map<String, dynamic>> response = await _supabase
+          .from(_repuestosTable)
+          .select(_repuestoSelect)
+          .order('created_at', ascending: false);
+      return response.map(_toRepuesto).toList();
+    } catch (e) {
+      throw Exception('Error al obtener todos los repuestos: $e');
+    }
+  }
+
+  @override
   Future<RepuestoOrdenEntity> createRepuesto(RepuestoOrdenEntity entity) async {
     try {
       final Map<String, dynamic> response = await _supabase

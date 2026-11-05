@@ -50,6 +50,9 @@ class OrdenReparacionRepositoryImpl implements OrdenReparacionRepository {
       _run('getRepuestos $ordenId', () => _dataSource.getRepuestos(ordenId));
 
   @override
+  Future<List<RepuestoOrdenEntity>> getAllRepuestos() => _run('getAllRepuestos', _dataSource.getAllRepuestos);
+
+  @override
   Future<RepuestoOrdenEntity> createRepuesto(RepuestoOrdenEntity entity) =>
       _run('createRepuesto', () => _dataSource.createRepuesto(entity));
 

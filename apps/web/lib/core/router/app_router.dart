@@ -5,6 +5,10 @@ import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/layout/main_layout.dart';
 import 'package:ambutrack_web/core/router/auth_guard.dart';
 import 'package:ambutrack_web/core/widgets/placeholder_page.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/pages/auditorias_logs_page.dart';
+import 'package:ambutrack_web/features/administracion/configuracion/presentation/pages/configuracion_general_page.dart';
+import 'package:ambutrack_web/features/administracion/multicentro/presentation/pages/multicentro_page.dart';
+import 'package:ambutrack_web/features/administracion/permisos/presentation/pages/permisos_acceso_page.dart';
 import 'package:ambutrack_web/features/agenda_pendientes/presentation/pages/agenda_pendientes_page.dart';
 import 'package:ambutrack_web/features/almacen/presentation/pages/almacen_dashboard_page.dart';
 import 'package:ambutrack_web/features/almacen/presentation/pages/movimientos_stock_page.dart';
@@ -24,6 +28,12 @@ import 'package:ambutrack_web/features/cuadrante/excepciones_festivos/presentati
 import 'package:ambutrack_web/features/error/pages/forbidden_page.dart';
 import 'package:ambutrack_web/features/home/home_page_v2.dart';
 import 'package:ambutrack_web/features/incidencias/presentation/pages/incidencias_page.dart';
+import 'package:ambutrack_web/features/informes/presentation/pages/costes_informe_page.dart';
+import 'package:ambutrack_web/features/informes/presentation/pages/flota_informe_page.dart';
+import 'package:ambutrack_web/features/informes/presentation/pages/indicadores_calidad_page.dart';
+import 'package:ambutrack_web/features/informes/presentation/pages/personal_informe_page.dart';
+import 'package:ambutrack_web/features/informes/presentation/pages/satisfaccion_paciente_page.dart';
+import 'package:ambutrack_web/features/informes/presentation/pages/servicios_realizados_page.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/pages/itv_revisiones_page.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/pages/mantenimiento_preventivo_page_v2.dart';
 import 'package:ambutrack_web/features/perfil/presentation/pages/perfil_page.dart';
@@ -38,6 +48,11 @@ import 'package:ambutrack_web/features/personal/presentation/pages/formacion_pag
 import 'package:ambutrack_web/features/personal/presentation/pages/historial_medico_page.dart';
 import 'package:ambutrack_web/features/personal/presentation/pages/horarios_page.dart';
 import 'package:ambutrack_web/features/personal/presentation/pages/vestuario_page.dart';
+import 'package:ambutrack_web/features/servicios/operativa/presentation/pages/estado_servicios_page.dart';
+import 'package:ambutrack_web/features/servicios/operativa/presentation/pages/generar_diarios_page.dart';
+import 'package:ambutrack_web/features/servicios/operativa/presentation/pages/historico_servicios_page.dart';
+import 'package:ambutrack_web/features/servicios/operativa/presentation/pages/programacion_recurrente_page.dart';
+import 'package:ambutrack_web/features/servicios/operativa/presentation/pages/servicios_urgentes_page.dart';
 import 'package:ambutrack_web/features/servicios/pacientes/presentation/pages/pacientes_page.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/pages/servicios_page.dart';
 import 'package:ambutrack_web/features/stock_vestuario/presentation/pages/stock_vestuario_page.dart';
@@ -52,6 +67,9 @@ import 'package:ambutrack_web/features/tablas/provincias/presentation/pages/prov
 import 'package:ambutrack_web/features/tablas/tipos_paciente/presentation/pages/tipos_paciente_page.dart';
 import 'package:ambutrack_web/features/tablas/tipos_traslado/presentation/pages/tipos_traslado_page.dart';
 import 'package:ambutrack_web/features/tablas/tipos_vehiculo/presentation/pages/tipos_vehiculo_page.dart';
+import 'package:ambutrack_web/features/taller/presentation/pages/alertas_mantenimiento_page.dart';
+import 'package:ambutrack_web/features/taller/presentation/pages/control_repuestos_page.dart';
+import 'package:ambutrack_web/features/taller/presentation/pages/historial_reparaciones_page.dart';
 import 'package:ambutrack_web/features/taller/presentation/pages/ordenes_reparacion_page.dart';
 import 'package:ambutrack_web/features/taller/presentation/pages/proveedores_taller_page.dart';
 import 'package:ambutrack_web/features/taller/presentation/pages/talleres_page.dart';
@@ -328,11 +346,7 @@ final GoRouter appRouter = GoRouter(
           name: 'servicios_generar_diarios',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Generar Servicios Diarios',
-          subtitle: 'Creación de servicios del día',
-          icon: Icons.today,
-        ),
+        child: const GenerarDiariosPage(),
       ),
         ),
         // Planificar Servicios
@@ -359,11 +373,7 @@ final GoRouter appRouter = GoRouter(
           name: 'servicios_urgentes',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Servicios Urgentes',
-          subtitle: 'Gestión de emergencias en tiempo real',
-          icon: Icons.emergency,
-        ),
+        child: const ServiciosUrgentesPage(),
       ),
         ),
         // Programación Recurrente
@@ -372,11 +382,7 @@ final GoRouter appRouter = GoRouter(
           name: 'servicios_programacion_recurrente',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Programación Recurrente',
-          subtitle: 'Servicios programados periódicamente',
-          icon: Icons.repeat,
-        ),
+        child: const ProgramacionRecurrentePage(),
       ),
         ),
         // Histórico de Servicios
@@ -385,11 +391,7 @@ final GoRouter appRouter = GoRouter(
           name: 'servicios_historico',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Histórico de Servicios',
-          subtitle: 'Consulta de servicios realizados',
-          icon: Icons.history,
-        ),
+        child: const HistoricoServiciosPage(),
       ),
         ),
         // Estado del Servicio
@@ -398,11 +400,7 @@ final GoRouter appRouter = GoRouter(
           name: 'servicios_estado',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Estado del Servicio',
-          subtitle: 'Monitoreo de servicios activos',
-          icon: Icons.info_outline,
-        ),
+        child: const EstadoServiciosPage(),
       ),
         ),
         // Agenda de Pendientes
@@ -810,11 +808,7 @@ final GoRouter appRouter = GoRouter(
           name: 'informes_servicios_realizados',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Servicios Realizados',
-          subtitle: 'Reporte de servicios completados',
-          icon: Icons.analytics,
-        ),
+        child: const ServiciosRealizadosPage(),
       ),
         ),
         // Indicadores de Calidad
@@ -823,11 +817,7 @@ final GoRouter appRouter = GoRouter(
           name: 'informes_indicadores_calidad',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Indicadores de Calidad',
-          subtitle: 'Métricas de calidad del servicio',
-          icon: Icons.trending_up,
-        ),
+        child: const IndicadoresCalidadPage(),
       ),
         ),
         // Informes de Personal
@@ -836,11 +826,7 @@ final GoRouter appRouter = GoRouter(
           name: 'informes_personal',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Informes de Personal',
-          subtitle: 'Reportes del personal',
-          icon: Icons.people_outline,
-        ),
+        child: const PersonalInformePage(),
       ),
         ),
         // Estadísticas de Flota
@@ -849,11 +835,7 @@ final GoRouter appRouter = GoRouter(
           name: 'informes_estadisticas_flota',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Estadísticas de Flota',
-          subtitle: 'Análisis de uso de vehículos',
-          icon: Icons.local_shipping,
-        ),
+        child: const FlotaInformePage(),
       ),
         ),
         // Satisfacción del Paciente
@@ -862,11 +844,7 @@ final GoRouter appRouter = GoRouter(
           name: 'informes_satisfaccion',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Satisfacción del Paciente',
-          subtitle: 'Encuestas y valoraciones',
-          icon: Icons.sentiment_satisfied,
-        ),
+        child: const SatisfaccionPacientePage(),
       ),
         ),
         // Costes Operativos
@@ -875,11 +853,7 @@ final GoRouter appRouter = GoRouter(
           name: 'informes_costes',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Costes Operativos',
-          subtitle: 'Análisis de costos',
-          icon: Icons.attach_money,
-        ),
+        child: const CostesInformePage(),
       ),
         ),
 
@@ -899,11 +873,7 @@ final GoRouter appRouter = GoRouter(
           name: 'taller_historial_reparaciones',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Historial de Reparaciones',
-          subtitle: 'Registro de reparaciones realizadas',
-          icon: Icons.history,
-        ),
+        child: const HistorialReparacionesPage(),
       ),
         ),
         // Control de Repuestos
@@ -912,11 +882,7 @@ final GoRouter appRouter = GoRouter(
           name: 'taller_control_repuestos',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Control de Repuestos',
-          subtitle: 'Gestión de inventario de repuestos',
-          icon: Icons.inventory,
-        ),
+        child: const ControlRepuestosPage(),
       ),
         ),
         // Alertas de Mantenimiento Preventivo
@@ -925,11 +891,7 @@ final GoRouter appRouter = GoRouter(
           name: 'taller_alertas_mantenimiento',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Alertas de Mantenimiento Preventivo',
-          subtitle: 'Notificaciones de mantenimiento',
-          icon: Icons.notifications_active,
-        ),
+        child: const AlertasMantenimientoPage(),
       ),
         ),
         // Catálogo de Talleres
@@ -987,11 +949,7 @@ final GoRouter appRouter = GoRouter(
           name: 'administracion_permisos',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Permisos de Acceso',
-          subtitle: 'Control de permisos',
-          icon: Icons.security,
-        ),
+        child: const PermisosAccesoPage(),
       ),
         ),
         // Auditorías y Logs
@@ -1000,11 +958,7 @@ final GoRouter appRouter = GoRouter(
           name: 'administracion_auditorias',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Auditorías y Logs',
-          subtitle: 'Registro de actividad del sistema',
-          icon: Icons.search,
-        ),
+        child: const AuditoriasLogsPage(),
       ),
         ),
         // Multi-centro / Multi-empresa
@@ -1013,11 +967,7 @@ final GoRouter appRouter = GoRouter(
           name: 'administracion_multicentro',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Multi-centro / Multi-empresa',
-          subtitle: 'Gestión multi-organizacional',
-          icon: Icons.business_center,
-        ),
+        child: const MulticentroPage(),
       ),
         ),
         // Configuración General
@@ -1026,11 +976,7 @@ final GoRouter appRouter = GoRouter(
           name: 'administracion_configuracion',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Configuración General',
-          subtitle: 'Parámetros del sistema',
-          icon: Icons.settings,
-        ),
+        child: const ConfiguracionGeneralPage(),
       ),
         ),
 
@@ -1081,11 +1027,7 @@ final GoRouter appRouter = GoRouter(
           name: 'configuracion',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Configuración',
-          subtitle: 'Configuración general del sistema',
-          icon: Icons.settings,
-        ),
+        child: const ConfiguracionGeneralPage(title: 'Configuración'),
       ),
         ),
         GoRoute(

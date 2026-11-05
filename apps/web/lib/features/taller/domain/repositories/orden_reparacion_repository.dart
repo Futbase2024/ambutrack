@@ -11,6 +11,7 @@ abstract class OrdenReparacionRepository {
   Future<OrdenReparacionEntity> cambiarEstado(String id, EstadoOrdenReparacion estado);
 
   Future<List<RepuestoOrdenEntity>> getRepuestos(String ordenId);
+  Future<List<RepuestoOrdenEntity>> getAllRepuestos();
   Future<RepuestoOrdenEntity> createRepuesto(RepuestoOrdenEntity entity);
   Future<RepuestoOrdenEntity> updateRepuesto(RepuestoOrdenEntity entity);
   Future<void> deleteRepuesto(String id);
