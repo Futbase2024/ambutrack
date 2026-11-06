@@ -15,8 +15,15 @@ class EquipamientoLineaTile extends StatelessWidget {
   static final DateFormat _fecha = DateFormat('dd/MM/yyyy');
 
   String get _detalle {
-    final String cantidad =
-        linea.cantidadMinima == null ? '${linea.cantidadActual}' : '${linea.cantidadActual}/${linea.cantidadMinima}';
+    if (linea.esDocumento) {
+      final String presente = linea.cantidadActual > 0 ? 'SÍ está en la ambulancia' : 'NO está en la ambulancia';
+      final String caducidad =
+          linea.fechaCaducidad != null ? ' · Cad. ${_fecha.format(linea.fechaCaducidad!)}' : '';
+      return '$presente$caducidad';
+    }
+    final String cantidad = !linea.obligatorio || linea.cantidadMinima == null
+        ? '${linea.cantidadActual}${linea.obligatorio ? '' : ' (opcional)'}'
+        : '${linea.cantidadActual}/${linea.cantidadMinima}';
     final String caducidad = linea.fechaCaducidad != null
         ? ' · Cad. ${_fecha.format(linea.fechaCaducidad!)}'
         : (linea.requiereCaducidad ? ' · Sin fecha' : '');

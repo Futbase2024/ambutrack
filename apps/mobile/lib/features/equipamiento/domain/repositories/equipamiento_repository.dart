@@ -14,4 +14,7 @@ abstract class EquipamientoRepository {
     String? lote,
     String? observaciones,
   });
+
+  /// URL firmada temporal para ver el documento adjunto
+  Future<String> getUrlAdjunto(String documentoPath);
 }

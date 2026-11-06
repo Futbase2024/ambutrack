@@ -33,4 +33,7 @@ class EquipamientoRepositoryImpl implements EquipamientoRepository {
       observaciones: observaciones,
     );
   }
+
+  @override
+  Future<String> getUrlAdjunto(String documentoPath) => _dataSource.getUrlAdjunto(documentoPath);
 }

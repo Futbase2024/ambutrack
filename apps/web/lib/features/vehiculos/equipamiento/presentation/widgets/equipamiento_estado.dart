@@ -11,9 +11,9 @@ enum EstadoDotacion {
   sinAdjunto('sin_adjunto', 'Sin adjunto', AppColors.warning, 3),
   proximo('proximo', 'Caduca pronto', AppColors.warning, 4),
   ok('ok', 'OK', AppColors.success, 5),
-  noLleva('no_lleva', 'No lo lleva', AppColors.gray400, 6),
+  noLleva('no_lleva', 'Opcional', AppColors.gray400, 6),
   fueraPlantilla('fuera_plantilla', 'Fuera de plantilla', AppColors.gray500, 7),
-  excluido('excluido', 'Excluido', AppColors.gray500, 8);
+  excluido('excluido', 'No lo lleva', AppColors.gray500, 8);
 
   const EstadoDotacion(this.value, this.label, this.color, this.prioridad);
 

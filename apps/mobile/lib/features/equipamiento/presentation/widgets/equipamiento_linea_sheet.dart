@@ -12,6 +12,7 @@ import '../bloc/equipamiento_event.dart';
 import '../bloc/equipamiento_state.dart';
 import 'equipamiento_sheet_fields.dart';
 import 'estado_dotacion.dart';
+import 'sheet_documento.dart';
 
 /// Abre el ModalSheet de registro de una línea
 Future<void> mostrarEquipamientoLineaSheet(BuildContext context, StockVehiculoEntity linea) {
@@ -67,8 +68,11 @@ class _EquipamientoLineaSheetState extends State<EquipamientoLineaSheet> {
     }
   }
 
+  /// Documento: SÍ = 1, NO = 0. No toca caducidad ni lote (los gestiona la oficina)
+  bool get _esDocumento => widget.linea.esDocumento;
+
   void _guardar() {
-    if (widget.linea.requiereCaducidad && _caducidad == null) {
+    if (!_esDocumento && widget.linea.requiereCaducidad && _caducidad == null) {
       unawaited(showProfessionalResultDialog(
         context,
         title: 'Falta la caducidad',
@@ -83,7 +87,7 @@ class _EquipamientoLineaSheetState extends State<EquipamientoLineaSheet> {
           id: widget.linea.id,
           cantidad: _cantidad,
           fechaCaducidad: _caducidad,
-          borrarCaducidad: _caducidad == null && widget.linea.fechaCaducidad != null,
+          borrarCaducidad: !_esDocumento && _caducidad == null && widget.linea.fechaCaducidad != null,
           lote: _lote.text,
           observaciones: _obs.text,
         ));
@@ -129,20 +133,29 @@ class _EquipamientoLineaSheetState extends State<EquipamientoLineaSheet> {
               children: <Widget>[
                 SheetCabecera(linea: l, estado: EstadoDotacion.of(l)),
                 const SizedBox(height: 20),
-                SheetCantidad(
-                  cantidad: _cantidad,
-                  requerida: l.cantidadMinima,
-                  onChanged: (int v) => setState(() => _cantidad = v),
-                ),
-                const SizedBox(height: 16),
-                SheetCaducidad(
-                  texto: _caducidad == null ? null : _fecha.format(_caducidad!),
-                  obligatoria: l.requiereCaducidad,
-                  onElegir: _elegirFecha,
-                  onQuitar: _caducidad == null ? null : () => setState(() => _caducidad = null),
-                ),
-                const SizedBox(height: 16),
-                SheetTexto(controller: _lote, label: 'Nº de lote', action: TextInputAction.next),
+                if (_esDocumento) ...<Widget>[
+                  SheetDocumentoSiNo(
+                    presente: _cantidad > 0,
+                    onChanged: (bool si) => setState(() => _cantidad = si ? 1 : 0),
+                  ),
+                  const SizedBox(height: 16),
+                  SheetDocumentoInfo(linea: l),
+                ] else ...<Widget>[
+                  SheetCantidad(
+                    cantidad: _cantidad,
+                    requerida: l.obligatorio ? l.cantidadMinima : null,
+                    onChanged: (int v) => setState(() => _cantidad = v),
+                  ),
+                  const SizedBox(height: 16),
+                  SheetCaducidad(
+                    texto: _caducidad == null ? null : _fecha.format(_caducidad!),
+                    obligatoria: l.requiereCaducidad,
+                    onElegir: _elegirFecha,
+                    onQuitar: _caducidad == null ? null : () => setState(() => _caducidad = null),
+                  ),
+                  const SizedBox(height: 16),
+                  SheetTexto(controller: _lote, label: 'Nº de lote', action: TextInputAction.next),
+                ],
                 const SizedBox(height: 12),
                 SheetTexto(
                   controller: _obs,

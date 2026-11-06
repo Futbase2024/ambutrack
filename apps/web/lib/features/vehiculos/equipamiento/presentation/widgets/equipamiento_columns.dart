@@ -8,6 +8,17 @@ import 'package:flutter/material.dart';
 /// Sección visible de la línea (las líneas manuales van a "Extras")
 String equipamientoSeccion(StockVehiculoEntity l) => l.seccion ?? 'Extras';
 
+/// Cantidad requerida visible: "—" si no le corresponde, "Opc." si es opcional
+String equipamientoRequerido(StockVehiculoEntity l) {
+  if (l.excluido) {
+    return GestionFormatters.vacio;
+  }
+  if (l.esDePlantilla && !l.obligatorio) {
+    return 'Opc.';
+  }
+  return l.cantidadMinima?.toString() ?? GestionFormatters.vacio;
+}
+
 /// Etiqueta del origen de la línea
 String equipamientoOrigen(StockVehiculoEntity l) => l.esDePlantilla ? 'Plantilla' : 'Extra';
 
@@ -75,7 +86,7 @@ final List<GestionColumn<StockVehiculoEntity>> equipamientoColumns = <GestionCol
     width: 60,
     alignment: Alignment.centerRight,
     sortValue: (StockVehiculoEntity l) => l.cantidadMinima ?? 0,
-    cell: (StockVehiculoEntity l) => FlotaCellText(l.cantidadMinima?.toString() ?? GestionFormatters.vacio),
+    cell: (StockVehiculoEntity l) => FlotaCellText(equipamientoRequerido(l)),
   ),
   GestionColumn<StockVehiculoEntity>(
     label: 'Act.',
@@ -195,7 +206,7 @@ Future<void> imprimirEquipamiento(List<StockVehiculoEntity> lineas, String titul
           (StockVehiculoEntity l) => <String>[
             equipamientoSeccion(l),
             GestionFormatters.texto(l.productoNombre),
-            l.cantidadMinima?.toString() ?? GestionFormatters.vacio,
+            equipamientoRequerido(l),
             '${l.cantidadActual}',
             GestionFormatters.fecha(l.fechaCaducidad),
             GestionFormatters.texto(l.lote),

@@ -34,6 +34,20 @@ class EquipamientoLista extends StatelessWidget {
     return grupos;
   }
 
+  static bool _esDocumentacion(List<StockVehiculoEntity> lineas) =>
+      lineas.isNotEmpty && lineas.every((StockVehiculoEntity l) => l.esDocumento);
+
+  /// La documentación obligatoria va arriba, como en la hoja de revisión
+  static List<MapEntry<String, List<StockVehiculoEntity>>> _documentacionPrimero(
+    Map<String, List<StockVehiculoEntity>> secciones,
+  ) {
+    final List<MapEntry<String, List<StockVehiculoEntity>>> entradas = secciones.entries.toList();
+    return <MapEntry<String, List<StockVehiculoEntity>>>[
+      ...entradas.where((MapEntry<String, List<StockVehiculoEntity>> e) => _esDocumentacion(e.value)),
+      ...entradas.where((MapEntry<String, List<StockVehiculoEntity>> e) => !_esDocumentacion(e.value)),
+    ];
+  }
+
   List<StockVehiculoEntity> get _urgentes => lineas
       .where((StockVehiculoEntity l) => EstadoDotacion.of(l).requiereAtencion)
       .toList()
@@ -67,8 +81,13 @@ class EquipamientoLista extends StatelessWidget {
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.gray500, letterSpacing: 0.5),
             ),
           ),
-          for (final MapEntry<String, List<StockVehiculoEntity>> s in secciones.entries)
-            EquipamientoSeccionCard(titulo: s.key, lineas: s.value, onTapLinea: abrir),
+          for (final MapEntry<String, List<StockVehiculoEntity>> s in _documentacionPrimero(secciones))
+            EquipamientoSeccionCard(
+              titulo: s.key,
+              lineas: s.value,
+              onTapLinea: abrir,
+              inicialmenteAbierta: _esDocumentacion(s.value),
+            ),
         ],
       ),
     );

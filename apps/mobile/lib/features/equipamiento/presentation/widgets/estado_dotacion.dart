@@ -8,12 +8,12 @@ enum EstadoDotacion {
   caducado('caducado', 'Caducado', AppColors.error, Icons.dangerous_rounded, 0),
   falta('falta', 'Falta', AppColors.error, Icons.remove_circle_rounded, 1),
   sinFecha('sin_fecha', 'Sin fecha', AppColors.warning, Icons.event_busy_rounded, 2),
-  sinAdjunto('sin_adjunto', 'Sin documento', AppColors.warning, Icons.attach_file_rounded, 3),
+  sinAdjunto('sin_adjunto', 'Pendiente oficina', AppColors.gray500, Icons.cloud_upload_outlined, 3),
   proximo('proximo', 'Caduca pronto', AppColors.warning, Icons.schedule_rounded, 4),
   ok('ok', 'OK', AppColors.success, Icons.check_circle_rounded, 5),
-  noLleva('no_lleva', 'No lo lleva', AppColors.gray400, Icons.remove_circle_outline_rounded, 6),
+  noLleva('no_lleva', 'Opcional', AppColors.gray400, Icons.remove_circle_outline_rounded, 6),
   fueraPlantilla('fuera_plantilla', 'Fuera de plantilla', AppColors.gray500, Icons.help_outline_rounded, 7),
-  excluido('excluido', 'Excluido', AppColors.gray500, Icons.block_rounded, 8);
+  excluido('excluido', 'No lo lleva', AppColors.gray500, Icons.block_rounded, 8);
 
   const EstadoDotacion(this.value, this.label, this.color, this.icon, this.prioridad);
 
@@ -25,17 +25,26 @@ enum EstadoDotacion {
   /// Menor = más urgente
   final int prioridad;
 
-  /// Requiere que el técnico haga algo
-  bool get requiereAtencion => prioridad <= EstadoDotacion.proximo.prioridad;
+  /// Requiere que el técnico haga algo.
+  /// "PDF en oficina" no: subir el documento lo hace la oficina desde la web.
+  bool get requiereAtencion =>
+      prioridad <= EstadoDotacion.proximo.prioridad && this != EstadoDotacion.sinAdjunto;
 
-  /// Cumple el protocolo: OK o item opcional que el vehículo no lleva
-  bool get correcto => this == EstadoDotacion.ok || this == EstadoDotacion.noLleva;
+  /// Correcto para el técnico: OK, opcional que no lleva o solo falta el PDF de oficina
+  bool get correcto =>
+      this == EstadoDotacion.ok || this == EstadoDotacion.noLleva || this == EstadoDotacion.sinAdjunto;
 
   static EstadoDotacion of(StockVehiculoEntity l) {
-    return EstadoDotacion.values.firstWhere(
+    final EstadoDotacion estado = EstadoDotacion.values.firstWhere(
       (EstadoDotacion e) => e.value == l.estadoDotacion,
       orElse: () => l.cantidadActual > 0 ? EstadoDotacion.ok : EstadoDotacion.falta,
     );
+    // En documentos, la fecha y el PDF los gestiona la oficina desde la web:
+    // para el técnico solo cuenta si el papel está (SÍ) o no (NO).
+    if (l.esDocumento && estado == EstadoDotacion.sinFecha) {
+      return EstadoDotacion.sinAdjunto;
+    }
+    return estado;
   }
 }
 

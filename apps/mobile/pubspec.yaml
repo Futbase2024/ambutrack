@@ -60,6 +60,7 @@ dependencies:
   # ===== UTILS =====
   intl: ^0.20.1
   uuid: ^4.5.1
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
