@@ -161,7 +161,7 @@ final GoRouter appRouter = GoRouter(
     // Rutas protegidas con MainLayout
     ShellRoute(
       builder: (BuildContext context, GoRouterState state, Widget child) {
-        return MainLayout(child: child);
+        return MainLayout(location: state.uri.path, child: child);
       },
       routes: <RouteBase>[
         // Home / Dashboard

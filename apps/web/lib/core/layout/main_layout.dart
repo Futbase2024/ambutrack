@@ -1,10 +1,10 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/app/flavors.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
+import 'package:ambutrack_web/core/layout/shell/app_shell.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
-import 'package:ambutrack_web/features/menu/presentation/widgets/app_bar_with_menu.dart';
 import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_bloc.dart';
 import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_event.dart';
 import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_state.dart';
@@ -25,10 +25,14 @@ class MainLayout extends StatelessWidget {
   const MainLayout({
     super.key,
     required this.child,
+    this.location = '/',
     this.title,
   });
 
   final Widget child;
+
+  /// Ruta actual (para resaltar el menú lateral y la ruta de la barra superior)
+  final String location;
   final String? title;
 
   @override
@@ -57,29 +61,11 @@ class MainLayout extends StatelessWidget {
   }
 
   Widget _buildScaffold(BuildContext context, bool isDev, {required bool isAuthenticated}) {
-    final Widget scaffold = Scaffold(
-      appBar: AppBarWithMenu(title: title),
-      body: Stack(
-        children: <Widget>[
-          child,
-          if (isDev)
-            Positioned(
-              top: 0,
-              right: 0,
-              child: CustomPaint(
-                painter: _DebugBannerPainter(),
-                child: const SizedBox(width: 100, height: 100),
-              ),
-            ),
-        ],
-      ),
-    );
-
+    final Widget shell = AppShell(location: location, child: child);
     if (!isAuthenticated) {
-      return scaffold;
+      return shell;
     }
-
-    return _NotificacionesListenerWrapper(child: scaffold);
+    return _NotificacionesListenerWrapper(child: shell);
   }
 }
 
@@ -310,55 +296,4 @@ class _NotificacionesListenerWrapperState
       }
     });
   }
-}
-
-/// Painter personalizado para el banner DEBUG
-class _DebugBannerPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    const double bannerWidth = 120.0;
-    const double bannerHeight = 24.0;
-
-    canvas
-      ..save()
-      ..translate(size.width, 0)
-      ..rotate(0.785398);
-
-    final Paint bgPaint = Paint()
-      ..color = AppColors.warning
-      ..style = PaintingStyle.fill;
-
-    canvas.drawRect(
-      const Rect.fromLTWH(0, 0, bannerWidth, bannerHeight),
-      bgPaint,
-    );
-
-    final TextPainter textPainter = TextPainter(
-      text: const TextSpan(
-        text: 'DEBUG',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 12.0,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.0,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-
-    textPainter
-      ..layout()
-      ..paint(
-        canvas,
-        Offset(
-          (bannerWidth - textPainter.width) / 2,
-          (bannerHeight - textPainter.height) / 2,
-        ),
-      );
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
