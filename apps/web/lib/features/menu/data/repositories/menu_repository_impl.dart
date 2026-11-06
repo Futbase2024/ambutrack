@@ -68,6 +68,12 @@ class MenuRepositoryImpl implements MenuRepository {
           route: '/tablas/tipos-vehiculo',
         ),
         MenuItem(
+          key: 'tablas_plantillas_equipamiento',
+          label: 'Plantillas de Equipamiento',
+          icon: Icons.inventory,
+          route: '/tablas/plantillas-equipamiento',
+        ),
+        MenuItem(
           key: 'tablas_facultativos',
           label: 'Facultativos',
           icon: Icons.medical_services,

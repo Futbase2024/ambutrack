@@ -63,6 +63,7 @@ import 'package:ambutrack_web/features/tablas/facultativos/presentation/pages/fa
 import 'package:ambutrack_web/features/tablas/localidades/presentation/pages/localidades_page.dart';
 import 'package:ambutrack_web/features/tablas/motivos_cancelacion/presentation/pages/motivos_cancelacion_page.dart';
 import 'package:ambutrack_web/features/tablas/motivos_traslado/presentation/pages/motivos_traslado_page.dart';
+import 'package:ambutrack_web/features/tablas/plantillas_equipamiento/presentation/pages/plantillas_equipamiento_page.dart';
 import 'package:ambutrack_web/features/tablas/provincias/presentation/pages/provincias_page.dart';
 import 'package:ambutrack_web/features/tablas/tipos_paciente/presentation/pages/tipos_paciente_page.dart';
 import 'package:ambutrack_web/features/tablas/tipos_traslado/presentation/pages/tipos_traslado_page.dart';
@@ -263,6 +264,16 @@ final GoRouter appRouter = GoRouter(
           _buildPageWithTransition(
         key: state.pageKey,
         child: const TiposVehiculoPage(),
+      ),
+        ),
+        // Plantillas de equipamiento (dotación por tipo de vehículo)
+        GoRoute(
+          path: '/tablas/plantillas-equipamiento',
+          name: 'tablas_plantillas_equipamiento',
+          pageBuilder: (BuildContext context, GoRouterState state) =>
+          _buildPageWithTransition(
+        key: state.pageKey,
+        child: const PlantillasEquipamientoPage(),
       ),
         ),
         // Vehículos

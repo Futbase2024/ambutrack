@@ -311,6 +311,7 @@ class RolePermissions {
       AppModule.localidades,
       AppModule.provincias,
       AppModule.tiposVehiculo,
+      AppModule.plantillasEquipamiento,
       AppModule.facultativos,
       AppModule.tiposPaciente,
       AppModule.protocolos,

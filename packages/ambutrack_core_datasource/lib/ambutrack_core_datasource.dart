@@ -306,6 +306,18 @@ export 'src/datasources/stock/models/stock_minimo_supabase_model.dart';
 export 'src/datasources/stock/models/revision_mensual_supabase_model.dart';
 export 'src/datasources/stock/models/item_revision_supabase_model.dart';
 
+// ✅ PLANTILLAS DE EQUIPAMIENTO - Dotación obligatoria por tipo de vehículo (migraciones 038-040)
+export 'src/datasources/plantillas_equipamiento/entities/plantilla_equipamiento_entity.dart';
+export 'src/datasources/plantillas_equipamiento/entities/plantilla_equipamiento_item_entity.dart';
+export 'src/datasources/plantillas_equipamiento/plantillas_equipamiento_contract.dart';
+export 'src/datasources/plantillas_equipamiento/plantillas_equipamiento_factory.dart'
+    show PlantillasEquipamientoDataSourceFactory;
+
+// ✅ EQUIPAMIENTO DE VEHÍCULO - Dotación de cada ambulancia (usa StockVehiculoEntity)
+export 'src/datasources/equipamiento_vehiculo/equipamiento_vehiculo_contract.dart';
+export 'src/datasources/equipamiento_vehiculo/equipamiento_vehiculo_factory.dart'
+    show EquipamientoVehiculoDataSourceFactory;
+
 // Almacén (legacy - mantener compatibilidad)
 export 'src/datasources/almacen/entities/proveedor_entity.dart';
 export 'src/datasources/almacen/entities/stock_almacen_entity.dart';

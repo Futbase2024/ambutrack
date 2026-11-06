@@ -5,17 +5,20 @@ import '../entities/stock_minimo_entity.dart';
 part 'stock_minimo_supabase_model.g.dart';
 
 /// Modelo Supabase para stock mínimo por tipo
+///
+/// Tabla: `equipamiento_reglamentario_vehiculo` (antes `stock_minimo_por_tipo`)
 @JsonSerializable(explicitToJson: true)
 class StockMinimoSupabaseModel {
   final String id;
   @JsonKey(name: 'producto_id')
   final String productoId;
-  @JsonKey(name: 'tipo_vehiculo')
+  @JsonKey(name: 'tipo_vehiculo_codigo')
   final String tipoVehiculo;
   @JsonKey(name: 'cantidad_minima')
   final int cantidadMinima;
   @JsonKey(name: 'cantidad_recomendada')
   final int? cantidadRecomendada;
+  @JsonKey(defaultValue: true)
   final bool obligatorio;
 
   const StockMinimoSupabaseModel({

@@ -82,6 +82,51 @@ class StockVehiculoSupabaseModel {
   @JsonKey(name: 'estado_caducidad')
   final String? estadoCaducidad;
 
+  // Campos de plantillas de equipamiento (migraciones 038/039)
+
+  @JsonKey(name: 'plantilla_item_id')
+  final String? plantillaItemId;
+
+  @JsonKey(defaultValue: 'manual')
+  final String origen;
+
+  @JsonKey(defaultValue: false)
+  final bool excluido;
+
+  @JsonKey(name: 'documento_path')
+  final String? documentoPath;
+
+  @JsonKey(name: 'documento_nombre')
+  final String? documentoNombre;
+
+  @JsonKey(name: 'plantilla_id')
+  final String? plantillaId;
+
+  @JsonKey(name: 'plantilla_nombre')
+  final String? plantillaNombre;
+
+  @JsonKey(name: 'tipo_item')
+  final String? tipoItem;
+
+  @JsonKey(defaultValue: false)
+  final bool obligatorio;
+
+  @JsonKey(name: 'requiere_caducidad', defaultValue: false)
+  final bool requiereCaducidad;
+
+  @JsonKey(name: 'requiere_adjunto', defaultValue: false)
+  final bool requiereAdjunto;
+
+  final String? seccion;
+
+  @JsonKey(name: 'seccion_orden')
+  final int? seccionOrden;
+
+  final int? orden;
+
+  @JsonKey(name: 'estado_dotacion')
+  final String? estadoDotacion;
+
   const StockVehiculoSupabaseModel({
     required this.id,
     required this.vehiculoId,
@@ -102,6 +147,21 @@ class StockVehiculoSupabaseModel {
     this.categoriaNombre,
     this.estadoStock,
     this.estadoCaducidad,
+    this.plantillaItemId,
+    this.origen = 'manual',
+    this.excluido = false,
+    this.documentoPath,
+    this.documentoNombre,
+    this.plantillaId,
+    this.plantillaNombre,
+    this.tipoItem,
+    this.obligatorio = false,
+    this.requiereCaducidad = false,
+    this.requiereAdjunto = false,
+    this.seccion,
+    this.seccionOrden,
+    this.orden,
+    this.estadoDotacion,
   });
 
   /// Crea una instancia desde JSON de Supabase
@@ -151,6 +211,21 @@ class StockVehiculoSupabaseModel {
       categoriaNombre: categoriaNombre,
       estadoStock: estadoStock,
       estadoCaducidad: estadoCaducidad,
+      plantillaItemId: plantillaItemId,
+      origen: origen,
+      excluido: excluido,
+      documentoPath: documentoPath,
+      documentoNombre: documentoNombre,
+      plantillaId: plantillaId,
+      plantillaNombre: plantillaNombre,
+      tipoItem: tipoItem,
+      obligatorio: obligatorio,
+      requiereCaducidad: requiereCaducidad,
+      requiereAdjunto: requiereAdjunto,
+      seccion: seccion,
+      seccionOrden: seccionOrden,
+      orden: orden,
+      estadoDotacion: estadoDotacion,
     );
   }
 
@@ -176,6 +251,21 @@ class StockVehiculoSupabaseModel {
       categoriaNombre: entity.categoriaNombre,
       estadoStock: entity.estadoStock,
       estadoCaducidad: entity.estadoCaducidad,
+      plantillaItemId: entity.plantillaItemId,
+      origen: entity.origen,
+      excluido: entity.excluido,
+      documentoPath: entity.documentoPath,
+      documentoNombre: entity.documentoNombre,
+      plantillaId: entity.plantillaId,
+      plantillaNombre: entity.plantillaNombre,
+      tipoItem: entity.tipoItem,
+      obligatorio: entity.obligatorio,
+      requiereCaducidad: entity.requiereCaducidad,
+      requiereAdjunto: entity.requiereAdjunto,
+      seccion: entity.seccion,
+      seccionOrden: entity.seccionOrden,
+      orden: entity.orden,
+      estadoDotacion: entity.estadoDotacion,
     );
   }
 }

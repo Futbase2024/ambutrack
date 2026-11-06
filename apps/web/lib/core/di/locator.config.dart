@@ -307,6 +307,12 @@ import 'package:ambutrack_web/features/tablas/motivos_traslado/domain/repositori
     as _i36;
 import 'package:ambutrack_web/features/tablas/motivos_traslado/presentation/bloc/motivo_traslado_bloc.dart'
     as _i425;
+import 'package:ambutrack_web/features/tablas/plantillas_equipamiento/data/repositories/plantillas_equipamiento_repository_impl.dart'
+    as _i944;
+import 'package:ambutrack_web/features/tablas/plantillas_equipamiento/domain/repositories/plantillas_equipamiento_repository.dart'
+    as _i339;
+import 'package:ambutrack_web/features/tablas/plantillas_equipamiento/presentation/bloc/plantillas_equipamiento_bloc.dart'
+    as _i490;
 import 'package:ambutrack_web/features/tablas/provincias/data/repositories/provincia_repository_impl.dart'
     as _i634;
 import 'package:ambutrack_web/features/tablas/provincias/domain/repositories/provincia_repository.dart'
@@ -427,6 +433,12 @@ import 'package:ambutrack_web/features/vehiculos/domain/repositories/incidencia_
     as _i818;
 import 'package:ambutrack_web/features/vehiculos/domain/repositories/vehiculo_repository.dart'
     as _i145;
+import 'package:ambutrack_web/features/vehiculos/equipamiento/data/repositories/equipamiento_vehiculo_repository_impl.dart'
+    as _i426;
+import 'package:ambutrack_web/features/vehiculos/equipamiento/domain/repositories/equipamiento_vehiculo_repository.dart'
+    as _i258;
+import 'package:ambutrack_web/features/vehiculos/equipamiento/presentation/bloc/equipamiento_vehiculo_bloc.dart'
+    as _i302;
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/consumo_combustible/consumo_combustible_bloc.dart'
     as _i256;
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/incidencia_vehiculo/incidencia_vehiculo_bloc.dart'
@@ -501,6 +513,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i764.ConsumoCombustibleRepository>(
       () => _i961.ConsumoCombustibleRepositoryImpl(),
+    );
+    gh.lazySingleton<_i258.EquipamientoVehiculoRepository>(
+      () => _i426.EquipamientoVehiculoRepositoryImpl(),
     );
     gh.lazySingleton<_i681.ServicioRecurrenteRepository>(
       () => _i820.ServicioRecurrenteRepositoryImpl(),
@@ -619,6 +634,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i1023.EspecialidadRepository>(
       () => _i53.EspecialidadRepositoryImpl(),
+    );
+    gh.lazySingleton<_i339.PlantillasEquipamientoRepository>(
+      () => _i944.PlantillasEquipamientoRepositoryImpl(),
     );
     gh.lazySingleton<_i846.FormacionPersonalRepository>(
       () => _i200.FormacionPersonalRepositoryImpl(),
@@ -853,6 +871,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i938.NotificacionBloc>(
       () => _i938.NotificacionBloc(gh<_i1037.NotificacionesRepository>()),
     );
+    gh.factory<_i302.EquipamientoVehiculoBloc>(
+      () => _i302.EquipamientoVehiculoBloc(
+        gh<_i258.EquipamientoVehiculoRepository>(),
+      ),
+    );
     gh.factory<_i987.GeneracionAutomaticaBloc>(
       () => _i987.GeneracionAutomaticaBloc(
         gh<_i870.GeneracionAutomaticaService>(),
@@ -915,6 +938,11 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i516.CuadranteBloc(
         gh<_i440.CuadranteRepository>(),
         gh<_i145.VehiculoRepository>(),
+      ),
+    );
+    gh.factory<_i490.PlantillasEquipamientoBloc>(
+      () => _i490.PlantillasEquipamientoBloc(
+        gh<_i339.PlantillasEquipamientoRepository>(),
       ),
     );
     gh.factory<_i316.DocumentacionVehiculosBloc>(

@@ -223,10 +223,10 @@ class SupabaseStockDataSource implements StockDataSource {
   ) async {
     try {
       final response = await _supabase
-          .from('stock_minimo_por_tipo')
+          .from('equipamiento_reglamentario_vehiculo')
           .select()
           .eq('producto_id', productoId)
-          .eq('tipo_vehiculo', tipoVehiculo)
+          .eq('tipo_vehiculo_codigo', tipoVehiculo)
           .maybeSingle();
 
       if (response == null) return null;
@@ -246,9 +246,9 @@ class SupabaseStockDataSource implements StockDataSource {
   ) async {
     try {
       final response = await _supabase
-          .from('stock_minimo_por_tipo')
+          .from('equipamiento_reglamentario_vehiculo')
           .select()
-          .eq('tipo_vehiculo', tipoVehiculo);
+          .eq('tipo_vehiculo_codigo', tipoVehiculo);
 
       return (response)
           .map(
@@ -270,7 +270,7 @@ class SupabaseStockDataSource implements StockDataSource {
     try {
       final model = StockMinimoSupabaseModel.fromEntity(stockMinimo);
       final response = await _supabase
-          .from('stock_minimo_por_tipo')
+          .from('equipamiento_reglamentario_vehiculo')
           .upsert(model.toJson())
           .select()
           .single();

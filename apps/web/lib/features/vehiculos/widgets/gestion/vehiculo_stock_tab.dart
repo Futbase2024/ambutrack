@@ -7,7 +7,7 @@ import 'package:ambutrack_web/features/vehiculos/widgets/gestion/flota_gestion_c
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Pestaña "Stock" de la ficha del vehículo: resumen de equipamiento
+/// Pestaña "Equipamiento" de la ficha del vehículo: resumen y acceso a la dotación
 class VehiculoStockTab extends StatelessWidget {
   const VehiculoStockTab({required this.vehiculoId, required this.onOpenStock, super.key});
 
@@ -46,7 +46,7 @@ class VehiculoStockTab extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: FlotaPanelButton(
                 icon: Icons.medical_services_outlined,
-                label: 'Abrir stock del vehículo',
+                label: 'Abrir equipamiento del vehículo',
                 onPressed: onOpenStock,
               ),
             ),

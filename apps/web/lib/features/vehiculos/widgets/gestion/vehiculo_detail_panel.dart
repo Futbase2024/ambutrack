@@ -40,7 +40,7 @@ class VehiculoDetailPanel extends StatelessWidget {
         GestionDetailTab(label: 'Documentos', child: VehiculoDocumentosTab(vehiculoId: v.id)),
         GestionDetailTab(label: 'Reparaciones', child: VehiculoReparacionesTab(vehiculoId: v.id)),
         GestionDetailTab(
-          label: 'Stock',
+          label: 'Equipamiento',
           child: VehiculoStockTab(vehiculoId: v.id, onOpenStock: onStock),
         ),
       ],

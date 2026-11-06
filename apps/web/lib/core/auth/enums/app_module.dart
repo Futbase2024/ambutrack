@@ -197,6 +197,9 @@ enum AppModule {
   /// Tipos de vehículo
   tiposVehiculo('tipos_vehiculo', 'Tipos Vehículo', '/tablas/tipos-vehiculo'),
 
+  /// Plantillas de equipamiento (dotación obligatoria por tipo de vehículo)
+  plantillasEquipamiento('plantillas_equipamiento', 'Plantillas Equipamiento', '/tablas/plantillas-equipamiento'),
+
   /// Facultativos
   facultativos('facultativos', 'Facultativos', '/tablas/facultativos'),
 

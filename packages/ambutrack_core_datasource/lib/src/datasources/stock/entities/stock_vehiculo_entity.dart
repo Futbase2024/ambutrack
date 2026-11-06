@@ -61,6 +61,63 @@ class StockVehiculoEntity {
   /// Estado de caducidad: 'ok', 'proximo', 'critico', 'caducado', 'sin_caducidad'
   final String? estadoCaducidad;
 
+  // Campos de plantillas de equipamiento (migraciones 038/039)
+
+  /// Línea de plantilla de la que procede (null = línea manual)
+  final String? plantillaItemId;
+
+  /// Origen de la línea: 'plantilla' | 'manual'
+  final String origen;
+
+  /// Si el vehículo no lleva este item de su plantilla
+  final bool excluido;
+
+  /// Ruta del adjunto en el bucket privado `equipamiento-vehiculos`
+  final String? documentoPath;
+
+  /// Nombre original del adjunto
+  final String? documentoNombre;
+
+  /// Plantilla de la que procede la línea (de la vista)
+  final String? plantillaId;
+
+  /// Nombre de la plantilla (de la vista)
+  final String? plantillaNombre;
+
+  /// 'material' | 'documento' (de la vista)
+  final String? tipoItem;
+
+  /// Si es obligatorio según la plantilla (de la vista)
+  final bool obligatorio;
+
+  /// Si requiere fecha de caducidad (de la vista)
+  final bool requiereCaducidad;
+
+  /// Si requiere documento adjunto (de la vista)
+  final bool requiereAdjunto;
+
+  /// Sección del protocolo (de la vista)
+  final String? seccion;
+
+  /// Orden de la sección (de la vista)
+  final int? seccionOrden;
+
+  /// Orden dentro de la sección (de la vista)
+  final int? orden;
+
+  /// Estado de dotación: 'ok', 'proximo', 'sin_fecha', 'sin_adjunto', 'falta',
+  /// 'caducado', 'excluido', 'fuera_plantilla' (de la vista)
+  final String? estadoDotacion;
+
+  /// Si la línea viene de una plantilla
+  bool get esDePlantilla => origen == 'plantilla';
+
+  /// Si la línea es un documento
+  bool get esDocumento => tipoItem == 'documento';
+
+  /// Si tiene documento adjunto
+  bool get tieneAdjunto => documentoPath != null && documentoPath!.isNotEmpty;
+
   const StockVehiculoEntity({
     required this.id,
     required this.vehiculoId,
@@ -81,6 +138,21 @@ class StockVehiculoEntity {
     this.categoriaNombre,
     this.estadoStock,
     this.estadoCaducidad,
+    this.plantillaItemId,
+    this.origen = 'manual',
+    this.excluido = false,
+    this.documentoPath,
+    this.documentoNombre,
+    this.plantillaId,
+    this.plantillaNombre,
+    this.tipoItem,
+    this.obligatorio = false,
+    this.requiereCaducidad = false,
+    this.requiereAdjunto = false,
+    this.seccion,
+    this.seccionOrden,
+    this.orden,
+    this.estadoDotacion,
   });
 
   @override
@@ -98,7 +170,11 @@ class StockVehiculoEntity {
           ubicacion == other.ubicacion &&
           observaciones == other.observaciones &&
           estadoStock == other.estadoStock &&
-          estadoCaducidad == other.estadoCaducidad;
+          estadoCaducidad == other.estadoCaducidad &&
+          origen == other.origen &&
+          excluido == other.excluido &&
+          documentoPath == other.documentoPath &&
+          estadoDotacion == other.estadoDotacion;
 
   @override
   int get hashCode =>
@@ -112,7 +188,11 @@ class StockVehiculoEntity {
       ubicacion.hashCode ^
       observaciones.hashCode ^
       estadoStock.hashCode ^
-      estadoCaducidad.hashCode;
+      estadoCaducidad.hashCode ^
+      origen.hashCode ^
+      excluido.hashCode ^
+      documentoPath.hashCode ^
+      estadoDotacion.hashCode;
 
   @override
   String toString() =>
