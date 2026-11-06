@@ -11,8 +11,9 @@ enum EstadoDotacion {
   sinAdjunto('sin_adjunto', 'Sin documento', AppColors.warning, Icons.attach_file_rounded, 3),
   proximo('proximo', 'Caduca pronto', AppColors.warning, Icons.schedule_rounded, 4),
   ok('ok', 'OK', AppColors.success, Icons.check_circle_rounded, 5),
-  fueraPlantilla('fuera_plantilla', 'Fuera de plantilla', AppColors.gray500, Icons.help_outline_rounded, 6),
-  excluido('excluido', 'Excluido', AppColors.gray500, Icons.block_rounded, 7);
+  noLleva('no_lleva', 'No lo lleva', AppColors.gray400, Icons.remove_circle_outline_rounded, 6),
+  fueraPlantilla('fuera_plantilla', 'Fuera de plantilla', AppColors.gray500, Icons.help_outline_rounded, 7),
+  excluido('excluido', 'Excluido', AppColors.gray500, Icons.block_rounded, 8);
 
   const EstadoDotacion(this.value, this.label, this.color, this.icon, this.prioridad);
 
@@ -26,6 +27,9 @@ enum EstadoDotacion {
 
   /// Requiere que el técnico haga algo
   bool get requiereAtencion => prioridad <= EstadoDotacion.proximo.prioridad;
+
+  /// Cumple el protocolo: OK o item opcional que el vehículo no lleva
+  bool get correcto => this == EstadoDotacion.ok || this == EstadoDotacion.noLleva;
 
   static EstadoDotacion of(StockVehiculoEntity l) {
     return EstadoDotacion.values.firstWhere(

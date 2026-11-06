@@ -179,7 +179,7 @@ List<String> resumenEquipamiento(List<StockVehiculoEntity> todas, int filtradas)
       activas.where((StockVehiculoEntity l) => test(EstadoDotacion.of(l))).length;
   return <String>[
     flotaResumenRegistros(todas.length, filtradas),
-    'OK ${count((EstadoDotacion e) => e == EstadoDotacion.ok)}',
+    'OK ${count((EstadoDotacion e) => e.correcto)}',
     'Atención ${count((EstadoDotacion e) => e.color == AppColors.warning)}',
     'Críticos ${count((EstadoDotacion e) => e.color == AppColors.error)}',
   ];

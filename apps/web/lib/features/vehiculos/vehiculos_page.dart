@@ -6,8 +6,6 @@ import 'package:ambutrack_web/features/taller/presentation/bloc/orden_reparacion
 import 'package:ambutrack_web/features/taller/presentation/bloc/orden_reparacion_event.dart';
 import 'package:ambutrack_web/features/vehiculos/documentacion/presentation/bloc/documentacion_vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/documentacion/presentation/bloc/documentacion_vehiculos_event.dart';
-import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_bloc.dart';
-import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_event.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_event.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_gestion_view.dart';
@@ -39,10 +37,6 @@ class VehiculosPage extends StatelessWidget {
           BlocProvider<OrdenReparacionBloc>(
             create: (BuildContext _) =>
                 getIt<OrdenReparacionBloc>()..add(const OrdenReparacionLoadRequested()),
-          ),
-          BlocProvider<StockEquipamientoBloc>(
-            create: (BuildContext _) =>
-                getIt<StockEquipamientoBloc>()..add(const StockEquipamientoLoadRequested()),
           ),
         ],
         child: const Scaffold(

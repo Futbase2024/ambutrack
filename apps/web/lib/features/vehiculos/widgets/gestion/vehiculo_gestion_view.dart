@@ -8,8 +8,6 @@ import 'package:ambutrack_web/features/taller/presentation/bloc/orden_reparacion
 import 'package:ambutrack_web/features/taller/presentation/bloc/orden_reparacion_event.dart';
 import 'package:ambutrack_web/features/vehiculos/documentacion/presentation/bloc/documentacion_vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/documentacion/presentation/bloc/documentacion_vehiculos_event.dart';
-import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_bloc.dart';
-import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_event.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_event.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_state.dart';
@@ -95,7 +93,6 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> {
     context.read<ItvRevisionBloc>().add(const ItvRevisionLoadRequested());
     context.read<DocumentacionVehiculosBloc>().add(const DocumentacionVehiculosLoadRequested());
     context.read<OrdenReparacionBloc>().add(const OrdenReparacionLoadRequested(silent: true));
-    context.read<StockEquipamientoBloc>().add(const StockEquipamientoRefreshRequested());
   }
 
   Future<void> _openForm([VehiculoEntity? vehiculo]) {

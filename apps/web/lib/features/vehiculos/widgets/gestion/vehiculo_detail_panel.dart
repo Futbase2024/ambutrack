@@ -1,9 +1,9 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/flota_gestion_common.dart';
+import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_equipamiento_tab.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_gestion_columns.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_related_tabs.dart';
-import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_stock_tab.dart';
 import 'package:flutter/material.dart';
 
 /// Ficha lateral del vehículo seleccionado
@@ -41,7 +41,7 @@ class VehiculoDetailPanel extends StatelessWidget {
         GestionDetailTab(label: 'Reparaciones', child: VehiculoReparacionesTab(vehiculoId: v.id)),
         GestionDetailTab(
           label: 'Equipamiento',
-          child: VehiculoStockTab(vehiculoId: v.id, onOpenStock: onStock),
+          child: VehiculoEquipamientoTab(vehiculoId: v.id, onOpen: onStock),
         ),
       ],
       actions: <Widget>[

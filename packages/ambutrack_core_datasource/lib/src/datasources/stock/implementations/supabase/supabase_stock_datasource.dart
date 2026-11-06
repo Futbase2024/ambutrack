@@ -291,59 +291,37 @@ class SupabaseStockDataSource implements StockDataSource {
   @override
   Future<List<StockVehiculoEntity>> getStockVehiculo(String vehiculoId) async {
     try {
-      debugPrint('📦 StockDataSource (LEGACY): Obteniendo stock del vehículo $vehiculoId...');
-      debugPrint('📦 Consultando tabla: stock_vehiculo');
-
-      // Consulta simple sin joins - solo campos de stock_vehiculo
-      final response = await _supabase
+      final List<Map<String, dynamic>> response = await _supabase
           .from('stock_vehiculo')
           .select()
           .eq('vehiculo_id', vehiculoId)
           .order('updated_at', ascending: false);
 
-      debugPrint('📦 Response raw: ${response.length} registros encontrados');
-
       if (response.isEmpty) {
-        debugPrint('⚠️ No se encontraron registros en stock_vehiculo para vehiculo_id: $vehiculoId');
-        return [];
+        return <StockVehiculoEntity>[];
       }
 
-      // Cargar productos para enriquecer los datos (solo nombre y nombre comercial)
-      final productosResponse = await _supabase
+      // Solo los productos de este vehículo (antes se descargaba el catálogo completo)
+      final List<String> productoIds =
+          response.map((Map<String, dynamic> j) => j['producto_id'] as String).toSet().toList();
+      final List<Map<String, dynamic>> productosResponse = await _supabase
           .from('productos')
-          .select('id, nombre, nombre_comercial');
-
-      final productosMap = {
-        for (var p in productosResponse) p['id'] as String: p
+          .select('id, nombre, nombre_comercial')
+          .inFilter('id', productoIds);
+      final Map<String, Map<String, dynamic>> productosMap = <String, Map<String, dynamic>>{
+        for (final Map<String, dynamic> p in productosResponse) p['id'] as String: p,
       };
 
-      final List<StockVehiculoEntity> items = (response)
-          .map(
-            (json) {
-              debugPrint('📦 Processing item: ${json['id']} - Producto ID: ${json['producto_id']}');
+      final List<StockVehiculoEntity> items = response.map((Map<String, dynamic> json) {
+        final Map<String, dynamic>? producto = productosMap[json['producto_id']];
+        if (producto != null) {
+          json['producto_nombre'] = producto['nombre'];
+          json['nombre_comercial'] = producto['nombre_comercial'];
+        }
+        return StockVehiculoSupabaseModel.fromJson(json).toEntity();
+      }).toList();
 
-              // Enriquecer con datos del producto
-              final productoId = json['producto_id'] as String;
-              final producto = productosMap[productoId];
-
-              if (producto != null) {
-                json['producto_nombre'] = producto['nombre'];
-                json['nombre_comercial'] = producto['nombre_comercial'];
-                debugPrint('   ✅ Producto: ${producto['nombre']}');
-              } else {
-                debugPrint('   ⚠️ Producto no encontrado en mapa');
-              }
-
-              return StockVehiculoSupabaseModel.fromJson(json).toEntity();
-            },
-          )
-          .toList();
-
-      debugPrint('📦 StockDataSource: ✅ ${items.length} items de stock procesados');
-      for (final item in items) {
-        debugPrint('   - ${item.productoNombre ?? 'Sin nombre'}: ${item.cantidadActual} unidades');
-      }
-
+      debugPrint('📦 StockDataSource: ✅ ${items.length} items de stock de $vehiculoId');
       return items;
     } catch (e, stackTrace) {
       debugPrint('📦 StockDataSource: ❌ Error al obtener stock: $e');

@@ -17,7 +17,7 @@ class EquipamientoResumenHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final int total = lineas.length;
-    final int ok = _count((EstadoDotacion e) => e == EstadoDotacion.ok);
+    final int ok = _count((EstadoDotacion e) => e.correcto);
     final int criticos = _count((EstadoDotacion e) => e.color == AppColors.error);
     final int avisos = _count((EstadoDotacion e) => e.color == AppColors.warning);
     final double progreso = total == 0 ? 0 : ok / total;

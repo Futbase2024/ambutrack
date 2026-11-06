@@ -26,7 +26,7 @@ class EquipamientoSeccionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int ok = lineas.where((StockVehiculoEntity l) => EstadoDotacion.of(l) == EstadoDotacion.ok).length;
+    final int ok = lineas.where((StockVehiculoEntity l) => EstadoDotacion.of(l).correcto).length;
     final Color color = destacado ? AppColors.warning : AppColors.gray900;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
