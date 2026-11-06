@@ -111,7 +111,7 @@ class VacacionesBloc extends Bloc<VacacionesEvent, VacacionesState> {
       }
 
       final personal = authState.personal!;
-      final nombrePersonal = personal.nombreCompleto ?? personal.email;
+      final nombrePersonal = personal.nombreCompleto;
       final fechaInicioStr = '${vacacion.fechaInicio.day}/${vacacion.fechaInicio.month}/${vacacion.fechaInicio.year}';
       final fechaFinStr = '${vacacion.fechaFin.day}/${vacacion.fechaFin.month}/${vacacion.fechaFin.year}';
 

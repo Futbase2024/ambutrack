@@ -565,6 +565,14 @@ class _NotificacionesViewState extends State<_NotificacionesView> {
         );
         break;
 
+      case NotificacionTipo.agendaPendiente:
+        // La agenda de pendientes se gestiona desde la web
+        _mostrarMensaje(
+          context,
+          'La agenda de pendientes se gestiona desde la aplicación web',
+        );
+        break;
+
       case NotificacionTipo.cambioTurno:
         // Por ahora mostrar mensaje (feature de turnos no implementado en mobile)
         _mostrarMensaje(

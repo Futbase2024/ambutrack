@@ -27,6 +27,7 @@ import '../../features/tramites/presentation/pages/tramites_page.dart';
 import '../../features/vehiculo/presentation/pages/vehiculo_page.dart';
 import '../../features/vehiculo/presentation/pages/incidencias/reportar_incidencia_page.dart';
 import '../../features/vehiculo/presentation/pages/checklist/checklist_mensual_page.dart';
+import '../../features/equipamiento/presentation/pages/equipamiento_page.dart';
 import '../../features/vehiculo/presentation/pages/historial/historial_page.dart';
 import '../../features/vestuario/presentation/pages/vestuario_page.dart';
 import '../../features/ambulancias/presentation/pages/ambulancias_page.dart';
@@ -338,6 +339,18 @@ GoRouter createAppRouter(AuthBloc authBloc) {
                 context: context,
                 state: state,
                 child: const ChecklistMensualPage(),
+              );
+            },
+          ),
+          // Equipamiento (dotación por plantilla)
+          GoRoute(
+            path: 'equipamiento',
+            name: 'equipamiento',
+            pageBuilder: (BuildContext context, GoRouterState state) {
+              return _buildPageWithTransition(
+                context: context,
+                state: state,
+                child: const EquipamientoPage(),
               );
             },
           ),

@@ -90,8 +90,16 @@ plantillas_equipamiento (cabecera)
    - Eliminada la vista de stock antigua (4 archivos sin uso)
    - Pendiente: borrar plantilla desde UI (el BLoC lo soporta; no expuesto para evitar errores);
      tipos de vehículo del formulario fijos: COLECTIVA, CONVENCIONAL, UVI MÓVIL
-5. **App móvil** — pantalla del técnico (urgentes arriba, ModalSheet para editar cantidad,
-   caducidad, lote y adjunto)
+5. ✅ **App móvil** (`flutter analyze` → No issues)
+   - `features/equipamiento/`: repo + `EquipamientoBloc` + página `/vehiculo/equipamiento`
+     (tarjeta "Equipamiento" en Vehículo). Usa el vehículo asignado del turno (`VehiculoAsignadoBloc`)
+   - Cabecera con progreso y contadores, bloque "Requieren atención" y secciones desplegables
+   - ModalSheet (SafeArea top:false): cantidad − / +, caducidad (obligatoria si el item la pide),
+     lote y observaciones. El técnico NO puede excluir ni añadir items (solo web)
+   - Adjuntos: solo desde la web (el móvil muestra si el documento está o falta)
+   - Caducidades (pantalla existente) muestra los items en cuanto tienen fecha
+   - Arreglos previos necesarios: quitado `bloc_test` (sin uso, impedía `pub get` con Flutter 3.44),
+     casos `agendaPendiente` en notificaciones (errores de compilación) y 2 null-aware muertos
 6. **Alertas** — integrar caducidades con `alertas_caducidad`
 
 ## Pendiente / riesgos

@@ -242,6 +242,9 @@ class _NotificationIcon extends StatelessWidget {
       case NotificacionTipo.alertaCaducidad:
         return (Icons.warning_amber_rounded, Colors.orange);
 
+      case NotificacionTipo.agendaPendiente:
+        return (Icons.event_note_rounded, colorScheme.primary);
+
       case NotificacionTipo.info:
         return (Icons.info_rounded, colorScheme.primary);
     }

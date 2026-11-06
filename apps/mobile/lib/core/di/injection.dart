@@ -42,6 +42,9 @@ import '../../features/caducidades/presentation/bloc/caducidades_bloc.dart';
 import '../../features/checklist_ambulancia/data/repositories/checklist_repository_impl.dart';
 import '../../features/checklist_ambulancia/domain/repositories/checklist_repository.dart';
 import '../../features/checklist_ambulancia/presentation/bloc/checklist_bloc.dart';
+import '../../features/equipamiento/data/repositories/equipamiento_repository_impl.dart';
+import '../../features/equipamiento/domain/repositories/equipamiento_repository.dart';
+import '../../features/equipamiento/presentation/bloc/equipamiento_bloc.dart';
 import '../../features/notificaciones/data/repositories/notificaciones_repository_impl.dart';
 import '../../features/notificaciones/domain/repositories/notificaciones_repository.dart';
 import '../../features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
@@ -186,6 +189,18 @@ Future<void> configureDependencies() async {
           : '';
       return VehiculoAsignadoBloc(userId: userId);
     },
+  );
+
+  // ===== EQUIPAMIENTO (dotación del vehículo por plantilla) =====
+
+  // Repository
+  getIt.registerLazySingleton<EquipamientoRepository>(
+    () => EquipamientoRepositoryImpl(),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<EquipamientoBloc>(
+    () => EquipamientoBloc(getIt<EquipamientoRepository>()),
   );
 
   // ===== AMBULANCIAS =====

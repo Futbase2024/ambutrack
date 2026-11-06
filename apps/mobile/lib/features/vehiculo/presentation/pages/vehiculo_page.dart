@@ -218,7 +218,7 @@ class _VehiculoPageContent extends StatelessWidget {
     };
   }
 
-  /// Grid 2x2 con las opciones del menú
+  /// Grid de 2 columnas con las opciones del menú
   Widget _buildMenuGrid(BuildContext context) {
     return GridView.count(
       shrinkWrap: true,
@@ -241,6 +241,13 @@ class _VehiculoPageContent extends StatelessWidget {
           iconColor: AppColors.success,
           title: 'Checklists',
           onTap: () => context.push('/checklist-ambulancia'),
+        ),
+        _buildMenuCard(
+          context: context,
+          icon: Icons.medical_services_rounded,
+          iconColor: AppColors.primary,
+          title: 'Equipamiento',
+          onTap: () => context.push('/vehiculo/equipamiento'),
         ),
         _buildMenuCard(
           context: context,
