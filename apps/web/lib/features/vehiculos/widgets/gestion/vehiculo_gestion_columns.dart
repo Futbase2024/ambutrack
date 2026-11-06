@@ -38,9 +38,9 @@ Color vehiculoEstadoColor(VehiculoEstado estado) {
     case VehiculoEstado.mantenimiento:
       return AppColors.warning;
     case VehiculoEstado.reparacion:
-      return AppColors.error;
+      return AppColors.highPriority;
     case VehiculoEstado.baja:
-      return AppColors.inactive;
+      return AppColors.error;
   }
 }
 
@@ -84,7 +84,11 @@ final List<GestionColumn<VehiculoEntity>> vehiculoGestionColumns = <GestionColum
     label: 'Matrícula',
     width: 110,
     sortValue: (VehiculoEntity v) => v.matricula.toLowerCase(),
-    cell: (VehiculoEntity v) => FlotaCellText(v.matricula, bold: true),
+    cell: (VehiculoEntity v) => FlotaCellText(
+      v.matricula,
+      bold: true,
+      color: v.estado == VehiculoEstado.baja ? AppColors.error : null,
+    ),
   ),
   GestionColumn<VehiculoEntity>(
     label: 'Marca',
