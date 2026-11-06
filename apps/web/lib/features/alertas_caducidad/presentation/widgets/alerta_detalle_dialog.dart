@@ -2,7 +2,6 @@ import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
@@ -109,11 +108,8 @@ class _AlertaDetalleContent extends StatelessWidget {
                 onMarcarVisto();
               },
               onNavegar: () {
-                final String? route = getRouteForAlerta(alerta);
                 Navigator.of(context).pop();
-                if (route != null) {
-                  context.pushNamed(route);
-                }
+                abrirDestinoAlerta(context, alerta);
               },
             ),
           ],

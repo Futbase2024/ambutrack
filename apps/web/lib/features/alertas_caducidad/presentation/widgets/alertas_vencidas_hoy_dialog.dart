@@ -4,9 +4,9 @@ import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/features/alertas_caducidad/presentation/bloc/alertas_caducidad_bloc.dart';
 import 'package:ambutrack_web/features/alertas_caducidad/presentation/bloc/alertas_caducidad_event.dart';
+import 'package:ambutrack_web/features/alertas_caducidad/presentation/widgets/helpers/alerta_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
@@ -66,29 +66,7 @@ class _AlertasVencidasHoyDialogState extends State<AlertasVencidasHoyDialog> {
     }
   }
 
-  void _navegar(AlertaCaducidadEntity alerta) {
-    final String? routeName = _getRouteName(alerta);
-    if (routeName != null) {
-      context.pushNamed(routeName);
-    }
-  }
-
-  String? _getRouteName(AlertaCaducidadEntity alerta) {
-    if (alerta.entidadKey.startsWith('VEHICULO:')) {
-      return 'vehiculos';
-    }
-    switch (alerta.tipo) {
-      case AlertaTipo.seguro:
-      case AlertaTipo.homologacion:
-        return 'flota_documentacion';
-      case AlertaTipo.itv:
-      case AlertaTipo.revisionTecnica:
-        return 'flota_itv';
-      case AlertaTipo.mantenimiento:
-      case AlertaTipo.revision:
-        return 'flota_mantenimiento_preventivo';
-    }
-  }
+  void _navegar(AlertaCaducidadEntity alerta) => abrirDestinoAlerta(context, alerta);
 
   @override
   Widget build(BuildContext context) {
@@ -476,6 +454,8 @@ class _AlertaCard extends StatelessWidget {
         return AppColors.primary;
       case AlertaTipo.revision:
         return AppColors.success;
+      case AlertaTipo.equipamiento:
+        return AppColors.emergency;
     }
   }
 
@@ -493,6 +473,8 @@ class _AlertaCard extends StatelessWidget {
         return Icons.build_circle;
       case AlertaTipo.revision:
         return Icons.miscellaneous_services;
+      case AlertaTipo.equipamiento:
+        return Icons.medical_services;
     }
   }
 
@@ -510,6 +492,8 @@ class _AlertaCard extends StatelessWidget {
         return 'Mantenimiento';
       case AlertaTipo.revision:
         return 'Revisión';
+      case AlertaTipo.equipamiento:
+        return 'Equipamiento';
     }
   }
 }

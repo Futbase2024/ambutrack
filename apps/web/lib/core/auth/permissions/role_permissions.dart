@@ -35,6 +35,12 @@ class RolePermissions {
         ? route.substring(0, route.length - 1)
         : route;
 
+    // Equipamiento de un vehículo concreto (/flota/vehiculo/:id/stock):
+    // no cuelga de ninguna ruta de módulo, se controla con "Stock / Equipamiento"
+    if (_equipamientoVehiculoRoute.hasMatch(normalizedRoute)) {
+      return allowedModules.contains(AppModule.stockEquipamiento);
+    }
+
     return allowedModules.any((AppModule module) {
       final String moduleRoute = module.route;
 
@@ -62,6 +68,9 @@ class RolePermissions {
   }
 
   /// Mapa de rol → módulos permitidos
+  /// Ruta de equipamiento de un vehículo concreto
+  static final RegExp _equipamientoVehiculoRoute = RegExp(r'^/flota/vehiculo/[^/]+/stock$');
+
   static final Map<UserRole, List<AppModule>> _roleModuleMap =
       <UserRole, List<AppModule>>{
     // ===== ADMIN =====

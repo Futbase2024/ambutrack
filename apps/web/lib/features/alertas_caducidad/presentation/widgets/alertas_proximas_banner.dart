@@ -158,6 +158,8 @@ class AlertasProximasBanner extends StatelessWidget {
         return Icons.build_circle;
       case AlertaTipo.revision:
         return Icons.miscellaneous_services;
+      case AlertaTipo.equipamiento:
+        return Icons.medical_services;
     }
   }
 
@@ -175,6 +177,8 @@ class AlertasProximasBanner extends StatelessWidget {
         return 'Mantenimiento';
       case AlertaTipo.revision:
         return 'Revisión';
+      case AlertaTipo.equipamiento:
+        return 'Equipamiento';
     }
   }
 }

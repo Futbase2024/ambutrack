@@ -95,6 +95,8 @@ class AlertaCaducidadSupabaseModel {
         return AlertaTipo.revision;
       case 'mantenimiento':
         return AlertaTipo.mantenimiento;
+      case 'equipamiento':
+        return AlertaTipo.equipamiento;
       default:
         debugPrint('⚠️ Tipo de alerta desconocido: $tipo, usando itv como fallback');
         return AlertaTipo.itv;

@@ -221,6 +221,8 @@ class SupabaseAlertasCaducidadDataSource
         return 'revision';
       case AlertaTipo.mantenimiento:
         return 'mantenimiento';
+      case AlertaTipo.equipamiento:
+        return 'equipamiento';
     }
   }
 

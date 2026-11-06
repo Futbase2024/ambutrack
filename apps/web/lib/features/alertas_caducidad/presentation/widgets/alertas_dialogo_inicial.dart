@@ -281,6 +281,8 @@ class _AlertaCriticaTile extends StatelessWidget {
         return Icons.settings;
       case AlertaTipo.mantenimiento:
         return Icons.handyman;
+      case AlertaTipo.equipamiento:
+        return Icons.medical_services;
     }
   }
 
@@ -298,6 +300,8 @@ class _AlertaCriticaTile extends StatelessWidget {
         return 'Revisión';
       case AlertaTipo.mantenimiento:
         return 'Mantenimiento';
+      case AlertaTipo.equipamiento:
+        return 'Equipamiento del vehículo';
     }
   }
 

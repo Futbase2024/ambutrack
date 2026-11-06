@@ -202,6 +202,8 @@ class _AlertaCaducidadCard extends StatelessWidget {
         return Icons.settings_outlined;
       case AlertaTipo.revision:
         return Icons.receipt_long_outlined;
+      case AlertaTipo.equipamiento:
+        return Icons.medical_services_outlined;
     }
   }
 
@@ -219,6 +221,8 @@ class _AlertaCaducidadCard extends StatelessWidget {
         return 'MANTENIMIENTO';
       case AlertaTipo.revision:
         return 'REVISIÓN';
+      case AlertaTipo.equipamiento:
+        return 'EQUIPAMIENTO';
     }
   }
 

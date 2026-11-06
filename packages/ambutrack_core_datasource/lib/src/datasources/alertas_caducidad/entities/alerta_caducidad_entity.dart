@@ -19,6 +19,10 @@ enum AlertaTipo {
 
   /// Otras revisiones (inspección anual, especial, etc.)
   revision,
+
+  /// Caducidades de la dotación del vehículo (plantillas de equipamiento).
+  /// Una alerta por vehículo; `entidadId` = ID del vehículo.
+  equipamiento,
 }
 
 /// Severidad de la alerta basada en días restantes

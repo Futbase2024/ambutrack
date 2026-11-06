@@ -100,7 +100,16 @@ plantillas_equipamiento (cabecera)
    - Caducidades (pantalla existente) muestra los items en cuanto tienen fecha
    - Arreglos previos necesarios: quitado `bloc_test` (sin uso, impedía `pub get` con Flutter 3.44),
      casos `agendaPendiente` en notificaciones (errores de compilación) y 2 null-aware muertos
-6. **Alertas** — integrar caducidades con `alertas_caducidad`
+6. ✅ **Alertas** — `042_alertas_caducidad_equipamiento.sql`
+   - `vw_alertas_caducidad_activas`: nuevo bloque `equipamiento`, UNA alerta por vehículo
+     (caducados + próximos 30 días; excluye excluidos y fuera de plantilla)
+   - `obtener_alertas_activas` incluye `equipamiento`; resumen y críticas lo heredan
+   - CHECK de `ambutrack_alertas_caducidad_vistas` ampliado (antes fallaba marcar vista
+     `revision` / `revision_tecnica`)
+   - Core: `AlertaTipo.equipamiento`. Web: casos en los 12 switches y `abrirDestinoAlerta()`
+     que abre la dotación del vehículo afectado
+   - Permisos: `/flota/vehiculo/:id/stock` asociado al módulo `stockEquipamiento`
+     (antes devolvía 403 a todo rol que no fuera admin)
 
 ## Pendiente / riesgos
 
