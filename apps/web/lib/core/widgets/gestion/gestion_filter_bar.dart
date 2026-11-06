@@ -16,13 +16,17 @@ class GestionFilterBar extends StatelessWidget {
         color: AppColors.gray50,
         border: Border(bottom: BorderSide(color: AppColors.gray200)),
       ),
-      child: Row(
-        children: <Widget>[
-          for (int i = 0; i < children.length; i++) ...<Widget>[
-            if (i > 0) const SizedBox(width: 12),
-            children[i],
+      // Si no cabe en una línea, se desplaza en horizontal en lugar de desbordarse
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: <Widget>[
+            for (int i = 0; i < children.length; i++) ...<Widget>[
+              if (i > 0) const SizedBox(width: 12),
+              children[i],
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

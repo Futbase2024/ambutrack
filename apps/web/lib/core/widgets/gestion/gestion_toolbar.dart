@@ -66,7 +66,17 @@ class GestionToolbar extends StatelessWidget {
         color: Colors.white,
         border: Border(bottom: BorderSide(color: AppColors.gray200)),
       ),
-      child: Row(children: children),
+      // Ocupa todo el ancho (el Spacer empuja `trailing` a la derecha) y,
+      // si no cabe, se desplaza en horizontal en lugar de desbordarse
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) => SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: constraints.maxWidth),
+            child: IntrinsicWidth(child: Row(children: children)),
+          ),
+        ),
+      ),
     );
   }
 }

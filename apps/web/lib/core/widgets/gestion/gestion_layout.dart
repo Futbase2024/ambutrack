@@ -20,7 +20,9 @@ export 'gestion_toolbar.dart';
 /// ├──────────── barra de estado ──────────────────┤
 /// ```
 ///
-/// La ficha lateral se oculta automáticamente en pantallas estrechas.
+/// La ficha lateral se estrecha en pantallas medianas (hasta [minDetailWidth])
+/// y solo se oculta si la rejilla se quedaría con menos de [minContentWidth]
+/// (la rejilla se desplaza en horizontal si sus columnas no caben).
 class GestionLayout extends StatelessWidget {
   const GestionLayout({
     required this.toolbar,
@@ -29,7 +31,8 @@ class GestionLayout extends StatelessWidget {
     this.filterBar,
     this.detailPanel,
     this.detailWidth = 380,
-    this.minWidthForDetail = 1100,
+    this.minDetailWidth = 300,
+    this.minContentWidth = 420,
     super.key,
   });
 
@@ -40,8 +43,21 @@ class GestionLayout extends StatelessWidget {
   final Widget content;
   final Widget? detailPanel;
   final Widget statusBar;
+
+  /// Ancho preferido de la ficha lateral
   final double detailWidth;
-  final double minWidthForDetail;
+
+  /// Ancho mínimo de la ficha lateral en pantallas medianas
+  final double minDetailWidth;
+
+  /// Ancho mínimo que debe quedar para la rejilla al mostrar la ficha
+  final double minContentWidth;
+
+  /// Ancho de la ficha para el espacio disponible (null = no cabe)
+  double? _detailWidthFor(double available) {
+    final double width = (available - minContentWidth).clamp(0, detailWidth).toDouble();
+    return width >= minDetailWidth ? width : null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,15 +77,15 @@ class GestionLayout extends StatelessWidget {
           Expanded(
             child: LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
-                final bool showDetail = detailPanel != null &&
-                    constraints.maxWidth >= minWidthForDetail;
+                final double? panelWidth =
+                    detailPanel == null ? null : _detailWidthFor(constraints.maxWidth);
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     Expanded(child: content),
-                    if (showDetail)
+                    if (panelWidth != null)
                       Container(
-                        width: detailWidth,
+                        width: panelWidth,
                         decoration: const BoxDecoration(
                           border: Border(left: BorderSide(color: AppColors.gray300)),
                         ),
