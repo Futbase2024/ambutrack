@@ -104,9 +104,10 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final List<TrasladoEntity> serviciosActivos =
           await _trasladoRepository.getEnCurso();
 
-      // Métricas de flota (TODO: clasificación por categoría real)
-      final int urgDisp = (disponibles.length * 0.4).round();
-      final int urgTotal = (total * 0.4).round();
+      // Métricas de flota por clasificación oficial (RD 836/2012):
+      // urgencias = B (SVB), C (SVA) y A1 UR; programados = A1 y A2
+      final int urgDisp = disponibles.where(_esUrgencias).length;
+      final int urgTotal = vehiculos.where(_esUrgencias).length;
 
       // Métricas de servicios
       final int programadosActivos = serviciosActivos
@@ -483,4 +484,10 @@ class RoleData {
   final int misTurnosHoy;
   final int misServiciosHoy;
   final int misAusenciasActivas;
+}
+
+/// Vehículo de urgencias según su clasificación oficial (B, C o A1 UR)
+bool _esUrgencias(VehiculoEntity v) {
+  final String c = (v.clasificacion ?? '').toUpperCase().trim();
+  return c == 'B' || c == 'C' || c.contains('UR');
 }
