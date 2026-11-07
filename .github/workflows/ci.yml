@@ -89,3 +89,24 @@ jobs:
         continue-on-error: true
         working-directory: apps/mobile
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+  seguridad:
+    name: Seguridad · RLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # Ejecuta los tests de reglas de acceso contra la base de datos.
+      # Todo va en una transacción que se deshace (no modifica datos).
+      # Requiere el secret SUPABASE_DB_URL (cadena de conexión de Postgres);
+      # si no está configurado, el paso se omite.
+      - name: Tests de RLS por rol
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::notice::SUPABASE_DB_URL no configurado: se omiten los tests de RLS"
+            exit 0
+          fi
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f apps/web/supabase/tests/rls_por_rol.sql
