@@ -1,0 +1,87 @@
+# CI de AmbuTrack: análisis y tests en cada PR y en cada push a main
+#
+# - Web: ESTRICTO (flutter analyze sin avisos + tests). Bloquea el PR si falla.
+# - Paquete core_datasource y app móvil: solo informativo (tienen avisos y
+#   tests antiguos de Firebase pendientes de limpiar). No bloquean.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.44.0'
+
+jobs:
+  web:
+    name: Web · análisis y tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Generar código del paquete core_datasource
+        working-directory: packages/ambutrack_core_datasource
+        run: |
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+
+      - name: Generar código de la web
+        working-directory: apps/web
+        run: |
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+
+      - name: flutter analyze (0 avisos)
+        working-directory: apps/web
+        run: flutter analyze
+
+      - name: flutter test
+        working-directory: apps/web
+        run: flutter test
+
+  informativo:
+    name: Core y móvil · informativo
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Generar código del paquete core_datasource
+        working-directory: packages/ambutrack_core_datasource
+        run: |
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analizar paquete core_datasource
+        working-directory: packages/ambutrack_core_datasource
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Generar código de la app móvil
+        working-directory: apps/mobile
+        run: |
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analizar app móvil
+        working-directory: apps/mobile
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
