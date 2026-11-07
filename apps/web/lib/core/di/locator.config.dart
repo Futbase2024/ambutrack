@@ -139,6 +139,10 @@ import 'package:ambutrack_web/features/cuadrante/excepciones_festivos/domain/rep
     as _i172;
 import 'package:ambutrack_web/features/cuadrante/excepciones_festivos/presentation/bloc/excepciones_festivos_bloc.dart'
     as _i87;
+import 'package:ambutrack_web/features/geolocalizacion/data/repositories/geolocalizacion_repository_impl.dart'
+    as _i138;
+import 'package:ambutrack_web/features/geolocalizacion/domain/repositories/geolocalizacion_repository.dart'
+    as _i804;
 import 'package:ambutrack_web/features/home/presentation/bloc/home_bloc.dart'
     as _i848;
 import 'package:ambutrack_web/features/incidencias/data/repositories/incidencia_repository_impl.dart'
@@ -520,6 +524,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i258.EquipamientoVehiculoRepository>(
       () => _i426.EquipamientoVehiculoRepositoryImpl(),
+    );
+    gh.lazySingleton<_i804.GeolocalizacionRepository>(
+      () => _i138.GeolocalizacionRepositoryImpl(),
     );
     gh.lazySingleton<_i681.ServicioRecurrenteRepository>(
       () => _i820.ServicioRecurrenteRepositoryImpl(),

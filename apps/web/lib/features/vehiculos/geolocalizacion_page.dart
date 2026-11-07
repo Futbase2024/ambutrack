@@ -1,82 +1,21 @@
+import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/features/geolocalizacion/domain/repositories/geolocalizacion_repository.dart';
+import 'package:ambutrack_web/features/geolocalizacion/presentation/bloc/geolocalizacion_cubit.dart';
+import 'package:ambutrack_web/features/geolocalizacion/presentation/widgets/geolocalizacion_view.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Página de Geolocalización en Tiempo Real
+/// Página de Geolocalización en tiempo real de la flota
 class GeolocalizacionPage extends StatelessWidget {
   const GeolocalizacionPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // Header
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: <Color>[AppColors.success, AppColors.secondary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: <BoxShadow>[
-                  BoxShadow(
-                    color: AppColors.success.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.gps_fixed, color: Colors.white, size: 40),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          'Geolocalización en Tiempo Real',
-                          style: GoogleFonts.inter(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Seguimiento GPS de toda la flota en tiempo real',
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            color: Colors.white.withValues(alpha: 0.9),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Próximamente: Mapa interactivo con ubicación de vehículos',
-              style: GoogleFonts.inter(fontSize: 16, color: AppColors.textSecondaryLight),
-            ),
-          ],
-        ),
+    return SafeArea(
+      child: BlocProvider<GeolocalizacionCubit>(
+        create: (BuildContext _) => GeolocalizacionCubit(getIt<GeolocalizacionRepository>())..iniciar(),
+        child: const Scaffold(backgroundColor: AppColors.backgroundLight, body: GeolocalizacionView()),
       ),
     );
   }

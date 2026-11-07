@@ -481,6 +481,11 @@ export 'src/datasources/busqueda_global/busqueda_global_contract.dart';
 export 'src/datasources/busqueda_global/busqueda_global_factory.dart' show BusquedaGlobalDataSourceFactory;
 export 'src/datasources/busqueda_global/entities/resultado_busqueda_entity.dart';
 
+// ✅ GPS - Seguimiento en tiempo real de la flota (tabla `thistorial_ubicaciones`)
+export 'src/datasources/ubicaciones_vehiculo/entities/ubicacion_vehiculo_entity.dart';
+export 'src/datasources/ubicaciones_vehiculo/ubicaciones_vehiculo_contract.dart';
+export 'src/datasources/ubicaciones_vehiculo/ubicaciones_vehiculo_factory.dart' show UbicacionesVehiculoDataSourceFactory;
+
 // NO exportar implementaciones específicas (Firebase, REST)
 // NO exportar mixins internos
 // NO exportar barrels internos
