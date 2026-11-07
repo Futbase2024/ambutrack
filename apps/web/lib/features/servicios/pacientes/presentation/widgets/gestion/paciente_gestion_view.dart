@@ -26,6 +26,10 @@ class PacienteGestionView extends StatefulWidget {
 class _PacienteGestionViewState extends State<PacienteGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Registro abierto desde la búsqueda global (Ctrl+K): solo se muestra ese
+  String? _soloId;
+  String? _enlaceAplicado;
   PacienteEstadoFiltro _estado = PacienteEstadoFiltro.todos;
   GestionSort _sort = const GestionSort(columnIndex: 1);
   int _page = 0;
@@ -58,7 +62,25 @@ class _PacienteGestionViewState extends State<PacienteGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != PacienteEstadoFiltro.todos;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final GestionDeepLink enlace = GestionDeepLink.of(context);
+    if (enlace.isEmpty || enlace.clave == _enlaceAplicado) {
+      return;
+    }
+    _enlaceAplicado = enlace.clave;
+    _soloId = enlace.id;
+    _selectedId = enlace.id;
+    _query = '';
+    _searchController.text = enlace.texto ?? '';
+    _page = 0;
+  }
+
+  List<PacienteEntity> _filtrarEnlace(List<PacienteEntity> items) =>
+      _soloId == null ? items : items.where((PacienteEntity e) => e.id == _soloId).toList();
+
+  bool get _hasFilters => _soloId != null || _query.isNotEmpty || _estado != PacienteEstadoFiltro.todos;
 
   PacienteEntity? get _selected {
     for (final PacienteEntity p in _pacientes ?? const <PacienteEntity>[]) {
@@ -70,7 +92,7 @@ class _PacienteGestionViewState extends State<PacienteGestionView> {
   }
 
   List<PacienteEntity> get _visibles => _sort.apply(
-        filtrarPacientes(_pacientes ?? <PacienteEntity>[], query: _query, estado: _estado),
+        filtrarPacientes(_filtrarEnlace(_pacientes ?? <PacienteEntity>[]), query: _query, estado: _estado),
         pacienteGestionColumns,
       );
 
@@ -81,6 +103,7 @@ class _PacienteGestionViewState extends State<PacienteGestionView> {
 
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
+        _soloId = null;
         _query = '';
         _estado = PacienteEstadoFiltro.todos;
       });
@@ -172,7 +195,10 @@ class _PacienteGestionViewState extends State<PacienteGestionView> {
           ),
           filterBar: PacienteGestionFilters(
             searchController: _searchController,
-            onSearchChanged: (String v) => _updateFilters(() => _query = v),
+            onSearchChanged: (String v) => _updateFilters(() {
+              _soloId = null;
+              _query = v;
+            }),
             estado: _estado,
             onEstadoChanged: (PacienteEstadoFiltro v) => _updateFilters(() => _estado = v),
             onClear: _hasFilters ? _clearFilters : null,

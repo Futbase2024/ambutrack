@@ -32,6 +32,10 @@ class VehiculoGestionView extends StatefulWidget {
 class _VehiculoGestionViewState extends State<VehiculoGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Registro abierto desde la búsqueda global (Ctrl+K): solo se muestra ese
+  String? _soloId;
+  String? _enlaceAplicado;
   VehiculoEstado? _estado;
   String? _tipo;
   GestionSort _sort = const GestionSort(columnIndex: 0);
@@ -60,7 +64,25 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != null || _tipo != null;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final GestionDeepLink enlace = GestionDeepLink.of(context);
+    if (enlace.isEmpty || enlace.clave == _enlaceAplicado) {
+      return;
+    }
+    _enlaceAplicado = enlace.clave;
+    _soloId = enlace.id;
+    _selectedId = enlace.id;
+    _query = '';
+    _searchController.text = enlace.texto ?? '';
+    _page = 0;
+  }
+
+  List<VehiculoEntity> _filtrarEnlace(List<VehiculoEntity> items) =>
+      _soloId == null ? items : items.where((VehiculoEntity e) => e.id == _soloId).toList();
+
+  bool get _hasFilters => _soloId != null || _query.isNotEmpty || _estado != null || _tipo != null;
 
   VehiculoEntity? get _selected {
     for (final VehiculoEntity v in _vehiculos ?? const <VehiculoEntity>[]) {
@@ -72,7 +94,7 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> {
   }
 
   List<VehiculoEntity> get _visibles => _sort.apply(
-        filtrarVehiculos(_vehiculos ?? <VehiculoEntity>[], query: _query, estado: _estado, tipo: _tipo),
+        filtrarVehiculos(_filtrarEnlace(_vehiculos ?? <VehiculoEntity>[]), query: _query, estado: _estado, tipo: _tipo),
         vehiculoGestionColumns,
       );
 
@@ -83,6 +105,7 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> {
 
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
+        _soloId = null;
         _query = '';
         _estado = null;
         _tipo = null;
@@ -186,7 +209,10 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> {
           ),
           filterBar: VehiculoGestionFilters(
             searchController: _searchController,
-            onSearchChanged: (String v) => _updateFilters(() => _query = v),
+            onSearchChanged: (String v) => _updateFilters(() {
+              _soloId = null;
+              _query = v;
+            }),
             estado: _estado,
             onEstadoChanged: (VehiculoEstado? v) => _updateFilters(() => _estado = v),
             tipo: _tipo,

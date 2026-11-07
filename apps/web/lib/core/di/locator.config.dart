@@ -91,6 +91,10 @@ import 'package:ambutrack_web/features/auth/domain/repositories/auth_repository.
     as _i707;
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart'
     as _i649;
+import 'package:ambutrack_web/features/busqueda_global/data/repositories/busqueda_global_repository_impl.dart'
+    as _i177;
+import 'package:ambutrack_web/features/busqueda_global/domain/repositories/busqueda_global_repository.dart'
+    as _i885;
 import 'package:ambutrack_web/features/contratos/data/repositories/contrato_repository_impl.dart'
     as _i552;
 import 'package:ambutrack_web/features/contratos/domain/repositories/contrato_repository.dart'
@@ -614,6 +618,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i971.ProductoRepository>(),
       ),
     );
+    gh.lazySingleton<_i885.BusquedaGlobalRepository>(
+      () => _i177.BusquedaGlobalRepositoryImpl(),
+    );
     gh.lazySingleton<_i931.FacultativoRepository>(
       () => _i42.FacultativoRepositoryImpl(),
     );
@@ -834,18 +841,18 @@ extension GetItInjectableX on _i174.GetIt {
         repository: gh<_i998.AgendaPendienteRepository>(),
       ),
     );
-    gh.factory<_i540.OrdenReparacionBloc>(
-      () => _i540.OrdenReparacionBloc(gh<_i16.OrdenReparacionRepository>()),
-    );
-    gh.factory<_i561.RepuestoOrdenBloc>(
-      () => _i561.RepuestoOrdenBloc(gh<_i16.OrdenReparacionRepository>()),
-    );
     gh.factory<_i194.ControlRepuestosBloc>(
       () => _i194.ControlRepuestosBloc(gh<_i16.OrdenReparacionRepository>()),
     );
     gh.factory<_i555.HistorialReparacionesBloc>(
       () =>
           _i555.HistorialReparacionesBloc(gh<_i16.OrdenReparacionRepository>()),
+    );
+    gh.factory<_i540.OrdenReparacionBloc>(
+      () => _i540.OrdenReparacionBloc(gh<_i16.OrdenReparacionRepository>()),
+    );
+    gh.factory<_i561.RepuestoOrdenBloc>(
+      () => _i561.RepuestoOrdenBloc(gh<_i16.OrdenReparacionRepository>()),
     );
     gh.lazySingleton<_i750.RoleService>(
       () => _i750.RoleService(

@@ -25,6 +25,10 @@ class OrdenGestionView extends StatefulWidget {
 class _OrdenGestionViewState extends State<OrdenGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Registro abierto desde la búsqueda global (Ctrl+K): solo se muestra ese
+  String? _soloId;
+  String? _enlaceAplicado;
   String _estado = ordenFiltroTodas;
   PrioridadOrdenReparacion? _prioridad;
   GestionSort _sort = const GestionSort(columnIndex: 6, ascending: false);
@@ -47,7 +51,25 @@ class _OrdenGestionViewState extends State<OrdenGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != ordenFiltroTodas || _prioridad != null;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final GestionDeepLink enlace = GestionDeepLink.of(context);
+    if (enlace.isEmpty || enlace.clave == _enlaceAplicado) {
+      return;
+    }
+    _enlaceAplicado = enlace.clave;
+    _soloId = enlace.id;
+    _selectedId = enlace.id;
+    _query = '';
+    _searchController.text = enlace.texto ?? '';
+    _page = 0;
+  }
+
+  List<OrdenReparacionEntity> _filtrarEnlace(List<OrdenReparacionEntity> items) =>
+      _soloId == null ? items : items.where((OrdenReparacionEntity e) => e.id == _soloId).toList();
+
+  bool get _hasFilters => _soloId != null || _query.isNotEmpty || _estado != ordenFiltroTodas || _prioridad != null;
 
   OrdenReparacionEntity? get _selected {
     for (final OrdenReparacionEntity o in _ordenes ?? const <OrdenReparacionEntity>[]) {
@@ -60,7 +82,7 @@ class _OrdenGestionViewState extends State<OrdenGestionView> {
 
   List<OrdenReparacionEntity> get _visibles => _sort.apply(
         filtrarOrdenes(
-          _ordenes ?? <OrdenReparacionEntity>[],
+          _filtrarEnlace(_ordenes ?? <OrdenReparacionEntity>[]),
           query: _query,
           estado: _estado,
           prioridad: _prioridad,
@@ -75,6 +97,7 @@ class _OrdenGestionViewState extends State<OrdenGestionView> {
 
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
+        _soloId = null;
         _query = '';
         _estado = ordenFiltroTodas;
         _prioridad = null;
@@ -201,7 +224,10 @@ class _OrdenGestionViewState extends State<OrdenGestionView> {
           ),
           filterBar: OrdenGestionFilters(
             searchController: _searchController,
-            onSearchChanged: (String v) => _updateFilters(() => _query = v),
+            onSearchChanged: (String v) => _updateFilters(() {
+              _soloId = null;
+              _query = v;
+            }),
             estado: _estado,
             onEstadoChanged: (String v) => _updateFilters(() => _estado = v),
             prioridad: _prioridad,

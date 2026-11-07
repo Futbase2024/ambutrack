@@ -26,6 +26,10 @@ class PersonalGestionView extends StatefulWidget {
 class _PersonalGestionViewState extends State<PersonalGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Registro abierto desde la búsqueda global (Ctrl+K): solo se muestra ese
+  String? _soloId;
+  String? _enlaceAplicado;
   String? _categoriaId;
   PersonalEstadoFiltro _estado = PersonalEstadoFiltro.todos;
   GestionSort _sort = const GestionSort(columnIndex: 0);
@@ -61,8 +65,26 @@ class _PersonalGestionViewState extends State<PersonalGestionView> {
     }
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final GestionDeepLink enlace = GestionDeepLink.of(context);
+    if (enlace.isEmpty || enlace.clave == _enlaceAplicado) {
+      return;
+    }
+    _enlaceAplicado = enlace.clave;
+    _soloId = enlace.id;
+    _selectedId = enlace.id;
+    _query = '';
+    _searchController.text = enlace.texto ?? '';
+    _page = 0;
+  }
+
+  List<PersonalEntity> _filtrarEnlace(List<PersonalEntity> items) =>
+      _soloId == null ? items : items.where((PersonalEntity e) => e.id == _soloId).toList();
+
   bool get _hasFilters =>
-      _query.isNotEmpty || _categoriaId != null || _estado != PersonalEstadoFiltro.todos;
+      _soloId != null || _query.isNotEmpty || _categoriaId != null || _estado != PersonalEstadoFiltro.todos;
 
   PersonalEntity? get _selected {
     for (final PersonalEntity p in _personal ?? const <PersonalEntity>[]) {
@@ -75,7 +97,7 @@ class _PersonalGestionViewState extends State<PersonalGestionView> {
 
   List<PersonalEntity> get _visibles => _sort.apply(
         filtrarPersonal(
-          _personal ?? <PersonalEntity>[],
+          _filtrarEnlace(_personal ?? <PersonalEntity>[]),
           query: _query,
           categoriaId: _categoriaId,
           estado: _estado,
@@ -90,6 +112,7 @@ class _PersonalGestionViewState extends State<PersonalGestionView> {
 
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
+        _soloId = null;
         _query = '';
         _categoriaId = null;
         _estado = PersonalEstadoFiltro.todos;
@@ -178,7 +201,10 @@ class _PersonalGestionViewState extends State<PersonalGestionView> {
           ),
           filterBar: PersonalGestionFilters(
             searchController: _searchController,
-            onSearchChanged: (String v) => _updateFilters(() => _query = v),
+            onSearchChanged: (String v) => _updateFilters(() {
+              _soloId = null;
+              _query = v;
+            }),
             categorias: _lookups.categorias,
             categoriaId: _categoriaId,
             onCategoriaChanged: (String? v) => _updateFilters(() => _categoriaId = v),

@@ -1,6 +1,7 @@
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
+export 'gestion_deep_link.dart';
 export 'gestion_detail_panel.dart';
 export 'gestion_dot_label.dart';
 export 'gestion_feedback.dart';

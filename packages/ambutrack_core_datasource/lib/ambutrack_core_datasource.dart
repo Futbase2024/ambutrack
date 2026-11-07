@@ -476,6 +476,11 @@ export 'src/datasources/audit_log/audit_log_contract.dart';
 export 'src/datasources/audit_log/audit_log_factory.dart' show AuditLogDataSourceFactory;
 export 'src/datasources/audit_log/entities/audit_log_entity.dart';
 
+// ✅ BÚSQUEDA GLOBAL (Ctrl+K) - RPC `fn_buscar_global`
+export 'src/datasources/busqueda_global/busqueda_global_contract.dart';
+export 'src/datasources/busqueda_global/busqueda_global_factory.dart' show BusquedaGlobalDataSourceFactory;
+export 'src/datasources/busqueda_global/entities/resultado_busqueda_entity.dart';
+
 // NO exportar implementaciones específicas (Firebase, REST)
 // NO exportar mixins internos
 // NO exportar barrels internos
