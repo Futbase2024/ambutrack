@@ -19,6 +19,17 @@ const Map<String, String> auditoriaTablas = <String, String>{
   'tmantenimientos': 'Mantenimientos',
   'titv_revisiones': 'ITV/Revisiones',
   'empresas': 'Empresas',
+  'pacientes': 'Pacientes',
+  'historial_medico': 'Historial médico',
+  'ausencias': 'Ausencias',
+  'vacaciones': 'Vacaciones',
+  'incidencias': 'Incidencias',
+  'incidencias_vehiculos': 'Averías de vehículos',
+  'servicios_recurrentes': 'Servicios recurrentes',
+  'turnos': 'Turnos',
+  'stock': 'Stock de almacén',
+  'productos': 'Productos',
+  'proveedores': 'Proveedores',
 };
 
 /// Acciones → nombre legible

@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/servicios/pacientes/presentation/widgets/gestion/paciente_gestion_columns.dart';
 import 'package:ambutrack_web/features/servicios/pacientes/presentation/widgets/gestion/paciente_lookups.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +48,7 @@ class PacienteDetailPanel extends StatelessWidget {
             builder: (PacienteLookups l) => _PacienteAdministrativoTab(paciente: p, lookups: l),
           ),
         ),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'pacientes', registroId: p.id)),
       ],
       actions: <Widget>[
         OutlinedButton.icon(

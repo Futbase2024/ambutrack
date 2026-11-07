@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/incidencias.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/incidencias/presentation/widgets/gestion/incidencia_gestion_columns.dart';
 import 'package:flutter/material.dart';
 
@@ -33,6 +34,7 @@ class IncidenciaDetailPanel extends StatelessWidget {
       ],
       tabs: <GestionDetailTab>[
         GestionDetailTab(label: 'General', child: _IncidenciaGeneralTab(incidencia: i)),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'incidencias', registroId: i.id)),
       ],
       actions: <Widget>[
         OutlinedButton.icon(

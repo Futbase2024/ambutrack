@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/almacen/presentation/widgets/gestion/almacen_gestion_common.dart';
 import 'package:ambutrack_web/features/almacen/presentation/widgets/gestion/stock_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -33,6 +34,7 @@ class StockDetailPanel extends StatelessWidget {
       badges: <Widget>[GestionDotLabel(label: situacion.label, color: situacion.color)],
       tabs: <GestionDetailTab>[
         GestionDetailTab(label: 'General', child: _StockGeneralTab(item: s, producto: productos[s.idProducto])),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'stock', registroId: s.id)),
       ],
       actions: <Widget>[
         AlmacenDetailEditButton(onPressed: onEdit),

@@ -1,5 +1,6 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/almacen/presentation/widgets/gestion/almacen_gestion_common.dart';
 import 'package:ambutrack_web/features/almacen/presentation/widgets/gestion/producto_gestion_columns.dart';
 import 'package:ambutrack_web/features/almacen/presentation/widgets/gestion/producto_relacionados_tabs.dart';
@@ -42,6 +43,7 @@ class ProductoDetailPanel extends StatelessWidget {
         ),
         GestionDetailTab(label: 'Stock', child: ProductoStockTab(productoId: p.id)),
         GestionDetailTab(label: 'Movimientos', child: ProductoMovimientosTab(productoId: p.id)),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'productos', registroId: p.id)),
       ],
       actions: <Widget>[
         AlmacenDetailEditButton(onPressed: onEdit),

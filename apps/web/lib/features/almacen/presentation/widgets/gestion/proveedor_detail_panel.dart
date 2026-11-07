@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/producto/producto_bloc.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/producto/producto_state.dart';
 import 'package:ambutrack_web/features/almacen/presentation/widgets/gestion/almacen_gestion_common.dart';
@@ -34,6 +35,7 @@ class ProveedorDetailPanel extends StatelessWidget {
       tabs: <GestionDetailTab>[
         GestionDetailTab(label: 'General', child: _ProveedorGeneralTab(proveedor: p)),
         GestionDetailTab(label: 'Productos', child: _ProveedorProductosTab(proveedorId: p.id)),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'proveedores', registroId: p.id)),
       ],
       actions: <Widget>[
         AlmacenDetailEditButton(onPressed: onEdit),

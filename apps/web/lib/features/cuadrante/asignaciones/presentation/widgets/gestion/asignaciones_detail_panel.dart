@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/widgets/gestion/asignaciones_catalogos.dart';
 import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/widgets/gestion/asignaciones_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +33,7 @@ class AsignacionesDetailPanel extends StatelessWidget {
       badges: <Widget>[AsignacionEstadoDot(estado: a.estado)],
       tabs: <GestionDetailTab>[
         GestionDetailTab(label: 'General', child: _AsignacionGeneralTab(asignacion: a, catalogos: catalogos)),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'turnos', registroId: a.id)),
       ],
       actions: <Widget>[
         OutlinedButton.icon(

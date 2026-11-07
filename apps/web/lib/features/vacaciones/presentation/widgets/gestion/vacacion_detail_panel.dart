@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
 import 'package:ambutrack_web/features/vacaciones/presentation/widgets/gestion/vacacion_gestion_columns.dart';
 import 'package:ambutrack_web/features/vacaciones/presentation/widgets/gestion/vacacion_historial_tab.dart';
@@ -53,6 +54,7 @@ class VacacionDetailPanel extends StatelessWidget {
           label: 'Historial',
           child: VacacionHistorialTab(vacacion: v, todas: todas),
         ),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'vacaciones', registroId: v.id)),
       ],
       actions: <Widget>[
         _PanelButton(

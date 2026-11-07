@@ -1,5 +1,6 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/servicios/operativa/presentation/widgets/common/traslado_gestion_helpers.dart';
 import 'package:ambutrack_web/features/servicios/operativa/presentation/widgets/recurrente/recurrente_gestion_helpers.dart';
 import 'package:ambutrack_web/features/servicios/operativa/presentation/widgets/recurrente/recurrente_traslados_tab.dart';
@@ -41,6 +42,10 @@ class RecurrenteDetailPanel extends StatelessWidget {
         ),
         GestionDetailTab(label: 'Recorrido', child: _RecurrenteRecorridoTab(servicio: s)),
         GestionDetailTab(label: 'Traslados', child: RecurrenteTrasladosTab(servicioId: s.id)),
+        GestionDetailTab(
+          label: 'Cambios',
+          child: RegistroHistorialTab(tabla: 'servicios_recurrentes', registroId: s.id),
+        ),
       ],
     );
   }
