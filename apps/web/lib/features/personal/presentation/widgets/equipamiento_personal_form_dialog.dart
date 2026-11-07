@@ -1,14 +1,11 @@
-// Formulario compacto para equipamiento personal - Ver historial_medico_form_dialog.dart para referencia completa
-import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_searchable_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
+import 'package:ambutrack_web/features/personal/presentation/widgets/form/personal_form_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
@@ -110,152 +107,130 @@ class _EquipamientoPersonalFormDialogState extends State<EquipamientoPersonalFor
     super.dispose();
   }
 
+  static const List<GestionOption<String>> _tipos = <GestionOption<String>>[
+    GestionOption<String>('uniforme', 'Uniforme', color: AppColors.primary),
+    GestionOption<String>('epi', 'EPI', color: AppColors.warning),
+    GestionOption<String>('tecnologico', 'Tecnológico', color: AppColors.info),
+    GestionOption<String>('sanitario', 'Sanitario', color: AppColors.success),
+  ];
+
+  static const List<GestionOption<String>> _estados = <GestionOption<String>>[
+    GestionOption<String>('nuevo', 'Nuevo', color: AppColors.success),
+    GestionOption<String>('bueno', 'Bueno', color: AppColors.info),
+    GestionOption<String>('regular', 'Regular', color: AppColors.warning),
+    GestionOption<String>('malo', 'Malo', color: AppColors.error),
+  ];
+
+  void _onBlocState(BuildContext context, EquipamientoPersonalState state) {
+    if (!_isSaving) {
+      return;
+    }
+    if (state is EquipamientoPersonalLoaded) {
+      CrudOperationHandler.handleSuccess(
+        context: context,
+        isSaving: _isSaving,
+        isEditing: _isEditing,
+        entityName: 'Equipamiento',
+        onClose: () => setState(() => _isSaving = false),
+      );
+    } else if (state is EquipamientoPersonalError) {
+      CrudOperationHandler.handleError(
+        context: context,
+        isSaving: _isSaving,
+        isEditing: _isEditing,
+        entityName: 'Equipamiento',
+        errorMessage: state.message,
+        onClose: () => setState(() => _isSaving = false),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<EquipamientoPersonalBloc, EquipamientoPersonalState>(
-      listener: (BuildContext context, EquipamientoPersonalState state) {
-        if (state is EquipamientoPersonalLoaded) {
-          CrudOperationHandler.handleSuccess(
-            context: context,
-            isSaving: _isSaving,
-            isEditing: _isEditing,
-            entityName: 'Equipamiento',
-            onClose: () => setState(() => _isSaving = false),
-          );
-        } else if (state is EquipamientoPersonalError) {
-          CrudOperationHandler.handleError(
-            context: context,
-            isSaving: _isSaving,
-            isEditing: _isEditing,
-            entityName: 'Equipamiento',
-            errorMessage: state.message,
-            onClose: () => setState(() => _isSaving = false),
-          );
-        }
-      },
-      child: AppDialog(
-        title: _isEditing ? 'Editar Equipamiento' : 'Agregar Equipamiento',
-        content: _isLoading
-            ? const Center(
-                child: AppLoadingIndicator(
-                  message: 'Cargando datos...',
-                  size: 100,
-                ),
-              )
-            : Form(
-                key: _formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: <Widget>[
-                      // Personal (combo con búsqueda)
-                      AppSearchableDropdown<PersonalEntity>(
-                        value: _personalSeleccionado,
-                        label: 'Personal *',
-                        hint: 'Selecciona el personal',
-                        prefixIcon: Icons.person,
-                        searchHint: 'Buscar por nombre, DNI...',
-                        items: _listaPersonal
-                            .map(
-                              (PersonalEntity p) => AppSearchableDropdownItem<PersonalEntity>(
-                                value: p,
-                                label: '${p.nombre} ${p.apellidos}${p.dni != null && p.dni!.isNotEmpty ? ' (${p.dni})' : ''}',
-                                icon: Icons.person,
-                                iconColor: p.activo ? AppColors.success : AppColors.gray400,
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (PersonalEntity? value) {
-                          setState(() {
-                            _personalSeleccionado = value;
-                          });
-                        },
-                        displayStringForOption: (PersonalEntity p) =>
-                            '${p.nombre} ${p.apellidos}${p.dni != null && p.dni!.isNotEmpty ? ' (${p.dni})' : ''}',
-                      ),
-                      const SizedBox(height: AppSizes.spacing),
-
-                      // Tipo de equipamiento
-                      DropdownButtonFormField<String>(
-                        initialValue: _tipoEquipamiento,
-                        decoration: const InputDecoration(labelText: 'Tipo *'),
-                        items: const <DropdownMenuItem<String>>[
-                          DropdownMenuItem<String>(value: 'uniforme', child: Text('Uniforme')),
-                          DropdownMenuItem<String>(value: 'epi', child: Text('EPI')),
-                          DropdownMenuItem<String>(value: 'tecnologico', child: Text('Tecnológico')),
-                          DropdownMenuItem<String>(value: 'sanitario', child: Text('Sanitario')),
-                        ],
-                        onChanged: (String? value) {
-                          if (value != null) {
-                            setState(() => _tipoEquipamiento = value);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: AppSizes.spacing),
-
-                      // Nombre del equipamiento
-                      TextFormField(
-                        controller: _nombreController,
-                        decoration: const InputDecoration(labelText: 'Nombre del Equipamiento *'),
-                        validator: (String? value) => value == null || value.isEmpty ? 'Requerido' : null,
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: AppSizes.spacing),
-
-                      // Talla
-                      TextFormField(
-                        controller: _tallaController,
-                        decoration: const InputDecoration(labelText: 'Talla'),
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: AppSizes.spacing),
-
-                      // Número de serie
-                      TextFormField(
-                        controller: _numeroSerieController,
-                        decoration: const InputDecoration(labelText: 'Número de Serie'),
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: AppSizes.spacing),
-
-                      // Estado
-                      DropdownButtonFormField<String>(
-                        initialValue: _estado,
-                        decoration: const InputDecoration(labelText: 'Estado'),
-                        items: const <DropdownMenuItem<String>>[
-                          DropdownMenuItem<String>(value: 'nuevo', child: Text('Nuevo')),
-                          DropdownMenuItem<String>(value: 'bueno', child: Text('Bueno')),
-                          DropdownMenuItem<String>(value: 'regular', child: Text('Regular')),
-                          DropdownMenuItem<String>(value: 'malo', child: Text('Malo')),
-                        ],
-                        onChanged: (String? value) {
-                          if (value != null) {
-                            setState(() => _estado = value);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: AppSizes.spacing),
-
-                      // Observaciones
-                      TextFormField(
-                        controller: _observacionesController,
-                        decoration: const InputDecoration(labelText: 'Observaciones'),
-                        maxLines: 3,
-                        textInputAction: TextInputAction.newline,
-                      ),
-                    ],
-                  ),
+      listener: _onBlocState,
+      child: GestionFormDialog(
+        title: _isEditing ? 'Editar equipamiento' : 'Nuevo equipamiento',
+        subtitle: _isEditing && _personalSeleccionado != null
+            ? PersonalFormOptions.etiqueta(_personalSeleccionado!)
+            : null,
+        icon: Icons.inventory_2_outlined,
+        formKey: _formKey,
+        isEditing: _isEditing,
+        isSaving: _isSaving,
+        onSave: _onSave,
+        children: <Widget>[
+          const GestionFormSection(title: 'Asignación', first: true),
+          GestionFormRow(
+            label: 'Personal',
+            required: true,
+            child: GestionSearchField<String>(
+              value: _personalSeleccionado?.id,
+              required: true,
+              loading: _isLoading,
+              hint: 'Buscar por nombre o DNI',
+              options: PersonalFormOptions.personal(_listaPersonal, conDni: true),
+              onChanged: (String? id) => setState(
+                () => _personalSeleccionado = PersonalFormOptions.buscar(_listaPersonal, id),
+              ),
+            ),
+          ),
+          const GestionFormSection(title: 'Equipamiento'),
+          GestionFormColumns(
+            children: <Widget>[
+              GestionFormRow(
+                label: 'Tipo',
+                required: true,
+                child: GestionDropdownField<String>(
+                  value: _tipoEquipamiento,
+                  options: _tipos,
+                  required: true,
+                  onChanged: (String? value) {
+                    if (value != null) {
+                      setState(() => _tipoEquipamiento = value);
+                    }
+                  },
                 ),
               ),
-        actions: <Widget>[
-          AppButton(
-            onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-            label: 'Cancelar',
-            variant: AppButtonVariant.text,
+              GestionFormRow(
+                label: 'Estado',
+                child: GestionDropdownField<String>(
+                  value: _estado,
+                  options: _estados,
+                  onChanged: (String? value) {
+                    if (value != null) {
+                      setState(() => _estado = value);
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
-          AppButton(
-            onPressed: _isSaving || _isLoading ? null : _onSave,
-            label: _isEditing ? 'Actualizar' : 'Guardar',
-            icon: _isEditing ? Icons.save : Icons.add,
+          GestionFormRow(
+            label: 'Nombre',
+            required: true,
+            child: GestionTextField(
+              controller: _nombreController,
+              hint: 'Nombre del equipamiento',
+              validator: (String? value) => value == null || value.isEmpty ? 'Requerido' : null,
+            ),
+          ),
+          GestionFormColumns(
+            children: <Widget>[
+              GestionFormRow(
+                label: 'Talla',
+                child: GestionTextField(controller: _tallaController),
+              ),
+              GestionFormRow(
+                label: 'Nº de serie',
+                child: GestionTextField(controller: _numeroSerieController),
+              ),
+            ],
+          ),
+          GestionFormRow(
+            label: 'Observaciones',
+            multiline: true,
+            child: GestionTextField(controller: _observacionesController, maxLines: 3),
           ),
         ],
       ),
@@ -263,7 +238,7 @@ class _EquipamientoPersonalFormDialogState extends State<EquipamientoPersonalFor
   }
 
   void _onSave() {
-    if (!_formKey.currentState!.validate()) {
+    if (_isLoading || !_formKey.currentState!.validate()) {
       return;
     }
 

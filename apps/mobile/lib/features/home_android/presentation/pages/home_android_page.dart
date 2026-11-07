@@ -5,120 +5,200 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../registro_horario/presentation/bloc/registro_horario_bloc.dart';
+import '../../../registro_horario/presentation/bloc/registro_horario_event.dart';
+import '../../../registro_horario/presentation/bloc/registro_horario_state.dart';
+import '../widgets/alertas_caducidad_section.dart';
 
 /// Página Home de AmbuTrack Mobile
 ///
 /// Dashboard principal para personal de campo.
-class HomeAndroidPage extends StatelessWidget {
+class HomeAndroidPage extends StatefulWidget {
   const HomeAndroidPage({super.key});
+
+  @override
+  State<HomeAndroidPage> createState() => _HomeAndroidPageState();
+}
+
+class _HomeAndroidPageState extends State<HomeAndroidPage> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Cargar el estado del turno al iniciar
+    _cargarEstadoTurno();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Cuando la app vuelve a primer plano, recargar estado
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('🏠 [HomeAndroidPage] App resumed, recargando estado del turno...');
+      _cargarEstadoTurno();
+    }
+  }
+
+  /// Carga el estado del turno
+  void _cargarEstadoTurno() {
+    debugPrint('🏠 [HomeAndroidPage] Cargando estado del turno...');
+    context.read<RegistroHorarioBloc>().add(const ObtenerContextoTurno());
+  }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-        child: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            // Mostrar loading si está verificando
-            if (state is AuthInitial || state is AuthLoading) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            }
-
-            // Si no está autenticado
-            if (state is! AuthAuthenticated) {
-              return const Center(
-                child: Text('No autenticado'),
-              );
-            }
-
-            final user = state.user;
-            final personal = state.personal;
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Tarjeta del usuario
-                  _buildUserCard(user, personal),
-
-                  const SizedBox(height: 24),
-
-                  // Título de sección
-                  Text(
-                    'Funcionalidades',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[800],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Cuadrícula de botones de funcionalidades
-                  _buildFunctionalityGrid(context),
-
-                  const SizedBox(height: 24),
-                ],
-              ),
+      child: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, authState) {
+          // Mostrar loading si está verificando
+          if (authState is AuthInitial || authState is AuthLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
             );
-          },
-        ),
+          }
+
+          // Si no está autenticado
+          if (authState is! AuthAuthenticated) {
+            return const Center(
+              child: Text('No autenticado'),
+            );
+          }
+
+          final user = authState.user;
+          final personal = authState.personal;
+
+          return BlocBuilder<RegistroHorarioBloc, RegistroHorarioState>(
+            builder: (context, registroState) {
+              // Determinar si el turno está activo (soportar ambos estados)
+              final bool turnoActivo =
+                  (registroState is RegistroHorarioLoaded &&
+                      registroState.estadoActual == EstadoFichaje.dentro) ||
+                  (registroState is RegistroHorarioLoadedWithContext &&
+                      registroState.estadoActual == EstadoFichaje.dentro);
+
+              debugPrint('🏠 [HomeAndroidPage] Estado del turno: turnoActivo=$turnoActivo, state=${registroState.runtimeType}');
+
+              return RefreshIndicator(
+                onRefresh: () async {
+                  debugPrint('🏠 [HomeAndroidPage] Pull-to-refresh activado');
+                  _cargarEstadoTurno();
+                  await Future.delayed(const Duration(milliseconds: 500));
+                },
+                color: AppColors.primary,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Tarjeta del usuario
+                      _buildUserCard(user, personal),
+
+                      const SizedBox(height: 24),
+
+                      // Alertas de caducidad (solo si el usuario tiene vehículo asignado)
+                      const AlertasCaducidadHomeSection(),
+
+                      const SizedBox(height: 24),
+
+                      // Título de sección
+                      Text(
+                        'Funcionalidades',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Cuadrícula de botones de funcionalidades
+                      _buildFunctionalityGrid(context, turnoActivo),
+
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
   /// Cuadrícula de funcionalidades principales
-  Widget _buildFunctionalityGrid(BuildContext context) {
+  Widget _buildFunctionalityGrid(BuildContext context, bool turnoActivo) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
+      crossAxisCount: 2, // 2 columnas
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 1.1,
+      childAspectRatio: 1.0,
       children: [
+        // 1. Turno - SIEMPRE activo
         _buildFunctionalityCard(
           context: context,
-          emoji: '⏰',
-          title: 'Registro Horario',
+          iconPath: 'lib/assets/images/reolj.png',
+          title: 'Turno',
+          enabled: true,
+          isActive: turnoActivo,
           onTap: () {
             context.push('/registro-horario');
           },
         ),
+        // 2. Servicios - Requiere turno activo
         _buildFunctionalityCard(
           context: context,
-          emoji: '🚑',
+          iconPath: 'lib/assets/images/hospital.png',
           title: 'Servicios',
+          enabled: turnoActivo,
           onTap: () {
-            context.push('/servicios');
+            if (turnoActivo) {
+              context.push('/servicios');
+            }
           },
         ),
+        // 3. Trámites - Requiere turno activo
         _buildFunctionalityCard(
           context: context,
-          emoji: '📄',
+          iconPath: 'lib/assets/images/documento.png',
           title: 'Trámites',
+          enabled: turnoActivo,
           onTap: () {
-            // TODO: Navegar a trámites
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Trámites - Próximamente'),
-                duration: Duration(seconds: 2),
-              ),
-            );
+            if (turnoActivo) {
+              context.push('/tramites');
+            }
           },
         ),
+        // 4. Vehículo - Requiere turno activo
         _buildFunctionalityCard(
           context: context,
-          emoji: '➕',
-          title: 'Más',
+          iconPath: 'lib/assets/images/ambazul.png',
+          title: 'Vehículo',
+          enabled: turnoActivo,
           onTap: () {
-            // TODO: Mostrar más opciones
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Más funciones - Próximamente'),
-                duration: Duration(seconds: 2),
-              ),
-            );
+            if (turnoActivo) {
+              context.push('/vehiculo');
+            }
+          },
+        ),
+        // 5. Vestuario - Requiere turno activo
+        _buildFunctionalityCard(
+          context: context,
+          iconPath: 'lib/assets/images/maletin.png',
+          title: 'Vestuario',
+          enabled: turnoActivo,
+          onTap: () {
+            if (turnoActivo) {
+              context.push('/vestuario');
+            }
           },
         ),
       ],
@@ -128,61 +208,110 @@ class HomeAndroidPage extends StatelessWidget {
   /// Tarjeta individual de funcionalidad
   Widget _buildFunctionalityCard({
     required BuildContext context,
-    required String emoji,
+    required String iconPath,
     required String title,
     required VoidCallback onTap,
+    bool enabled = true,
+    bool isActive = false,
   }) {
-    return Card(
-      elevation: 2,
-      color: Colors.grey[100],
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            children: [
-              // Icono - 80% del espacio
-              Expanded(
-                flex: 80,
-                child: Center(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      // El icono ocupará el 70% del espacio disponible
-                      final iconSize = constraints.maxHeight * 0.7;
-                      return FittedBox(
-                        fit: BoxFit.contain,
-                        child: Text(
-                          emoji,
-                          style: TextStyle(
-                            fontSize: iconSize,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
+    // Colores según el estado
+    final Color cardColor;
+    final Color textColor;
+    final double opacity;
 
-              // Título - 20% del espacio
-              Expanded(
-                flex: 20,
-                child: Center(
-                  child: Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[800],
+    if (!enabled) {
+      // Deshabilitado: gris claro con opacidad
+      cardColor = Colors.grey[300]!;
+      textColor = Colors.grey[500]!;
+      opacity = 0.5;
+    } else if (isActive) {
+      // Activo: verde con fondo
+      cardColor = AppColors.success.withValues(alpha: 0.1);
+      textColor = AppColors.success;
+      opacity = 1.0;
+    } else {
+      // Normal: gris claro
+      cardColor = Colors.grey[100]!;
+      textColor = Colors.grey[800]!;
+      opacity = 1.0;
+    }
+
+    return Opacity(
+      opacity: opacity,
+      child: Card(
+        elevation: enabled ? 2 : 0,
+        color: cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: isActive
+              ? BorderSide(color: AppColors.success, width: 2)
+              : BorderSide.none,
+        ),
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              children: [
+                // Icono - 70% del espacio
+                Expanded(
+                  flex: 70,
+                  child: Center(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // El icono ocupará el 70% del espacio disponible
+                        final iconSize = constraints.maxHeight * 0.7;
+                        return SizedBox(
+                          width: iconSize,
+                          height: iconSize,
+                          child: ColorFiltered(
+                            colorFilter: !enabled
+                                ? const ColorFilter.mode(
+                                    Colors.grey,
+                                    BlendMode.saturation,
+                                  )
+                                : const ColorFilter.mode(
+                                    Colors.transparent,
+                                    BlendMode.multiply,
+                                  ),
+                            child: Image.asset(
+                              iconPath,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
-              ),
-            ],
+
+                // Título - 30% del espacio
+                Expanded(
+                  flex: 30,
+                  child: Container(
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          height: 1.0,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

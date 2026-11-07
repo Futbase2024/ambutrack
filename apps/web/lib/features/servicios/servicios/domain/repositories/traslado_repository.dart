@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Repositorio abstracto de traslados
 ///
@@ -146,5 +146,5 @@ abstract class TrasladoRepository {
 
   /// Observar cambios en traslados específicos por lista de IDs
   /// Usado para recibir actualizaciones realtime de estados/horas desde mobile
-  Stream<TrasladoEntity> watchByIds(List<String> ids);
+  Stream<List<TrasladoEntity>> watchByIds(List<String> ids);
 }

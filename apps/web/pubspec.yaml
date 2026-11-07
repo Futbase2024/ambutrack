@@ -21,6 +21,7 @@ dependencies:
   # State Management
   bloc: ^9.0.1
   flutter_bloc: ^9.1.1
+  bloc_concurrency: ^0.3.0
   equatable: ^2.0.5
   dartz: ^0.10.1
 
@@ -39,6 +40,7 @@ dependencies:
 
   # Network
   internet_connection_checker: ^3.0.1
+  http: ^1.2.2
 
   # Utilities
   uuid: ^4.5.1
@@ -47,15 +49,26 @@ dependencies:
   table_calendar: ^3.1.2
   shared_preferences: ^2.3.3
 
+  # PDF
+  pdf: ^3.11.1
+  printing: ^5.13.2
+
+  # Maps (para visualización de fichajes con GPS)
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
   # Core Datasource (paquete local del proyecto)
   # ===== CORE SHARED PACKAGE (Monorepo) =====
-  ambutrack_core:
-    path: ../../packages/ambutrack_core
+  # ambutrack_core:  # ← DEPRECADO: Migrado a ambutrack_core_datasource
+  #   path: ../../packages/ambutrack_core
+  ambutrack_core_datasource:
+    path: ../../packages/ambutrack_core_datasource
 
   # # Internacionalización (comentado temporalmente por conflicto con DS)
   # easy_localization: ^3.0.8
 
-
+  nested: any
+  sentry_flutter: ^10.3.0
 
 dev_dependencies:
   flutter_test:
@@ -63,14 +76,16 @@ dev_dependencies:
   integration_test:
     sdk: flutter
 
-  bloc_test: ^10.0.0
+  # TODO: Descomentar cuando se resuelva conflicto con freezed
+  # bloc_test: ^10.0.0
   build_runner: ^2.4.13
   flutter_flavorizr: ^2.2.3
   flutter_lints: ^5.0.0
   freezed: ^2.5.7
   injectable_generator: ^2.6.2
   json_serializable: ^6.8.0
-  mocktail: ^1.0.4
+  # TODO: Descomentar cuando se resuelva conflicto con freezed
+  # mocktail: ^1.0.4
 
 flutter:
   uses-material-design: true

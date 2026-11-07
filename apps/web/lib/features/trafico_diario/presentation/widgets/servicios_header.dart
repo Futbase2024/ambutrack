@@ -1,137 +1,96 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/widgets/gestion_frame/gestion_frame.dart';
+import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/trafico_diario_bloc.dart';
+import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/trafico_diario_event.dart';
+import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/generate_traslados_button.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
-/// Header de la página de planificación de servicios
+/// Barra de herramientas compacta de la planificación de servicios
 ///
 /// Incluye:
-/// - Selector de fecha con navegación (día anterior/siguiente)
-/// - Botón para ir a HOY
-/// - DatePicker al hacer clic en la fecha
+/// - Generar traslados (14 días) con confirmación
+/// - Mostrar/ocultar vista de 14 días
+/// - Ir a HOY
+/// - Navegación de día (anterior/siguiente) y DatePicker al pulsar la fecha
 class ServiciosHeader extends StatelessWidget {
   const ServiciosHeader({
     required this.selectedDay,
     required this.onDayChanged,
+    this.show14DaysView = false,
+    this.onToggle14DaysView,
     super.key,
   });
 
   final DateTime selectedDay;
   final ValueChanged<DateTime> onDayChanged;
+  final bool show14DaysView;
+  final VoidCallback? onToggle14DaysView;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(color: AppColors.gray200),
-      ),
-      child: Row(
-        children: <Widget>[
-          const Icon(
-            Icons.calendar_month,
-            color: AppColors.primary,
-            size: 18,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'Asignación de Servicios',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimaryLight,
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Selector de fecha
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-              border: Border.all(color: AppColors.gray300),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                // Botón día anterior
-                IconButton(
-                  icon: const Icon(Icons.chevron_left, size: 16),
-                  onPressed: () {
-                    onDayChanged(selectedDay.subtract(const Duration(days: 1)));
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  color: AppColors.textSecondaryLight,
-                  tooltip: 'Día anterior',
-                ),
-                const SizedBox(width: 6),
-
-                // Fecha seleccionada (clickable para mostrar calendario)
-                InkWell(
-                  onTap: () => _mostrarSelectorFecha(context),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        DateFormat('EEEE, dd MMMM yyyy', 'es_ES').format(selectedDay),
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimaryLight,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.calendar_today, size: 12, color: AppColors.primary),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 6),
-                // Botón día siguiente
-                IconButton(
-                  icon: const Icon(Icons.chevron_right, size: 16),
-                  onPressed: () {
-                    onDayChanged(selectedDay.add(const Duration(days: 1)));
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  color: AppColors.textSecondaryLight,
-                  tooltip: 'Día siguiente',
-                ),
-              ],
-            ),
-          ),
-
-          const Spacer(),
-
-          // Botón para ir a hoy
-          ElevatedButton.icon(
-            onPressed: () {
-              onDayChanged(DateTime.now());
-            },
-            icon: const Icon(Icons.today, size: 16),
-            label: const Text('HOY'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.paddingMedium,
-                vertical: AppSizes.paddingSmall,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-              ),
-              elevation: 0,
-            ),
-          ),
-        ],
+    final bool isGenerating = context.select<TraficoDiarioBloc, bool>(
+      (TraficoDiarioBloc bloc) => bloc.state.maybeWhen(
+        loaded: (
+          List<TrasladoEntity> traslados,
+          String searchQuery,
+          String? estadoFilter,
+          String? centroFilter,
+          bool isRefreshing,
+          bool isGenerating,
+          DateTime? trasladosGeneradosHasta,
+        ) =>
+            isGenerating,
+        orElse: () => false,
       ),
     );
+
+    return GestionToolbar(
+      title: 'Asignación de Servicios',
+      icon: Icons.calendar_month,
+      groups: <List<GestionToolbarAction>>[
+        <GestionToolbarAction>[
+          GestionToolbarAction(
+            icon: Icons.event_repeat_rounded,
+            label: isGenerating ? 'Generando...' : 'Generar traslados (14 días)',
+            primary: true,
+            onPressed: isGenerating ? null : () => _generar(context),
+          ),
+        ],
+        <GestionToolbarAction>[
+          if (onToggle14DaysView != null)
+            GestionToolbarAction(
+              icon: show14DaysView ? Icons.calendar_view_month : Icons.calendar_view_week,
+              label: show14DaysView ? 'Ocultar 14 días' : 'Ver 14 días',
+              onPressed: onToggle14DaysView,
+            ),
+          GestionToolbarAction(
+            icon: Icons.today,
+            label: 'Hoy',
+            onPressed: () => onDayChanged(DateTime.now()),
+          ),
+        ],
+      ],
+      trailing: GestionPeriodNavigator(
+        label: DateFormat('EEEE, dd MMMM yyyy', 'es_ES').format(selectedDay),
+        previousTooltip: 'Día anterior',
+        nextTooltip: 'Día siguiente',
+        onPrevious: () => onDayChanged(selectedDay.subtract(const Duration(days: 1))),
+        onNext: () => onDayChanged(selectedDay.add(const Duration(days: 1))),
+        onLabelTap: () => _mostrarSelectorFecha(context),
+      ),
+    );
+  }
+
+  Future<void> _generar(BuildContext context) async {
+    final bool confirmado = await confirmarGeneracionTraslados(context);
+    if (confirmado && context.mounted) {
+      context.read<TraficoDiarioBloc>().add(
+            const TraficoDiarioEvent.generarTrasladosRequested(),
+          );
+    }
   }
 
   /// Muestra un diálogo DatePicker para seleccionar fecha
@@ -158,5 +117,41 @@ class ServiciosHeader extends StatelessWidget {
     if (fecha != null) {
       onDayChanged(fecha);
     }
+  }
+}
+
+/// Barra de estado de la planificación: traslados del día y estado de la
+/// generación (sustituye al banner `TrasladosGenerationIndicator`)
+class PlanificarServiciosStatusBar extends StatelessWidget {
+  const PlanificarServiciosStatusBar({
+    required this.trasladosDelDia,
+    required this.seleccionados,
+    this.trasladosGeneradosHasta,
+    super.key,
+  });
+
+  final int trasladosDelDia;
+  final int seleccionados;
+  final DateTime? trasladosGeneradosHasta;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestionStatusBar(
+      items: <String>[
+        'Traslados del día: $trasladosDelDia',
+        if (seleccionados > 0) 'Seleccionados: $seleccionados',
+        if (trasladosGeneradosHasta != null) _estadoGeneracion(trasladosGeneradosHasta!),
+      ],
+    );
+  }
+
+  String _estadoGeneracion(DateTime hasta) {
+    final int dias = hasta.difference(DateTime.now()).inDays;
+    final String fecha = DateFormat('dd/MM/yyyy').format(hasta);
+    if (dias < 3) {
+      return '⚠ Traslados desactualizados: generados hasta el $fecha '
+          '(quedan ${dias < 0 ? 0 : dias} días, se recomienda regenerar)';
+    }
+    return 'Traslados generados hasta el $fecha ($dias días restantes)';
   }
 }

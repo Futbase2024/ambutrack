@@ -110,16 +110,10 @@ class CrudOperationHandler {
       await Future<void>.delayed(Duration.zero);
     }
 
-    // 2. Cerrar el formulario
-    if (context.mounted) {
-      Navigator.of(context).pop();
-      debugPrint('✅ CrudOperationHandler: Formulario cerrado');
+    // 2. El formulario se queda abierto para que el usuario no pierda lo escrito
+    //    y pueda corregir y reintentar.
 
-      // Esperar un frame para que el Navigator se desbloquee
-      await Future<void>.delayed(Duration.zero);
-    }
-
-    // 3. Ejecutar callback de limpieza si existe
+    // 3. Ejecutar callback de limpieza si existe (reactiva el botón Guardar)
     if (onClose != null) {
       onClose();
     }

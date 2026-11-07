@@ -1,13 +1,13 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
+import 'package:ambutrack_web/core/utils/upper_case_text_formatter.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/stock_vestuario/presentation/bloc/stock_vestuario_bloc.dart';
 import 'package:ambutrack_web/features/stock_vestuario/presentation/bloc/stock_vestuario_event.dart';
 import 'package:ambutrack_web/features/stock_vestuario/presentation/bloc/stock_vestuario_state.dart';
+import 'package:ambutrack_web/features/stock_vestuario/presentation/widgets/form/stock_vestuario_cantidades.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -59,7 +59,7 @@ class _StockVestuarioFormDialogState extends State<StockVestuarioFormDialog> {
     _colorController.text = item.color ?? '';
     _cantidadTotalController.text = item.cantidadTotal.toString();
     _cantidadAgregarController.text = '0';
-    _precioController.text = item.precioUnitario?.toString() ?? '';
+    _precioController.text = GestionFormParse.formatDecimal(item.precioUnitario);
     _proveedorController.text = item.proveedor ?? '';
     _ubicacionController.text = item.ubicacionAlmacen ?? '';
     _stockMinimoController.text = item.stockMinimo?.toString() ?? '';
@@ -82,291 +82,121 @@ class _StockVestuarioFormDialogState extends State<StockVestuarioFormDialog> {
     super.dispose();
   }
 
+  void _onBlocState(BuildContext context, StockVestuarioState state) {
+    if (!_isSaving) {
+      return;
+    }
+    if (state is StockVestuarioLoaded) {
+      CrudOperationHandler.handleSuccess(
+        context: context,
+        isSaving: _isSaving,
+        isEditing: _isEditing,
+        entityName: 'Stock de Vestuario',
+        onClose: () => setState(() => _isSaving = false),
+      );
+    } else if (state is StockVestuarioError) {
+      CrudOperationHandler.handleError(
+        context: context,
+        isSaving: _isSaving,
+        isEditing: _isEditing,
+        entityName: 'Stock de Vestuario',
+        errorMessage: state.message,
+        onClose: () => setState(() => _isSaving = false),
+      );
+    }
+  }
+
+  void _onAgregarChanged(String value) {
+    // Actualizar cantidad total calculada
+    final int agregar = int.tryParse(value) ?? 0;
+    setState(() {
+      _cantidadTotalController.text = (_cantidadActual + agregar).toString();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<StockVestuarioBloc, StockVestuarioState>(
-      listener: (BuildContext context, StockVestuarioState state) {
-        if (state is StockVestuarioLoaded) {
-          CrudOperationHandler.handleSuccess(
-            context: context,
-            isSaving: _isSaving,
-            isEditing: _isEditing,
-            entityName: 'Stock de Vestuario',
-            onClose: () => setState(() => _isSaving = false),
-          );
-        } else if (state is StockVestuarioError) {
-          CrudOperationHandler.handleError(
-            context: context,
-            isSaving: _isSaving,
-            isEditing: _isEditing,
-            entityName: 'Stock de Vestuario',
-            errorMessage: state.message,
-            onClose: () => setState(() => _isSaving = false),
-          );
-        }
-      },
-      child: AppDialog(
-        title: _isEditing ? 'Editar Stock de Vestuario' : 'Agregar Stock de Vestuario',
-        content: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+      listener: _onBlocState,
+      child: GestionFormDialog(
+        title: _isEditing ? 'Editar stock de vestuario' : 'Nuevo stock de vestuario',
+        subtitle: _isEditing ? '${widget.item!.prenda} · ${widget.item!.talla}' : null,
+        icon: Icons.checkroom_outlined,
+        formKey: _formKey,
+        isEditing: _isEditing,
+        isSaving: _isSaving,
+        onSave: _onSave,
+        children: <Widget>[
+          const GestionFormSection(title: 'Prenda', first: true),
+          GestionFormRow(
+            label: 'Prenda',
+            required: true,
+            child: _UpperField(
+              controller: _prendaController,
+              hint: 'Ej: CAMISA, PANTALÓN, CHAQUETA',
+              validator: (String? v) => (v == null || v.trim().isEmpty) ? 'La prenda es obligatoria' : null,
+            ),
+          ),
+          GestionFormColumns(
             children: <Widget>[
-              // Prenda
-              TextFormField(
-                controller: _prendaController,
-                textInputAction: TextInputAction.next,
-                textCapitalization: TextCapitalization.characters,
-                inputFormatters: <TextInputFormatter>[
-                  UpperCaseTextFormatter(),
-                ],
-                decoration: const InputDecoration(
-                  labelText: 'Prenda *',
-                  hintText: 'Ej: CAMISA, PANTALÓN, CHAQUETA',
-                ),
-                validator: (String? value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'La prenda es obligatoria';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: AppSizes.spacing),
-
-              Row(
+              Column(
                 children: <Widget>[
-                  // Talla
-                  Expanded(
-                    child: TextFormField(
+                  GestionFormRow(
+                    label: 'Talla',
+                    required: true,
+                    child: _UpperField(
                       controller: _tallaController,
-                      textInputAction: TextInputAction.next,
-                      textCapitalization: TextCapitalization.characters,
-                      inputFormatters: <TextInputFormatter>[
-                        UpperCaseTextFormatter(),
-                      ],
-                      decoration: const InputDecoration(
-                        labelText: 'Talla *',
-                        hintText: 'Ej: S, M, L, XL',
-                      ),
-                      validator: (String? value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'La talla es obligatoria';
-                        }
-                        return null;
-                      },
+                      hint: 'Ej: S, M, L, XL',
+                      validator: (String? v) =>
+                          (v == null || v.trim().isEmpty) ? 'La talla es obligatoria' : null,
                     ),
                   ),
-                  const SizedBox(width: AppSizes.spacing),
-
-                  // Marca
-                  Expanded(
-                    child: TextFormField(
-                      controller: _marcaController,
-                      textInputAction: TextInputAction.next,
-                      textCapitalization: TextCapitalization.characters,
-                      inputFormatters: <TextInputFormatter>[
-                        UpperCaseTextFormatter(),
-                      ],
-                      decoration: const InputDecoration(
-                        labelText: 'Marca',
-                        hintText: 'Opcional',
-                      ),
-                    ),
+                  GestionFormRow(
+                    label: 'Color',
+                    child: _UpperField(controller: _colorController, hint: 'Opcional'),
                   ),
                 ],
               ),
-              const SizedBox(height: AppSizes.spacing),
-
-              Row(
-                children: <Widget>[
-                  // Color
-                  Expanded(
-                    child: TextFormField(
-                      controller: _colorController,
-                      textInputAction: TextInputAction.next,
-                      textCapitalization: TextCapitalization.characters,
-                      inputFormatters: <TextInputFormatter>[
-                        UpperCaseTextFormatter(),
-                      ],
-                      decoration: const InputDecoration(
-                        labelText: 'Color',
-                        hintText: 'Opcional',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSizes.spacing),
-
-                  // Cantidad - Comportamiento diferente según modo
-                  if (!_isEditing)
-                    // MODO CREAR: Campo normal "Cantidad Total"
-                    Expanded(
-                      child: TextFormField(
-                        controller: _cantidadTotalController,
-                        textInputAction: TextInputAction.next,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: <TextInputFormatter>[
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: const InputDecoration(
-                          labelText: 'Cantidad Total *',
-                          hintText: '0',
-                        ),
-                        validator: (String? value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'La cantidad es obligatoria';
-                          }
-                          final int? cantidad = int.tryParse(value);
-                          if (cantidad == null || cantidad < 0) {
-                            return 'Cantidad inválida';
-                          }
-                          return null;
-                        },
-                      ),
-                    )
-                  else
-                    // MODO EDITAR: Mostrar cantidad actual (solo lectura)
-                    Expanded(
-                      child: TextFormField(
-                        controller: _cantidadTotalController,
-                        enabled: false,
-                        decoration: const InputDecoration(
-                          labelText: 'Cantidad Actual',
-                          hintText: '0',
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-
-              // MODO EDITAR: Campo para agregar unidades
-              if (_isEditing) ...<Widget>[
-                const SizedBox(height: AppSizes.spacing),
-                TextFormField(
-                  controller: _cantidadAgregarController,
-                  textInputAction: TextInputAction.next,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: <TextInputFormatter>[
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
-                  decoration: InputDecoration(
-                    labelText: 'Agregar Unidades',
-                    hintText: '0',
-                    helperText: 'Cantidad a sumar al stock actual ($_cantidadActual unidades)',
-                    prefixIcon: const Icon(Icons.add_circle_outline, color: AppColors.success),
-                  ),
-                  onChanged: (String value) {
-                    // Actualizar cantidad total calculada
-                    final int agregar = int.tryParse(value) ?? 0;
-                    setState(() {
-                      _cantidadTotalController.text = (_cantidadActual + agregar).toString();
-                    });
-                  },
-                  validator: (String? value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return null; // Opcional al editar
-                    }
-                    final int? cantidad = int.tryParse(value);
-                    if (cantidad == null || cantidad < 0) {
-                      return 'Cantidad inválida';
-                    }
-                    return null;
-                  },
-                ),
-              ],
-              const SizedBox(height: AppSizes.spacing),
-
-              Row(
-                children: <Widget>[
-                  // Precio Unitario
-                  Expanded(
-                    child: TextFormField(
-                      controller: _precioController,
-                      textInputAction: TextInputAction.next,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: <TextInputFormatter>[
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                      ],
-                      decoration: const InputDecoration(
-                        labelText: 'Precio Unitario (€)',
-                        hintText: '0.00',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSizes.spacing),
-
-                  // Stock Mínimo
-                  Expanded(
-                    child: TextFormField(
-                      controller: _stockMinimoController,
-                      textInputAction: TextInputAction.next,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: <TextInputFormatter>[
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      decoration: const InputDecoration(
-                        labelText: 'Stock Mínimo',
-                        hintText: '5',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSizes.spacing),
-
-              // Proveedor
-              TextFormField(
-                controller: _proveedorController,
-                textInputAction: TextInputAction.next,
-                textCapitalization: TextCapitalization.characters,
-                inputFormatters: <TextInputFormatter>[
-                  UpperCaseTextFormatter(),
-                ],
-                decoration: const InputDecoration(
-                  labelText: 'Proveedor',
-                  hintText: 'Opcional',
-                ),
-              ),
-              const SizedBox(height: AppSizes.spacing),
-
-              // Ubicación Almacén
-              TextFormField(
-                controller: _ubicacionController,
-                textInputAction: TextInputAction.next,
-                textCapitalization: TextCapitalization.characters,
-                inputFormatters: <TextInputFormatter>[
-                  UpperCaseTextFormatter(),
-                ],
-                decoration: const InputDecoration(
-                  labelText: 'Ubicación en Almacén',
-                  hintText: 'Ej: ESTANTERÍA A3, ALMACÉN 2',
-                ),
-              ),
-              const SizedBox(height: AppSizes.spacing),
-
-              // Observaciones
-              TextFormField(
-                controller: _observacionesController,
-                textInputAction: TextInputAction.newline,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Observaciones',
-                  hintText: 'Información adicional',
-                ),
+              GestionFormRow(
+                label: 'Marca',
+                child: _UpperField(controller: _marcaController, hint: 'Opcional'),
               ),
             ],
           ),
-        ),
-        actions: <Widget>[
-          AppButton(
-            onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-            label: 'Cancelar',
-            variant: AppButtonVariant.text,
+          const GestionFormSection(title: 'Cantidades'),
+          StockVestuarioCantidades(
+            isEditing: _isEditing,
+            cantidadActual: _cantidadActual,
+            cantidadTotal: _cantidadTotalController,
+            cantidadAgregar: _cantidadAgregarController,
+            stockMinimo: _stockMinimoController,
+            onAgregarChanged: _onAgregarChanged,
           ),
-          AppButton(
-            onPressed: _isSaving ? null : _onSave,
-            label: _isEditing ? 'Actualizar' : 'Guardar',
-            icon: _isEditing ? Icons.save : Icons.add,
+          const GestionFormSection(title: 'Compra y almacén'),
+          GestionFormColumns(
+            children: <Widget>[
+              GestionFormRow(
+                label: 'Precio unitario',
+                child: GestionMoneyField(controller: _precioController),
+              ),
+              GestionFormRow(
+                label: 'Proveedor',
+                child: _UpperField(controller: _proveedorController, hint: 'Opcional'),
+              ),
+            ],
+          ),
+          GestionFormRow(
+            label: 'Ubicación',
+            child: _UpperField(controller: _ubicacionController, hint: 'Ej: ESTANTERÍA A3, ALMACÉN 2'),
+          ),
+          GestionFormRow(
+            label: 'Observaciones',
+            multiline: true,
+            child: GestionTextField(
+              controller: _observacionesController,
+              maxLines: 3,
+              hint: 'Información adicional',
+            ),
           ),
         ],
       ),
@@ -418,7 +248,8 @@ class _StockVestuarioFormDialogState extends State<StockVestuarioFormDialog> {
       cantidadTotal: nuevaCantidadTotal,
       cantidadAsignada: _isEditing ? widget.item!.cantidadAsignada : 0,
       cantidadDisponible: nuevaCantidadDisponible,
-      precioUnitario: _precioController.text.trim().isEmpty ? null : double.tryParse(_precioController.text.trim()),
+      precioUnitario:
+          _precioController.text.trim().isEmpty ? null : GestionFormParse.decimal(_precioController.text),
       proveedor: _proveedorController.text.trim().isEmpty ? null : _proveedorController.text.trim(),
       ubicacionAlmacen: _ubicacionController.text.trim().isEmpty ? null : _ubicacionController.text.trim(),
       stockMinimo: _stockMinimoController.text.trim().isEmpty ? null : int.tryParse(_stockMinimoController.text.trim()),
@@ -434,16 +265,21 @@ class _StockVestuarioFormDialogState extends State<StockVestuarioFormDialog> {
   }
 }
 
-/// Custom TextInputFormatter to convert all input to uppercase
-class UpperCaseTextFormatter extends TextInputFormatter {
+/// Texto en mayúsculas (prenda, talla, marca, proveedor...)
+class _UpperField extends StatelessWidget {
+  const _UpperField({required this.controller, this.hint, this.validator});
+
+  final TextEditingController controller;
+  final String? hint;
+  final FormFieldValidator<String>? validator;
+
   @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    return TextEditingValue(
-      text: newValue.text.toUpperCase(),
-      selection: newValue.selection,
+  Widget build(BuildContext context) {
+    return GestionTextField(
+      controller: controller,
+      hint: hint,
+      validator: validator,
+      inputFormatters: <TextInputFormatter>[UpperCaseTextFormatter()],
     );
   }
 }

@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/domain/entities/personal_con_turnos_entity.dart';
@@ -541,15 +541,15 @@ class CuadranteTablaView extends StatelessWidget {
     late String tipoTurnoText;
 
     if (esTurno24h) {
-      color = const Color(0xFF9333EA); // 🟣 Morado
+      color = AppColors.turnoMorado;
       emoji = '🚨';
       tipoTurnoText = '24 Horas';
     } else if (esTurno12hDia) {
-      color = const Color(0xFF14B8A6); // 🟢 Turquesa
+      color = AppColors.turnoTurquesa;
       emoji = '☀️';
       tipoTurnoText = '12h Día';
     } else if (esTurno12hNoche) {
-      color = const Color(0xFF3B82F6); // 🔵 Azul
+      color = AppColors.turnoAzul;
       emoji = '🌙';
       tipoTurnoText = '12h Noche';
     } else {
@@ -830,13 +830,13 @@ Arrastra para copiar'''.trim();
   Color _getTurnoColor(TipoTurno tipo) {
     switch (tipo) {
       case TipoTurno.manana:
-        return const Color(0xFF10B981); // 🟢 Verde
+        return AppColors.success; // 🟢 Verde
       case TipoTurno.tarde:
-        return const Color(0xFFF97316); // 🟠 Naranja
+        return AppColors.turnoNaranja; // 🟠 Naranja
       case TipoTurno.noche:
-        return const Color(0xFF3B82F6); // 🔵 Azul
+        return AppColors.turnoAzul; // 🔵 Azul
       case TipoTurno.personalizado:
-        return const Color(0xFF6B7280); // ⚪ Gris
+        return AppColors.turnoGris; // ⚪ Gris
     }
   }
 

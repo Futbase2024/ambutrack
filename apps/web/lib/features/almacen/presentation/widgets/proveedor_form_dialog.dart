@@ -1,15 +1,13 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/proveedores/proveedores_bloc.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/proveedores/proveedores_event.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/proveedores/proveedores_state.dart';
+import 'package:ambutrack_web/features/almacen/presentation/widgets/form/proveedor_form_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
@@ -176,258 +174,58 @@ class _ProveedorFormDialogState extends State<ProveedorFormDialog> {
           );
         }
       },
-      child: AppDialog(
-        title: _isEditing ? 'Editar Proveedor' : 'Nuevo Proveedor',
-        icon: _isEditing ? Icons.edit : Icons.add_circle_outline,
-        type: _isEditing ? AppDialogType.edit : AppDialogType.create,
-        maxWidth: 800,
-        content: _isLoadingMasters
-            ? const Center(
-                child: AppLoadingIndicator(
-                  message: 'Cargando datos...',
-                  size: 100,
-                ),
-              )
-            : Form(
-                key: _formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      // Código y Nombre Comercial (obligatorios)
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: TextFormField(
-                              controller: _codigoController,
-                              decoration: const InputDecoration(
-                                labelText: 'Código *',
-                                hintText: 'PROV001',
-                                prefixIcon: Icon(Icons.tag),
-                              ),
-                              textInputAction: TextInputAction.next,
-                              validator: (String? value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'El código es requerido';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.spacing),
-                          Expanded(
-                            flex: 2,
-                            child: TextFormField(
-                              controller: _nombreComercialController,
-                              decoration: const InputDecoration(
-                                labelText: 'Nombre Comercial *',
-                                hintText: 'Ej: Suministros Médicos SA',
-                                prefixIcon: Icon(Icons.business),
-                              ),
-                              textInputAction: TextInputAction.next,
-                              validator: (String? value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'El nombre comercial es requerido';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSizes.spacing),
-
-                      // Razón Social y CIF/NIF
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            flex: 2,
-                            child: TextFormField(
-                              controller: _razonSocialController,
-                              decoration: const InputDecoration(
-                                labelText: 'Razón Social',
-                                prefixIcon: Icon(Icons.business_center),
-                              ),
-                              textInputAction: TextInputAction.next,
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.spacing),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _cifNifController,
-                              decoration: const InputDecoration(
-                                labelText: 'CIF/NIF',
-                                prefixIcon: Icon(Icons.badge),
-                              ),
-                              textInputAction: TextInputAction.next,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSizes.spacing),
-
-                      // Dirección
-                      TextFormField(
-                        controller: _direccionController,
-                        decoration: const InputDecoration(
-                          labelText: 'Dirección',
-                          prefixIcon: Icon(Icons.location_on),
-                        ),
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: AppSizes.spacing),
-
-                      // Código Postal, Provincia y Localidad (COMBOS COMBINADOS)
-                      Row(
-                        children: <Widget>[
-                          // Código Postal
-                          Expanded(
-                            child: TextFormField(
-                              controller: _codigoPostalController,
-                              decoration: const InputDecoration(
-                                labelText: 'C.P.',
-                                prefixIcon: Icon(Icons.markunread_mailbox),
-                              ),
-                              textInputAction: TextInputAction.next,
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.spacing),
-
-                          // Provincia (Dropdown)
-                          Expanded(
-                            flex: 2,
-                            child: AppDropdown<String>(
-                              value: _provinciaId,
-                              label: 'Provincia',
-                              hint: 'Selecciona provincia',
-                              prefixIcon: Icons.map,
-                              items: _provincias
-                                  .map(
-                                    (ProvinciaEntity p) => AppDropdownItem<String>(
-                                      value: p.id,
-                                      label: p.nombre,
-                                      icon: Icons.location_city,
-                                      iconColor: AppColors.primary,
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (String? value) {
-                                setState(() {
-                                  _provinciaId = value;
-                                  if (value != null) {
-                                    _filterLocalidadesByProvincia(value);
-                                  } else {
-                                    _localidadesFiltradas.clear();
-                                    _localidadId = null;
-                                  }
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.spacing),
-
-                          // Localidad (Dropdown filtrado por provincia)
-                          Expanded(
-                            flex: 2,
-                            child: AppDropdown<String>(
-                              value: _localidadId,
-                              label: 'Localidad',
-                              hint: _provinciaId == null ? 'Selecciona provincia primero' : 'Selecciona localidad',
-                              prefixIcon: Icons.location_city,
-                              enabled: _provinciaId != null && _localidadesFiltradas.isNotEmpty,
-                              items: _localidadesFiltradas
-                                  .map(
-                                    (LocalidadEntity l) => AppDropdownItem<String>(
-                                      value: l.id,
-                                      label: l.nombre,
-                                      icon: Icons.place,
-                                      iconColor: AppColors.secondary,
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (String? value) {
-                                setState(() {
-                                  _localidadId = value;
-                                });
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSizes.spacing),
-
-                      // Teléfono y Email
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: TextFormField(
-                              controller: _telefonoController,
-                              decoration: const InputDecoration(
-                                labelText: 'Teléfono',
-                                prefixIcon: Icon(Icons.phone),
-                              ),
-                              textInputAction: TextInputAction.next,
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.spacing),
-                          Expanded(
-                            flex: 2,
-                            child: TextFormField(
-                              controller: _emailController,
-                              decoration: const InputDecoration(
-                                labelText: 'Email',
-                                prefixIcon: Icon(Icons.email),
-                              ),
-                              textInputAction: TextInputAction.done,
-                              validator: (String? value) {
-                                if (value != null && value.trim().isNotEmpty && !value.contains('@')) {
-                                  return 'Email no válido';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSizes.spacing),
-
-                      // Estado (Activo/Inactivo)
-                      SwitchListTile(
-                        value: _activo,
-                        onChanged: (bool value) {
-                          setState(() {
-                            _activo = value;
-                          });
-                        },
-                        title: Text(_activo ? 'Activo' : 'Inactivo'),
-                        secondary: Icon(
-                          _activo ? Icons.check_circle : Icons.cancel,
-                          color: _activo ? AppColors.success : AppColors.error,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-        actions: <Widget>[
-          AppButton(
-            onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-            label: 'Cancelar',
-            variant: AppButtonVariant.text,
-          ),
-          AppButton(
-            onPressed: _isSaving || _isLoadingMasters ? null : _onSave,
-            label: _isEditing ? 'Actualizar' : 'Guardar',
-            icon: _isEditing ? Icons.save : Icons.add,
-          ),
+      child: GestionFormDialog(
+        title: _isEditing ? 'Editar proveedor' : 'Nuevo proveedor',
+        subtitle: _isEditing ? widget.proveedor!.nombreComercial : null,
+        icon: Icons.business_outlined,
+        formKey: _formKey,
+        isEditing: _isEditing,
+        isSaving: _isSaving,
+        onSave: _onSave,
+        children: <Widget>[
+          if (_isLoadingMasters)
+            const Padding(
+              padding: EdgeInsets.all(32),
+              child: AppLoadingIndicator(message: 'Cargando datos...'),
+            )
+          else
+            ProveedorFormBody(
+              codigo: _codigoController,
+              nombreComercial: _nombreComercialController,
+              razonSocial: _razonSocialController,
+              cifNif: _cifNifController,
+              direccion: _direccionController,
+              codigoPostal: _codigoPostalController,
+              telefono: _telefonoController,
+              email: _emailController,
+              provincias: _provincias,
+              localidades: _localidadesFiltradas,
+              provinciaId: _provinciaId,
+              localidadId: _localidadId,
+              onProvincia: _onProvinciaChanged,
+              onLocalidad: (String? value) => setState(() => _localidadId = value),
+              activo: _activo,
+              onActivo: (bool value) => setState(() => _activo = value),
+            ),
         ],
       ),
     );
   }
 
+  void _onProvinciaChanged(String? value) {
+    setState(() {
+      _provinciaId = value;
+      if (value != null) {
+        _filterLocalidadesByProvincia(value);
+      } else {
+        _localidadesFiltradas.clear();
+        _localidadId = null;
+      }
+    });
+  }
+
   void _onSave() {
-    if (!_formKey.currentState!.validate()) {
+    if (_isLoadingMasters || !_formKey.currentState!.validate()) {
       return;
     }
 

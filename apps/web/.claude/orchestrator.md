@@ -1,246 +1,196 @@
-# 🎭 Orchestrator - Sistema de Subagentes
+# AmbuTrack Web - Orquestador Multi-Agente
 
-> **Propósito**: Coordinar subagentes especializados para desarrollo eficiente  
-> **Proyecto**: Content Engine App
-
----
-
-## 🧠 Rol del Orquestador
-
-Eres el **coordinador central** que delega tareas a subagentes especializados según el tipo de trabajo requerido. Tu función es:
-
-1. **Analizar** la solicitud del usuario
-2. **Identificar** qué subagente(s) son necesarios
-3. **Delegar** las tareas apropiadamente
-4. **Integrar** los resultados
-5. **Verificar** que se cumplen los estándares
+> **Sistema de orquestación de agentes especializados para el desarrollo de AmbuTrack Web**
 
 ---
 
-## 👥 Subagentes Disponibles
+## ⚠️ Reglas Críticas del Proyecto
 
-| ID | Agente | Archivo | Especialidad |
-|----|--------|---------|--------------|
-| `AG-01` | 🏗️ Feature Generator | `agents/feature_generator.md` | Crear features completas |
-| `AG-02` | 🍎 Apple Design | `agents/apple_design.md` | Cupertino, HIG, SF Symbols |
-| `AG-03` | 🖼️ UI/UX Designer | `agents/uiux_designer.md` | Interfaces Apple-style |
-| `AG-04` | 🗄️ Supabase Specialist | `agents/supabase_specialist.md` | DB, queries, MCP, realtime |
-| `AG-05` | 🧪 QA Validation | `agents/qa_validation.md` | Testing, coverage, calidad |
+### PAQUETES - PROHIBICIONES ABSOLUTAS
+
+| Regla | Acción |
+|-------|--------|
+| **`ambutrack_core`** | ❌ **PROHIBIDO** - Paquete DEPRECADO y obsoleto |
+| **`ambutrack_core_datasource`** | ✅ **OBLIGATORIO** - Paquete oficial y activo |
+
+**Imports correctos**:
+```dart
+// ❌ NUNCA
+import 'package:ambutrack_core/...';
+
+// ✅ SIEMPRE
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+```
+
+**Documentación**: Ver `packages/README.md` y `packages/ambutrack_core/DEPRECATION.md`
 
 ---
 
-## 🔀 Flujo de Decisión
+## Arquitectura del Proyecto
+
+**Backend:** Supabase (PostgreSQL + Auth + Storage + Real-Time)
+**UI:** Material Design 3
+**State:** BLoC + Freezed + Equatable
+**DI:** GetIt + Injectable
+**Navigation:** GoRouter (~80+ rutas)
+
+**Supabase Project ID:** `ycmopmnrhrpnnzkvnihr`
+
+---
+
+## Flujo de Decisión
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    SOLICITUD DEL USUARIO                     │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    ANÁLISIS DE SOLICITUD                     │
-│  ¿Qué tipo de tarea es?                                      │
-└─────────────────────────────────────────────────────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-        ▼                     ▼                     ▼
-┌───────────────┐   ┌───────────────┐   ┌───────────────┐
-│  Nueva Feature │   │  UI/Diseño    │   │   Database    │
-│   Completa     │   │   Específico  │   │   /Backend    │
-└───────────────┘   └───────────────┘   └───────────────┘
-        │                     │                     │
-        ▼                     ▼                     ▼
-   AG-01 + AG-05        AG-02 + AG-03           AG-04
-   (Feature +           (Apple + UIUX)      (Supabase)
-    QA)                                          │
-        │                     │                   │
-        └─────────────────────┴───────────────────┘
-                              │
-                              ▼
-                    ┌───────────────┐
-                    │   AG-05: QA   │
-                    │  Validación   │
-                    └───────────────┘
-                              │
-                              ▼
-                    ┌───────────────┐
-                    │  dart fix     │
-                    │  --apply      │
-                    └───────────────┘
+NUEVA SOLICITUD
+     │
+     ▼
+┌─────────────────────────────────────────┐
+│ ¿Qué tipo de tarea?                     │
+│                                         │
+│ A) Feature E2E      → Flujo Completo    │
+│ B) Entity/DataSource→ DatasourceAgent   │
+│ C) Repository/BLoC  → FeatureBuilder    │
+│ D) Page/Widget/UI   → UIDesignerAgent   │
+│ E) Validar          → QAValidatorAgent  │
+│ F) Arquitectura     → ArchitectAgent    │
+│ G) Supabase/SQL/RLS → SupabaseSpecialist│
+└─────────────────────────────────────────┘
 ```
 
 ---
 
-## 📋 Reglas de Orquestación
+## Matriz de Agentes
 
-### 1. Siempre Ejecutar Post-Modificación
-```bash
-# OBLIGATORIO después de cualquier archivo .dart
-dart fix --apply && dart analyze
-```
-
-### 2. Combinaciones Comunes de Agentes
-
-| Tarea | Agentes | Orden |
-|-------|---------|-------|
-| Nueva feature completa | AG-01 → AG-02 → AG-04 → AG-05 | Secuencial |
-| Nuevo widget Cupertino | AG-02 + AG-03 → AG-05 | Paralelo → QA |
-| Nueva tabla/query | AG-04 → AG-01 (modelos) → AG-05 | Secuencial |
-| Refactor UI | AG-02 + AG-03 → AG-05 | Paralelo → QA |
-| Solo tests | AG-05 | Individual |
-| Corrección de bugs | AG-01 + AG-05 | Paralelo |
-
-### 3. Prioridades de Agentes
-
-1. **AG-04 (Supabase)** - Si hay cambios de DB, SIEMPRE primero
-2. **AG-01 (Feature)** - Para estructura y arquitectura
-3. **AG-02 (Apple)** - Para cualquier widget UI
-4. **AG-03 (UIUX)** - Para diseño de experiencia
-5. **AG-05 (QA)** - SIEMPRE al final de cualquier tarea
+| Tarea | Agente | Archivo |
+|-------|--------|---------|
+| Validar estructura | 🔵 ArchitectAgent | `agents/AmbuTrackArchitectAgent.md` |
+| Entity/DataSource | 🟣 DatasourceAgent | `agents/AmbuTrackDatasourceAgent.md` |
+| Repository/BLoC | 🟠 FeatureBuilderAgent | `agents/AmbuTrackFeatureBuilderAgent.md` |
+| Page/Widget/UI | 🔵 UIDesignerAgent | `agents/AmbuTrackUIDesignerAgent.md` |
+| Validación/QA | 🔴 QAValidatorAgent | `agents/AmbuTrackQAValidatorAgent.md` |
+| **Supabase (tablas, RLS, SQL)** | 🗄️ **SupabaseSpecialist** | `agents/supabase_specialist.md` |
 
 ---
 
-## 🎯 Patrones de Delegación
+## Cuándo usar SupabaseSpecialist
 
-### Patrón A: Feature Nueva Completa
-
-```
-Usuario: "Crear feature de calendario de publicaciones"
-
-Orquestador:
-1. [AG-04] Verificar/crear tablas en Supabase
-2. [AG-01] Generar estructura de feature:
-   - Model con Freezed
-   - Repository contract
-   - Repository impl
-   - BLoC + Events + States
-   - Page + Widgets separados
-   - Routes
-3. [AG-02] Aplicar diseño Cupertino a widgets
-4. [AG-05] Crear tests con 85%+ coverage
-5. Ejecutar: dart fix --apply && dart analyze
-```
-
-### Patrón B: Mejora de UI
-
-```
-Usuario: "Mejorar la lista de ideas con mejor diseño"
-
-Orquestador:
-1. [AG-03] Analizar mejoras de UX
-2. [AG-02] Implementar con widgets Cupertino
-3. [AG-05] Actualizar/crear widget tests
-4. Ejecutar: dart fix --apply && dart analyze
-```
-
-### Patrón C: Integración Backend
-
-```
-Usuario: "Añadir filtros por plataforma en scripts"
-
-Orquestador:
-1. [AG-04] Verificar índices/queries en Supabase
-2. [AG-01] Actualizar repository + BLoC
-3. [AG-02] Añadir UI de filtros
-4. [AG-05] Tests de integración
-5. Ejecutar: dart fix --apply && dart analyze
-```
+- Crear/modificar tablas en PostgreSQL
+- Diseñar RLS policies
+- Ejecutar migraciones SQL
+- Debuggear queries
+- Configurar Real-Time subscriptions
+- Gestionar Storage buckets
+- Edge Functions
+- Consultar datos directamente con MCP Supabase
 
 ---
 
-## 📝 Generación de Planes
+## Modelo Recomendado por Agente
 
-Cuando el usuario solicite un plan de implementación:
+Al lanzar `Task` tools, especificar el modelo para optimizar coste y velocidad:
 
-1. Crear archivo en `.claude/plans/{nombre}_plan.md`
-2. Usar formato con checkboxes para tracking
-3. Incluir estimación de tiempo
-4. Dividir en fases claras
-5. Especificar qué agentes intervienen en cada paso
+| Agente | Modelo | Justificación |
+|--------|--------|---------------|
+| ArchitectAgent | `haiku` | Solo lectura y validación |
+| DatasourceAgent | `sonnet` | Generación de código |
+| FeatureBuilderAgent | `sonnet` | Generación de código |
+| UIDesignerAgent | `sonnet` | Generación de código |
+| QAValidatorAgent | `haiku` | Validación, no genera código |
+| SupabaseSpecialist | `sonnet` | SQL generation |
 
-### Template de Plan
+---
 
-```markdown
-# Plan: {Nombre de la Feature}
+## Flujo Feature E2E (orden obligatorio + checkpoints)
 
-> Generado: {fecha}  
-> Estado: 🟡 En progreso
+1. **ArchitectAgent** (`haiku`) → Validar estructura, verificar Entity existe
+2. **DatasourceAgent** (`sonnet`) → Crear Entity si no existe → ✅ CHECKPOINT 1: `dart analyze` del paquete
+3. **FeatureBuilderAgent** (`sonnet`) → Repository + BLoCs → ✅ CHECKPOINT 2: `build_runner` + `flutter analyze`
+4. **UIDesignerAgent** (`sonnet`) + **Navegación** + **i18n** → 🔀 PARALELO → ✅ CHECKPOINT 3: `flutter analyze`
+5. **QAValidatorAgent** (`haiku`) → Validación final exhaustiva = 0 errores
 
-## Resumen
-{Descripción breve}
+> **Checkpoints:** Si un checkpoint falla, corregir ANTES de avanzar. No acumular errores.
 
-## Agentes Involucrados
-- [ ] AG-01: Feature Generator
-- [ ] AG-02: Apple Design
-- [ ] AG-04: Supabase Specialist
-- [ ] AG-05: QA Validation
+---
 
-## Fases
+## Matriz de Responsabilidades
 
-### Fase 1: Preparación (AG-04)
-- [ ] Verificar schema de base de datos
-- [ ] Crear/modificar tablas si es necesario
-- [ ] Añadir índices
+| Tarea | Arch | DS | Feature | UI | QA | Supabase |
+|-------|:----:|:--:|:-------:|:--:|:--:|:--------:|
+| Definir estructura | ✅ | | | | | |
+| Crear Entity | | ✅ | | | | |
+| Crear tabla SQL | | | | | | ✅ |
+| Crear RLS policy | | | | | | ✅ |
+| Crear Repository | | | ✅ | | | |
+| Crear BLoC | | | ✅ | | | |
+| Crear Page/Layout | | | | ✅ | | |
+| Crear Widget | | | | ✅ | | |
+| Validar código | 🔍 | | | | ✅ | |
+| Debug SQL | | | | | | ✅ |
 
-### Fase 2: Estructura (AG-01)
-- [ ] Crear modelo con Freezed
-- [ ] Crear contrato de repository
-- [ ] Implementar repository
-- [ ] Crear BLoC + Events + States
+---
 
-### Fase 3: UI (AG-02 + AG-03)
-- [ ] Crear page principal
-- [ ] Crear widgets específicos (clases separadas, NO métodos)
-- [ ] Crear routes con GoRouteData
+## Trazabilidad (OBLIGATORIO)
 
-### Fase 4: Integración
-- [ ] Registrar en DI
-- [ ] Añadir al router
-- [ ] Ejecutar build_runner
-- [ ] dart fix --apply
-
-### Fase 5: QA (AG-05)
-- [ ] Tests unitarios de BLoC
-- [ ] Tests de repository
-- [ ] Widget tests
-- [ ] Verificar coverage 85%+
-
-## Comandos Finales
-```bash
-dart run build_runner build --delete-conflicting-outputs
-dart fix --apply
-dart analyze
-flutter test --coverage
+Al iniciar agente:
 ```
+┌─────────────────────────────────────────┐
+│ 🤖 AGENTE: [Nombre]                     │
+│ 📋 TAREA: [Descripción]                 │
+│ 📁 ARCHIVOS: [Lista]                    │
+└─────────────────────────────────────────┘
+```
+
+Al finalizar:
+```
+┌─────────────────────────────────────────┐
+│ ✅ COMPLETADO: [Nombre]                 │
+│ 📊 [X] archivos modificados             │
+│ ⏭️  SIGUIENTE: [Agente o Ninguno]       │
+└─────────────────────────────────────────┘
 ```
 
 ---
 
-## ⚠️ Reglas Inquebrantables
+## Comandos Disponibles
 
-1. **SIEMPRE** crear plan en `.claude/plans/` ANTES de comenzar tareas no triviales
-2. **NUNCA** crear métodos que devuelvan `Widget`
-3. **SIEMPRE** usar widgets como clases separadas
-4. **SIEMPRE** ejecutar `dart fix --apply` post-cambios
-5. **SIEMPRE** usar Cupertino, **NUNCA** Material
-6. **SIEMPRE** incluir AG-05 (QA) al final
-7. **SIEMPRE** verificar 85%+ coverage antes de completar
-
-### Definición de "Tarea No Trivial" (Crear Plan Obligatorio)
-
-- Afecta 3+ archivos
-- Implementa nueva feature o sub-feature
-- Requiere layouts responsivos
-- Involucra múltiples agentes
-- Cambios estructurales o de arquitectura
+| Comando | Descripción |
+|---------|-------------|
+| `/feature [nombre]` | Feature E2E completo |
+| `/bloc [tipo] [nombre]` | Solo BLoC |
+| `/page [tipo] [nombre]` | Solo Page |
+| `/repository [nombre]` | Solo Repository |
+| `/validate [nombre]` | Validar feature |
+| `/prd [título]` | Crear PRD en Trello |
+| `/plan [card-id]` | Plan desde Trello → `docs/plans/` |
 
 ---
 
-## 🔗 Referencias Rápidas
+## Single Source of Truth
 
-- **CLAUDE.md**: Prompt maestro y arquitectura
-- **quickstart.md**: Comandos y guía rápida
-- **agents/**: Subagentes especializados
-- **plans/**: Planes de implementación generados
-- **templates/**: Templates de código reutilizables
+| Qué | Dónde |
+|-----|-------|
+| Entities | `packages/ambutrack_core_datasource/` |
+| Traducciones | `lib/core/lang/` |
+| AppColors | `lib/core/theme/app_colors.dart` |
+| AppSizes | `lib/core/theme/app_sizes.dart` |
+| Convenciones | `.claude/memory/CONVENTIONS.md` |
+| Shared Widgets | `lib/core/widgets/` |
+| **Planes de implementación** | `docs/plans/` (⚠️ NUNCA en `.claude/`) |
+
+---
+
+## Reglas Críticas de AmbuTrack
+
+1. **Material Design 3** - NO Cupertino
+2. **AppColors** - NO hardcoded colors
+3. **SafeArea** - OBLIGATORIO en todas las páginas
+4. **Repository pass-through** - SIN conversiones Entity↔Entity
+5. **flutter analyze** - 0 warnings OBLIGATORIO
+6. **Supabase** - NO Firebase
+7. **Widgets como clases** - NO métodos `_buildXxx()`
+8. **Diálogos profesionales** - NO SnackBar para notificaciones importantes
+
+---
+
+**📚 Templates de código:** `.claude/memory/CONVENTIONS.md`
+**📋 Instrucciones principales:** `CLAUDE.md`

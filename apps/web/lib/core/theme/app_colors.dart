@@ -149,6 +149,46 @@ class AppColors {
   /// Badge inactivo - borde
   static const Color badgeInactivoBorder = Color(0xFFE5E7EB); // gray-200
 
+  /// Badge error - fondo
+  static const Color badgeErrorBg = Color(0xFFFEF2F2); // red-50
+
+  /// Badge error - texto
+  static const Color badgeErrorText = Color(0xFF991B1B); // red-800
+
+  /// Badge error - borde
+  static const Color badgeErrorBorder = Color(0xFFFECACA); // red-200
+
+  // === COLORES PARA TURNOS Y CUADRANTES ===
+
+  /// Color para turnos tipo Turquesa (Mañana/T1)
+  static const Color turnoTurquesa = Color(0xFF14B8A6);
+
+  /// Color para turnos tipo Morado (Noche/T3)
+  static const Color turnoMorado = Color(0xFF9333EA);
+
+  /// Color para turnos tipo Azul (Tarde/T2)
+  static const Color turnoAzul = Color(0xFF3B82F6);
+
+  /// Color para turnos tipo Naranja (Especiales)
+  static const Color turnoNaranja = Color(0xFFF97316);
+
+  /// Color para turnos tipo Gris (Inactivos)
+  static const Color turnoGris = Color(0xFF6B7280);
+
+  // === COLORES PARA MÓDULOS ESPECÍFICOS ===
+
+  /// Color para formación y evaluaciones (Violeta)
+  static const Color formacion = Color(0xFF7C3AED);
+
+  /// Color para documentación (Azul cielo)
+  static const Color documentacion = Color(0xFF0EA5E9);
+
+  /// Color para averías (Rojo oscuro)
+  static const Color averia = Color(0xFFB91C1C);
+
+  /// Color para consumo (Amarillo oscuro)
+  static const Color consumo = Color(0xFFEAB308);
+
   // === COLORES PARA ACCIONES ===
 
   /// Color de iconos de acción por defecto
@@ -168,6 +208,22 @@ class AppColors {
 
   /// Color de icono hover para eliminar
   static const Color actionDeleteHoverIcon = Color(0xFFDC2626); // red-600
+
+  // === COLORES PARA TABLAS ESTÁNDAR ===
+  /// Color de fondo para cabeceras de tablas
+  static const Color tableHeaderBg = Color(0xFFF0F2F5);
+
+  /// Color de texto para cabeceras de tablas
+  static const Color tableHeaderText = Color(0xFF333333);
+
+  /// Color de bordes para tablas
+  static const Color tableBorder = Color(0xFFE0E0E0);
+
+  /// Color de texto para celdas de datos
+  static const Color tableCellText = Color(0xFF666666);
+
+  /// Color de fondo para filas seleccionadas (verde claro)
+  static const Color tableSelectedRowBg = Color(0xFFF0FFF0);
 
   // === MÉTODOS DE UTILIDAD ===
 

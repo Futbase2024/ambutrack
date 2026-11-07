@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'trafico_diario_state.freezed.dart';
@@ -19,6 +19,8 @@ class TraficoDiarioState with _$TraficoDiarioState {
     String? estadoFilter,
     String? centroFilter,
     @Default(false) bool isRefreshing,
+    @Default(false) bool isGenerating,
+    DateTime? trasladosGeneradosHasta,
   }) = _Loaded;
 
   /// Error al cargar traslados

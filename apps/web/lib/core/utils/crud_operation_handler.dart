@@ -1,4 +1,5 @@
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:flutter/material.dart';
 
@@ -34,25 +35,35 @@ class CrudOperationHandler {
 
   /// Maneja el resultado exitoso de una operación CRUD
   ///
-  /// Cierra el overlay de carga y el formulario, luego muestra un SnackBar de éxito
+  /// Cierra el overlay de carga y el formulario, luego muestra un diálogo de éxito
   ///
   /// [context] - Contexto de Flutter
   /// [isSaving] - Estado de guardado para determinar si cerrar el overlay
   /// [isEditing] - true para actualización, false para creación
   /// [entityName] - Nombre de la entidad procesada
   /// [onComplete] - Callback opcional para ejecutar después de cerrar
-  static void handleSuccess({
+  static Future<void> handleSuccess({
     required BuildContext context,
     required bool isSaving,
     required bool isEditing,
     required String entityName,
     VoidCallback? onComplete,
-  }) {
+  }) async {
     debugPrint('✅ $entityName guardada exitosamente, cerrando diálogo');
+
+    if (!context.mounted) {
+      return;
+    }
 
     // Cerrar loading overlay si está abierto
     if (isSaving) {
       Navigator.of(context).pop(); // Cierra loading overlay
+      // Esperar un frame para que el Navigator se desbloquee
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    if (!context.mounted) {
+      return;
     }
 
     Navigator.of(context).pop(); // Cierra el formulario
@@ -60,49 +71,62 @@ class CrudOperationHandler {
     // Ejecutar callback si existe
     onComplete?.call();
 
-    // Mostrar mensaje de éxito
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isEditing ? '✅ $entityName actualizada exitosamente' : '✅ $entityName creada exitosamente',
-        ),
-        backgroundColor: AppColors.success,
-        duration: const Duration(seconds: 3),
-      ),
+    if (!context.mounted) {
+      return;
+    }
+
+    // Mostrar diálogo de éxito
+    await showResultDialog(
+      context: context,
+      type: ResultType.success,
+      title: isEditing ? '$entityName actualizado' : '$entityName creado',
+      message: isEditing
+          ? 'El registro de $entityName se ha actualizado correctamente.'
+          : 'El nuevo registro de $entityName se ha creado correctamente.',
     );
   }
 
   /// Maneja errores durante operaciones CRUD
   ///
-  /// Cierra el overlay de carga y muestra un SnackBar con el mensaje de error
+  /// Cierra el overlay de carga y muestra un diálogo de error (el formulario sigue abierto)
   ///
   /// [context] - Contexto de Flutter
   /// [isSaving] - Estado de guardado para determinar si cerrar el overlay
   /// [errorMessage] - Mensaje de error a mostrar
   /// [onComplete] - Callback opcional para ejecutar después de manejar el error
-  static void handleError({
+  static Future<void> handleError({
     required BuildContext context,
     required bool isSaving,
     required String errorMessage,
     VoidCallback? onComplete,
-  }) {
+  }) async {
     debugPrint('❌ Error al guardar - $errorMessage');
+
+    if (!context.mounted) {
+      return;
+    }
 
     // Cerrar loading overlay si está abierto
     if (isSaving) {
       Navigator.of(context).pop(); // Cierra loading overlay
+      // Esperar un frame para que el Navigator se desbloquee
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    if (!context.mounted) {
+      return;
     }
 
     // Ejecutar callback si existe
     onComplete?.call();
 
-    // Mostrar mensaje de error
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('❌ Error: $errorMessage'),
-        backgroundColor: AppColors.error,
-        duration: const Duration(seconds: 5),
-      ),
+    // Mostrar diálogo de error (el formulario sigue abierto)
+    await showResultDialog(
+      context: context,
+      type: ResultType.error,
+      title: 'Error al guardar',
+      message: 'No se pudo guardar el registro. Revisa los datos e inténtalo de nuevo.',
+      details: errorMessage,
     );
   }
 }

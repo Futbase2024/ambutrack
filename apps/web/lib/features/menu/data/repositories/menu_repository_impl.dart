@@ -1,4 +1,6 @@
+import 'package:ambutrack_web/core/auth/enums/user_role.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/features/menu/data/repositories/menu_filter.dart';
 import 'package:ambutrack_web/features/menu/domain/entities/menu_item.dart';
 import 'package:ambutrack_web/features/menu/domain/repositories/menu_repository.dart';
 import 'package:flutter/material.dart';
@@ -66,6 +68,12 @@ class MenuRepositoryImpl implements MenuRepository {
           route: '/tablas/tipos-vehiculo',
         ),
         MenuItem(
+          key: 'tablas_plantillas_equipamiento',
+          label: 'Plantillas de Equipamiento',
+          icon: Icons.inventory,
+          route: '/tablas/plantillas-equipamiento',
+        ),
+        MenuItem(
           key: 'tablas_facultativos',
           label: 'Facultativos',
           icon: Icons.medical_services,
@@ -129,6 +137,12 @@ class MenuRepositoryImpl implements MenuRepository {
           route: '/servicios/planificar',
         ),
         MenuItem(
+          key: 'servicios_rutas',
+          label: 'Rutas de Técnicos',
+          icon: Icons.route,
+          route: '/servicios/rutas',
+        ),
+        MenuItem(
           key: 'servicios_urgentes',
           label: 'Servicios Urgentes en Tiempo Real',
           icon: Icons.emergency,
@@ -151,6 +165,12 @@ class MenuRepositoryImpl implements MenuRepository {
           label: 'Estado del Servicio',
           icon: Icons.info_outline,
           route: '/servicios/estado',
+        ),
+        MenuItem(
+          key: 'servicios_agenda_pendientes',
+          label: 'Agenda de Pendientes',
+          icon: Icons.event_note,
+          route: '/servicios/agenda-pendientes',
         ),
       ],
     ),
@@ -220,6 +240,12 @@ class MenuRepositoryImpl implements MenuRepository {
           label: 'Stock de Vestuario',
           icon: Icons.inventory_2,
           route: '/personal/stock-vestuario',
+        ),
+        MenuItem(
+          key: 'personal_fichajes',
+          label: 'Fichajes GPS',
+          icon: Icons.location_on,
+          route: '/personal/fichajes',
         ),
       ],
     ),
@@ -411,6 +437,12 @@ class MenuRepositoryImpl implements MenuRepository {
       icon: Icons.construction,
       children: <MenuItem>[
         MenuItem(
+          key: 'taller_talleres',
+          label: 'Catálogo de Talleres',
+          icon: Icons.home_repair_service,
+          route: '/taller/talleres',
+        ),
+        MenuItem(
           key: 'taller_ordenes_reparacion',
           label: 'Órdenes de Reparación',
           icon: Icons.build,
@@ -487,6 +519,12 @@ class MenuRepositoryImpl implements MenuRepository {
           label: 'Contratos',
           icon: Icons.description,
           route: '/administracion/contratos',
+        ),
+        MenuItem(
+          key: 'administracion_incidencias',
+          label: 'Incidencias',
+          icon: Icons.report_problem,
+          route: '/administracion/incidencias',
         ),
         MenuItem(
           key: 'administracion_usuarios',
@@ -568,13 +606,6 @@ class MenuRepositoryImpl implements MenuRepository {
           icon: Icons.person,
           route: '/perfil',
           color: AppColors.primary,
-        ),
-        MenuItem(
-          key: 'usuario_configuracion',
-          label: 'Configuración de Cuenta',
-          icon: Icons.manage_accounts,
-          route: '/configuracion/cuenta',
-          color: AppColors.info,
         ),
         MenuItem(
           key: 'usuario_logout',
@@ -669,8 +700,18 @@ class MenuRepositoryImpl implements MenuRepository {
   }
 
   @override
+  List<MenuItem> getMainMenuItemsForRole(UserRole role) {
+    return MenuFilter.filterForRole(_mainMenuItems, role);
+  }
+
+  @override
   List<MenuItem> getMobileMenuItems() {
     return List<MenuItem>.unmodifiable(_mobileMenuItems);
+  }
+
+  @override
+  List<MenuItem> getMobileMenuItemsForRole(UserRole role) {
+    return MenuFilter.filterForRole(_mobileMenuItems, role);
   }
 
   @override

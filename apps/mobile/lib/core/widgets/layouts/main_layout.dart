@@ -5,7 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../../features/auth/presentation/bloc/auth_event.dart';
 import '../../../features/auth/presentation/bloc/auth_state.dart';
+import '../../../features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
+import '../../../features/notificaciones/presentation/bloc/notificaciones_state.dart';
+import '../../../features/notificaciones/presentation/widgets/notificacion_badge.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_icons.dart';
 
 /// Layout principal de AmbuTrack Mobile
 ///
@@ -29,14 +33,15 @@ class MainLayout extends StatelessWidget {
         return 'AmbuTrack';
       case '/registro-horario':
         return 'Registro Horario';
-      case '/checklist-ambulancia':
-        return 'Checklist Ambulancia';
+      // Checklist Ambulancia se accede desde Mi Vehículo
       case '/partes-diarios':
         return 'Partes Diarios';
       case '/incidencias':
         return 'Incidencias';
       case '/perfil':
         return 'Mi Perfil';
+      case '/notificaciones':
+        return 'Notificaciones';
       default:
         return 'AmbuTrack';
     }
@@ -76,9 +81,27 @@ class MainLayout extends StatelessWidget {
       appBar: AppBar(
         title: Text(_getPageTitle()),
         actions: <Widget>[
+          // Badge de notificaciones
+          // Nota: Usamos BlocProvider.value para compartir la instancia creada en app.dart
+          // que ya está inicializada después de la autenticación.
+          BlocProvider.value(
+            value: context.read<NotificacionesBloc>(),
+            child: BlocBuilder<NotificacionesBloc, NotificacionesState>(
+              builder: (context, state) {
+                final conteoNoLeidas = state.maybeWhen(
+                  loaded: (_, conteo, __) => conteo,
+                  orElse: () => 0,
+                );
+                return NotificacionBadge(
+                  conteoNoLeidas: conteoNoLeidas,
+                  onTap: () => context.push('/notificaciones'),
+                );
+              },
+            ),
+          ),
           // Botón de logout rápido
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(AppIcons.logout),
             tooltip: 'Cerrar Sesión',
             onPressed: () => _showLogoutDialog(context),
           ),
@@ -161,35 +184,29 @@ class MainLayout extends StatelessWidget {
               // Navegación
               _buildDrawerItem(
                 context,
-                icon: Icons.dashboard,
+                icon: AppIcons.dashboard,
                 title: 'Dashboard',
                 route: '/',
                 isSelected: currentLocation == '/',
               ),
               _buildDrawerItem(
                 context,
-                icon: Icons.schedule,
+                icon: AppIcons.schedule,
                 title: 'Registro Horario',
                 route: '/registro-horario',
                 isSelected: currentLocation == '/registro-horario',
               ),
+              // Checklist Ambulancia ahora está dentro de "Mi Vehículo"
               _buildDrawerItem(
                 context,
-                icon: Icons.checklist,
-                title: 'Checklist Ambulancia',
-                route: '/checklist-ambulancia',
-                isSelected: currentLocation == '/checklist-ambulancia',
-              ),
-              _buildDrawerItem(
-                context,
-                icon: Icons.assignment,
+                icon: AppIcons.assignment,
                 title: 'Partes Diarios',
                 route: '/partes-diarios',
                 isSelected: currentLocation == '/partes-diarios',
               ),
               _buildDrawerItem(
                 context,
-                icon: Icons.warning_amber,
+                icon: AppIcons.warningAmber,
                 title: 'Incidencias',
                 route: '/incidencias',
                 isSelected: currentLocation == '/incidencias',
@@ -197,7 +214,7 @@ class MainLayout extends StatelessWidget {
               const Divider(),
               _buildDrawerItem(
                 context,
-                icon: Icons.person,
+                icon: AppIcons.person,
                 title: 'Mi Perfil',
                 route: '/perfil',
                 isSelected: currentLocation == '/perfil',
@@ -206,7 +223,7 @@ class MainLayout extends StatelessWidget {
 
               // Logout
               ListTile(
-                leading: const Icon(Icons.logout, color: AppColors.error),
+                leading: const Icon(AppIcons.logout, color: AppColors.error),
                 title: const Text(
                   'Cerrar Sesión',
                   style: TextStyle(color: AppColors.error),

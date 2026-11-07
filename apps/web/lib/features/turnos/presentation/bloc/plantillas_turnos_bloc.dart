@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/turnos/domain/repositories/plantilla_turno_repository.dart';
 import 'package:ambutrack_web/features/turnos/presentation/bloc/plantillas_turnos_event.dart';
 import 'package:ambutrack_web/features/turnos/presentation/bloc/plantillas_turnos_state.dart';

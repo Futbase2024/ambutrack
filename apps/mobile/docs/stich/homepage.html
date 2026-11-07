@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AmbuTrack Home Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3f1eae",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#151220",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col text-[#131217] font-display">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 bg-primary text-white px-4 py-3 flex items-center justify-between shadow-md">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-2xl">menu</span>
+<h1 class="text-xl font-bold tracking-tight">AmbuTrack</h1>
+</div>
+<button class="relative p-2 rounded-full hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-2xl">notifications</span>
+<span class="absolute top-2 right-2 flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-red-500 border border-white"></span>
+</span>
+</button>
+</header>
+<main class="flex-1 overflow-y-auto pb-24">
+<!-- Profile Card -->
+<div class="px-4 pt-6">
+<div class="bg-white dark:bg-primary/5 rounded-xl p-5 shadow-sm border border-primary/10 flex items-center gap-4">
+<div class="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary border-2 border-primary/20">
+<span class="text-xl font-bold">JP</span>
+</div>
+<div class="flex-1">
+<h2 class="text-lg font-bold text-[#131217]">Juan Pérez</h2>
+<p class="text-sm text-[#6d6586]">Técnico en Emergencias</p>
+<p class="text-xs text-[#6d6586] mt-1 font-medium opacity-80">DNI: 12.345.678-X</p>
+</div>
+<button class="p-2 rounded-full text-primary/40">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Alert Banner -->
+<div class="px-4 pt-4">
+<div class="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border border-amber-200 dark:border-amber-700/30 rounded-xl p-4 flex items-start gap-4">
+<div class="bg-amber-400 text-white p-2 rounded-lg flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-xl">warning</span>
+</div>
+<div class="flex-1">
+<h3 class="text-sm font-bold text-amber-900 dark:text-amber-200">Alertas de Caducidad</h3>
+<p class="text-xs text-amber-800 dark:text-amber-300 mt-1">Tienes 2 certificaciones próximas a vencer. Revisa los detalles.</p>
+</div>
+<button class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors">
+                    REVISAR
+                </button>
+</div>
+</div>
+<!-- Grid Sections Title -->
+<div class="px-4 pt-6 pb-2">
+<h3 class="text-sm font-bold uppercase tracking-wider text-[#6d6586]">Panel Principal</h3>
+</div>
+<!-- Main Functional Grid -->
+<div class="px-4 grid grid-cols-2 gap-4">
+<!-- Active Shift Card -->
+<button class="col-span-1 bg-emerald-50 dark:bg-emerald-950/20 border-2 border-emerald-500 rounded-xl p-4 flex flex-col items-start gap-3 text-left transition-transform active:scale-95">
+<div class="bg-emerald-500 text-white p-2 rounded-lg">
+<span class="material-symbols-outlined">timer</span>
+</div>
+<div>
+<span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">En Servicio</span>
+<h4 class="text-base font-bold text-[#131217]">Mi Turno</h4>
+</div>
+</button>
+<!-- Services Card -->
+<button class="col-span-1 bg-white dark:bg-primary/5 border border-primary/10 rounded-xl p-4 flex flex-col items-start gap-3 text-left transition-transform active:scale-95 shadow-sm">
+<div class="bg-primary/10 text-primary p-2 rounded-lg">
+<span class="material-symbols-outlined">medical_services</span>
+</div>
+<div>
+<h4 class="text-base font-bold text-[#131217]">Servicios</h4>
+<span class="text-xs text-[#6d6586]">3 pendientes</span>
+</div>
+</button>
+<!-- Procedures Card -->
+<button class="col-span-1 bg-white dark:bg-primary/5 border border-primary/10 rounded-xl p-4 flex flex-col items-start gap-3 text-left transition-transform active:scale-95 shadow-sm">
+<div class="bg-primary/10 text-primary p-2 rounded-lg">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div>
+<h4 class="text-base font-bold text-[#131217]">Trámites</h4>
+<span class="text-xs text-[#6d6586]">Gestión de partes</span>
+</div>
+</button>
+<!-- Vehicle Card -->
+<button class="col-span-1 bg-white dark:bg-primary/5 border border-primary/10 rounded-xl p-4 flex flex-col items-start gap-3 text-left transition-transform active:scale-95 shadow-sm">
+<div class="bg-primary/10 text-primary p-2 rounded-lg">
+<span class="material-symbols-outlined">ambulance</span>
+</div>
+<div>
+<h4 class="text-base font-bold text-[#131217]">Vehículo</h4>
+<span class="text-xs text-[#6d6586]">Checklist A-12</span>
+</div>
+</button>
+<!-- Uniform Card -->
+<button class="col-span-1 bg-white dark:bg-primary/5 border border-primary/10 rounded-xl p-4 flex flex-col items-start gap-3 text-left transition-transform active:scale-95 shadow-sm">
+<div class="bg-primary/10 text-primary p-2 rounded-lg">
+<span class="material-symbols-outlined">checkroom</span>
+</div>
+<div>
+<h4 class="text-base font-bold text-[#131217]">Vestuario</h4>
+<span class="text-xs text-[#6d6586]">Solicitudes</span>
+</div>
+</button>
+<!-- Training Card -->
+<button class="col-span-1 bg-white dark:bg-primary/5 border border-primary/10 rounded-xl p-4 flex flex-col items-start gap-3 text-left transition-transform active:scale-95 shadow-sm">
+<div class="bg-primary/10 text-primary p-2 rounded-lg">
+<span class="material-symbols-outlined">school</span>
+</div>
+<div>
+<h4 class="text-base font-bold text-[#131217]">Formación</h4>
+<span class="text-xs text-[#6d6586]">Cursos activos</span>
+</div>
+</button>
+</div>
+<!-- Quick Map Section (Miniature) -->
+<div class="px-4 pt-8">
+<h3 class="text-sm font-bold uppercase tracking-wider text-[#6d6586] pb-2">Última Ubicación</h3>
+<div class="relative w-full h-40 rounded-xl overflow-hidden shadow-sm border border-primary/10">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="Static map of ambulance location in city center" data-location="Madrid, Spain" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBOJxKwIn1Ev39lPGaEMmuSlwmKJPGzFJwl1r0b8k8oMwpM6xlqzbKCVBavB0CXovD0SGJnsOn0t3BvQJbr6FI0-LomTBPXUm4iyMyOJ9W18138hwF7nrP72OaJkU0V3nPd2roy1h_BVzwFCUWTP46W7W2myuLWH8nL0uEDf1_ASnYBLq8c-4au_s0xMcKsqm0WytFkUT8n_JzFEzdp4G-lEfbxJ5eLi3hK4KrPYny4ovY7Gh_nBgVsoijJMUvKTGuOAIwEfokkj9g')"></div>
+<div class="absolute inset-0 bg-black/5"></div>
+<div class="absolute bottom-3 left-3 bg-white/90 ios-blur px-3 py-1.5 rounded-lg text-xs font-bold text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">location_on</span>
+                    Vía Complutense, 12
+                </div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 w-full bg-white dark:bg-background-dark border-t border-[#f1f0f4] flex justify-around items-center px-4 pb-6 pt-3 ios-blur">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined fill-[1]">home</span>
+<span class="text-[10px] font-bold">Inicio</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-[#6d6586]" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="text-[10px] font-medium">Mapa</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-[#6d6586]" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-[10px] font-medium">Historial</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-[#6d6586]" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Perfil</span>
+</a>
+</nav>
+</body></html>

@@ -1,5 +1,6 @@
 import 'package:ambutrack_web/app/app.dart';
 import 'package:ambutrack_web/app/flavors.dart';
+import 'package:ambutrack_web/core/monitoring/error_monitoring.dart';
 import 'package:ambutrack_web/core/providers/app_providers.dart';
 import 'package:ambutrack_web/core/supabase/supabase_options.dart';
 import 'package:ambutrack_web/features/personal/data/services/tablas_maestras_service.dart';
@@ -41,7 +42,8 @@ void main() async {
   // Pre-cargar tablas maestras en background (no bloquear el inicio)
   _preloadMasterTables();
 
-  runApp(const App());
+  // Monitor de errores: solo activo si se compila con --dart-define=SENTRY_DSN=...
+  await ErrorMonitoring.run(environment: 'development', appRunner: () => runApp(const App()));
 }
 
 /// Pre-carga las tablas maestras más usadas en background

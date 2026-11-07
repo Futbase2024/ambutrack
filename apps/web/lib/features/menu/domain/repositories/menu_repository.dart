@@ -1,3 +1,4 @@
+import 'package:ambutrack_web/core/auth/enums/user_role.dart';
 import 'package:ambutrack_web/features/menu/domain/entities/menu_item.dart';
 
 /// Repositorio abstracto para gestión del menú de navegación
@@ -5,8 +6,14 @@ abstract class MenuRepository {
   /// Obtiene todos los items del menú principal
   List<MenuItem> getMainMenuItems();
 
+  /// Obtiene los items del menú principal filtrados por rol
+  List<MenuItem> getMainMenuItemsForRole(UserRole role);
+
   /// Obtiene los items del menú móvil
   List<MenuItem> getMobileMenuItems();
+
+  /// Obtiene los items del menú móvil filtrados por rol
+  List<MenuItem> getMobileMenuItemsForRole(UserRole role);
 
   /// Obtiene un item específico por su key
   MenuItem? getMenuItemByKey(String key);

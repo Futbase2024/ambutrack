@@ -13,8 +13,10 @@ dependencies:
     sdk: flutter
 
   # ===== CORE SHARED PACKAGE (Monorepo) =====
-  ambutrack_core:
-    path: ../../packages/ambutrack_core
+  # ambutrack_core:  # ⚠️ DEPRECADO - NO USAR
+  #   path: ../../packages/ambutrack_core
+  ambutrack_core_datasource:
+    path: ../../packages/ambutrack_core_datasource
 
   # ===== STATE MANAGEMENT =====
   flutter_bloc: ^9.1.1
@@ -43,13 +45,22 @@ dependencies:
   geolocator: ^13.0.2
   permission_handler: ^11.3.1
 
+  # ===== LOCAL NOTIFICATIONS (Mobile Only) =====
+  flutter_local_notifications: ^17.0.0
+  timezone: ^0.9.0
+
   # ===== UI =====
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
 
+  # ===== MAPS (Mobile Only) =====
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
   # ===== UTILS =====
   intl: ^0.20.1
   uuid: ^4.5.1
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -65,7 +76,6 @@ dev_dependencies:
   injectable_generator: ^2.6.2
 
   # ===== TESTING =====
-  bloc_test: ^10.0.0
   mocktail: ^1.0.4
 
   # ===== APP ICON GENERATION =====
@@ -76,6 +86,7 @@ flutter:
 
   assets:
     - lib/assets/images/
+    - lib/assets/icons/
 
 # ===== FLUTTER LAUNCHER ICONS CONFIGURATION =====
 flutter_launcher_icons:

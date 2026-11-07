@@ -35,6 +35,10 @@ class PersonalEntity extends Equatable {
     this.empresaId,
     this.categoriaId,
     this.usuarioId,
+    this.contratoAsignadoId,
+    this.baseId,
+    this.dotacionId,
+    this.vehiculoId,
     required this.createdAt,
     this.createdBy,
     this.updatedAt,
@@ -87,6 +91,10 @@ class PersonalEntity extends Equatable {
         empresaId: map['empresa_id']?.toString(),
         categoriaId: map['categoria_id']?.toString(),
         usuarioId: map['usuario_id']?.toString(),
+        contratoAsignadoId: map['contrato_asignado_id']?.toString(),
+        baseId: map['base_id']?.toString(),
+        dotacionId: map['dotacion_id']?.toString(),
+        vehiculoId: map['vehiculo_id']?.toString(),
         createdAt: map['created_at'] != null
             ? DateTime.parse(map['created_at'].toString())
             : DateTime.now(),
@@ -131,6 +139,10 @@ class PersonalEntity extends Equatable {
   final String? empresaId;
   final String? categoriaId;
   final String? usuarioId;
+  final String? contratoAsignadoId;
+  final String? baseId;
+  final String? dotacionId;
+  final String? vehiculoId;
   final DateTime createdAt;
   final String? createdBy;
   final DateTime? updatedAt;
@@ -169,6 +181,10 @@ class PersonalEntity extends Equatable {
       'empresa_id': empresaId,
       'categoria_id': categoriaId,
       'usuario_id': usuarioId,
+      'contrato_asignado_id': contratoAsignadoId,
+      'base_id': baseId,
+      'dotacion_id': dotacionId,
+      'vehiculo_id': vehiculoId,
       'created_at': createdAt.toIso8601String(),
       'created_by': createdBy,
       'updated_at': updatedAt?.toIso8601String(),
@@ -215,6 +231,10 @@ class PersonalEntity extends Equatable {
         empresaId,
         categoriaId,
         usuarioId,
+        contratoAsignadoId,
+        baseId,
+        dotacionId,
+        vehiculoId,
         createdAt,
         createdBy,
         updatedAt,

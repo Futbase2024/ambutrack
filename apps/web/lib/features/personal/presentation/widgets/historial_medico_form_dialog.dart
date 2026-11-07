@@ -1,35 +1,27 @@
 import 'dart:async';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 
-import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
-import 'package:ambutrack_web/core/di/locator.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_searchable_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
-import 'package:ambutrack_web/features/personal/domain/repositories/personal_repository.dart';
+import 'package:ambutrack_web/features/personal/presentation/bloc/historial_medico_bloc.dart';
+import 'package:ambutrack_web/features/personal/presentation/bloc/historial_medico_event.dart';
+import 'package:ambutrack_web/features/personal/presentation/bloc/historial_medico_state.dart';
+import 'package:ambutrack_web/features/personal/presentation/widgets/form/historial_documento_selector.dart';
+import 'package:ambutrack_web/features/personal/presentation/widgets/form/historial_medico_form_body.dart';
+import 'package:ambutrack_web/features/personal/presentation/widgets/form/historial_medico_form_helpers.dart';
+import 'package:ambutrack_web/features/personal/presentation/widgets/form/personal_form_options.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-
-import '../bloc/historial_medico_bloc.dart';
-import '../bloc/historial_medico_event.dart';
-import '../bloc/historial_medico_state.dart';
 
 /// Diálogo de formulario para crear/editar Historial Médico
 class HistorialMedicoFormDialog extends StatefulWidget {
-  const HistorialMedicoFormDialog({
-    super.key,
-    this.item,
-  });
+  const HistorialMedicoFormDialog({super.key, this.item});
 
   final HistorialMedicoEntity? item;
 
@@ -43,7 +35,6 @@ class _HistorialMedicoFormDialogState extends State<HistorialMedicoFormDialog> {
   final TextEditingController _restriccionesController = TextEditingController();
   final TextEditingController _centroMedicoController = TextEditingController();
   final TextEditingController _nombreMedicoController = TextEditingController();
-  final TextEditingController _documentoUrlController = TextEditingController();
 
   DateTime? _fechaReconocimiento;
   DateTime? _fechaCaducidad;
@@ -70,16 +61,8 @@ class _HistorialMedicoFormDialogState extends State<HistorialMedicoFormDialog> {
 
   Future<void> _loadData() async {
     try {
-      // Cargar personal
-      final PersonalRepository personalRepo = getIt<PersonalRepository>();
-      final List<PersonalEntity> todosPersonal = await personalRepo.getAll();
-
-      // Filtrar solo activos y ordenar
-      final List<PersonalEntity> personalActivo = todosPersonal
-          .where((PersonalEntity p) => p.activo == true)
-          .toList()
-        ..sort((PersonalEntity a, PersonalEntity b) =>
-            a.nombreCompleto.compareTo(b.nombreCompleto));
+      // Cargar personal activo ordenado
+      final List<PersonalEntity> personalActivo = await HistorialMedicoFormHelpers.cargarPersonalActivo();
 
       if (mounted) {
         setState(() {
@@ -95,14 +78,13 @@ class _HistorialMedicoFormDialogState extends State<HistorialMedicoFormDialog> {
     } catch (e) {
       debugPrint('❌ Error al cargar datos del formulario: $e');
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cargar datos: $e'),
-            backgroundColor: AppColors.error,
-          ),
+        setState(() => _isLoading = false);
+        await showResultDialog(
+          context: context,
+          title: 'Error al cargar datos',
+          message: 'No se pudo cargar la lista de personal.',
+          details: e.toString(),
+          type: ResultType.error,
         );
       }
     }
@@ -121,57 +103,17 @@ class _HistorialMedicoFormDialogState extends State<HistorialMedicoFormDialog> {
     _activo = item.activo;
 
     // Buscar el personal seleccionado
-    try {
-      _personalSeleccionado = _personalList.firstWhere(
-        (PersonalEntity p) => p.id == item.personalId,
-      );
-    } catch (e) {
+    _personalSeleccionado = PersonalFormOptions.buscar(_personalList, item.personalId);
+    if (_personalSeleccionado == null) {
       debugPrint('⚠️ Personal no encontrado en la lista: ${item.personalId}');
     }
   }
 
   /// Seleccionar archivo (imagen o documento)
   Future<void> _seleccionarArchivo() async {
-    try {
-      final FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: <String>['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
-        withData: true, // Importante para Flutter Web
-      );
-
-      if (result != null && result.files.isNotEmpty) {
-        final PlatformFile file = result.files.first;
-
-        // Validar tamaño (máximo 10 MB)
-        if (file.size > 10 * 1024 * 1024) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('⚠️ El archivo no debe superar los 10 MB'),
-                backgroundColor: AppColors.warning,
-              ),
-            );
-          }
-          return;
-        }
-
-        setState(() {
-          _archivoSeleccionado = file;
-          _documentoUrlController.text = file.name;
-        });
-        debugPrint('📎 Archivo seleccionado: ${file.name} (${(file.size / 1024).toStringAsFixed(2)} KB)');
-      }
-    } catch (e) {
-      debugPrint('❌ Error al seleccionar archivo: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al seleccionar archivo: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
+    final PlatformFile? file = await HistorialMedicoFormHelpers.elegirArchivo(context);
+    if (file != null && mounted) {
+      setState(() => _archivoSeleccionado = file);
     }
   }
 
@@ -179,7 +121,6 @@ class _HistorialMedicoFormDialogState extends State<HistorialMedicoFormDialog> {
   void _eliminarArchivo() {
     setState(() {
       _archivoSeleccionado = null;
-      _documentoUrlController.clear();
       _nombreArchivoExistente = null;
     });
     debugPrint('🗑️ Archivo eliminado');
@@ -188,8 +129,7 @@ class _HistorialMedicoFormDialogState extends State<HistorialMedicoFormDialog> {
   /// Ver documento existente en nueva pestaña
   void _verDocumento() {
     if (_nombreArchivoExistente != null && _nombreArchivoExistente!.isNotEmpty) {
-      html.window.open(_nombreArchivoExistente!, '_blank');
-      debugPrint('👁️ Abriendo documento: $_nombreArchivoExistente');
+      HistorialMedicoFormHelpers.abrir(_nombreArchivoExistente!);
     }
   }
 
@@ -199,282 +139,34 @@ class _HistorialMedicoFormDialogState extends State<HistorialMedicoFormDialog> {
     _restriccionesController.dispose();
     _centroMedicoController.dispose();
     _nombreMedicoController.dispose();
-    _documentoUrlController.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<HistorialMedicoBloc, HistorialMedicoState>(
-      listener: (BuildContext context, HistorialMedicoState state) {
-        if (state is HistorialMedicoLoaded) {
-          CrudOperationHandler.handleSuccess(
-            context: context,
-            isSaving: _isSaving,
-            isEditing: _isEditing,
-            entityName: 'Reconocimiento Médico',
-            onClose: () => setState(() => _isSaving = false),
-          );
-        } else if (state is HistorialMedicoError) {
-          CrudOperationHandler.handleError(
-            context: context,
-            isSaving: _isSaving,
-            isEditing: _isEditing,
-            entityName: 'Reconocimiento Médico',
-            errorMessage: state.message,
-            onClose: () => setState(() => _isSaving = false),
-          );
-        }
-      },
-      child: AppDialog(
-        title: _isEditing ? 'Editar Reconocimiento Médico' : 'Nuevo Reconocimiento Médico',
-        icon: _isEditing ? Icons.edit : Icons.add_circle,
-        maxWidth: 700,
-        type: _isEditing ? AppDialogType.edit : AppDialogType.create,
-        content: _isLoading
-            ? const Center(
-                child: AppLoadingIndicator(
-                  message: 'Cargando datos...',
-                  size: 100,
-                ),
-              )
-            : _buildForm(),
-        actions: <Widget>[
-          AppButton(
-            onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-            label: 'Cancelar',
-            variant: AppButtonVariant.text,
-          ),
-          AppButton(
-            onPressed: _isSaving ? null : _onSave,
-            label: _isEditing ? 'Actualizar' : 'Guardar',
-            icon: _isEditing ? Icons.save : Icons.add,
-          ),
-        ],
-      ),
-    );
+  void _onBlocState(BuildContext context, HistorialMedicoState state) {
+    if (!_isSaving) {
+      return;
+    }
+    if (state is HistorialMedicoLoaded) {
+      CrudOperationHandler.handleSuccess(
+        context: context,
+        isSaving: _isSaving,
+        isEditing: _isEditing,
+        entityName: 'Reconocimiento Médico',
+        onClose: () => setState(() => _isSaving = false),
+      );
+    } else if (state is HistorialMedicoError) {
+      CrudOperationHandler.handleError(
+        context: context,
+        isSaving: _isSaving,
+        isEditing: _isEditing,
+        entityName: 'Reconocimiento Médico',
+        errorMessage: state.message,
+        onClose: () => setState(() => _isSaving = false),
+      );
+    }
   }
 
-  Widget _buildForm() {
-    return Form(
-      key: _formKey,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            // Selector de Personal
-            _buildSectionTitle('Personal'),
-            const SizedBox(height: 12),
-            AppSearchableDropdown<PersonalEntity>(
-              value: _personalSeleccionado,
-              label: 'Personal *',
-              hint: 'Buscar personal...',
-              prefixIcon: Icons.person,
-              searchHint: 'Escribe nombre, DNI o email...',
-              enabled: !_isSaving,
-              items: _personalList
-                  .map(
-                    (PersonalEntity p) =>
-                        AppSearchableDropdownItem<PersonalEntity>(
-                      value: p,
-                      label: '${p.nombreCompleto} - ${p.dni}',
-                      icon: Icons.person,
-                      iconColor: AppColors.primary,
-                    ),
-                  )
-                  .toList(),
-              onChanged: (PersonalEntity? value) {
-                setState(() {
-                  _personalSeleccionado = value;
-                });
-              },
-              displayStringForOption: (PersonalEntity personal) =>
-                  '${personal.nombreCompleto} - ${personal.dni}',
-            ),
-            const SizedBox(height: AppSizes.spacing),
-
-            // Fechas
-            _buildSectionTitle('Fechas del Reconocimiento'),
-            const SizedBox(height: 12),
-
-            // Fecha Reconocimiento
-            InkWell(
-              onTap: () => _selectFechaReconocimiento(context),
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'Fecha de Reconocimiento *',
-                  prefixIcon: const Icon(Icons.calendar_today),
-                  errorText: _fechaReconocimiento == null ? 'Seleccione una fecha' : null,
-                ),
-                child: Text(
-                  _fechaReconocimiento == null
-                      ? 'Seleccionar fecha'
-                      : _formatDate(_fechaReconocimiento!),
-                  style: TextStyle(
-                    color: _fechaReconocimiento == null
-                        ? AppColors.textSecondaryLight
-                        : AppColors.textPrimaryLight,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSizes.spacing),
-
-            // Fecha Caducidad
-            InkWell(
-              onTap: () => _selectFechaCaducidad(context),
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'Fecha de Caducidad *',
-                  prefixIcon: const Icon(Icons.event_busy),
-                  errorText: _fechaCaducidad == null ? 'Seleccione una fecha' : null,
-                ),
-                child: Text(
-                  _fechaCaducidad == null
-                      ? 'Seleccionar fecha'
-                      : _formatDate(_fechaCaducidad!),
-                  style: TextStyle(
-                    color: _fechaCaducidad == null
-                        ? AppColors.textSecondaryLight
-                        : AppColors.textPrimaryLight,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSizes.spacing),
-
-            // Aptitud
-            DropdownButtonFormField<String>(
-              initialValue: _aptitud,
-              decoration: const InputDecoration(
-                labelText: 'Aptitud Médica *',
-                prefixIcon: Icon(Icons.health_and_safety),
-              ),
-              items: const <DropdownMenuItem<String>>[
-                DropdownMenuItem<String>(
-                  value: 'apto',
-                  child: Text('Apto'),
-                ),
-                DropdownMenuItem<String>(
-                  value: 'apto_con_restricciones',
-                  child: Text('Apto con restricciones'),
-                ),
-                DropdownMenuItem<String>(
-                  value: 'no_apto',
-                  child: Text('No apto'),
-                ),
-              ],
-              onChanged: (String? value) {
-                if (value != null) {
-                  setState(() {
-                    _aptitud = value;
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: AppSizes.spacing),
-
-            // Centro Médico
-            TextFormField(
-              controller: _centroMedicoController,
-              decoration: const InputDecoration(
-                labelText: 'Centro Médico',
-                hintText: 'Nombre del centro médico',
-                prefixIcon: Icon(Icons.local_hospital),
-              ),
-              textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: AppSizes.spacing),
-
-            // Nombre Médico
-            TextFormField(
-              controller: _nombreMedicoController,
-              decoration: const InputDecoration(
-                labelText: 'Médico',
-                hintText: 'Nombre del médico',
-                prefixIcon: Icon(Icons.medical_information),
-              ),
-              textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: AppSizes.spacing),
-
-            // Observaciones
-            TextFormField(
-              controller: _observacionesController,
-              decoration: const InputDecoration(
-                labelText: 'Observaciones',
-                hintText: 'Observaciones del reconocimiento',
-                prefixIcon: Icon(Icons.notes),
-              ),
-              maxLines: 3,
-              textInputAction: TextInputAction.newline,
-            ),
-            const SizedBox(height: AppSizes.spacing),
-
-            // Restricciones (solo si es apto con restricciones)
-            if (_aptitud == AptitudMedica.aptoConRestricciones) ...<Widget>[
-              TextFormField(
-                controller: _restriccionesController,
-                decoration: const InputDecoration(
-                  labelText: 'Restricciones *',
-                  hintText: 'Describa las restricciones médicas',
-                  prefixIcon: Icon(Icons.warning_amber),
-                ),
-                maxLines: 3,
-                textInputAction: TextInputAction.newline,
-                validator: (String? value) {
-                  if (_aptitud == AptitudMedica.aptoConRestricciones &&
-                      (value == null || value.isEmpty)) {
-                    return 'Las restricciones son requeridas para "Apto con restricciones"';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: AppSizes.spacing),
-            ],
-
-            // Documento
-            _buildSectionTitle('Documentación'),
-            const SizedBox(height: 12),
-            _buildDocumentoSelector(),
-            const SizedBox(height: AppSizes.spacing),
-
-            // Estado Activo
-            SwitchListTile(
-              title: const Text('Estado'),
-              subtitle: Text(_activo ? 'Activo' : 'Inactivo'),
-              value: _activo,
-              onChanged: (bool value) {
-                setState(() {
-                  _activo = value;
-                });
-              },
-              activeTrackColor: AppColors.success,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _selectFechaReconocimiento(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _fechaReconocimiento ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
+  void _onFechaReconocimientoChanged(DateTime? picked) {
     if (picked != null && picked != _fechaReconocimiento) {
       setState(() {
         _fechaReconocimiento = picked;
@@ -488,60 +180,86 @@ class _HistorialMedicoFormDialogState extends State<HistorialMedicoFormDialog> {
     }
   }
 
-  Future<void> _selectFechaCaducidad(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _fechaCaducidad ?? DateTime.now().add(const Duration(days: 365)),
-      firstDate: _fechaReconocimiento ?? DateTime.now(),
-      lastDate: DateTime(2100),
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
+  void _onFechaCaducidadChanged(DateTime? picked) {
     if (picked != null && picked != _fechaCaducidad) {
-      setState(() {
-        _fechaCaducidad = picked;
-      });
+      setState(() => _fechaCaducidad = picked);
     }
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<HistorialMedicoBloc, HistorialMedicoState>(
+      listener: _onBlocState,
+      child: GestionFormDialog(
+        title: _isEditing ? 'Editar reconocimiento médico' : 'Nuevo reconocimiento médico',
+        subtitle: _isEditing && _personalSeleccionado != null ? _personalSeleccionado!.nombreCompleto : null,
+        icon: Icons.health_and_safety_outlined,
+        size: GestionFormSize.large,
+        formKey: _formKey,
+        isEditing: _isEditing,
+        isSaving: _isSaving,
+        onSave: _onSave,
+        children: _isLoading
+            ? const <Widget>[AppLoadingIndicator(message: 'Cargando datos...', size: 100)]
+            : <Widget>[
+                HistorialMedicoFormBody(
+                  personalList: _personalList,
+                  personal: _personalSeleccionado,
+                  fechaReconocimiento: _fechaReconocimiento,
+                  fechaCaducidad: _fechaCaducidad,
+                  aptitud: _aptitud,
+                  activo: _activo,
+                  centroMedico: _centroMedicoController,
+                  nombreMedico: _nombreMedicoController,
+                  observaciones: _observacionesController,
+                  restricciones: _restriccionesController,
+                  documento: HistorialDocumentoSelector(
+                    nombreArchivo: _archivoSeleccionado?.name ?? _nombreArchivoExistente,
+                    tamanoBytes: _archivoSeleccionado?.size,
+                    puedeVer: _nombreArchivoExistente != null && _nombreArchivoExistente!.isNotEmpty,
+                    enabled: !_isSaving,
+                    onSeleccionar: _seleccionarArchivo,
+                    onEliminar: _eliminarArchivo,
+                    onVer: _verDocumento,
+                  ),
+                  onPersonalChanged: (String? id) => setState(
+                    () => _personalSeleccionado = PersonalFormOptions.buscar(_personalList, id),
+                  ),
+                  onFechaReconocimientoChanged: _onFechaReconocimientoChanged,
+                  onFechaCaducidadChanged: _onFechaCaducidadChanged,
+                  onAptitudChanged: (String v) => setState(() => _aptitud = v),
+                  onActivoChanged: (bool v) => setState(() => _activo = v),
+                ),
+              ],
+      ),
+    );
+  }
+
   Future<void> _onSave() async {
-    if (!_formKey.currentState!.validate()) {
+    if (_isLoading || !_formKey.currentState!.validate()) {
       return;
     }
 
     // Validar personal seleccionado
     if (_personalSeleccionado == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes seleccionar un personal'),
-          backgroundColor: AppColors.error,
-        ),
+      await CrudOperationHandler.handleWarning(
+        context: context,
+        title: 'Personal requerido',
+        message: 'Debes seleccionar un personal',
       );
       return;
     }
 
     if (_fechaReconocimiento == null || _fechaCaducidad == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor seleccione las fechas requeridas'),
-          backgroundColor: AppColors.error,
-        ),
+      await CrudOperationHandler.handleWarning(
+        context: context,
+        title: 'Fechas requeridas',
+        message: 'Por favor seleccione las fechas requeridas',
       );
       return;
     }
 
-    setState(() {
-      _isSaving = true;
-    });
+    setState(() => _isSaving = true);
 
     // Mostrar loading overlay
     unawaited(
@@ -566,9 +284,7 @@ class _HistorialMedicoFormDialogState extends State<HistorialMedicoFormDialog> {
         // Error al subir archivo, cancelar guardado
         if (mounted) {
           Navigator.of(context).pop(); // Cerrar loading
-          setState(() {
-            _isSaving = false;
-          });
+          setState(() => _isSaving = false);
         }
         return;
       }
@@ -584,18 +300,10 @@ class _HistorialMedicoFormDialogState extends State<HistorialMedicoFormDialog> {
       fechaReconocimiento: _fechaReconocimiento!,
       fechaCaducidad: _fechaCaducidad!,
       aptitud: _aptitud,
-      observaciones: _observacionesController.text.trim().isEmpty
-          ? null
-          : _observacionesController.text.trim(),
-      restricciones: _restriccionesController.text.trim().isEmpty
-          ? null
-          : _restriccionesController.text.trim(),
-      centroMedico: _centroMedicoController.text.trim().isEmpty
-          ? null
-          : _centroMedicoController.text.trim(),
-      nombreMedico: _nombreMedicoController.text.trim().isEmpty
-          ? null
-          : _nombreMedicoController.text.trim(),
+      observaciones: _texto(_observacionesController),
+      restricciones: _texto(_restriccionesController),
+      centroMedico: _texto(_centroMedicoController),
+      nombreMedico: _texto(_nombreMedicoController),
       documentoUrl: documentoUrl,
       activo: _activo,
       createdAt: _isEditing ? widget.item!.createdAt : DateTime.now(),
@@ -612,6 +320,9 @@ class _HistorialMedicoFormDialogState extends State<HistorialMedicoFormDialog> {
     }
   }
 
+  /// Texto recortado o null si está vacío
+  static String? _texto(TextEditingController c) => c.text.trim().isEmpty ? null : c.text.trim();
+
   /// Sube el archivo seleccionado a Supabase Storage
   Future<String?> _subirArchivoStorage() async {
     if (_archivoSeleccionado == null) {
@@ -619,198 +330,21 @@ class _HistorialMedicoFormDialogState extends State<HistorialMedicoFormDialog> {
     }
 
     try {
-      final PlatformFile file = _archivoSeleccionado!;
-      final String personalId = _personalSeleccionado!.id;
-      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final String extension = file.name.split('.').last;
-
-      // Ruta del archivo en Storage: historiales_medicos/{personalId}/{timestamp}.{extension}
-      final String filePath = 'historiales_medicos/$personalId/$timestamp.$extension';
-
-      debugPrint('📤 Subiendo archivo a Supabase Storage: $filePath');
-
-      // Subir archivo a Supabase Storage bucket 'documentos'
-      final String uploadedPath = await Supabase.instance.client.storage
-          .from('documentos')
-          .uploadBinary(
-            filePath,
-            file.bytes!,
-            fileOptions: FileOptions(
-              contentType: _getMimeType(extension),
-            ),
-          );
-
-      debugPrint('✅ Archivo subido exitosamente: $uploadedPath');
-
-      // Obtener URL pública del archivo
-      final String publicUrl = Supabase.instance.client.storage
-          .from('documentos')
-          .getPublicUrl(filePath);
-
-      debugPrint('🔗 URL pública: $publicUrl');
-
-      return publicUrl;
+      return await HistorialMedicoFormHelpers.subir(_archivoSeleccionado!, _personalSeleccionado!.id);
     } catch (e) {
       debugPrint('❌ Error al subir archivo a Storage: $e');
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Error al subir el archivo: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 5),
-          ),
+        await showResultDialog(
+          context: context,
+          title: 'Error al subir el archivo',
+          message: 'No se pudo subir el documento. El reconocimiento no se ha guardado.',
+          details: e.toString(),
+          type: ResultType.error,
         );
       }
 
       return null;
     }
-  }
-
-  /// Obtiene el MIME type según la extensión del archivo
-  String _getMimeType(String extension) {
-    switch (extension.toLowerCase()) {
-      case 'pdf':
-        return 'application/pdf';
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'png':
-        return 'image/png';
-      case 'doc':
-        return 'application/msword';
-      case 'docx':
-        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      default:
-        return 'application/octet-stream';
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimaryLight,
-      ),
-    );
-  }
-
-  /// Widget para seleccionar documento adjunto
-  Widget _buildDocumentoSelector() {
-    final bool tieneArchivo = _archivoSeleccionado != null || _nombreArchivoExistente != null;
-    final String nombreArchivo = _archivoSeleccionado?.name ?? _nombreArchivoExistente ?? '';
-    final int? tamanoBytes = _archivoSeleccionado?.size;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      decoration: BoxDecoration(
-        color: tieneArchivo ? AppColors.primary.withValues(alpha: 0.05) : AppColors.gray100,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(
-          color: tieneArchivo ? AppColors.primary : AppColors.gray300,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Icon(
-                tieneArchivo ? Icons.insert_drive_file : Icons.attachment,
-                color: tieneArchivo ? AppColors.primary : AppColors.textSecondaryLight,
-                size: 20,
-              ),
-              const SizedBox(width: AppSizes.spacingSmall),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      tieneArchivo ? nombreArchivo : 'Sin documento adjunto',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: tieneArchivo ? FontWeight.w500 : FontWeight.w400,
-                        color: tieneArchivo ? AppColors.primary : AppColors.textSecondaryLight,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (tamanoBytes != null) ...<Widget>[
-                      const SizedBox(height: 2),
-                      Text(
-                        '${(tamanoBytes / 1024).toStringAsFixed(2)} KB',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppColors.textSecondaryLight,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              if (tieneArchivo) ...<Widget>[
-                // Botón ver documento (solo si es archivo existente con URL)
-                if (_nombreArchivoExistente != null && _nombreArchivoExistente!.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.visibility, size: 18),
-                    color: AppColors.info,
-                    onPressed: _verDocumento,
-                    tooltip: 'Ver documento',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 32,
-                      minHeight: 32,
-                    ),
-                  ),
-                // Botón eliminar archivo
-                IconButton(
-                  icon: const Icon(Icons.close, size: 18),
-                  color: AppColors.error,
-                  onPressed: _eliminarArchivo,
-                  tooltip: 'Eliminar archivo',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: AppSizes.spacingSmall),
-          OutlinedButton.icon(
-            onPressed: _isSaving ? null : _seleccionarArchivo,
-            icon: const Icon(Icons.upload_file, size: 18),
-            label: Text(
-              tieneArchivo ? 'Cambiar archivo' : 'Seleccionar archivo',
-              style: GoogleFonts.inter(fontSize: 13),
-            ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              side: const BorderSide(color: AppColors.primary),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.paddingMedium,
-                vertical: AppSizes.spacingSmall,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSizes.spacingXs),
-          Text(
-            'Formatos: JPG, PNG, PDF, DOC, DOCX • Máximo: 10 MB',
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              color: AppColors.textSecondaryLight,
-              fontStyle: FontStyle.italic,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
   }
 }

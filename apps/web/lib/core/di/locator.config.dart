@@ -9,11 +9,42 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'package:ambutrack_core/ambutrack_core.dart' as _i40;
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart'
+    as _i1033;
 import 'package:ambutrack_web/core/auth/services/role_service.dart' as _i750;
 import 'package:ambutrack_web/core/di/locator.dart' as _i962;
 import 'package:ambutrack_web/core/network/network_info.dart' as _i321;
 import 'package:ambutrack_web/core/services/auth_service.dart' as _i496;
+import 'package:ambutrack_web/core/services/geocoding_service.dart' as _i1071;
+import 'package:ambutrack_web/core/services/pdf_ruta_service.dart' as _i30;
+import 'package:ambutrack_web/core/services/routing_service.dart' as _i1033;
+import 'package:ambutrack_web/core/services/ruta_service.dart' as _i686;
+import 'package:ambutrack_web/features/administracion/auditoria/data/repositories/audit_log_repository_impl.dart'
+    as _i955;
+import 'package:ambutrack_web/features/administracion/auditoria/domain/repositories/audit_log_repository.dart'
+    as _i157;
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/bloc/auditoria_bloc.dart'
+    as _i511;
+import 'package:ambutrack_web/features/administracion/multicentro/data/repositories/empresas_tenant_repository_impl.dart'
+    as _i108;
+import 'package:ambutrack_web/features/administracion/multicentro/domain/repositories/empresas_tenant_repository.dart'
+    as _i611;
+import 'package:ambutrack_web/features/administracion/multicentro/presentation/bloc/multicentro_bloc.dart'
+    as _i411;
+import 'package:ambutrack_web/features/administracion/permisos/presentation/bloc/permisos_acceso_bloc.dart'
+    as _i928;
+import 'package:ambutrack_web/features/agenda_pendientes/data/repositories/agenda_pendiente_repository_impl.dart'
+    as _i741;
+import 'package:ambutrack_web/features/agenda_pendientes/domain/repositories/agenda_pendiente_repository.dart'
+    as _i998;
+import 'package:ambutrack_web/features/agenda_pendientes/presentation/bloc/agenda_pendiente_bloc.dart'
+    as _i158;
+import 'package:ambutrack_web/features/alertas_caducidad/data/repositories/alerta_caducidad_repository_impl.dart'
+    as _i910;
+import 'package:ambutrack_web/features/alertas_caducidad/domain/repositories/alerta_caducidad_repository.dart'
+    as _i410;
+import 'package:ambutrack_web/features/alertas_caducidad/presentation/bloc/alertas_caducidad_bloc.dart'
+    as _i661;
 import 'package:ambutrack_web/features/almacen/data/repositories/almacen_repository_impl.dart'
     as _i704;
 import 'package:ambutrack_web/features/almacen/data/repositories/mantenimiento_electromedicina_repository_impl.dart'
@@ -60,6 +91,10 @@ import 'package:ambutrack_web/features/auth/domain/repositories/auth_repository.
     as _i707;
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart'
     as _i649;
+import 'package:ambutrack_web/features/busqueda_global/data/repositories/busqueda_global_repository_impl.dart'
+    as _i177;
+import 'package:ambutrack_web/features/busqueda_global/domain/repositories/busqueda_global_repository.dart'
+    as _i885;
 import 'package:ambutrack_web/features/contratos/data/repositories/contrato_repository_impl.dart'
     as _i552;
 import 'package:ambutrack_web/features/contratos/domain/repositories/contrato_repository.dart'
@@ -104,8 +139,28 @@ import 'package:ambutrack_web/features/cuadrante/excepciones_festivos/domain/rep
     as _i172;
 import 'package:ambutrack_web/features/cuadrante/excepciones_festivos/presentation/bloc/excepciones_festivos_bloc.dart'
     as _i87;
+import 'package:ambutrack_web/features/geolocalizacion/data/repositories/geolocalizacion_repository_impl.dart'
+    as _i138;
+import 'package:ambutrack_web/features/geolocalizacion/domain/repositories/geolocalizacion_repository.dart'
+    as _i804;
 import 'package:ambutrack_web/features/home/presentation/bloc/home_bloc.dart'
     as _i848;
+import 'package:ambutrack_web/features/incidencias/data/repositories/incidencia_repository_impl.dart'
+    as _i1010;
+import 'package:ambutrack_web/features/incidencias/domain/repositories/incidencia_repository.dart'
+    as _i27;
+import 'package:ambutrack_web/features/incidencias/presentation/bloc/incidencia/incidencia_bloc.dart'
+    as _i444;
+import 'package:ambutrack_web/features/informes/presentation/bloc/costes_informe_bloc.dart'
+    as _i61;
+import 'package:ambutrack_web/features/informes/presentation/bloc/flota_informe_bloc.dart'
+    as _i1014;
+import 'package:ambutrack_web/features/informes/presentation/bloc/indicadores_calidad_bloc.dart'
+    as _i190;
+import 'package:ambutrack_web/features/informes/presentation/bloc/personal_informe_bloc.dart'
+    as _i7;
+import 'package:ambutrack_web/features/informes/presentation/bloc/servicios_realizados_bloc.dart'
+    as _i311;
 import 'package:ambutrack_web/features/itv_revisiones/data/repositories/itv_revision_repository_impl.dart'
     as _i662;
 import 'package:ambutrack_web/features/itv_revisiones/domain/repositories/itv_revision_repository.dart'
@@ -122,16 +177,40 @@ import 'package:ambutrack_web/features/menu/data/repositories/menu_repository_im
     as _i216;
 import 'package:ambutrack_web/features/menu/domain/repositories/menu_repository.dart'
     as _i388;
+import 'package:ambutrack_web/features/notificaciones/data/repositories/notificaciones_repository_impl.dart'
+    as _i12;
+import 'package:ambutrack_web/features/notificaciones/domain/repositories/notificaciones_repository.dart'
+    as _i1037;
+import 'package:ambutrack_web/features/notificaciones/presentation/bloc/notificacion_bloc.dart'
+    as _i938;
+import 'package:ambutrack_web/features/perfil/data/repositories/perfil_repository_impl.dart'
+    as _i261;
+import 'package:ambutrack_web/features/perfil/domain/repositories/perfil_repository.dart'
+    as _i878;
+import 'package:ambutrack_web/features/perfil/presentation/bloc/perfil_bloc.dart'
+    as _i153;
+import 'package:ambutrack_web/features/personal/data/repositories/certificacion_repository_impl.dart'
+    as _i82;
+import 'package:ambutrack_web/features/personal/data/repositories/curso_repository_impl.dart'
+    as _i27;
 import 'package:ambutrack_web/features/personal/data/repositories/equipamiento_personal_repository_impl.dart'
     as _i517;
+import 'package:ambutrack_web/features/personal/data/repositories/formacion_personal_repository_impl.dart'
+    as _i200;
 import 'package:ambutrack_web/features/personal/data/repositories/historial_medico_repository_impl.dart'
     as _i711;
 import 'package:ambutrack_web/features/personal/data/repositories/personal_repository_impl.dart'
     as _i901;
 import 'package:ambutrack_web/features/personal/data/repositories/vestuario_repository_impl.dart'
     as _i321;
+import 'package:ambutrack_web/features/personal/domain/repositories/certificacion_repository.dart'
+    as _i1002;
+import 'package:ambutrack_web/features/personal/domain/repositories/curso_repository.dart'
+    as _i534;
 import 'package:ambutrack_web/features/personal/domain/repositories/equipamiento_personal_repository.dart'
     as _i153;
+import 'package:ambutrack_web/features/personal/domain/repositories/formacion_personal_repository.dart'
+    as _i846;
 import 'package:ambutrack_web/features/personal/domain/repositories/historial_medico_repository.dart'
     as _i645;
 import 'package:ambutrack_web/features/personal/domain/repositories/personal_repository.dart'
@@ -144,14 +223,30 @@ import 'package:ambutrack_web/features/personal/horarios/domain/repositories/reg
     as _i960;
 import 'package:ambutrack_web/features/personal/horarios/presentation/bloc/registro_horario_bloc.dart'
     as _i504;
+import 'package:ambutrack_web/features/personal/presentation/bloc/certificacion_catalogo/certificacion_catalogo_bloc.dart'
+    as _i833;
+import 'package:ambutrack_web/features/personal/presentation/bloc/curso_catalogo/curso_catalogo_bloc.dart'
+    as _i80;
 import 'package:ambutrack_web/features/personal/presentation/bloc/equipamiento_personal_bloc.dart'
     as _i391;
+import 'package:ambutrack_web/features/personal/presentation/bloc/formacion/formacion_bloc.dart'
+    as _i335;
 import 'package:ambutrack_web/features/personal/presentation/bloc/historial_medico_bloc.dart'
     as _i762;
 import 'package:ambutrack_web/features/personal/presentation/bloc/personal_bloc.dart'
     as _i845;
 import 'package:ambutrack_web/features/personal/presentation/bloc/vestuario_bloc.dart'
     as _i716;
+import 'package:ambutrack_web/features/servicios/operativa/data/repositories/generacion_traslados_repository_impl.dart'
+    as _i145;
+import 'package:ambutrack_web/features/servicios/operativa/domain/repositories/generacion_traslados_repository.dart'
+    as _i75;
+import 'package:ambutrack_web/features/servicios/operativa/presentation/bloc/generacion_traslados_bloc.dart'
+    as _i631;
+import 'package:ambutrack_web/features/servicios/operativa/presentation/bloc/programacion_recurrente_bloc.dart'
+    as _i263;
+import 'package:ambutrack_web/features/servicios/operativa/presentation/bloc/traslados_consulta_bloc.dart'
+    as _i5;
 import 'package:ambutrack_web/features/servicios/pacientes/data/repositories/paciente_repository_impl.dart'
     as _i1045;
 import 'package:ambutrack_web/features/servicios/pacientes/domain/repositories/paciente_repository.dart'
@@ -220,6 +315,12 @@ import 'package:ambutrack_web/features/tablas/motivos_traslado/domain/repositori
     as _i36;
 import 'package:ambutrack_web/features/tablas/motivos_traslado/presentation/bloc/motivo_traslado_bloc.dart'
     as _i425;
+import 'package:ambutrack_web/features/tablas/plantillas_equipamiento/data/repositories/plantillas_equipamiento_repository_impl.dart'
+    as _i944;
+import 'package:ambutrack_web/features/tablas/plantillas_equipamiento/domain/repositories/plantillas_equipamiento_repository.dart'
+    as _i339;
+import 'package:ambutrack_web/features/tablas/plantillas_equipamiento/presentation/bloc/plantillas_equipamiento_bloc.dart'
+    as _i490;
 import 'package:ambutrack_web/features/tablas/provincias/data/repositories/provincia_repository_impl.dart'
     as _i634;
 import 'package:ambutrack_web/features/tablas/provincias/domain/repositories/provincia_repository.dart'
@@ -244,6 +345,34 @@ import 'package:ambutrack_web/features/tablas/tipos_vehiculo/domain/repositories
     as _i308;
 import 'package:ambutrack_web/features/tablas/tipos_vehiculo/presentation/bloc/tipo_vehiculo_bloc.dart'
     as _i402;
+import 'package:ambutrack_web/features/taller/data/repositories/orden_reparacion_repository_impl.dart'
+    as _i120;
+import 'package:ambutrack_web/features/taller/data/repositories/proveedor_taller_repository_impl.dart'
+    as _i344;
+import 'package:ambutrack_web/features/taller/data/repositories/taller_repository_impl.dart'
+    as _i806;
+import 'package:ambutrack_web/features/taller/domain/repositories/orden_reparacion_repository.dart'
+    as _i16;
+import 'package:ambutrack_web/features/taller/domain/repositories/proveedor_taller_repository.dart'
+    as _i596;
+import 'package:ambutrack_web/features/taller/domain/repositories/taller_repository.dart'
+    as _i384;
+import 'package:ambutrack_web/features/taller/presentation/bloc/alertas_mantenimiento_bloc.dart'
+    as _i234;
+import 'package:ambutrack_web/features/taller/presentation/bloc/control_repuestos_bloc.dart'
+    as _i194;
+import 'package:ambutrack_web/features/taller/presentation/bloc/historial_reparaciones_bloc.dart'
+    as _i555;
+import 'package:ambutrack_web/features/taller/presentation/bloc/orden_reparacion_bloc.dart'
+    as _i540;
+import 'package:ambutrack_web/features/taller/presentation/bloc/proveedor_taller_bloc.dart'
+    as _i997;
+import 'package:ambutrack_web/features/taller/presentation/bloc/repuesto_orden_bloc.dart'
+    as _i561;
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart'
+    as _i205;
+import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/rutas_bloc.dart'
+    as _i281;
 import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/trafico_diario_bloc.dart'
     as _i136;
 import 'package:ambutrack_web/features/turnos/data/repositories/intercambio_repository_impl.dart'
@@ -278,16 +407,52 @@ import 'package:ambutrack_web/features/turnos/presentation/bloc/plantillas_turno
     as _i876;
 import 'package:ambutrack_web/features/turnos/presentation/bloc/turnos_bloc.dart'
     as _i467;
+import 'package:ambutrack_web/features/usuarios/data/repositories/usuarios_repository_impl.dart'
+    as _i894;
+import 'package:ambutrack_web/features/usuarios/domain/repositories/usuarios_repository.dart'
+    as _i66;
+import 'package:ambutrack_web/features/usuarios/presentation/bloc/usuarios_bloc.dart'
+    as _i1000;
 import 'package:ambutrack_web/features/vacaciones/data/repositories/vacaciones_repository_impl.dart'
     as _i108;
 import 'package:ambutrack_web/features/vacaciones/domain/repositories/vacaciones_repository.dart'
     as _i769;
 import 'package:ambutrack_web/features/vacaciones/presentation/bloc/vacaciones_bloc.dart'
     as _i101;
+import 'package:ambutrack_web/features/vehiculos/data/repositories/consumo_combustible_repository_impl.dart'
+    as _i961;
+import 'package:ambutrack_web/features/vehiculos/data/repositories/incidencia_vehiculo_repository_impl.dart'
+    as _i308;
 import 'package:ambutrack_web/features/vehiculos/data/repositories/vehiculo_repository_impl.dart'
     as _i814;
+import 'package:ambutrack_web/features/vehiculos/documentacion/data/repositories/documentacion_vehiculo_repository_impl.dart'
+    as _i616;
+import 'package:ambutrack_web/features/vehiculos/documentacion/data/repositories/tipo_documento_repository_impl.dart'
+    as _i153;
+import 'package:ambutrack_web/features/vehiculos/documentacion/domain/repositories/documentacion_vehiculo_repository.dart'
+    as _i535;
+import 'package:ambutrack_web/features/vehiculos/documentacion/domain/repositories/tipo_documento_repository.dart'
+    as _i453;
+import 'package:ambutrack_web/features/vehiculos/documentacion/presentation/bloc/documentacion_vehiculos_bloc.dart'
+    as _i316;
+import 'package:ambutrack_web/features/vehiculos/domain/repositories/consumo_combustible_repository.dart'
+    as _i764;
+import 'package:ambutrack_web/features/vehiculos/domain/repositories/incidencia_vehiculo_repository.dart'
+    as _i818;
 import 'package:ambutrack_web/features/vehiculos/domain/repositories/vehiculo_repository.dart'
     as _i145;
+import 'package:ambutrack_web/features/vehiculos/equipamiento/data/repositories/equipamiento_vehiculo_repository_impl.dart'
+    as _i426;
+import 'package:ambutrack_web/features/vehiculos/equipamiento/domain/repositories/equipamiento_vehiculo_repository.dart'
+    as _i258;
+import 'package:ambutrack_web/features/vehiculos/equipamiento/presentation/bloc/equipamiento_vehiculo_bloc.dart'
+    as _i302;
+import 'package:ambutrack_web/features/vehiculos/presentation/bloc/consumo_combustible/consumo_combustible_bloc.dart'
+    as _i256;
+import 'package:ambutrack_web/features/vehiculos/presentation/bloc/incidencia_vehiculo/incidencia_vehiculo_bloc.dart'
+    as _i1050;
+import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_bloc.dart'
+    as _i1015;
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart'
     as _i1042;
 import 'package:get_it/get_it.dart' as _i174;
@@ -306,25 +471,42 @@ extension GetItInjectableX on _i174.GetIt {
     final registerModule = _$RegisterModule();
     final networkModule = _$NetworkModule();
     gh.lazySingleton<_i454.SupabaseClient>(() => registerModule.supabaseClient);
-    gh.lazySingleton<_i40.ContratoDataSource>(
+    gh.lazySingleton<_i1033.ContratoDataSource>(
       () => registerModule.contratoDataSource,
     );
-    gh.lazySingleton<_i40.ProvinciaDataSource>(
+    gh.lazySingleton<_i1033.ProvinciaDataSource>(
       () => registerModule.provinciaDataSource,
     );
-    gh.lazySingleton<_i40.ComunidadAutonomaDataSource>(
+    gh.lazySingleton<_i1033.ComunidadAutonomaDataSource>(
       () => registerModule.comunidadAutonomaDataSource,
     );
-    gh.lazySingleton<_i40.LocalidadDataSource>(
+    gh.lazySingleton<_i1033.LocalidadDataSource>(
       () => registerModule.localidadDataSource,
+    );
+    gh.lazySingleton<_i1033.UsuarioDataSource>(
+      () => registerModule.usuarioDataSource,
+    );
+    gh.lazySingleton<_i1033.TrasladoDataSource>(
+      () => registerModule.trasladoDataSource,
+    );
+    gh.lazySingleton<_i1033.TPersonalDataSource>(
+      () => registerModule.tpersonalDataSource,
+    );
+    gh.lazySingleton<_i1033.VehiculoDataSource>(
+      () => registerModule.vehiculoDataSource,
     );
     gh.lazySingleton<_i973.InternetConnectionChecker>(
       () => networkModule.connectionChecker,
     );
+    gh.lazySingleton<_i1071.GeocodingService>(() => _i1071.GeocodingService());
     gh.lazySingleton<_i496.AuthService>(() => _i496.AuthService());
+    gh.lazySingleton<_i686.RutaService>(() => _i686.RutaService());
+    gh.lazySingleton<_i1033.RoutingService>(() => _i1033.RoutingService());
+    gh.lazySingleton<_i30.PdfRutaService>(() => _i30.PdfRutaService());
     gh.lazySingleton<_i961.PlantillaTurnoRepository>(
       () => _i60.PlantillaTurnoRepositoryImpl(),
     );
+    gh.lazySingleton<_i534.CursoRepository>(() => _i27.CursoRepositoryImpl());
     gh.lazySingleton<_i769.VacacionesRepository>(
       () => _i108.VacacionesRepositoryImpl(),
     );
@@ -334,14 +516,32 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i98.TipoPacienteRepository>(
       () => _i567.TipoPacienteRepositoryImpl(),
     );
+    gh.lazySingleton<_i818.IncidenciaVehiculoRepository>(
+      () => _i308.IncidenciaVehiculoRepositoryImpl(),
+    );
+    gh.lazySingleton<_i764.ConsumoCombustibleRepository>(
+      () => _i961.ConsumoCombustibleRepositoryImpl(),
+    );
+    gh.lazySingleton<_i258.EquipamientoVehiculoRepository>(
+      () => _i426.EquipamientoVehiculoRepositoryImpl(),
+    );
+    gh.lazySingleton<_i804.GeolocalizacionRepository>(
+      () => _i138.GeolocalizacionRepositoryImpl(),
+    );
     gh.lazySingleton<_i681.ServicioRecurrenteRepository>(
       () => _i820.ServicioRecurrenteRepositoryImpl(),
+    );
+    gh.lazySingleton<_i16.OrdenReparacionRepository>(
+      () => _i120.OrdenReparacionRepositoryImpl(),
     );
     gh.lazySingleton<_i321.StockVestuarioRepository>(
       () => _i541.StockVestuarioRepositoryImpl(),
     );
     gh.lazySingleton<_i571.VestuarioRepository>(
       () => _i321.VestuarioRepositoryImpl(),
+    );
+    gh.lazySingleton<_i157.AuditLogRepository>(
+      () => _i955.AuditLogRepositoryImpl(),
     );
     gh.lazySingleton<_i388.MenuRepository>(() => _i216.MenuRepositoryImpl());
     gh.lazySingleton<_i172.ExcepcionFestivoRepository>(
@@ -357,14 +557,26 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i223.CuadranteAsignacionRepository>(
       () => _i396.CuadranteAsignacionRepositoryImpl(),
     );
+    gh.lazySingleton<_i453.TipoDocumentoRepository>(
+      () => _i153.TipoDocumentoRepositoryImpl(),
+    );
     gh.lazySingleton<_i829.AusenciaRepository>(
       () => _i847.AusenciaRepositoryImpl(),
     );
     gh.lazySingleton<_i440.CuadranteRepository>(
       () => _i1029.CuadranteRepositoryImpl(gh<_i454.SupabaseClient>()),
     );
+    gh.lazySingleton<_i75.GeneracionTrasladosRepository>(
+      () => _i145.GeneracionTrasladosRepositoryImpl(),
+    );
+    gh.lazySingleton<_i998.AgendaPendienteRepository>(
+      () => _i741.AgendaPendienteRepositoryImpl(),
+    );
     gh.lazySingleton<_i707.AuthRepository>(
       () => _i822.AuthRepositoryImpl(gh<_i496.AuthService>()),
+    );
+    gh.lazySingleton<_i535.DocumentacionVehiculoRepository>(
+      () => _i616.DocumentacionVehiculoRepositoryImpl(),
     );
     gh.lazySingleton<_i145.VehiculoRepository>(
       () => _i814.VehiculoRepositoryImpl(),
@@ -381,6 +593,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i940.CentroHospitalarioRepository>(
       () => _i719.CentroHospitalarioRepositoryImpl(),
     );
+    gh.lazySingleton<_i1002.CertificacionRepository>(
+      () => _i82.CertificacionRepositoryImpl(),
+    );
+    gh.lazySingleton<_i27.IncidenciaRepository>(
+      () => _i1010.IncidenciaRepositoryImpl(),
+    );
     gh.lazySingleton<_i836.ItvRevisionRepository>(
       () => _i662.ItvRevisionRepositoryImpl(),
     );
@@ -389,6 +607,11 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i983.AlmacenRepository>(
       () => _i704.AlmacenRepositoryImpl(),
+    );
+    gh.factory<_i1050.IncidenciaVehiculoBloc>(
+      () => _i1050.IncidenciaVehiculoBloc(
+        gh<_i818.IncidenciaVehiculoRepository>(),
+      ),
     );
     gh.lazySingleton<_i971.ProductoRepository>(
       () => _i723.ProductoRepositoryImpl(),
@@ -402,8 +625,23 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i971.ProductoRepository>(),
       ),
     );
+    gh.lazySingleton<_i885.BusquedaGlobalRepository>(
+      () => _i177.BusquedaGlobalRepositoryImpl(),
+    );
     gh.lazySingleton<_i931.FacultativoRepository>(
       () => _i42.FacultativoRepositoryImpl(),
+    );
+    gh.lazySingleton<_i611.EmpresasTenantRepository>(
+      () => _i108.EmpresasTenantRepositoryImpl(),
+    );
+    gh.factory<_i631.GeneracionTrasladosBloc>(
+      () => _i631.GeneracionTrasladosBloc(
+        gh<_i75.GeneracionTrasladosRepository>(),
+        gh<_i681.ServicioRecurrenteRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i596.ProveedorTallerRepository>(
+      () => _i344.ProveedorTallerRepositoryImpl(),
     );
     gh.lazySingleton<_i393.TurnosRepository>(
       () => _i212.TurnosRepositoryImpl(),
@@ -411,17 +649,29 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1023.EspecialidadRepository>(
       () => _i53.EspecialidadRepositoryImpl(),
     );
+    gh.lazySingleton<_i339.PlantillasEquipamientoRepository>(
+      () => _i944.PlantillasEquipamientoRepositoryImpl(),
+    );
+    gh.lazySingleton<_i846.FormacionPersonalRepository>(
+      () => _i200.FormacionPersonalRepositoryImpl(),
+    );
     gh.lazySingleton<_i408.MovimientoStockRepository>(
       () => _i221.MovimientoStockRepositoryImpl(),
     );
     gh.lazySingleton<_i134.MantenimientoElectromedicinaRepository>(
       () => _i804.MantenimientoElectromedicinaRepositoryImpl(),
     );
+    gh.lazySingleton<_i410.AlertaCaducidadRepository>(
+      () => _i910.AlertaCaducidadRepositoryImpl(),
+    );
     gh.lazySingleton<_i36.MotivoTrasladoRepository>(
       () => _i1073.MotivoTrasladoRepositoryImpl(),
     );
     gh.lazySingleton<_i739.MotivoCancelacionRepository>(
       () => _i800.MotivoCancelacionRepositoryImpl(),
+    );
+    gh.lazySingleton<_i384.TallerRepository>(
+      () => _i806.TallerRepositoryImpl(),
     );
     gh.factory<_i402.TipoVehiculoBloc>(
       () => _i402.TipoVehiculoBloc(gh<_i308.TipoVehiculoRepository>()),
@@ -440,6 +690,15 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i660.TrasladoRepository>(
       () => _i901.TrasladoRepositoryImpl(),
+    );
+    gh.factory<_i256.ConsumoCombustibleBloc>(
+      () => _i256.ConsumoCombustibleBloc(
+        gh<_i764.ConsumoCombustibleRepository>(),
+        gh<_i145.VehiculoRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i66.UsuariosRepository>(
+      () => _i894.UsuariosRepositoryImpl(),
     );
     gh.lazySingleton<_i22.DisponibilidadService>(
       () => _i518.DisponibilidadServiceImpl(),
@@ -462,11 +721,14 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i645.HistorialMedicoRepository>(
       () => _i711.HistorialMedicoRepositoryImpl(),
     );
-    gh.lazySingleton<_i922.ContratoRepository>(
-      () => _i552.ContratoRepositoryImpl(gh<_i40.ContratoDataSource>()),
+    gh.lazySingleton<_i1037.NotificacionesRepository>(
+      () => _i12.NotificacionesRepositoryImpl(),
     );
     gh.lazySingleton<_i229.PacienteRepository>(
       () => _i1045.PacienteRepositoryImpl(),
+    );
+    gh.factory<_i205.TallerBloc>(
+      () => _i205.TallerBloc(gh<_i384.TallerRepository>()),
     );
     gh.factory<_i762.HistorialMedicoBloc>(
       () => _i762.HistorialMedicoBloc(gh<_i645.HistorialMedicoRepository>()),
@@ -488,6 +750,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i682.TipoAusenciaRepository>(
       () => _i30.TipoAusenciaRepositoryImpl(),
     );
+    gh.factory<_i335.FormacionBloc>(
+      () => _i335.FormacionBloc(gh<_i846.FormacionPersonalRepository>()),
+    );
     gh.factory<_i947.FacultativoBloc>(
       () => _i947.FacultativoBloc(gh<_i931.FacultativoRepository>()),
     );
@@ -499,17 +764,29 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i223.CuadranteAsignacionRepository>(),
       ),
     );
-    gh.factory<_i101.VacacionesBloc>(
-      () => _i101.VacacionesBloc(gh<_i769.VacacionesRepository>()),
-    );
     gh.factory<_i100.ProvinciaBloc>(
       () => _i100.ProvinciaBloc(gh<_i958.ProvinciaRepository>()),
+    );
+    gh.factory<_i263.ProgramacionRecurrenteBloc>(
+      () => _i263.ProgramacionRecurrenteBloc(
+        gh<_i681.ServicioRecurrenteRepository>(),
+        gh<_i660.TrasladoRepository>(),
+        gh<_i229.PacienteRepository>(),
+        gh<_i36.MotivoTrasladoRepository>(),
+      ),
     );
     gh.factory<_i319.TipoPacienteBloc>(
       () => _i319.TipoPacienteBloc(gh<_i98.TipoPacienteRepository>()),
     );
     gh.factory<_i454.TipoTrasladoBloc>(
       () => _i454.TipoTrasladoBloc(gh<_i529.TipoTrasladoRepository>()),
+    );
+    gh.factory<_i234.AlertasMantenimientoBloc>(
+      () => _i234.AlertasMantenimientoBloc(
+        gh<_i145.VehiculoRepository>(),
+        gh<_i16.OrdenReparacionRepository>(),
+        gh<_i23.MantenimientoRepository>(),
+      ),
     );
     gh.factory<_i467.TurnosBloc>(
       () => _i467.TurnosBloc(
@@ -523,6 +800,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i699.ItvRevisionBloc>(
       () => _i699.ItvRevisionBloc(gh<_i836.ItvRevisionRepository>()),
     );
+    gh.lazySingleton<_i922.ContratoRepository>(
+      () => _i552.ContratoRepositoryImpl(gh<_i1033.ContratoDataSource>()),
+    );
     gh.factory<_i91.PacientesBloc>(
       () => _i91.PacientesBloc(gh<_i229.PacienteRepository>()),
     );
@@ -530,8 +810,62 @@ extension GetItInjectableX on _i174.GetIt {
       () =>
           _i39.AsignacionesBloc(gh<_i917.AsignacionVehiculoTurnoRepository>()),
     );
+    gh.factory<_i311.ServiciosRealizadosBloc>(
+      () => _i311.ServiciosRealizadosBloc(gh<_i660.TrasladoRepository>()),
+    );
+    gh.factory<_i190.IndicadoresCalidadBloc>(
+      () => _i190.IndicadoresCalidadBloc(gh<_i660.TrasladoRepository>()),
+    );
     gh.lazySingleton<_i321.NetworkInfo>(
       () => _i321.NetworkInfoImpl(gh<_i973.InternetConnectionChecker>()),
+    );
+    gh.lazySingleton<_i661.AlertasCaducidadBloc>(
+      () => _i661.AlertasCaducidadBloc(gh<_i410.AlertaCaducidadRepository>()),
+    );
+    gh.factory<_i61.CostesInformeBloc>(
+      () => _i61.CostesInformeBloc(
+        gh<_i145.VehiculoRepository>(),
+        gh<_i764.ConsumoCombustibleRepository>(),
+        gh<_i16.OrdenReparacionRepository>(),
+        gh<_i23.MantenimientoRepository>(),
+        gh<_i836.ItvRevisionRepository>(),
+        gh<_i818.IncidenciaVehiculoRepository>(),
+        gh<_i660.TrasladoRepository>(),
+      ),
+    );
+    gh.factory<_i101.VacacionesBloc>(
+      () => _i101.VacacionesBloc(
+        gh<_i769.VacacionesRepository>(),
+        gh<_i1037.NotificacionesRepository>(),
+        gh<_i373.PersonalRepository>(),
+      ),
+    );
+    gh.factory<_i997.ProveedorTallerBloc>(
+      () => _i997.ProveedorTallerBloc(gh<_i596.ProveedorTallerRepository>()),
+    );
+    gh.factory<_i158.AgendaPendienteBloc>(
+      () => _i158.AgendaPendienteBloc(
+        repository: gh<_i998.AgendaPendienteRepository>(),
+      ),
+    );
+    gh.factory<_i194.ControlRepuestosBloc>(
+      () => _i194.ControlRepuestosBloc(gh<_i16.OrdenReparacionRepository>()),
+    );
+    gh.factory<_i555.HistorialReparacionesBloc>(
+      () =>
+          _i555.HistorialReparacionesBloc(gh<_i16.OrdenReparacionRepository>()),
+    );
+    gh.factory<_i540.OrdenReparacionBloc>(
+      () => _i540.OrdenReparacionBloc(gh<_i16.OrdenReparacionRepository>()),
+    );
+    gh.factory<_i561.RepuestoOrdenBloc>(
+      () => _i561.RepuestoOrdenBloc(gh<_i16.OrdenReparacionRepository>()),
+    );
+    gh.lazySingleton<_i750.RoleService>(
+      () => _i750.RoleService(
+        gh<_i707.AuthRepository>(),
+        gh<_i373.PersonalRepository>(),
+      ),
     );
     gh.factory<_i87.ExcepcionesFestivosBloc>(
       () =>
@@ -545,6 +879,17 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i796.EspecialidadBloc>(
       () => _i796.EspecialidadBloc(gh<_i1023.EspecialidadRepository>()),
     );
+    gh.factory<_i444.IncidenciaBloc>(
+      () => _i444.IncidenciaBloc(gh<_i27.IncidenciaRepository>()),
+    );
+    gh.factory<_i938.NotificacionBloc>(
+      () => _i938.NotificacionBloc(gh<_i1037.NotificacionesRepository>()),
+    );
+    gh.factory<_i302.EquipamientoVehiculoBloc>(
+      () => _i302.EquipamientoVehiculoBloc(
+        gh<_i258.EquipamientoVehiculoRepository>(),
+      ),
+    );
     gh.factory<_i987.GeneracionAutomaticaBloc>(
       () => _i987.GeneracionAutomaticaBloc(
         gh<_i870.GeneracionAutomaticaService>(),
@@ -552,8 +897,14 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i373.PersonalRepository>(),
       ),
     );
-    gh.factory<_i845.PersonalBloc>(
-      () => _i845.PersonalBloc(gh<_i373.PersonalRepository>()),
+    gh.factory<_i1000.UsuariosBloc>(
+      () => _i1000.UsuariosBloc(
+        gh<_i66.UsuariosRepository>(),
+        gh<_i750.RoleService>(),
+      ),
+    );
+    gh.factory<_i80.CursoCatalogoBloc>(
+      () => _i80.CursoCatalogoBloc(gh<_i534.CursoRepository>()),
     );
     gh.factory<_i548.MotivoCancelacionBloc>(
       () =>
@@ -562,20 +913,34 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i753.IntercambioRepository>(
       () => _i326.IntercambioRepositoryImpl(gh<_i393.TurnosRepository>()),
     );
-    gh.factory<_i1042.VehiculosBloc>(
-      () => _i1042.VehiculosBloc(gh<_i145.VehiculoRepository>()),
-    );
-    gh.lazySingleton<_i750.RoleService>(
-      () => _i750.RoleService(
-        gh<_i496.AuthService>(),
-        gh<_i373.PersonalRepository>(),
-      ),
-    );
-    gh.factory<_i848.HomeBloc>(
-      () => _i848.HomeBloc(
-        gh<_i321.NetworkInfo>(),
+    gh.factory<_i1014.FlotaInformeBloc>(
+      () => _i1014.FlotaInformeBloc(
         gh<_i145.VehiculoRepository>(),
+        gh<_i660.TrasladoRepository>(),
+        gh<_i764.ConsumoCombustibleRepository>(),
+        gh<_i818.IncidenciaVehiculoRepository>(),
+        gh<_i16.OrdenReparacionRepository>(),
       ),
+    );
+    gh.factory<_i281.RutasBloc>(
+      () => _i281.RutasBloc(
+        trasladoDataSource: gh<_i1033.TrasladoDataSource>(),
+        personalDataSource: gh<_i1033.TPersonalDataSource>(),
+        vehiculoDataSource: gh<_i1033.VehiculoDataSource>(),
+        rutaService: gh<_i686.RutaService>(),
+        geocodingService: gh<_i1071.GeocodingService>(),
+        routingService: gh<_i1033.RoutingService>(),
+      ),
+    );
+    gh.factory<_i1015.StockEquipamientoBloc>(
+      () => _i1015.StockEquipamientoBloc(gh<_i145.VehiculoRepository>()),
+    );
+    gh.factory<_i833.CertificacionCatalogoBloc>(
+      () =>
+          _i833.CertificacionCatalogoBloc(gh<_i1002.CertificacionRepository>()),
+    );
+    gh.factory<_i245.DotacionesBloc>(
+      () => _i245.DotacionesBloc(gh<_i5.DotacionesRepository>()),
     );
     gh.factory<_i1007.MovimientoStockBloc>(
       () => _i1007.MovimientoStockBloc(gh<_i408.MovimientoStockRepository>()),
@@ -587,6 +952,16 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i516.CuadranteBloc(
         gh<_i440.CuadranteRepository>(),
         gh<_i145.VehiculoRepository>(),
+      ),
+    );
+    gh.factory<_i490.PlantillasEquipamientoBloc>(
+      () => _i490.PlantillasEquipamientoBloc(
+        gh<_i339.PlantillasEquipamientoRepository>(),
+      ),
+    );
+    gh.factory<_i316.DocumentacionVehiculosBloc>(
+      () => _i316.DocumentacionVehiculosBloc(
+        gh<_i535.DocumentacionVehiculoRepository>(),
       ),
     );
     gh.factory<_i1032.ContratoBloc>(
@@ -606,8 +981,11 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i940.CentroHospitalarioRepository>(),
       ),
     );
-    gh.factory<_i79.ServiciosBloc>(
-      () => _i79.ServiciosBloc(repository: gh<_i450.ServicioRepository>()),
+    gh.lazySingleton<_i878.PerfilRepository>(
+      () => _i261.PerfilRepositoryImpl(
+        gh<_i496.AuthService>(),
+        gh<_i707.AuthRepository>(),
+      ),
     );
     gh.factory<_i100.CategoriaVehiculoBloc>(
       () =>
@@ -619,11 +997,38 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i136.TraficoDiarioBloc>(
       () => _i136.TraficoDiarioBloc(gh<_i660.TrasladoRepository>()),
     );
-    gh.factory<_i245.DotacionesBloc>(
-      () => _i245.DotacionesBloc(gh<_i5.DotacionesRepository>()),
+    gh.factory<_i928.PermisosAccesoBloc>(
+      () => _i928.PermisosAccesoBloc(gh<_i66.UsuariosRepository>()),
+    );
+    gh.factory<_i411.MulticentroBloc>(
+      () => _i411.MulticentroBloc(
+        gh<_i611.EmpresasTenantRepository>(),
+        gh<_i66.UsuariosRepository>(),
+      ),
+    );
+    gh.factory<_i153.PerfilBloc>(
+      () => _i153.PerfilBloc(gh<_i878.PerfilRepository>()),
+    );
+    gh.factory<_i5.TrasladosConsultaBloc>(
+      () => _i5.TrasladosConsultaBloc(
+        gh<_i660.TrasladoRepository>(),
+        gh<_i373.PersonalRepository>(),
+      ),
     );
     gh.factory<_i117.BasesBloc>(
       () => _i117.BasesBloc(gh<_i1055.BasesRepository>()),
+    );
+    gh.factory<_i7.PersonalInformeBloc>(
+      () => _i7.PersonalInformeBloc(
+        gh<_i373.PersonalRepository>(),
+        gh<_i1055.BasesRepository>(),
+        gh<_i682.TipoAusenciaRepository>(),
+        gh<_i829.AusenciaRepository>(),
+        gh<_i769.VacacionesRepository>(),
+        gh<_i846.FormacionPersonalRepository>(),
+        gh<_i960.RegistroHorarioRepository>(),
+        gh<_i660.TrasladoRepository>(),
+      ),
     );
     gh.factory<_i242.IntercambiosBloc>(
       () => _i242.IntercambiosBloc(gh<_i753.IntercambioRepository>()),
@@ -632,6 +1037,46 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i728.AusenciasBloc(
         gh<_i829.AusenciaRepository>(),
         gh<_i682.TipoAusenciaRepository>(),
+      ),
+    );
+    gh.factory<_i845.PersonalBloc>(
+      () => _i845.PersonalBloc(
+        gh<_i373.PersonalRepository>(),
+        gh<_i750.RoleService>(),
+      ),
+    );
+    gh.factory<_i1042.VehiculosBloc>(
+      () => _i1042.VehiculosBloc(
+        gh<_i145.VehiculoRepository>(),
+        gh<_i750.RoleService>(),
+      ),
+    );
+    gh.factory<_i79.ServiciosBloc>(
+      () => _i79.ServiciosBloc(
+        gh<_i450.ServicioRepository>(),
+        gh<_i750.RoleService>(),
+      ),
+    );
+    gh.factory<_i848.HomeBloc>(
+      () => _i848.HomeBloc(
+        gh<_i321.NetworkInfo>(),
+        gh<_i145.VehiculoRepository>(),
+        gh<_i660.TrasladoRepository>(),
+        gh<_i23.MantenimientoRepository>(),
+        gh<_i750.RoleService>(),
+        gh<_i27.IncidenciaRepository>(),
+        gh<_i836.ItvRevisionRepository>(),
+        gh<_i829.AusenciaRepository>(),
+        gh<_i223.CuadranteAsignacionRepository>(),
+        gh<_i922.ContratoRepository>(),
+        gh<_i731.StockRepository>(),
+      ),
+    );
+    gh.factory<_i511.AuditoriaBloc>(
+      () => _i511.AuditoriaBloc(
+        gh<_i157.AuditLogRepository>(),
+        gh<_i66.UsuariosRepository>(),
+        gh<_i750.RoleService>(),
       ),
     );
     return this;

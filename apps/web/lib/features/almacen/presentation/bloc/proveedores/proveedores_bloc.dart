@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart' hide MovimientoStockEntity, StockDataSource, StockDataSourceFactory;
 import 'package:ambutrack_web/features/almacen/domain/repositories/almacen_repository.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/proveedores/proveedores_event.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/proveedores/proveedores_state.dart';

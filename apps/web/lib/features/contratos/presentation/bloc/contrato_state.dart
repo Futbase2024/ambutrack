@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:equatable/equatable.dart';
 
 /// Estados del BLoC de contratos
@@ -21,18 +21,21 @@ class ContratoLoading extends ContratoState {
 
 /// Estado de éxito con lista de contratos
 class ContratoLoaded extends ContratoState {
+  const ContratoLoaded(this.contratos, {this.hospitalNames = const <String, String>{}});
 
-  const ContratoLoaded(this.contratos);
   final List<ContratoEntity> contratos;
 
+  /// Mapa de hospitalId → nombre del hospital
+  final Map<String, String> hospitalNames;
+
   @override
-  List<Object?> get props => <Object?>[contratos];
+  List<Object?> get props => <Object?>[contratos, hospitalNames];
 }
 
 /// Estado de error
 class ContratoError extends ContratoState {
-
   const ContratoError(this.message);
+
   final String message;
 
   @override
@@ -41,11 +44,18 @@ class ContratoError extends ContratoState {
 
 /// Estado de operación exitosa (crear, actualizar, eliminar)
 class ContratoOperationSuccess extends ContratoState {
+  const ContratoOperationSuccess(
+    this.message,
+    this.contratos, {
+    this.hospitalNames = const <String, String>{},
+  });
 
-  const ContratoOperationSuccess(this.message, this.contratos);
   final String message;
   final List<ContratoEntity> contratos;
 
+  /// Mapa de hospitalId → nombre del hospital
+  final Map<String, String> hospitalNames;
+
   @override
-  List<Object?> get props => <Object?>[message, contratos];
+  List<Object?> get props => <Object?>[message, contratos, hospitalNames];
 }

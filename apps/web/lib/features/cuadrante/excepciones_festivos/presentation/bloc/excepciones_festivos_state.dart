@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:equatable/equatable.dart';
 
 /// Estados del BLoC de Excepciones/Festivos
@@ -37,15 +37,4 @@ class ExcepcionesFestivosError extends ExcepcionesFestivosState {
 
   @override
   List<Object?> get props => <Object?>[message];
-}
-
-/// Estado de operación exitosa (CREATE, UPDATE, DELETE)
-class ExcepcionFestivoOperationSuccess extends ExcepcionesFestivosState {
-  const ExcepcionFestivoOperationSuccess(this.items, this.message);
-
-  final List<ExcepcionFestivoEntity> items;
-  final String message;
-
-  @override
-  List<Object?> get props => <Object?>[items, message];
 }

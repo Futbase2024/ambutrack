@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 import '../../domain/repositories/auth_repository.dart';
 
@@ -12,7 +12,7 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthDataSource _dataSource;
 
   @override
-  Future<AuthUserEntity> signInWithEmailAndPassword({
+  Future<UserEntity> signInWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
@@ -30,13 +30,13 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<AuthUserEntity?> getCurrentUser() async {
+  Future<UserEntity?> getCurrentUser() async {
     debugPrint('📦 [Repository] Solicitando usuario actual...');
     return await _dataSource.getCurrentUser();
   }
 
   @override
-  Stream<AuthUserEntity?> get authStateChanges {
+  Stream<UserEntity?> get authStateChanges {
     return _dataSource.authStateChanges;
   }
 

@@ -1,10 +1,8 @@
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/configuracion_validacion_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Widget para configurar las validaciones de turnos de un trabajador
 class ConfiguracionValidacionesWidget extends StatefulWidget {
@@ -18,15 +16,24 @@ class ConfiguracionValidacionesWidget extends StatefulWidget {
   final void Function(ConfiguracionValidacionEntity?) onConfiguracionChanged;
 
   @override
-  State<ConfiguracionValidacionesWidget> createState() =>
-      _ConfiguracionValidacionesWidgetState();
+  State<ConfiguracionValidacionesWidget> createState() => _ConfiguracionValidacionesWidgetState();
 }
 
-class _ConfiguracionValidacionesWidgetState
-    extends State<ConfiguracionValidacionesWidget> {
+class _ConfiguracionValidacionesWidgetState extends State<ConfiguracionValidacionesWidget> {
   late ConfiguracionValidacionEntity _config;
   String _presetSeleccionado = 'personalizado';
   bool _mostrarDetalles = false;
+
+  /// Se incrementa al aplicar un preset para recrear los campos con sus nuevos valores
+  int _version = 0;
+
+  static const List<GestionOption<String>> _presets = <GestionOption<String>>[
+    GestionOption<String>('estandar', 'Estándar (40h/semana, descanso 12h)', color: AppColors.info),
+    GestionOption<String>('guardia24h', 'Guardia 24h (sin límites)', color: AppColors.warning),
+    GestionOption<String>('mediaJornada', 'Media jornada (20h/semana)', color: AppColors.success),
+    GestionOption<String>('sinValidaciones', 'Sin validaciones', color: AppColors.gray400),
+    GestionOption<String>('personalizado', 'Personalizado', color: AppColors.primary),
+  ];
 
   @override
   void initState() {
@@ -57,6 +64,7 @@ class _ConfiguracionValidacionesWidgetState
 
     setState(() {
       _presetSeleccionado = preset;
+      _version++;
 
       switch (preset) {
         case 'estandar':
@@ -94,308 +102,117 @@ class _ConfiguracionValidacionesWidgetState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        // Título de la sección
-        Text(
-          'Configuración de Validaciones de Turnos',
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimaryLight,
-          ),
-        ),
-        const SizedBox(height: AppSizes.spacingSmall),
-
-        // Selector de preset
-        AppDropdown<String>(
-          value: _presetSeleccionado,
-          label: 'Tipo de Configuración',
-          hint: 'Selecciona un preset',
-          prefixIcon: Icons.rule,
-          items: const <AppDropdownItem<String>>[
-            AppDropdownItem<String>(
-              value: 'estandar',
-              label: 'Estándar (40h/semana, descanso 12h)',
-              icon: Icons.schedule,
-              iconColor: AppColors.info,
+        const GestionFormSection(title: 'Validación de turnos'),
+        GestionFormColumns(
+          children: <Widget>[
+            GestionFormRow(
+              label: 'Configuración',
+              child: GestionDropdownField<String>(
+                // Se recrea si el preset pasa a "Personalizado" al editar un valor
+                key: ValueKey<String>('preset|$_presetSeleccionado'),
+                value: _presetSeleccionado,
+                options: _presets,
+                onChanged: _aplicarPreset,
+              ),
             ),
-            AppDropdownItem<String>(
-              value: 'guardia24h',
-              label: 'Guardia 24h (sin límites)',
-              icon: Icons.local_fire_department,
-              iconColor: AppColors.warning,
-            ),
-            AppDropdownItem<String>(
-              value: 'mediaJornada',
-              label: 'Media Jornada (20h/semana)',
-              icon: Icons.access_time,
-              iconColor: AppColors.success,
-            ),
-            AppDropdownItem<String>(
-              value: 'sinValidaciones',
-              label: 'Sin Validaciones',
-              icon: Icons.disabled_by_default,
-              iconColor: AppColors.textSecondaryLight,
-            ),
-            AppDropdownItem<String>(
-              value: 'personalizado',
-              label: 'Personalizado',
-              icon: Icons.tune,
-              iconColor: AppColors.primary,
-            ),
-          ],
-          onChanged: _aplicarPreset,
-        ),
-        const SizedBox(height: AppSizes.spacing),
-
-        // Botón para mostrar/ocultar detalles
-        if (_presetSeleccionado != 'personalizado')
-          TextButton.icon(
-            onPressed: () {
-              setState(() {
-                _mostrarDetalles = !_mostrarDetalles;
-              });
-            },
-            icon: Icon(
-              _mostrarDetalles ? Icons.expand_less : Icons.expand_more,
-              size: 20,
-            ),
-            label: Text(
-              _mostrarDetalles ? 'Ocultar detalles' : 'Ver detalles',
-              style: GoogleFonts.inter(fontSize: 13),
-            ),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              padding: EdgeInsets.zero,
+            Align(
               alignment: Alignment.centerLeft,
+              child: _presetSeleccionado != 'personalizado'
+                  ? TextButton.icon(
+                      onPressed: () => setState(() => _mostrarDetalles = !_mostrarDetalles),
+                      icon: Icon(_mostrarDetalles ? Icons.expand_less : Icons.expand_more, size: 18),
+                      label: Text(_mostrarDetalles ? 'Ocultar detalles' : 'Ver detalles'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
-          ),
-
-        // Detalles de configuración
-        if (_mostrarDetalles) ...<Widget>[
-          const SizedBox(height: AppSizes.spacing),
-          _buildDetallesConfig(),
-        ],
+          ],
+        ),
+        if (_mostrarDetalles)
+          if (_config.validacionesActivas)
+            _DetallesConfig(key: ValueKey<int>(_version), config: _config, onChanged: _actualizarConfig)
+          else
+            GestionFormRow(
+              label: '',
+              child: _AvisoSinValidaciones(motivo: _config.motivoExencion),
+            ),
       ],
     );
   }
+}
 
-  Widget _buildDetallesConfig() {
-    if (!_config.validacionesActivas) {
-      return _buildConfigSinValidaciones();
-    }
+class _DetallesConfig extends StatelessWidget {
+  const _DetallesConfig({required this.config, required this.onChanged, super.key});
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+  final ConfiguracionValidacionEntity config;
+  final ValueChanged<ConfiguracionValidacionEntity> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final ConfiguracionValidacionEntity c = config;
+    return GestionFormColumns(
       children: <Widget>[
-        // Permitir doble turno
-        _buildSwitchTile(
-          label: 'Permitir Doble Turno',
-          subtitle: 'Permite asignar más de un turno por día',
-          value: _config.permitirDobleTurno,
-          onChanged: (bool value) {
-            _actualizarConfig(_config.copyWith(permitirDobleTurno: value));
-          },
-        ),
-        const SizedBox(height: AppSizes.spacingSmall),
-
-        // Horas mínimas de descanso
-        _buildNumberField(
-          label: 'Horas Mínimas de Descanso',
-          value: _config.horasMinimasDescanso,
-          onChanged: (double value) {
-            _actualizarConfig(_config.copyWith(horasMinimasDescanso: value));
-          },
-          min: 0,
-          max: 24,
-          suffix: 'horas',
-        ),
-        const SizedBox(height: AppSizes.spacingSmall),
-
-        // Horas máximas semanales
-        _buildOptionalNumberField(
-          label: 'Horas Máximas Semanales',
-          value: _config.horasMaximasSemanales,
-          onChanged: (double? value) {
-            _actualizarConfig(_config.copyWith(horasMaximasSemanales: value));
-          },
-          min: 0,
-          max: 168,
-          suffix: 'horas/semana',
-        ),
-        const SizedBox(height: AppSizes.spacingSmall),
-
-        // Horas máximas mensuales
-        _buildOptionalNumberField(
-          label: 'Horas Máximas Mensuales',
-          value: _config.horasMaximasMensuales,
-          onChanged: (double? value) {
-            _actualizarConfig(_config.copyWith(horasMaximasMensuales: value));
-          },
-          min: 0,
-          max: 744,
-          suffix: 'horas/mes',
-        ),
-        const SizedBox(height: AppSizes.spacingSmall),
-
-        // Días de descanso semanal
-        _buildNumberField(
-          label: 'Días de Descanso Semanal Mínimo',
-          value: _config.diasDescansoSemanalMinimo.toDouble(),
-          onChanged: (double value) {
-            _actualizarConfig(
-              _config.copyWith(diasDescansoSemanalMinimo: value.toInt()),
-            );
-          },
-          min: 0,
-          max: 7,
-          suffix: 'días',
-          isInteger: true,
-        ),
-        const SizedBox(height: AppSizes.spacingSmall),
-
-        // Horas máximas continuas
-        _buildOptionalNumberField(
-          label: 'Horas Máximas Continuas',
-          value: _config.horasMaximasContinuas,
-          onChanged: (double? value) {
-            _actualizarConfig(_config.copyWith(horasMaximasContinuas: value));
-          },
-          min: 0,
-          max: 168,
-          suffix: 'horas',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildConfigSinValidaciones() {
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(color: AppColors.warning),
-      ),
-      child: Row(
-        children: <Widget>[
-          const Icon(Icons.warning_amber, color: AppColors.warning, size: 24),
-          const SizedBox(width: AppSizes.spacingSmall),
-          Expanded(
-            child: Text(
-              'Las validaciones están desactivadas para este personal.\n'
-              'Motivo: ${_config.motivoExencion ?? "No especificado"}',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: AppColors.textPrimaryLight,
+        Column(
+          children: <Widget>[
+            GestionFormRow(
+              label: 'Doble turno',
+              child: GestionSwitchField(
+                value: c.permitirDobleTurno,
+                text: 'Permite más de un turno por día',
+                onChanged: (bool v) => onChanged(c.copyWith(permitirDobleTurno: v)),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required String label,
-    required String subtitle,
-    required bool value,
-    // ignore: avoid_positional_boolean_parameters
-    required void Function(bool) onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.paddingMedium,
-        vertical: AppSizes.paddingSmall,
-      ),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.gray200),
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-      ),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimaryLight,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.textSecondaryLight,
-                  ),
-                ),
-              ],
+            GestionFormRow(
+              label: 'Descanso mín.',
+              child: _NumeroConfig(
+                value: c.horasMinimasDescanso,
+                max: 24,
+                suffix: 'horas',
+                onChanged: (double v) => onChanged(c.copyWith(horasMinimasDescanso: v)),
+              ),
             ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeThumbColor: AppColors.primary,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNumberField({
-    required String label,
-    required double value,
-    required void Function(double) onChanged,
-    required double min,
-    required double max,
-    required String suffix,
-    bool isInteger = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimaryLight,
-          ),
+            GestionFormRow(
+              label: 'Descanso sem.',
+              child: _NumeroConfig(
+                value: c.diasDescansoSemanalMinimo.toDouble(),
+                max: 7,
+                suffix: 'días',
+                entero: true,
+                onChanged: (double v) => onChanged(c.copyWith(diasDescansoSemanalMinimo: v.toInt())),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Row(
+        Column(
           children: <Widget>[
-            Expanded(
-              child: TextFormField(
-                initialValue:
-                    isInteger ? value.toInt().toString() : value.toString(),
-                keyboardType: TextInputType.number,
-                inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.allow(
-                    isInteger ? RegExp(r'^\d+$') : RegExp(r'^\d*\.?\d*$'),
-                  ),
-                ],
-                decoration: InputDecoration(
-                  hintText: 'Valor',
-                  suffixText: suffix,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.paddingMedium,
-                    vertical: AppSizes.paddingSmall,
-                  ),
-                ),
-                onChanged: (String text) {
-                  final double? val = double.tryParse(text);
-                  if (val != null && val >= min && val <= max) {
-                    onChanged(val);
-                  }
-                },
+            GestionFormRow(
+              label: 'Máx. semanal',
+              child: _NumeroOpcional(
+                value: c.horasMaximasSemanales,
+                max: 168,
+                suffix: 'h/semana',
+                onChanged: (double? v) => onChanged(c.copyWith(horasMaximasSemanales: v)),
+              ),
+            ),
+            GestionFormRow(
+              label: 'Máx. mensual',
+              child: _NumeroOpcional(
+                value: c.horasMaximasMensuales,
+                max: 744,
+                suffix: 'h/mes',
+                onChanged: (double? v) => onChanged(c.copyWith(horasMaximasMensuales: v)),
+              ),
+            ),
+            GestionFormRow(
+              label: 'Máx. continuas',
+              child: _NumeroOpcional(
+                value: c.horasMaximasContinuas,
+                max: 168,
+                suffix: 'horas',
+                onChanged: (double? v) => onChanged(c.copyWith(horasMaximasContinuas: v)),
               ),
             ),
           ],
@@ -403,96 +220,112 @@ class _ConfiguracionValidacionesWidgetState
       ],
     );
   }
+}
 
-  Widget _buildOptionalNumberField({
-    required String label,
-    required double? value,
-    required void Function(double?) onChanged,
-    required double min,
-    required double max,
-    required String suffix,
-  }) {
+/// Número de la configuración: solo notifica valores válidos entre 0 y [max]
+class _NumeroConfig extends StatelessWidget {
+  const _NumeroConfig({
+    required this.value,
+    required this.max,
+    required this.suffix,
+    required this.onChanged,
+    this.entero = false,
+  });
+
+  final double value;
+  final double max;
+  final String suffix;
+  final bool entero;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      initialValue: entero ? value.toInt().toString() : value.toString(),
+      keyboardType: TextInputType.number,
+      textAlign: TextAlign.end,
+      textInputAction: TextInputAction.next,
+      style: GestionFormStyle.text,
+      inputFormatters: <TextInputFormatter>[
+        FilteringTextInputFormatter.allow(entero ? RegExp(r'^\d+$') : RegExp(r'^\d*\.?\d*$')),
+      ],
+      decoration: GestionFormStyle.decoration(hint: 'Valor', suffixText: suffix),
+      onChanged: (String text) {
+        final double? val = double.tryParse(text);
+        if (val != null && val >= 0 && val <= max) {
+          onChanged(val);
+        }
+      },
+    );
+  }
+}
+
+/// Número opcional con casilla "Sin límite" (null)
+class _NumeroOpcional extends StatelessWidget {
+  const _NumeroOpcional({
+    required this.value,
+    required this.max,
+    required this.suffix,
+    required this.onChanged,
+  });
+
+  final double? value;
+  final double max;
+  final String suffix;
+  final ValueChanged<double?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
     final bool sinLimite = value == null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: Text(
-                label,
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimaryLight,
-                ),
-              ),
-            ),
-            Checkbox(
-              value: sinLimite,
-              onChanged: (bool? checked) {
-                if (checked == true) {
-                  onChanged(null); // Sin límite
-                } else {
-                  onChanged(min); // Restaurar valor mínimo
-                }
-              },
-              activeColor: AppColors.primary,
-            ),
-            Text(
-              'Sin límite',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: AppColors.textSecondaryLight,
-              ),
-            ),
-          ],
+        Expanded(
+          child: sinLimite
+              ? const GestionFormReadOnly(value: 'Sin límite')
+              : _NumeroConfig(value: value!, max: max, suffix: suffix, onChanged: onChanged),
         ),
-        const SizedBox(height: 4),
-        if (!sinLimite)
-          TextFormField(
-            initialValue: value.toString(),
-            keyboardType: TextInputType.number,
-            inputFormatters: <TextInputFormatter>[
-              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
-            ],
-            decoration: InputDecoration(
-              hintText: 'Valor',
-              suffixText: suffix,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.paddingMedium,
-                vertical: AppSizes.paddingSmall,
-              ),
-            ),
-            onChanged: (String text) {
-              final double? val = double.tryParse(text);
-              if (val != null && val >= min && val <= max) {
-                onChanged(val);
-              }
-            },
-          )
-        else
-          Container(
-            padding: const EdgeInsets.all(AppSizes.paddingSmall),
-            decoration: BoxDecoration(
-              color: AppColors.gray50,
-              borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-              border: Border.all(color: AppColors.gray200),
-            ),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 96,
+          child: GestionCheckField(
+            value: sinLimite,
+            text: 'Sin límite',
+            // Al desmarcar se restaura el valor mínimo (0)
+            onChanged: (bool checked) => onChanged(checked ? null : 0),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AvisoSinValidaciones extends StatelessWidget {
+  const _AvisoSinValidaciones({required this.motivo});
+
+  final String? motivo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.6)),
+      ),
+      child: Row(
+        children: <Widget>[
+          const Icon(Icons.warning_amber, color: AppColors.warning, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
             child: Text(
-              'Sin límite establecido',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: AppColors.textSecondaryLight,
-                fontStyle: FontStyle.italic,
-              ),
+              'Las validaciones están desactivadas para este personal. '
+              'Motivo: ${motivo ?? "No especificado"}',
+              style: const TextStyle(fontSize: 12.5, color: AppColors.gray800),
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }

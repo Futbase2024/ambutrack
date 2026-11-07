@@ -1,13 +1,10 @@
 import 'dart:async';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../../core/di/locator.dart';
 import '../../../../../core/theme/app_colors.dart';
-import '../../../../../core/theme/app_sizes.dart';
-import '../../../../../core/widgets/buttons/app_button.dart';
 import '../../../../../core/widgets/dialogs/result_dialog.dart';
 import '../../../../../core/widgets/dropdowns/app_searchable_dropdown.dart';
 import '../../../../tablas/centros_hospitalarios/domain/repositories/centro_hospitalario_repository.dart';
@@ -23,6 +20,7 @@ import '../../domain/entities/servicio_entity.dart';
 import '../../domain/repositories/servicio_recurrente_repository.dart';
 import '../../domain/repositories/servicio_repository.dart';
 import 'logic/servicio_creator.dart';
+import 'logic/servicio_wizard_mapeos.dart';
 import 'models/modalidad_servicio.dart';
 import 'models/tipo_ubicacion.dart';
 import 'models/trayecto_data.dart';
@@ -30,6 +28,8 @@ import 'steps/step_1_datos_generales/step_1_datos_generales.dart';
 import 'steps/step_2_modalidad/step_2_modalidad.dart';
 import 'steps/step_3_trayectos/step_3_trayectos.dart';
 import 'steps/step_4_revision/step_4_revision.dart';
+import 'widgets/servicio_wizard_frame.dart';
+import 'widgets/servicio_wizard_motivo_requerido.dart';
 
 /// Wizard profesional para creación/edición de servicios programados
 ///
@@ -165,41 +165,11 @@ class _ServicioFormWizardDialogState extends State<ServicioFormWizardDialog> {
   // ============================================================================
 
   /// Mapea ModalidadServicio (sistema viejo) a TipoRecurrencia (sistema nuevo)
-  TipoRecurrencia _mapModalidadToTipoRecurrencia(ModalidadServicio modalidad) {
-    switch (modalidad) {
-      case ModalidadServicio.unico:
-        return TipoRecurrencia.unico;
-      case ModalidadServicio.semanal:
-      case ModalidadServicio.semanasAlternas:
-        return TipoRecurrencia.semanal;
-      case ModalidadServicio.diasAlternos:
-        return TipoRecurrencia.diasAlternos;
-      case ModalidadServicio.mensual:
-        return TipoRecurrencia.mensual;
-      case ModalidadServicio.especifico:
-        return TipoRecurrencia.fechasEspecificas;
-      case ModalidadServicio.diario:
-        return TipoRecurrencia.diario;
-    }
-  }
+  TipoRecurrencia _mapModalidadToTipoRecurrencia(ModalidadServicio modalidad) =>
+      modalidadToTipoRecurrencia(modalidad);
 
   /// Mapea TipoRecurrencia (sistema nuevo) a ModalidadServicio (sistema viejo)
-  ModalidadServicio _mapTipoRecurrenciaToModalidad(TipoRecurrencia tipo) {
-    switch (tipo) {
-      case TipoRecurrencia.unico:
-        return ModalidadServicio.unico;
-      case TipoRecurrencia.semanal:
-        return ModalidadServicio.semanal;
-      case TipoRecurrencia.diasAlternos:
-        return ModalidadServicio.diasAlternos;
-      case TipoRecurrencia.mensual:
-        return ModalidadServicio.mensual;
-      case TipoRecurrencia.fechasEspecificas:
-        return ModalidadServicio.especifico;
-      case TipoRecurrencia.diario:
-        return ModalidadServicio.diario;
-    }
-  }
+  ModalidadServicio _mapTipoRecurrenciaToModalidad(TipoRecurrencia tipo) => tipoRecurrenciaToModalidad(tipo);
 
   // ============================================================================
   // CARGA DE DATOS MAESTROS
@@ -1580,217 +1550,23 @@ class _ServicioFormWizardDialogState extends State<ServicioFormWizardDialog> {
   // UI - BUILD
   // ============================================================================
 
+  static const List<String> _stepLabels = <String>['Básicos', 'Modalidad', 'Trayectos', 'Revisar'];
+
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(AppSizes.spacing),
-      child: Container(
-        constraints: const BoxConstraints(
-          maxWidth: 900,
-          maxHeight: 700,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppSizes.radius),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          children: <Widget>[
-            _buildHeader(),
-            const Divider(height: 1, color: AppColors.gray200),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSizes.paddingXl),
-                child: _buildCurrentStep(),
-              ),
-            ),
-            _buildFooter(),
-          ],
-        ),
-      ),
+    return ServicioWizardFrame(
+      title: _isEditMode ? 'Editar servicio' : 'Nuevo servicio',
+      subtitle: _pacienteSeleccionado?.nombreCompleto,
+      icon: _isEditMode ? Icons.edit_outlined : Icons.medical_services_outlined,
+      steps: _stepLabels,
+      currentStep: _currentStep,
+      isSaving: _isCreating,
+      finalLabel: _isEditMode ? 'Actualizar servicio' : 'Crear servicio',
+      onPrevious: _previousStep,
+      onNext: _nextStep,
+      onClose: () => Navigator.of(context).pop(),
+      child: _buildCurrentStep(),
     );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingLarge),
-      decoration: const BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(AppSizes.radius),
-          topRight: Radius.circular(AppSizes.radius),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              const Icon(Icons.medical_services, color: Colors.white, size: 24),
-              const SizedBox(width: AppSizes.spacingSmall),
-              Text(
-                _getTituloConPaso(),
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.of(context).pop(),
-                tooltip: 'Cerrar',
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSizes.spacing),
-          _buildStepper(),
-          const SizedBox(height: AppSizes.spacingSmall),
-          _buildStepLabels(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStepper() {
-    return Row(
-      children: List<Widget>.generate(_totalSteps, (int index) {
-        final bool isCompleted = index < _currentStep;
-        final bool isCurrent = index == _currentStep;
-
-        return Expanded(
-          child: Row(
-            children: <Widget>[
-              if (index > 0)
-                Expanded(
-                  child: Container(
-                    height: 2,
-                    color: isCompleted ? AppColors.success : Colors.white.withValues(alpha: 0.3),
-                  ),
-                ),
-              _buildStepCircle(
-                index + 1,
-                isCompleted: isCompleted,
-                isCurrent: isCurrent,
-              ),
-            ],
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildStepCircle(int stepNumber, {required bool isCompleted, required bool isCurrent}) {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isCompleted
-            ? AppColors.success
-            : (isCurrent ? Colors.white : Colors.white.withValues(alpha: 0.3)),
-        border: Border.all(color: Colors.white, width: 2),
-      ),
-      child: Center(
-        child: isCompleted
-            ? const Icon(Icons.check, size: 16, color: Colors.white)
-            : Text(
-          stepNumber.toString(),
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isCurrent ? AppColors.primary : Colors.white.withValues(alpha: 0.7),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStepLabels() {
-    return Row(
-      children: <Widget>[
-        _buildStepLabel('Básicos', 0),
-        _buildStepLabel('Modalidad', 1),
-        _buildStepLabel('Trayectos', 2),
-        _buildStepLabel('Revisar', 3),
-      ],
-    );
-  }
-
-  Widget _buildStepLabel(String label, int stepIndex) {
-    final bool isCurrent = stepIndex == _currentStep;
-
-    return Expanded(
-      child: Center(
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
-            color: Colors.white.withValues(alpha: isCurrent ? 1.0 : 0.7),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFooter() {
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingLarge),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceLight,
-        border: Border(top: BorderSide(color: AppColors.gray200)),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(AppSizes.radius),
-          bottomRight: Radius.circular(AppSizes.radius),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          if (_currentStep > 0)
-            AppButton(
-              onPressed: _isCreating ? null : _previousStep,
-              label: 'Atrás',
-              icon: Icons.arrow_back,
-              variant: AppButtonVariant.text,
-            )
-          else
-            const SizedBox.shrink(),
-          AppButton(
-            onPressed: _isCreating ? null : _nextStep,
-            label: _currentStep == _totalSteps - 1
-                ? (_isEditMode ? 'Editar Servicio' : 'Crear Servicio')
-                : 'Siguiente',
-            icon: _currentStep == _totalSteps - 1 ? Icons.check : Icons.arrow_forward,
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _getTituloConPaso() {
-    final String base = _isEditMode ? 'Editar Servicio' : 'Crear Nuevo Servicio';
-    switch (_currentStep) {
-      case 0:
-        return '$base - Datos Básicos';
-      case 1:
-        return '$base - Modalidad';
-      case 2:
-        return '$base - Trayectos';
-      case 3:
-        return '$base - Revisar';
-      default:
-        return base;
-    }
   }
 
   Widget _buildCurrentStep() {
@@ -1912,40 +1688,7 @@ class _ServicioFormWizardDialogState extends State<ServicioFormWizardDialog> {
       case 1:
         // Si no hay motivo de traslado seleccionado, mostrar mensaje
         if (_motivoTrasladoSeleccionado == null) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSizes.paddingXl),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Icon(
-                    Icons.info_outline,
-                    size: 64,
-                    color: AppColors.warning.withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: AppSizes.spacing),
-                  Text(
-                    'Selecciona un motivo de traslado en el Paso 1',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      color: AppColors.textSecondaryLight,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSizes.spacingSmall),
-                  Text(
-                    'El motivo de traslado es necesario para configurar los horarios y tiempos de espera',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: AppColors.textSecondaryLight,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          );
+          return const ServicioWizardMotivoRequerido();
         }
 
         return Step2Modalidad(
@@ -1970,60 +1713,13 @@ class _ServicioFormWizardDialogState extends State<ServicioFormWizardDialog> {
               _configuracionModalidad = configuracion;
               debugPrint('📋 Configuración actualizada: $_configuracionModalidad');
 
-              // ✅ Extraer días de semana de la configuración para modalidades semanales
-              if (_modalidad == ModalidadServicio.semanal || _modalidad == ModalidadServicio.semanasAlternas) {
-                _diasSemanaSeleccionados.clear();
-                final List<dynamic>? dias = configuracion['dias'] as List<dynamic>?;
-                if (dias != null) {
-                  for (final dynamic diaData in dias) {
-                    if (diaData is Map<String, dynamic>) {
-                      final int? diaSemanaIndex = diaData['dia_semana'] as int?;
-                      if (diaSemanaIndex != null) {
-                        _diasSemanaSeleccionados.add(diaSemanaIndex);
-                      }
-                    }
-                  }
-                  debugPrint('📅 Días de semana extraídos: $_diasSemanaSeleccionados');
-                }
-              }
-
-              // ✅ Extraer días del mes de la configuración para modalidad mensual
-              if (_modalidad == ModalidadServicio.mensual) {
-                _diasMesSeleccionados.clear();
-                final List<dynamic>? dias = configuracion['dias'] as List<dynamic>?;
-                if (dias != null) {
-                  for (final dynamic diaData in dias) {
-                    if (diaData is Map<String, dynamic>) {
-                      final int? diaMesNum = diaData['dia_mes'] as int?;
-                      if (diaMesNum != null) {
-                        _diasMesSeleccionados.add(diaMesNum);
-                      }
-                    }
-                  }
-                  debugPrint('📅 Días del mes extraídos: $_diasMesSeleccionados');
-                }
-              }
-
-              // ✅ Extraer fechas específicas de la configuración
-              if (_modalidad == ModalidadServicio.especifico) {
-                _fechasEspecificas.clear();
-                final List<dynamic>? fechas = configuracion['fechas'] as List<dynamic>?;
-                if (fechas != null) {
-                  for (final dynamic fechaData in fechas) {
-                    if (fechaData is Map<String, dynamic>) {
-                      final String? fechaStr = fechaData['fecha'] as String?;
-                      if (fechaStr != null) {
-                        try {
-                          _fechasEspecificas.add(DateTime.parse(fechaStr));
-                        } catch (e) {
-                          debugPrint('⚠️ Error parseando fecha: $fechaStr - $e');
-                        }
-                      }
-                    }
-                  }
-                  debugPrint('📅 Fechas específicas extraídas: $_fechasEspecificas');
-                }
-              }
+              extraerSeleccionesDeConfiguracion(
+                configuracion: configuracion,
+                modalidad: _modalidad,
+                diasSemana: _diasSemanaSeleccionados,
+                diasMes: _diasMesSeleccionados,
+                fechasEspecificas: _fechasEspecificas,
+              );
             });
           },
         );

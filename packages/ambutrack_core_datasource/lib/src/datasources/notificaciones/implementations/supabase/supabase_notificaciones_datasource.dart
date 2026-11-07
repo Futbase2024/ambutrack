@@ -1,0 +1,571 @@
+import 'dart:async';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../utils/exceptions/datasource_exception.dart';
+import '../../entities/notificacion_entity.dart';
+import '../../models/notificacion_supabase_model.dart';
+import '../../notificaciones_contract.dart';
+
+/// Implementación de Supabase para el datasource de notificaciones
+///
+/// Características:
+/// - Soporte para notificaciones en tiempo real con Supabase Realtime
+/// - Consultas optimizadas con índices
+/// - Filtrado por usuario y estado de lectura
+class SupabaseNotificacionesDataSource implements NotificacionesDataSource {
+  SupabaseNotificacionesDataSource({
+    required String empresaId,
+  }) : _empresaId = empresaId;
+
+  final String _empresaId;
+  static const String _tableName = 'tnotificaciones';
+
+  /// Cliente de Supabase
+  static SupabaseClient get _client => Supabase.instance.client;
+
+  void _log(String message) {
+    // ignore: avoid_print
+    print('🔔 [NotificacionesDataSource] $message');
+  }
+
+  /// Canal de Realtime para notificaciones
+  RealtimeChannel? _channel;
+  final StreamController<List<NotificacionEntity>> _notificacionesController =
+      StreamController<List<NotificacionEntity>>.broadcast();
+  final StreamController<int> _conteoController = StreamController<int>.broadcast();
+
+  @override
+  Future<List<NotificacionEntity>> getByUsuario(String usuarioId) async {
+    try {
+      final response = await _client
+          .from(_tableName)
+          .select()
+          .eq('usuario_destino_id', usuarioId)
+          .order('created_at', ascending: false);
+
+      return response
+          .map((json) => NotificacionSupabaseModel.fromJson(json).toEntity())
+          .toList();
+    } catch (e) {
+      throw DataSourceException(
+        message: 'Error al obtener notificaciones: $e',
+        code: 'QUERY_ERROR',
+      );
+    }
+  }
+
+  @override
+  Future<List<NotificacionEntity>> getNoLeidas(String usuarioId) async {
+    try {
+      final response = await _client
+          .from(_tableName)
+          .select()
+          .eq('usuario_destino_id', usuarioId)
+          .eq('leida', false)
+          .order('created_at', ascending: false);
+
+      return response
+          .map((json) => NotificacionSupabaseModel.fromJson(json).toEntity())
+          .toList();
+    } catch (e) {
+      throw DataSourceException(
+        message: 'Error al obtener notificaciones no leídas: $e',
+        code: 'QUERY_ERROR',
+      );
+    }
+  }
+
+  @override
+  Future<int> getConteoNoLeidas(String usuarioId) async {
+    try {
+      final response = await _client
+          .from(_tableName)
+          .select('id')
+          .eq('usuario_destino_id', usuarioId)
+          .eq('leida', false);
+
+      return response.length;
+    } catch (e) {
+      throw DataSourceException(
+        message: 'Error al obtener conteo de notificaciones: $e',
+        code: 'QUERY_ERROR',
+      );
+    }
+  }
+
+  @override
+  Future<void> marcarComoLeida(String id) async {
+    try {
+      // Verificar autenticación
+      final currentUser = _client.auth.currentUser;
+      if (currentUser == null) {
+        throw DataSourceException(
+          message: 'Usuario no autenticado',
+          code: 'UNAUTHENTICATED',
+        );
+      }
+
+      _log('✏️ marcarComoLeida - Notificación ID: $id');
+      _log('✏️ marcarComoLeida - Usuario autenticado: ${currentUser.id}');
+
+      final response = await _client
+          .from(_tableName)
+          .update({'leida': true, 'fecha_lectura': DateTime.now().toIso8601String()})
+          .eq('id', id)
+          .select();
+
+      if (response.isEmpty) {
+        _log('⚠️ marcarComoLeida - No se actualizó ninguna fila');
+        throw DataSourceException(
+          message: 'No se pudo marcar la notificación como leída. Es posible que no tengas permisos o que la notificación no exista.',
+          code: 'RLS_BLOCKED',
+        );
+      }
+
+      _log('✅ marcarComoLeida - Marcada correctamente');
+    } catch (e) {
+      if (e is DataSourceException) rethrow;
+      throw DataSourceException(
+        message: 'Error al marcar notificación como leída: $e',
+        code: 'UPDATE_ERROR',
+      );
+    }
+  }
+
+  @override
+  Future<void> marcarTodasComoLeidas(String usuarioId) async {
+    try {
+      // Verificar autenticación
+      final currentUser = _client.auth.currentUser;
+      if (currentUser == null) {
+        throw DataSourceException(
+          message: 'Usuario no autenticado',
+          code: 'UNAUTHENTICATED',
+        );
+      }
+
+      _log('✏️ marcarTodasComoLeidas - Usuario ID: $usuarioId');
+      _log('✏️ marcarTodasComoLeidas - Usuario autenticado: ${currentUser.id}');
+
+      final response = await _client
+          .from(_tableName)
+          .update({'leida': true, 'fecha_lectura': DateTime.now().toIso8601String()})
+          .eq('usuario_destino_id', usuarioId)
+          .eq('leida', false)
+          .select();
+
+      _log('✏️ marcarTodasComoLeidas - ${response.length} notificaciones marcadas como leídas');
+
+      if (response.isEmpty) {
+        _log('ℹ️ marcarTodasComoLeidas - No hay notificaciones para marcar');
+      } else {
+        _log('✅ marcarTodasComoLeidas - Marcadas correctamente');
+      }
+    } catch (e) {
+      if (e is DataSourceException) rethrow;
+      throw DataSourceException(
+        message: 'Error al marcar todas como leídas: $e',
+        code: 'UPDATE_ERROR',
+      );
+    }
+  }
+
+  @override
+  Future<NotificacionEntity> create(NotificacionEntity notificacion) async {
+    try {
+      final model = NotificacionSupabaseModel.fromEntity(notificacion);
+      final json = model.toJson();
+
+      // Eliminar el campo 'id' si está vacío para que Supabase genere uno automáticamente
+      if (json['id'] == null || json['id'] == '') {
+        json.remove('id');
+      }
+
+      final response = await _client.from(_tableName).insert(json).select().single();
+
+      return NotificacionSupabaseModel.fromJson(response).toEntity();
+    } catch (e) {
+      throw DataSourceException(
+        message: 'Error al crear notificación: $e',
+        code: 'INSERT_ERROR',
+      );
+    }
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    try {
+      // Verificar autenticación
+      final currentUser = _client.auth.currentUser;
+      if (currentUser == null) {
+        _log('❌ delete - Usuario no autenticado');
+        throw DataSourceException(
+          message: 'Usuario no autenticado',
+          code: 'UNAUTHENTICATED',
+        );
+      }
+
+      _log('🗑️ delete - Eliminando notificación ID: $id');
+      _log('🗑️ delete - Usuario autenticado: ${currentUser.id}');
+      _log('🗑️ delete - Tabla: $_tableName');
+
+      // Primero verificar si la notificación existe y pertenece al usuario
+      final existing = await _client
+          .from(_tableName)
+          .select('id, usuario_destino_id')
+          .eq('id', id)
+          .maybeSingle();
+
+      if (existing == null) {
+        _log('ℹ️ delete - La notificación ya no existe (posiblemente eliminada previamente)');
+        // No lanzar error, considerar como éxito (idempotencia)
+        return;
+      }
+
+      if (existing['usuario_destino_id'] != currentUser.id) {
+        _log('⚠️ delete - La notificación pertenece a otro usuario');
+        throw DataSourceException(
+          message: 'No tienes permisos para eliminar esta notificación.',
+          code: 'PERMISSION_DENIED',
+        );
+      }
+
+      // Ahora sí, eliminar
+      final response = await _client
+          .from(_tableName)
+          .delete()
+          .eq('id', id)
+          .select();
+
+      _log('🗑️ delete - Respuesta: ${response.length} filas afectadas');
+
+      if (response.isEmpty) {
+        _log('⚠️ delete - No se eliminó ninguna fila (race condition: eliminada entre verificación y delete)');
+        // No lanzar error, ya estaba eliminada
+        return;
+      }
+
+      _log('✅ delete - Eliminada correctamente');
+    } catch (e, stackTrace) {
+      if (e is DataSourceException) rethrow;
+      _log('❌ delete - Error: $e');
+      _log('❌ delete - StackTrace: $stackTrace');
+      throw DataSourceException(
+        message: 'Error al eliminar notificación: $e',
+        code: 'DELETE_ERROR',
+      );
+    }
+  }
+
+  @override
+  Future<void> deleteAll(String usuarioId) async {
+    try {
+      // Verificar autenticación
+      final currentUser = _client.auth.currentUser;
+      if (currentUser == null) {
+        _log('❌ deleteAll - Usuario no autenticado');
+        throw DataSourceException(
+          message: 'Usuario no autenticado',
+          code: 'UNAUTHENTICATED',
+        );
+      }
+
+      _log('🗑️ deleteAll - Eliminando todas las notificaciones');
+      _log('🗑️ deleteAll - Usuario ID: $usuarioId');
+      _log('🗑️ deleteAll - Usuario autenticado: ${currentUser.id}');
+
+      // Usar función PostgreSQL con SECURITY DEFINER (bypass RLS)
+      final response = await _client.rpc(
+        'eliminar_todas_notificaciones_usuario',
+        params: {'p_usuario_id': usuarioId},
+      );
+
+      _log('🗑️ deleteAll - Respuesta de función: $response');
+
+      // Validar respuesta
+      if (response is Map<String, dynamic>) {
+        final success = response['success'] as bool? ?? false;
+        final deletedCount = response['deleted_count'] as int? ?? 0;
+
+        if (!success) {
+          final errorMsg = response['error'] as String? ?? 'Error desconocido';
+          _log('❌ deleteAll - Error en función: $errorMsg');
+          throw DataSourceException(
+            message: 'Error al eliminar notificaciones: $errorMsg',
+            code: 'RPC_ERROR',
+          );
+        }
+
+        _log('✅ deleteAll - $deletedCount notificaciones eliminadas correctamente');
+      } else {
+        _log('⚠️ deleteAll - Respuesta inesperada: $response');
+      }
+
+      // ⚡ CRÍTICO: Forzar actualización del stream
+      // Las funciones RPC NO activan triggers de Realtime, por lo que
+      // debemos actualizar manualmente el stream
+      _log('🔄 deleteAll - Forzando actualización del stream...');
+      final notificaciones = await getByUsuario(usuarioId);
+      if (!_notificacionesController.isClosed) {
+        _notificacionesController.add(notificaciones);
+        _log('✅ deleteAll - Stream actualizado con ${notificaciones.length} notificaciones');
+      }
+    } catch (e, stackTrace) {
+      if (e is DataSourceException) rethrow;
+      _log('❌ deleteAll - Error: $e');
+      _log('❌ deleteAll - StackTrace: $stackTrace');
+      throw DataSourceException(
+        message: 'Error al eliminar todas las notificaciones: $e',
+        code: 'DELETE_ERROR',
+      );
+    }
+  }
+
+  @override
+  Future<void> deleteMultiple(List<String> ids) async {
+    try {
+      // Verificar autenticación
+      final currentUser = _client.auth.currentUser;
+      if (currentUser == null) {
+        _log('❌ deleteMultiple - Usuario no autenticado');
+        throw DataSourceException(
+          message: 'Usuario no autenticado',
+          code: 'UNAUTHENTICATED',
+        );
+      }
+
+      if (ids.isEmpty) {
+        _log('ℹ️ deleteMultiple - No hay IDs para eliminar');
+        return;
+      }
+
+      _log('🗑️ deleteMultiple - Eliminando ${ids.length} notificaciones');
+      _log('🗑️ deleteMultiple - Usuario autenticado: ${currentUser.id}');
+      _log('🗑️ deleteMultiple - IDs: $ids');
+
+      // Obtener el usuario destino antes de eliminar
+      final String usuarioId = currentUser.id;
+
+      // Usar función PostgreSQL con SECURITY DEFINER (bypass RLS)
+      final response = await _client.rpc(
+        'eliminar_notificaciones_usuario',
+        params: {'p_notification_ids': ids},
+      );
+
+      _log('🗑️ deleteMultiple - Respuesta de función: $response');
+
+      // Validar respuesta
+      if (response is Map<String, dynamic>) {
+        final success = response['success'] as bool? ?? false;
+        final deletedCount = response['deleted_count'] as int? ?? 0;
+        final requestedCount = response['requested_count'] as int? ?? ids.length;
+
+        if (!success) {
+          final errorMsg = response['error'] as String? ?? 'Error desconocido';
+          _log('❌ deleteMultiple - Error en función: $errorMsg');
+          throw DataSourceException(
+            message: 'Error al eliminar notificaciones: $errorMsg',
+            code: 'RPC_ERROR',
+          );
+        }
+
+        if (deletedCount < requestedCount) {
+          _log('⚠️ deleteMultiple - Solo se eliminaron $deletedCount de $requestedCount notificaciones');
+        }
+
+        _log('✅ deleteMultiple - $deletedCount notificaciones eliminadas correctamente');
+      } else {
+        _log('⚠️ deleteMultiple - Respuesta inesperada: $response');
+      }
+
+      // ⚡ CRÍTICO: Forzar actualización del stream
+      // Las funciones RPC NO activan triggers de Realtime, por lo que
+      // debemos actualizar manualmente el stream
+      _log('🔄 deleteMultiple - Forzando actualización del stream...');
+      final notificaciones = await getByUsuario(usuarioId);
+      if (!_notificacionesController.isClosed) {
+        _notificacionesController.add(notificaciones);
+        _log('✅ deleteMultiple - Stream actualizado con ${notificaciones.length} notificaciones');
+      }
+    } catch (e, stackTrace) {
+      if (e is DataSourceException) rethrow;
+      _log('❌ deleteMultiple - Error: $e');
+      _log('❌ deleteMultiple - StackTrace: $stackTrace');
+      throw DataSourceException(
+        message: 'Error al eliminar notificaciones seleccionadas: $e',
+        code: 'DELETE_ERROR',
+      );
+    }
+  }
+
+  @override
+  Stream<List<NotificacionEntity>> watchNotificaciones(String usuarioId) {
+    // Cancelar suscripción anterior si existe
+    _channel?.unsubscribe();
+
+    // Lista actual de notificaciones
+    List<NotificacionEntity> currentNotificaciones = [];
+
+    // Cargar datos iniciales
+    getByUsuario(usuarioId).then((notificaciones) {
+      currentNotificaciones = notificaciones;
+      if (!_notificacionesController.isClosed) {
+        _notificacionesController.add(currentNotificaciones);
+      }
+    });
+
+    // Suscribirse a cambios en tiempo real
+    _channel = _client.channel("notificaciones:$usuarioId");
+
+    _channel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: _tableName,
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'usuario_destino_id',
+        value: usuarioId,
+      ),
+      callback: (payload) {
+        // Para DELETE, usar oldRecord; para INSERT/UPDATE, usar newRecord
+        final recordData = payload.eventType == PostgresChangeEvent.delete
+            ? payload.oldRecord
+            : payload.newRecord;
+
+        // Si no hay datos, salir
+        if (recordData.isEmpty) {
+          _log('⚠️ watchNotificaciones - Evento ${payload.eventType} sin datos');
+          return;
+        }
+
+        final model = NotificacionSupabaseModel.fromJson(recordData);
+        final notificacion = model.toEntity();
+
+        _log('🔔 watchNotificaciones - Evento: ${payload.eventType}, ID: ${notificacion.id}');
+
+        switch (payload.eventType) {
+          case PostgresChangeEvent.insert:
+            currentNotificaciones = [notificacion, ...currentNotificaciones];
+            _log('✅ watchNotificaciones - Notificación insertada, total: ${currentNotificaciones.length}');
+            break;
+          case PostgresChangeEvent.update:
+            currentNotificaciones = currentNotificaciones.map((n) {
+              return n.id == notificacion.id ? notificacion : n;
+            }).toList();
+            _log('✅ watchNotificaciones - Notificación actualizada, total: ${currentNotificaciones.length}');
+            break;
+          case PostgresChangeEvent.delete:
+            currentNotificaciones = currentNotificaciones.where((n) => n.id != notificacion.id).toList();
+            _log('✅ watchNotificaciones - Notificación eliminada, total: ${currentNotificaciones.length}');
+            break;
+          default:
+            break;
+        }
+
+        if (!_notificacionesController.isClosed) {
+          _notificacionesController.add(currentNotificaciones);
+          _log('📤 watchNotificaciones - Stream actualizado con ${currentNotificaciones.length} notificaciones');
+        }
+      },
+    ).subscribe();
+
+    return _notificacionesController.stream;
+  }
+
+  @override
+  Stream<int> watchConteoNoLeidas(String usuarioId) {
+    // Cargar conteo inicial
+    getConteoNoLeidas(usuarioId).then((conteo) {
+      if (!_conteoController.isClosed) {
+        _conteoController.add(conteo);
+      }
+    });
+
+    // Escuchar cambios en el stream de notificaciones
+    watchNotificaciones(usuarioId).listen((notificaciones) {
+      final conteo = notificaciones.where((n) => !n.leida).length;
+      if (!_conteoController.isClosed) {
+        _conteoController.add(conteo);
+      }
+    });
+
+    return _conteoController.stream;
+  }
+
+  @override
+  Future<void> notificarJefesPersonal({
+    required String tipo,
+    required String titulo,
+    required String mensaje,
+    String? entidadTipo,
+    String? entidadId,
+    Map<String, dynamic> metadata = const {},
+  }) async {
+    try {
+      _log('📬 notificarJefesPersonal - Llamando función PostgreSQL');
+      _log('📬 Tipo: $tipo, Título: $titulo');
+
+      // Usar función PostgreSQL con SECURITY DEFINER (bypass RLS)
+      await _client.rpc('crear_notificacion_jefes_personal', params: {
+        'p_tipo': tipo,
+        'p_titulo': titulo,
+        'p_mensaje': mensaje,
+        'p_entidad_tipo': entidadTipo,
+        'p_entidad_id': entidadId,
+        'p_metadata': metadata,
+      });
+
+      _log('✅ notificarJefesPersonal - Notificaciones creadas exitosamente');
+    } catch (e) {
+      _log('❌ notificarJefesPersonal - Error: $e');
+      throw DataSourceException(
+        message: 'Error al notificar jefes de personal: $e',
+        code: 'NOTIFY_ERROR',
+      );
+    }
+  }
+
+  @override
+  Future<void> notificarGestoresFlota({
+    required String tipo,
+    required String titulo,
+    required String mensaje,
+    String? entidadTipo,
+    String? entidadId,
+    Map<String, dynamic> metadata = const {},
+    String? excluirUsuarioId,
+  }) async {
+    try {
+      _log('🚗 notificarGestoresFlota - Llamando función PostgreSQL');
+      _log('🚗 Tipo: $tipo, Título: $titulo');
+      if (excluirUsuarioId != null) {
+        _log('🚫 Excluyendo usuario: $excluirUsuarioId');
+      }
+
+      // Usar función PostgreSQL con SECURITY DEFINER (bypass RLS)
+      await _client.rpc('crear_notificacion_gestores_flota', params: {
+        'p_tipo': tipo,
+        'p_titulo': titulo,
+        'p_mensaje': mensaje,
+        'p_entidad_tipo': entidadTipo,
+        'p_entidad_id': entidadId,
+        'p_metadata': metadata,
+        'p_excluir_usuario_id': excluirUsuarioId,
+      });
+
+      _log('✅ notificarGestoresFlota - Notificaciones creadas exitosamente');
+    } catch (e) {
+      _log('❌ notificarGestoresFlota - Error: $e');
+      throw DataSourceException(
+        message: 'Error al notificar gestores de flota: $e',
+        code: 'NOTIFY_ERROR',
+      );
+    }
+  }
+
+  /// Libera recursos
+  void dispose() {
+    _channel?.unsubscribe();
+    _notificacionesController.close();
+    _conteoController.close();
+  }
+}

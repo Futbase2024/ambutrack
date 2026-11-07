@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:equatable/equatable.dart';
 
 /// Estados del MantenimientoBloc
@@ -39,12 +39,4 @@ class MantenimientoError extends MantenimientoState {
   List<Object?> get props => <Object?>[message];
 }
 
-/// Estado de operación exitosa (crear/actualizar/eliminar)
-class MantenimientoOperationSuccess extends MantenimientoState {
-  const MantenimientoOperationSuccess({required this.message});
 
-  final String message;
-
-  @override
-  List<Object?> get props => <Object?>[message];
-}

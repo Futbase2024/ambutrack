@@ -1,6 +1,7 @@
 /// Roles de usuario en AmbuTrack
 ///
-/// Define los 10 roles disponibles en el sistema con sus descripciones.
+/// Define los 10 roles disponibles en el sistema.
+/// Debe coincidir con la tabla 'roles' de la base de datos.
 /// Cada rol tiene permisos específicos para acceder a módulos de la aplicación.
 enum UserRole {
   /// Acceso total al sistema
@@ -32,15 +33,15 @@ enum UserRole {
   /// - Módulos: mis_turnos, mis_servicios, mis_ausencias
   sanitario('sanitario', 'Sanitario', 'Acceso a datos propios'),
 
-  /// Gestión de flota (rol heredado)
-  /// - Módulos: vehiculos, mantenimiento, itv
-  gestor('gestor', 'Gestor de Flota', 'Gestión de vehículos'),
-
-  /// Mantenimiento (rol heredado)
-  /// - Módulos: mantenimiento, talleres, repuestos
+  /// Mantenimiento de vehículos
+  /// - Módulos: mantenimiento, itv, vehiculos
   tecnico('tecnico', 'Técnico', 'Mantenimiento de vehículos'),
 
-  /// Solo lectura (rol heredado)
+  /// Gestión de flota y mantenimiento
+  /// - Módulos: vehiculos, mantenimiento, itv, talleres, repuestos
+  jefeMantenimiento('jefe_mantenimiento', 'Jefe de Mantenimiento', 'Gestión de flota y mantenimiento'),
+
+  /// Solo lectura
   /// - Módulos: Consulta sin modificación
   operador('operador', 'Operador', 'Solo lectura');
 
@@ -70,11 +71,12 @@ enum UserRole {
   /// Verifica si el rol es de administración
   bool get isAdmin => this == UserRole.admin;
 
-  /// Verifica si el rol es de gestión (admin, jefe_personal, jefe_trafico)
+  /// Verifica si el rol es de gestión (admin, jefe_personal, jefe_trafico, jefe_mantenimiento)
   bool get isManager =>
       this == UserRole.admin ||
       this == UserRole.jefePersonal ||
-      this == UserRole.jefeTrafic;
+      this == UserRole.jefeTrafic ||
+      this == UserRole.jefeMantenimiento;
 
   /// Verifica si el rol es operativo (conductor, sanitario)
   bool get isOperative => this == UserRole.conductor || this == UserRole.sanitario;

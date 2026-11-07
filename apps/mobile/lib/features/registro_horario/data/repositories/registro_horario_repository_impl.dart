@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/repositories/registro_horario_repository.dart';
 
@@ -23,6 +23,9 @@ class RegistroHorarioRepositoryImpl implements RegistroHorarioRepository {
         ubicacion: registro.ubicacion,
         latitud: registro.latitud,
         longitud: registro.longitud,
+        precisionGps: registro.precisionGps,
+        vehiculoId: registro.vehiculoId,
+        vehiculoMatricula: registro.vehiculoMatricula,
         notas: registro.notas,
       );
     } else {
@@ -32,6 +35,9 @@ class RegistroHorarioRepositoryImpl implements RegistroHorarioRepository {
         ubicacion: registro.ubicacion,
         latitud: registro.latitud,
         longitud: registro.longitud,
+        precisionGps: registro.precisionGps,
+        vehiculoId: registro.vehiculoId,
+        vehiculoMatricula: registro.vehiculoMatricula,
         notas: registro.notas,
       );
     }

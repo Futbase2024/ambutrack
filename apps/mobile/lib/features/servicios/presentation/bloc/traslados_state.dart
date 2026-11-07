@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Estados del BLoC de traslados
 abstract class TrasladosState extends Equatable {
@@ -65,16 +65,20 @@ class TrasladosLoaded extends TrasladosState {
 
   /// Filtra traslados por estado
   List<TrasladoEntity> getTrasladosByEstado(EstadoTraslado estado) {
-    return traslados.where((t) => t.estado == estado).toList();
+    return traslados.where((t) {
+      final estadoActual = EstadoTraslado.fromValue(t.estado);
+      return estadoActual == estado;
+    }).toList();
   }
 
   /// Obtiene los traslados de hoy
   List<TrasladoEntity> getTrasladosDeHoy() {
     final hoy = DateTime.now();
     return traslados.where((t) {
-      return t.fecha.year == hoy.year &&
-          t.fecha.month == hoy.month &&
-          t.fecha.day == hoy.day;
+      if (t.fecha == null) return false;
+      return t.fecha!.year == hoy.year &&
+          t.fecha!.month == hoy.month &&
+          t.fecha!.day == hoy.day;
     }).toList();
   }
 }

@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/tablas/motivos_cancelacion/domain/repositories/motivo_cancelacion_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';

@@ -1,6 +1,7 @@
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
+import 'package:ambutrack_web/core/widgets/gestion_frame/gestion_frame.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/domain/entities/cuadrante_view_mode.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/bloc/cuadrante_bloc.dart';
@@ -8,6 +9,7 @@ import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/b
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/bloc/cuadrante_state.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/widgets/cuadrante_calendario_view.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/widgets/cuadrante_disponibilidad_view.dart';
+import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/widgets/cuadrante_filter_bar.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/widgets/cuadrante_header.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/widgets/cuadrante_tabla_view.dart';
 import 'package:ambutrack_web/features/turnos/presentation/bloc/turnos_bloc.dart';
@@ -79,60 +81,38 @@ class _CuadranteViewState extends State<CuadranteView> {
       child: BlocBuilder<CuadranteBloc, CuadranteState>(
         builder: (BuildContext context, CuadranteState state) {
           if (state is CuadranteLoading) {
-            return const _LoadingView();
+            return const GestionFrame(content: _LoadingView());
           }
 
           if (state is CuadranteError) {
-            return _ErrorView(message: state.message);
+            return GestionFrame(content: _ErrorView(message: state.message));
           }
 
           if (state is CuadranteLoaded) {
-            // Medir altura del header para layout correcto
-            return LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-                return Stack(
-                  children: <Widget>[
-                    // Contenido principal con padding superior
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        // Espacio para el header compacto (aumentado para que el contenido no se pegue)
-                        const SizedBox(height: 100),
-
-                        // Vista según modo seleccionado
-                        Expanded(
-                          child: _buildViewForMode(state),
-                        ),
-                      ],
-                    ),
-
-                    // Header posicionado encima (mayor z-index)
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          CuadranteHeader(state: state),
-                          const SizedBox(height: AppSizes.spacingLarge),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
+            return GestionFrame(
+              toolbar: CuadranteHeader(state: state),
+              filterBar: CuadranteFilterBar(state: state),
+              content: _CuadranteModeContent(state: state),
+              statusBar: CuadranteStatusBar(state: state),
             );
           }
 
           // Estado inicial - mostrar loading
-          return const _LoadingView();
+          return const GestionFrame(content: _LoadingView());
         },
       ),
     );
   }
+}
 
-  Widget _buildViewForMode(CuadranteLoaded state) {
+/// Contenido según el modo de vista seleccionado
+class _CuadranteModeContent extends StatelessWidget {
+  const _CuadranteModeContent({required this.state});
+
+  final CuadranteLoaded state;
+
+  @override
+  Widget build(BuildContext context) {
     switch (state.viewMode) {
       case CuadranteViewMode.tabla:
         return CuadranteTablaView(state: state);
@@ -150,18 +130,9 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.spacingMassive),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.radius),
-        border: Border.all(color: AppColors.gray200),
-      ),
-      constraints: const BoxConstraints(minHeight: 400),
-      child: const Center(
-        child: AppLoadingIndicator(
-          message: 'Cargando cuadrante...',
-        ),
+    return const Center(
+      child: AppLoadingIndicator(
+        message: 'Cargando cuadrante...',
       ),
     );
   }
@@ -175,13 +146,7 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingXl),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.radius),
-        border: Border.all(color: AppColors.error),
-      ),
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[

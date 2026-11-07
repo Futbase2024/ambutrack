@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Repositorio para gestión de registro horario
 ///
@@ -11,6 +11,12 @@ abstract class RegistroHorarioRepository {
   /// Obtiene registros horarios por ID de personal en un rango de fechas
   Future<List<RegistroHorarioEntity>> getByPersonalIdAndDateRange(
     String personalId,
+    DateTime fechaInicio,
+    DateTime fechaFin,
+  );
+
+  /// Obtiene TODOS los registros horarios en un rango de fechas (sin filtro de personal)
+  Future<List<RegistroHorarioEntity>> getByDateRange(
     DateTime fechaInicio,
     DateTime fechaFin,
   );

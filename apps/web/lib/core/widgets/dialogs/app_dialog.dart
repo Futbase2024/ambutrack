@@ -150,7 +150,7 @@ class AppDialog extends StatelessWidget {
   Color _getHeaderColor() {
     switch (type) {
       case AppDialogType.view:
-        return const Color(0xFF3B5BDB); // Azul para ver
+        return AppColors.primaryLight; // Azul para ver
       case AppDialogType.edit:
         return AppColors.secondaryLight; // Verde para editar (#059669)
       case AppDialogType.create:

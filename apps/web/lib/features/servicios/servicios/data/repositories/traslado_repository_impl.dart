@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/repositories/traslado_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
@@ -86,11 +86,11 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
 
   @override
   Future<List<TrasladoEntity>> getByEstado(String estado) async {
-    // Convertir String a EstadoTraslado enum
-    final EstadoTraslado estadoEnum = EstadoTraslado.values.firstWhere(
-      (EstadoTraslado e) => e.name == estado,
-      orElse: () => EstadoTraslado.pendiente,
-    );
+    // Convertir String a EstadoTraslado enum que espera el datasource
+    final EstadoTraslado? estadoEnum = EstadoTraslado.fromValue(estado);
+    if (estadoEnum == null) {
+      throw ArgumentError('Estado inválido: $estado');
+    }
     return _dataSource.getByEstado(estado: estadoEnum);
   }
 
@@ -101,7 +101,7 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
 
   @override
   Future<List<TrasladoEntity>> getByConductor(String idConductor) async {
-    return _dataSource.getByIdConductor(idConductor);
+    return _dataSource.getByConductor(idConductor);
   }
 
   @override
@@ -109,7 +109,10 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
     required DateTime desde,
     required DateTime hasta,
   }) async {
-    return _dataSource.getByRangoFechas(fechaInicio: desde, fechaFin: hasta);
+    return _dataSource.getByRangoFechas(
+      fechaInicio: desde,
+      fechaFin: hasta,
+    );
   }
 
   @override
@@ -137,28 +140,36 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
 
   @override
   Future<TrasladoEntity> update(TrasladoEntity traslado) async {
-    // Convertir TrasladoEntity a Map para el datasource
-    return _dataSource.update(
+    debugPrint('📦 TrasladoRepository: Actualizando traslado: ${traslado.id}');
+    // Construir Map con los campos de la entidad (solo columnas que existen en `traslados`)
+    final Map<String, dynamic> updates = <String, dynamic>{
+      if (traslado.codigo != null) 'codigo': traslado.codigo,
+      if (traslado.idServicioRecurrente != null) 'id_servicio_recurrente': traslado.idServicioRecurrente,
+      if (traslado.idServicio != null) 'id_servicio': traslado.idServicio,
+      if (traslado.idMotivoTraslado != null) 'id_motivo_traslado': traslado.idMotivoTraslado,
+      if (traslado.idPaciente != null) 'id_paciente': traslado.idPaciente,
+      if (traslado.tipoTraslado != null) 'tipo_traslado': traslado.tipoTraslado,
+      // `fecha` es DATE y `hora_programada` es TIME en la base de datos
+      if (traslado.fecha != null) 'fecha': _fechaSql(traslado.fecha!),
+      if (traslado.horaProgramada != null) 'hora_programada': _horaSql(traslado.horaProgramada!),
+      if (traslado.estado != null) 'estado': traslado.estado,
+      if (traslado.idPersonalConductor != null) 'id_conductor': traslado.idPersonalConductor,
+      if (traslado.idVehiculo != null) 'id_vehiculo': traslado.idVehiculo,
+      if (traslado.matriculaVehiculo != null) 'matricula_vehiculo': traslado.matriculaVehiculo,
+      if (traslado.tipoOrigen != null) 'tipo_origen': traslado.tipoOrigen,
+      if (traslado.origen != null) 'origen': traslado.origen,
+      if (traslado.tipoDestino != null) 'tipo_destino': traslado.tipoDestino,
+      if (traslado.destino != null) 'destino': traslado.destino,
+      if (traslado.observaciones != null) 'observaciones': traslado.observaciones,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    final TrasladoEntity actualizado = await _dataSource.update(
       id: traslado.id,
-      updates: <String, dynamic>{
-        'codigo': traslado.codigo,
-        'id_servicio': traslado.idServicio,
-        'id_servicio_recurrente': traslado.idServicioRecurrente,
-        'id_paciente': traslado.idPaciente,
-        'id_motivo_traslado': traslado.idMotivoTraslado,
-        'id_conductor': traslado.idConductor,
-        'id_vehiculo': traslado.idVehiculo,
-        'matricula_vehiculo': traslado.matriculaVehiculo,
-        'fecha': traslado.fecha.toIso8601String(),
-        'hora_programada': traslado.horaProgramada,
-        'estado': traslado.estado.name,
-        'tipo_traslado': traslado.tipoTraslado,
-        'prioridad': traslado.prioridad,
-        'observaciones': traslado.observaciones,
-        'origen': traslado.origen,
-        'destino': traslado.destino,
-      },
+      updates: updates,
     );
+    debugPrint('📦 TrasladoRepository: ✅ Traslado actualizado exitosamente');
+    return actualizado;
   }
 
   @override
@@ -267,8 +278,16 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
   }
 
   @override
-  Stream<TrasladoEntity> watchByIds(List<String> ids) {
+  Stream<List<TrasladoEntity>> watchByIds(List<String> ids) {
     debugPrint('📦 TrasladoRepository: Iniciando watch de ${ids.length} traslados');
     return _dataSource.watchByIds(ids);
   }
+
+  /// DateTime → 'yyyy-MM-dd' (columna DATE)
+  static String _fechaSql(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  /// DateTime → 'HH:mm:ss' (columna TIME)
+  static String _horaSql(DateTime d) =>
+      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}:${d.second.toString().padLeft(2, '0')}';
 }

@@ -9,6 +9,14 @@
 - **Modelos**: ambutrack_core_datasource (paquete local)
 - **DI**: @injectable, @LazySingleton
 
+## ❌ REGLAS CRÍTICAS
+
+### PROHIBICIONES ABSOLUTAS
+- ❌ **NUNCA usar paquete `ambutrack_core`** - Paquete DEPRECADO
+- ✅ **SIEMPRE usar `ambutrack_core_datasource`** - Paquete actual y activo
+- ❌ **NUNCA importar de `package:ambutrack_core/...`**
+- ✅ **SIEMPRE importar de `package:ambutrack_core_datasource/...`**
+
 ## 🎯 Mi Responsabilidad
 - Crear DataSources con Supabase
 - Implementar Repositories

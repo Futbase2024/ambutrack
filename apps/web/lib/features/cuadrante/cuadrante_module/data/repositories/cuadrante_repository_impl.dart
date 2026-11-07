@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/domain/entities/cuadrante_filter.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/domain/entities/personal_con_turnos_entity.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/domain/repositories/cuadrante_repository.dart';
@@ -25,7 +25,9 @@ class CuadranteRepositoryImpl implements CuadranteRepository {
       debugPrint('   Rango: ${filter.fechaInicio} - ${filter.fechaFin}');
 
       // Construir query de personal con filtros
-      PostgrestFilterBuilder<dynamic> query = _supabase.from('tpersonal').select();
+      PostgrestFilterBuilder<dynamic> query = _supabase
+          .from('tpersonal')
+          .select('*, tcategorias(categoria)');
 
       // IMPORTANTE: Solo personal activo
       query = query.eq('activo', true);
@@ -41,11 +43,18 @@ class CuadranteRepositoryImpl implements CuadranteRepository {
 
       debugPrint('✅ Personal obtenido: ${responseList.length}');
 
-      // Convertir a entidades
-      final List<PersonalEntity> personalList = <PersonalEntity>[
-        for (final dynamic item in responseList)
-          PersonalEntity.fromMap(item as Map<String, dynamic>),
-      ];
+      // Convertir a entidades extrayendo categoría del JOIN
+      final List<PersonalEntity> personalList = responseList.cast<Map<String, dynamic>>().map((Map<String, dynamic> itemMap) {
+        final dynamic categoriaData = itemMap['tcategorias'];
+        String? categoriaNombre;
+        if (categoriaData is Map && categoriaData.isNotEmpty) {
+          categoriaNombre = categoriaData['categoria']?.toString();
+        }
+        final Map<String, dynamic> itemWithCategoria = Map<String, dynamic>.from(itemMap)
+          ..['categoria'] = categoriaNombre
+          ..remove('tcategorias');
+        return PersonalEntity.fromMap(itemWithCategoria);
+      }).toList();
 
       // Obtener turnos para el rango de fechas
       List<TurnoEntity> turnosList = <TurnoEntity>[];

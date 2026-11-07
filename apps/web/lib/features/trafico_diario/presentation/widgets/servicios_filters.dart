@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/entities/servicio_entity.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/resizable_data_table.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/filtro_dropdown_widget.dart';
@@ -172,6 +172,8 @@ class ServiciosFilters {
             },
           ),
         ),
+        // Requisitos - sin filtro (4 columnas: SIC, CA, Ayu, Ac)
+        ...List<DataTableCell>.generate(4, (_) => const DataTableCell(child: SizedBox.shrink(), alignment: Alignment.center)),
         // Matrícula
         DataTableCell(
           child: FiltroDropdownWidget(
@@ -184,10 +186,8 @@ class ServiciosFilters {
             },
           ),
         ),
-        // Horas cronológicas - sin filtro (5 columnas)
-        ...List<DataTableCell>.generate(5, (_) => const DataTableCell(child: SizedBox.shrink(), alignment: Alignment.center)),
-        // Requisitos - sin filtro (4 columnas)
-        ...List<DataTableCell>.generate(4, (_) => const DataTableCell(child: SizedBox.shrink(), alignment: Alignment.center)),
+        // Horas cronológicas - sin filtro (6 columnas: H. Env, H. Rec, H. Org, H. Sal, H. Dst, H. Fin)
+        ...List<DataTableCell>.generate(6, (_) => const DataTableCell(child: SizedBox.shrink(), alignment: Alignment.center)),
       ],
     );
   }
@@ -221,7 +221,7 @@ class ServiciosFilters {
 
       switch (columna) {
         case 'tipoTraslado':
-          valor = traslado.tipoTraslado.toUpperCase();
+          valor = (traslado.tipoTraslado ?? '').toUpperCase();
           break;
         case 'paciente':
           if (servicio?.paciente != null) {
@@ -264,7 +264,7 @@ class ServiciosFilters {
           valor = servicio?.motivoTraslado?.nombre ?? '';
           break;
         case 'estatus':
-          valor = traslado.estado.name;
+          valor = EstadoTraslado.fromValue(traslado.estado)?.label ?? traslado.estado ?? '';
           break;
         case 'conductor':
           valor = traslado.idConductor != null

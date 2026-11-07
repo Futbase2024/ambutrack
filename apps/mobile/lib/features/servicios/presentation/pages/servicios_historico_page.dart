@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart' show AuthAuthenticated;
@@ -513,10 +513,11 @@ class _ServiciosHistoricoPageContentState
     // 1. Filtrar por rango de fechas
     if (_fechaInicio != null && _fechaFin != null) {
       trasladosFiltrados = trasladosFiltrados.where((t) {
+        if (t.fecha == null) return false;
         final fechaTraslado = DateTime(
-          t.fecha.year,
-          t.fecha.month,
-          t.fecha.day,
+          t.fecha!.year,
+          t.fecha!.month,
+          t.fecha!.day,
         );
         final inicio = DateTime(
           _fechaInicio!.year,
@@ -539,18 +540,27 @@ class _ServiciosHistoricoPageContentState
     // 2. Aplicar filtro por estado si está seleccionado
     if (_filtroEstado != null) {
       trasladosFiltrados = trasladosFiltrados
-          .where((t) => t.estado == _filtroEstado)
+          .where((t) {
+            final estadoActual = EstadoTraslado.fromValue(t.estado);
+            return estadoActual == _filtroEstado;
+          })
           .toList();
     }
 
     // 3. Ordenar por fecha + hora (descendente: más reciente primero)
     trasladosFiltrados.sort((a, b) {
       // Primero comparar por fecha
-      final dateCompare = b.fecha.compareTo(a.fecha);
+      if (a.fecha == null && b.fecha == null) return 0;
+      if (a.fecha == null) return 1;
+      if (b.fecha == null) return -1;
+      final dateCompare = b.fecha!.compareTo(a.fecha!);
       if (dateCompare != 0) return dateCompare;
 
       // Si la fecha es igual, comparar por hora
-      return b.horaProgramada.compareTo(a.horaProgramada);
+      if (a.horaProgramada == null && b.horaProgramada == null) return 0;
+      if (a.horaProgramada == null) return 1;
+      if (b.horaProgramada == null) return -1;
+      return b.horaProgramada!.compareTo(a.horaProgramada!);
     });
 
     return trasladosFiltrados;

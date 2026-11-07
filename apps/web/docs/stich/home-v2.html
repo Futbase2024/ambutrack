@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AmbuTrack Dashboard - Sistema de Gestión</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1e3fae",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+            vertical-align: middle;
+            font-size: 20px;
+        }
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #1e3fae 0%, #3b82f6 100%);
+        }
+        .bg-gradient-success {
+            background: linear-gradient(135deg, #059669 0%, #34d399 100%);
+        }
+        .bg-gradient-warning {
+            background: linear-gradient(135deg, #d97706 0%, #fbbf24 100%);
+        }
+        .bg-gradient-purple {
+            background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #e2e8f0;
+            border-radius: 10px;
+        }
+        .appbar-nav-item {
+            @apply flex items-center gap-1.5 px-3 py-2 text-[13px] font-semibold text-slate-600 hover:text-primary hover:bg-slate-50 rounded-lg transition-all whitespace-nowrap;
+        }
+        .appbar-nav-item.active {
+            @apply text-primary bg-blue-50;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 antialiased overflow-x-hidden">
+<header class="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="px-6 py-2">
+<div class="max-w-[1800px] mx-auto flex items-center justify-between gap-4">
+<div class="flex items-center gap-6 overflow-hidden">
+<div class="flex items-center gap-3 flex-shrink-0">
+<div class="w-9 h-9 bg-primary rounded-lg flex items-center justify-center text-white shadow-md shadow-primary/20">
+<span class="material-symbols-outlined text-xl">ambulance</span>
+</div>
+<h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white">AmbuTrack</h1>
+</div>
+<div class="h-8 w-px bg-slate-200 mx-2 hidden lg:block"></div>
+<nav class="hidden lg:flex items-center gap-0.5 overflow-x-auto custom-scrollbar pb-1 lg:pb-0">
+<a class="appbar-nav-item active" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                        Dashboard
+                    </a>
+<a class="appbar-nav-item" href="#">
+<span class="material-symbols-outlined">table_view</span>
+                        Tablas
+                        <span class="material-symbols-outlined !text-[14px] text-slate-400">expand_more</span>
+</a>
+<a class="appbar-nav-item" href="#">
+<span class="material-symbols-outlined">medical_services</span>
+                        Servicios
+                        <span class="material-symbols-outlined !text-[14px] text-slate-400">expand_more</span>
+</a>
+<a class="appbar-nav-item" href="#">
+<span class="material-symbols-outlined">badge</span>
+                        Personal
+                    </a>
+<a class="appbar-nav-item" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+                        Cuadrante
+                    </a>
+<a class="appbar-nav-item" href="#">
+<span class="material-symbols-outlined">local_shipping</span>
+                        Vehículos
+                        <span class="material-symbols-outlined !text-[14px] text-slate-400">expand_more</span>
+</a>
+<a class="appbar-nav-item" href="#">
+<span class="material-symbols-outlined">traffic</span>
+                        Tráfico
+                    </a>
+<a class="appbar-nav-item" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+                        Informes
+                    </a>
+<a class="appbar-nav-item" href="#">
+<span class="material-symbols-outlined">build</span>
+                        Taller
+                    </a>
+<a class="appbar-nav-item" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+                        Almacén General
+                    </a>
+<a class="appbar-nav-item" href="#">
+<span class="material-symbols-outlined">admin_panel_settings</span>
+                        Administración
+                    </a>
+</nav>
+</div>
+<div class="flex items-center gap-3 flex-shrink-0">
+<div class="flex items-center gap-1">
+<button class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg relative transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<div class="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+<button class="flex items-center gap-2.5 p-1 pl-1 pr-2 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100">
+<div class="w-8 h-8 rounded-full border border-slate-200 overflow-hidden bg-slate-100">
+<img alt="User Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsYz03vWcGpaRTKCI_lg-ixolGhb5XI0fnoCmZzSpTVNejbLZAT6i-8KE9iDdgOPAaBgk5n2MEj-vEzRcaDN44ui5EWgeTyS8radpGIjxapOVCVQWGAzUt-zCyXAJbTrTlA0d1L7WILXps-ZRzs3hHg-HBjP-ClxI3XZU3wtIQuvGUk3iVHnt98WPfpkDYISeJBrzc8654qngwwJSrfrWVZ6hjXzwlWkuPjfrJGbf__JbCPgTvUcxxnx5oO-xp7-HB4fe3zAX9Wss"/>
+</div>
+<div class="hidden xl:block text-left">
+<p class="text-xs font-bold text-slate-900 leading-none">Admin Usuario</p>
+<p class="text-[10px] text-slate-500 leading-none mt-1">Gestor de Flota</p>
+</div>
+<span class="material-symbols-outlined text-slate-400 !text-[16px] hidden xl:block">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-[1800px] mx-auto p-6 lg:p-8 flex flex-col gap-8">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div class="space-y-1">
+<h2 class="text-2xl font-extrabold text-[#1E40AF]">Panel de Control</h2>
+<p class="text-slate-500 text-sm font-medium">Resumen general de las operaciones y estado del sistema.</p>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<button class="h-10 px-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-sm flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm">
+<span class="material-symbols-outlined !text-lg">upload</span> Importar
+            </button>
+<button class="h-10 px-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-sm flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm">
+<span class="material-symbols-outlined !text-lg">download</span> Exportar
+            </button>
+<button class="h-10 px-4 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-sm flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm">
+<span class="material-symbols-outlined !text-lg">filter_list</span> Filtrar
+            </button>
+<button class="h-10 px-5 rounded-lg bg-gradient-primary text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined !text-lg">add_circle</span> Nuevo Servicio
+            </button>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="p-6 rounded-xl bg-gradient-primary text-white shadow-xl shadow-primary/10 relative overflow-hidden group">
+<span class="material-symbols-outlined absolute -right-2 -bottom-2 text-8xl opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-500">medical_services</span>
+<p class="text-white/80 font-medium text-sm">Servicios Activos</p>
+<div class="flex items-end justify-between mt-2">
+<h3 class="text-4xl font-bold">1,284</h3>
+<span class="text-xs bg-white/20 px-2 py-1 rounded-full">+5.2%</span>
+</div>
+</div>
+<div class="p-6 rounded-xl bg-gradient-success text-white shadow-xl shadow-emerald-500/10 relative overflow-hidden group">
+<span class="material-symbols-outlined absolute -right-2 -bottom-2 text-8xl opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-500">check_circle</span>
+<p class="text-white/80 font-medium text-sm">Disponibles</p>
+<div class="flex items-end justify-between mt-2">
+<h3 class="text-4xl font-bold">45</h3>
+<span class="text-xs bg-white/20 px-2 py-1 rounded-full">+2.1%</span>
+</div>
+</div>
+<div class="p-6 rounded-xl bg-gradient-warning text-white shadow-xl shadow-amber-500/10 relative overflow-hidden group">
+<span class="material-symbols-outlined absolute -right-2 -bottom-2 text-8xl opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-500">build</span>
+<p class="text-white/80 font-medium text-sm">En Mantenimiento</p>
+<div class="flex items-end justify-between mt-2">
+<h3 class="text-4xl font-bold">12</h3>
+<span class="text-xs bg-white/20 px-2 py-1 rounded-full">+12%</span>
+</div>
+</div>
+<div class="p-6 rounded-xl bg-gradient-purple text-white shadow-xl shadow-purple-500/10 relative overflow-hidden group">
+<span class="material-symbols-outlined absolute -right-2 -bottom-2 text-8xl opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-500">badge</span>
+<p class="text-white/80 font-medium text-sm">Personal Activo</p>
+<div class="flex items-end justify-between mt-2">
+<h3 class="text-4xl font-bold">82</h3>
+<span class="text-xs bg-white/20 px-2 py-1 rounded-full text-white font-bold">-3%</span>
+</div>
+</div>
+</div>
+<div class="w-full flex flex-col gap-6">
+<div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-4 shadow-sm">
+<div class="relative flex-1 min-w-[300px] md:max-w-[400px]">
+<span class="material-symbols-outlined text-slate-400 absolute left-3 top-1/2 -translate-y-1/2">search</span>
+<input class="h-10 w-full pl-10 pr-4 rounded-lg border-slate-200 bg-slate-50 focus:ring-primary focus:border-primary text-sm transition-all" placeholder="Buscar por paciente, ID o servicio..." type="text"/>
+</div>
+<select class="h-10 rounded-lg border-slate-200 bg-slate-50 focus:ring-primary text-sm min-w-[140px]">
+<option value="">Estado</option>
+<option value="activo">En Ruta</option>
+<option value="pendiente">Pendiente</option>
+<option value="inactivo">Finalizado</option>
+</select>
+<input class="h-10 rounded-lg border-slate-200 bg-slate-50 focus:ring-primary text-sm px-3" type="date"/>
+<button class="h-10 px-4 text-slate-500 hover:text-red-500 text-sm font-semibold flex items-center gap-2 transition-colors">
+<span class="material-symbols-outlined !text-lg">close</span> Limpiar
+            </button>
+</div>
+<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+<div class="overflow-x-auto custom-scrollbar">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50 border-b border-slate-200">
+<th class="py-4 px-6 w-10">
+<input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/>
+</th>
+<th class="py-4 px-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider">ID</th>
+<th class="py-4 px-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Paciente</th>
+<th class="py-4 px-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Identificación</th>
+<th class="py-4 px-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Teléfono</th>
+<th class="py-4 px-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Dirección</th>
+<th class="py-4 px-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">Estado</th>
+<th class="py-4 px-6 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center sticky right-0 bg-slate-50 shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)]">Acciones</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<tr class="hover:bg-blue-50/50 transition-colors group">
+<td class="py-4 px-6">
+<input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/>
+</td>
+<td class="py-4 px-6 text-sm font-semibold text-slate-900">#AM-001</td>
+<td class="py-4 px-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden ring-2 ring-white">
+<img alt="CR" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSMoP9KPRw3d_hgedv3aoxGdOXfdUeXv--UqlYACdbEyOu7Z8ytYppWHSwSRo0gqbJaddz6b76mWM2XHbjH8e57SIQjuWo8hTlFX2OJIFrrUv0cLCQaH-kqTpXhlIdprfQpV35NQwl_4grY29qizDh7kLMEJQLQa2ioHpoOVSH87epKXrG6Mor3Q4cWBnfmgSEGNXDI0rqRStxoXY8ezi0SVL5-p08Wr8E0HxxdZF7im9IL8Wss7zdu-beZyP7Gs1-vDHtVAjXlzE"/>
+</div>
+<span class="text-sm font-bold text-slate-900">Carlos Ruiz</span>
+</div>
+</td>
+<td class="py-4 px-6 text-sm text-slate-600">CC 1.098.765.432</td>
+<td class="py-4 px-6 text-sm text-slate-600">+57 312 456 7890</td>
+<td class="py-4 px-6 text-sm text-slate-500">Calle 45 #12-34, Bogotá</td>
+<td class="py-4 px-6 text-center">
+<span class="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700">Activo</span>
+</td>
+<td class="py-4 px-6 sticky right-0 bg-white group-hover:bg-[#f8fafc] shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)] transition-colors">
+<div class="flex items-center justify-center gap-2">
+<button class="p-1.5 text-slate-400 hover:text-primary transition-colors" title="Ver"><span class="material-symbols-outlined !text-lg">visibility</span></button>
+<button class="p-1.5 text-slate-400 hover:text-primary transition-colors" title="Editar"><span class="material-symbols-outlined !text-lg">edit</span></button>
+<button class="p-1.5 text-slate-400 hover:text-red-500 transition-colors" title="Eliminar"><span class="material-symbols-outlined !text-lg">delete</span></button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-blue-50/50 transition-colors group">
+<td class="py-4 px-6">
+<input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/>
+</td>
+<td class="py-4 px-6 text-sm font-semibold text-slate-900">#AM-002</td>
+<td class="py-4 px-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden ring-2 ring-white">
+<img alt="EG" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCg3msFOc9izZd6lnMLJDoqard2xSH0EPOvqGGW3c7_Tvw9uL74tx1OtgJijmirf59SEJVrnjKDBmQkpH2k4f8wf2VCPjLxY0OG07qKbLhaleo9IBvjkVutjMatQydWAV4j8elUkg18fbtac5J_OsM9D4ZdtIbT_-wD3q9oH91Pap9iYTcdUdE6_st61vP2hZ8wmkKzJz3ImyasdsbZITFmsi1m_oYuWEqPMCp1AnT4UIzUWm7afltO53mlJF2ruQxZCWDTq7rQgrw"/>
+</div>
+<span class="text-sm font-bold text-slate-900">Elena Gomez</span>
+</div>
+</td>
+<td class="py-4 px-6 text-sm text-slate-600">TI 1.112.333.444</td>
+<td class="py-4 px-6 text-sm text-slate-600">+57 300 987 6543</td>
+<td class="py-4 px-6 text-sm text-slate-500">Av El Dorado #68-10, Edificio Ambar</td>
+<td class="py-4 px-6 text-center">
+<span class="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700">Pendiente</span>
+</td>
+<td class="py-4 px-6 sticky right-0 bg-white group-hover:bg-[#f8fafc] shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)] transition-colors">
+<div class="flex items-center justify-center gap-2">
+<button class="p-1.5 text-slate-400 hover:text-primary transition-colors" title="Ver"><span class="material-symbols-outlined !text-lg">visibility</span></button>
+<button class="p-1.5 text-slate-400 hover:text-primary transition-colors" title="Editar"><span class="material-symbols-outlined !text-lg">edit</span></button>
+<button class="p-1.5 text-slate-400 hover:text-red-500 transition-colors" title="Eliminar"><span class="material-symbols-outlined !text-lg">delete</span></button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-6 py-4 bg-slate-50 flex items-center justify-between border-t border-slate-100">
+<p class="text-[11px] font-semibold text-slate-500 uppercase tracking-tight">Mostrando 1-10 de 1,284 registros</p>
+<div class="flex items-center gap-1.5">
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors">
+<span class="material-symbols-outlined !text-lg">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-primary text-white text-[11px] font-bold shadow-sm">1</button>
+<button class="w-8 h-8 rounded-lg text-slate-600 text-[11px] font-bold hover:bg-slate-200 transition-colors">2</button>
+<button class="w-8 h-8 rounded-lg text-slate-600 text-[11px] font-bold hover:bg-slate-200 transition-colors">3</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors">
+<span class="material-symbols-outlined !text-lg">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="max-w-[1800px] mx-auto p-6 flex flex-col md:flex-row items-center justify-between text-slate-400 text-[11px] mt-12 mb-8 gap-4 border-t border-slate-100">
+<p>© 2024 AmbuTrack Healthcare Systems. Todos los derechos reservados.</p>
+<div class="flex gap-6 items-center">
+<a class="hover:text-primary transition-colors uppercase tracking-widest font-bold" href="#">Soporte Técnico</a>
+<a class="hover:text-primary transition-colors uppercase tracking-widest font-bold" href="#">Privacidad</a>
+<span class="bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-mono">v2.4.0-stable</span>
+</div>
+</footer>
+
+</body></html>

@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Repositorio para gestión de asignaciones de cuadrante
 abstract class CuadranteAsignacionRepository {

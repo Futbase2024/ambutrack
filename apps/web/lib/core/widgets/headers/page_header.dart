@@ -29,6 +29,7 @@ class PageHeaderConfig {
     required this.stats,
     required this.onAdd,
     this.addButtonLabel = 'Agregar',
+    this.extra,
   });
   final IconData icon;
   final String title;
@@ -36,6 +37,7 @@ class PageHeaderConfig {
   final List<HeaderStat> stats;
   final VoidCallback onAdd;
   final String addButtonLabel;
+  final Widget? extra;
 }
 
 /// ===============================
@@ -92,13 +94,21 @@ class _DesktopLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       children: <Widget>[
-        _TitleSection(config),
-        const SizedBox(width: AppSizes.spacingLarge),
-        Expanded(child: _StatsSection(config.stats)),
-        const SizedBox(width: AppSizes.spacingLarge),
-        _AddButton(config),
+        Row(
+          children: <Widget>[
+            _TitleSection(config),
+            const SizedBox(width: AppSizes.spacingLarge),
+            Expanded(child: _StatsSection(config.stats)),
+            const SizedBox(width: AppSizes.spacingLarge),
+            _AddButton(config),
+          ],
+        ),
+        if (config.extra != null) ...<Widget>[
+          const SizedBox(height: AppSizes.spacing),
+          config.extra!,
+        ],
       ],
     );
   }
@@ -122,6 +132,10 @@ class _TabletLayout extends StatelessWidget {
         ),
         const SizedBox(height: AppSizes.spacing),
         _StatsSection(config.stats),
+        if (config.extra != null) ...<Widget>[
+          const SizedBox(height: AppSizes.spacing),
+          config.extra!,
+        ],
       ],
     );
   }
@@ -144,6 +158,10 @@ class _MobileLayout extends StatelessWidget {
           width: double.infinity,
           child: _AddButton(config),
         ),
+        if (config.extra != null) ...<Widget>[
+          const SizedBox(height: AppSizes.spacing),
+          config.extra!,
+        ],
       ],
     );
   }

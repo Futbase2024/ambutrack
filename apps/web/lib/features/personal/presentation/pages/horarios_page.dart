@@ -1,4 +1,5 @@
 import 'package:ambutrack_web/core/di/locator.dart';
+import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/bloc/cuadrante_bloc.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/widgets/cuadrante_view.dart';
 import 'package:ambutrack_web/features/turnos/presentation/bloc/turnos_bloc.dart';
@@ -21,7 +22,10 @@ class HorariosPage extends StatelessWidget {
             create: (_) => getIt<TurnosBloc>(),
           ),
         ],
-        child: const CuadranteView(),
+        child: const Scaffold(
+          backgroundColor: AppColors.backgroundLight,
+          body: CuadranteView(),
+        ),
       ),
     );
   }

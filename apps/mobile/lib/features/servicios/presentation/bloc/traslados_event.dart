@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Eventos del BLoC de traslados
 abstract class TrasladosEvent extends Equatable {
