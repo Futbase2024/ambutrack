@@ -97,4 +97,23 @@ class SupabaseAuditLogDataSource implements AuditLogDataSource {
     }
     return q;
   }
+
+  @override
+  Future<List<AuditLogEntity>> getByRegistro({
+    required String tabla,
+    required String registroId,
+    int limit = 100,
+  }) async {
+    try {
+      final dynamic response = await _supabase.rpc<dynamic>(
+        'fn_historial_registro',
+        params: <String, dynamic>{'p_tabla': tabla, 'p_registro_id': registroId, 'p_limit': limit},
+      );
+      return (response as List<dynamic>)
+          .map((dynamic json) => AuditLogSupabaseModel.fromJson(json as Map<String, dynamic>).toEntity())
+          .toList();
+    } catch (e) {
+      throw Exception('Error al consultar el historial del registro: $e');
+    }
+  }
 }

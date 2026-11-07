@@ -48,4 +48,14 @@ class AuditLogRepositoryImpl implements AuditLogRepository {
       hasta: hasta,
     );
   }
+
+  @override
+  Future<List<AuditLogEntity>> getByRegistro({
+    required String tabla,
+    required String registroId,
+    int limit = 100,
+  }) async {
+    debugPrint('📦 AuditLogRepository: Historial de $tabla/$registroId...');
+    return _dataSource.getByRegistro(tabla: tabla, registroId: registroId, limit: limit);
+  }
 }

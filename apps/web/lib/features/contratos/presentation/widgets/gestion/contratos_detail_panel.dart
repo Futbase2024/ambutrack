@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/contratos/presentation/widgets/gestion/contratos_gestion_columns.dart';
 import 'package:flutter/material.dart';
 
@@ -38,6 +39,7 @@ class ContratosDetailPanel extends StatelessWidget {
           label: 'General',
           child: _ContratoGeneralTab(contrato: c, hospital: hospitales[c.hospitalId]),
         ),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'contratos', registroId: c.id)),
       ],
       actions: <Widget>[
         OutlinedButton.icon(

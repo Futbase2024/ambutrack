@@ -1,5 +1,6 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/widgets/gestion/itv_gestion_columns.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/flota_gestion_common.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_gestion_columns.dart';
@@ -43,6 +44,7 @@ class ItvDetailPanel extends StatelessWidget {
           child: _ItvGeneralTab(item: i, vehiculo: vehiculos[i.vehiculoId]),
         ),
         GestionDetailTab(label: 'Historial vehículo', child: _ItvHistorialTab(item: i, todos: todos)),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'titv_revisiones', registroId: i.id)),
       ],
       actions: <Widget>[
         FlotaPanelButton.edit(onPressed: onEdit),

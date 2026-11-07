@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/taller/presentation/widgets/gestion/orden_repuestos_tab.dart';
 import 'package:ambutrack_web/features/taller/presentation/widgets/gestion/taller_gestion_common.dart';
 import 'package:ambutrack_web/features/taller/presentation/widgets/ordenes/orden_detail_sections.dart';
@@ -52,6 +53,7 @@ class OrdenDetailPanel extends StatelessWidget {
         ),
         GestionDetailTab(label: 'Costes', child: _OrdenCostesTab(orden: o)),
         GestionDetailTab(label: 'Repuestos', child: OrdenRepuestosTab(orden: o)),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'tordenes_reparacion', registroId: o.id)),
       ],
       actions: <Widget>[
         TallerDetailEditButton(onPressed: onEdit),

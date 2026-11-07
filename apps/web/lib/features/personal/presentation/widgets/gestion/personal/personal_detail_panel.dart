@@ -1,4 +1,5 @@
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
 import 'package:ambutrack_web/features/personal/presentation/widgets/gestion/common/personal_gestion_common.dart';
 import 'package:ambutrack_web/features/personal/presentation/widgets/gestion/personal/personal_formacion_tab.dart';
@@ -45,6 +46,7 @@ class PersonalDetailPanel extends StatelessWidget {
         ),
         GestionDetailTab(label: 'Equipamiento', child: PersonalEquipamientoTab(personalId: p.id)),
         GestionDetailTab(label: 'Vestuario', child: PersonalVestuarioTab(personalId: p.id)),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'tpersonal', registroId: p.id)),
       ],
       actions: <Widget>[
         GestionDetailEditButton(onPressed: onEdit),

@@ -1,5 +1,6 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/flota_gestion_common.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_equipamiento_tab.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_gestion_columns.dart';
@@ -43,6 +44,7 @@ class VehiculoDetailPanel extends StatelessWidget {
           label: 'Equipamiento',
           child: VehiculoEquipamientoTab(vehiculoId: v.id, onOpen: onStock),
         ),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'tvehiculos', registroId: v.id)),
       ],
       actions: <Widget>[
         FlotaPanelButton.edit(onPressed: onEdit),

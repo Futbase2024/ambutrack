@@ -1,5 +1,6 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/servicios/operativa/presentation/widgets/common/traslado_gestion_helpers.dart';
 import 'package:flutter/material.dart';
 
@@ -38,6 +39,7 @@ class TrasladoDetailPanel extends StatelessWidget {
           child: _TrasladoRecursosTab(traslado: t, nombres: nombres),
         ),
         GestionDetailTab(label: 'Cronología', child: _TrasladoCronasTab(traslado: t)),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'traslados', registroId: t.id)),
       ],
     );
   }

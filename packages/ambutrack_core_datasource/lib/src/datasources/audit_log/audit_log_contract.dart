@@ -28,4 +28,13 @@ abstract class AuditLogDataSource {
     DateTime? desde,
     DateTime? hasta,
   });
+
+  /// Historial de UN registro (pestaña "Historial" de las fichas), más reciente
+  /// primero. Lo filtra en servidor `fn_historial_registro`: solo devuelve
+  /// filas a los roles que gestionan el módulo de [tabla].
+  Future<List<AuditLogEntity>> getByRegistro({
+    required String tabla,
+    required String registroId,
+    int limit = 100,
+  });
 }

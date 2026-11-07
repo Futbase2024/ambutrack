@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/taller/presentation/widgets/gestion/taller_gestion_columns.dart';
 import 'package:ambutrack_web/features/taller/presentation/widgets/gestion/taller_ordenes_tab.dart';
 import 'package:flutter/material.dart';
@@ -36,6 +37,7 @@ class TallerDetailPanel extends StatelessWidget {
       tabs: <GestionDetailTab>[
         GestionDetailTab(label: 'General', child: _TallerGeneralTab(taller: t)),
         GestionDetailTab(label: 'Órdenes', child: TallerOrdenesTab(tallerId: t.id)),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'ttalleres', registroId: t.id)),
       ],
       actions: <Widget>[
         OutlinedButton.icon(

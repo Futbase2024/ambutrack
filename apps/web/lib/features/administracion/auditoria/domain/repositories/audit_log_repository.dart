@@ -21,4 +21,11 @@ abstract class AuditLogRepository {
     DateTime? desde,
     DateTime? hasta,
   });
+
+  /// Historial de un registro concreto (pestaña "Historial" de las fichas)
+  Future<List<AuditLogEntity>> getByRegistro({
+    required String tabla,
+    required String registroId,
+    int limit = 100,
+  });
 }

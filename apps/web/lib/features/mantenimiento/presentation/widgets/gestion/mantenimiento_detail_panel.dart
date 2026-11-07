@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/widgets/gestion/mantenimiento_gestion_columns.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/flota_gestion_common.dart';
 import 'package:flutter/material.dart';
@@ -43,6 +44,7 @@ class MantenimientoDetailPanel extends StatelessWidget {
           child: _MantGeneralTab(item: m, vehiculo: vehiculos[m.vehiculoId]),
         ),
         GestionDetailTab(label: 'Historial vehículo', child: _MantHistorialTab(item: m, todos: todos)),
+        GestionDetailTab(label: 'Cambios', child: RegistroHistorialTab(tabla: 'tmantenimientos', registroId: m.id)),
       ],
       actions: <Widget>[
         FlotaPanelButton.edit(onPressed: onEdit),
