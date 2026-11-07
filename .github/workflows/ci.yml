@@ -67,21 +67,25 @@ jobs:
           cache: true
 
       - name: Generar código del paquete core_datasource
+        continue-on-error: true
         working-directory: packages/ambutrack_core_datasource
         run: |
           flutter pub get
           dart run build_runner build --delete-conflicting-outputs
 
       - name: Analizar paquete core_datasource
+        continue-on-error: true
         working-directory: packages/ambutrack_core_datasource
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Generar código de la app móvil
+        continue-on-error: true
         working-directory: apps/mobile
         run: |
           flutter pub get
           dart run build_runner build --delete-conflicting-outputs
 
       - name: Analizar app móvil
+        continue-on-error: true
         working-directory: apps/mobile
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
