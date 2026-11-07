@@ -82,7 +82,7 @@ class MantenimientoEditFormData {
   final TextEditingController horasInoperativo;
   final TextEditingController proximoKm;
 
-  static String? textOrNull(TextEditingController c) => c.text.isEmpty ? null : c.text;
+  static String? textOrNull(TextEditingController c) => c.text.trim().isEmpty ? null : c.text.trim();
   static double? decimalOrNull(TextEditingController c) =>
       c.text.isEmpty ? null : GestionFormParse.decimal(c.text);
 

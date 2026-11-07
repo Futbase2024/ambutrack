@@ -83,7 +83,11 @@ class _MantenimientoEditDialogState extends State<MantenimientoEditDialog> {
     );
 
     final MantenimientoEntity m = widget.mantenimiento;
-    final MantenimientoEntity updatedMantenimiento = m.copyWith(
+    // Se construye la entidad completa (no copyWith) para que los campos que el
+    // usuario ha vaciado queden en null y se guarden vacíos
+    final MantenimientoEntity updatedMantenimiento = MantenimientoEntity(
+      id: m.id,
+      vehiculoId: m.vehiculoId,
       fecha: _data.fecha,
       kmVehiculo: GestionFormParse.entero(_data.km.text)?.toDouble() ?? m.kmVehiculo,
       tipoMantenimiento: _data.tipo,
@@ -94,14 +98,19 @@ class _MantenimientoEditDialogState extends State<MantenimientoEditDialog> {
       numeroOrden: MantenimientoEditFormData.textOrNull(_data.numeroOrden),
       costoManoObra: MantenimientoEditFormData.decimalOrNull(_data.costeManoObra),
       costoRepuestos: MantenimientoEditFormData.decimalOrNull(_data.costeRepuestos),
-      costoTotal: GestionFormParse.decimal(_data.costeTotal.text) ?? m.costoTotal,
+      costoTotal: GestionFormParse.decimal(_data.costeTotal.text) ?? 0,
       estado: _data.estado,
       fechaProgramada: _data.fechaProgramada,
       fechaInicio: _data.fechaInicio,
       fechaFin: _data.fechaFin,
       tiempoInoperativoHoras: MantenimientoEditFormData.decimalOrNull(_data.horasInoperativo),
-      proximoKmSugerido: _data.proximoKm.text.isEmpty ? null : GestionFormParse.entero(_data.proximoKm.text),
+      proximoKmSugerido: GestionFormParse.entero(_data.proximoKm.text),
       proximaFechaSugerida: _data.proximaFechaSugerida,
+      archivos: m.archivos,
+      facturaUrl: m.facturaUrl,
+      empresaId: m.empresaId,
+      createdAt: m.createdAt,
+      createdBy: m.createdBy,
       updatedAt: DateTime.now(),
       updatedBy: Supabase.instance.client.auth.currentUser?.id,
     );

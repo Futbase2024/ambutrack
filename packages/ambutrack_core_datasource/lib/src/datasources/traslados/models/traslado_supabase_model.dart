@@ -98,14 +98,14 @@ class TrasladoSupabaseModel {
   final String? idMotivoTraslado;
 
   /// Motivo de traslado embebido (cargado cuando se hace JOIN con tmotivos_traslado)
-  @JsonKey(name: 'tmotivos_traslado')
+  @JsonKey(name: 'tmotivos_traslado', includeToJson: false) // sin columna en traslados (solo lectura)
   final Map<String, dynamic>? motivoTraslado;
 
   @JsonKey(name: 'id_paciente')
   final String? idPaciente;
 
   /// Paciente embebido (cargado cuando se hace JOIN con pacientes)
-  @JsonKey(name: 'pacientes')
+  @JsonKey(name: 'pacientes', includeToJson: false) // sin columna en traslados (solo lectura)
   final Map<String, dynamic>? paciente;
 
   @JsonKey(name: 'tipo_traslado')
@@ -121,10 +121,10 @@ class TrasladoSupabaseModel {
   @JsonKey(name: 'id_conductor')
   final String? idPersonalConductor;
 
-  @JsonKey(name: 'id_personal_enfermero')
+  @JsonKey(name: 'id_personal_enfermero', includeToJson: false) // sin columna en traslados (solo lectura)
   final String? idPersonalEnfermero;
 
-  @JsonKey(name: 'id_personal_medico')
+  @JsonKey(name: 'id_personal_medico', includeToJson: false) // sin columna en traslados (solo lectura)
   final String? idPersonalMedico;
 
   @JsonKey(name: 'id_vehiculo')
@@ -143,30 +143,30 @@ class TrasladoSupabaseModel {
 
   final String? destino;
 
-  @JsonKey(name: 'km_inicio')
+  @JsonKey(name: 'km_inicio', includeToJson: false) // sin columna en traslados (solo lectura)
   final double? kmInicio;
 
-  @JsonKey(name: 'km_fin')
+  @JsonKey(name: 'km_fin', includeToJson: false) // sin columna en traslados (solo lectura)
   final double? kmFin;
 
-  @JsonKey(name: 'km_totales')
+  @JsonKey(name: 'km_totales', includeToJson: false) // sin columna en traslados (solo lectura)
   final double? kmTotales;
 
   final String? observaciones;
 
-  @JsonKey(name: 'observaciones_internas')
+  @JsonKey(name: 'observaciones_internas', includeToJson: false) // sin columna en traslados (solo lectura)
   final String? observacionesInternas;
 
   @JsonKey(name: 'motivo_cancelacion')
   final String? motivoCancelacion;
 
-  @JsonKey(name: 'motivo_no_realizacion')
+  @JsonKey(name: 'motivo_no_realizacion', includeToJson: false) // sin columna en traslados (solo lectura)
   final String? motivoNoRealizacion;
 
-  @JsonKey(name: 'duracion_estimada_minutos')
+  @JsonKey(name: 'duracion_estimada_minutos', includeToJson: false) // sin columna en traslados (solo lectura)
   final int? duracionEstimadaMinutos;
 
-  @JsonKey(name: 'duracion_real_minutos')
+  @JsonKey(name: 'duracion_real_minutos', includeToJson: false) // sin columna en traslados (solo lectura)
   final int? duracionRealMinutos;
 
   final int? prioridad;
@@ -190,10 +190,10 @@ class TrasladoSupabaseModel {
   @JsonKey(name: 'ubicacion_saliendo_origen')
   final Map<String, dynamic>? ubicacionSaliendoOrigen; // JSONB
 
-  @JsonKey(name: 'fecha_en_transito')
+  @JsonKey(name: 'fecha_en_transito', includeToJson: false) // sin columna en traslados (solo lectura)
   final String? fechaEnTransito;
 
-  @JsonKey(name: 'ubicacion_en_transito')
+  @JsonKey(name: 'ubicacion_en_transito', includeToJson: false) // sin columna en traslados (solo lectura)
   final Map<String, dynamic>? ubicacionEnTransito; // JSONB
 
   @JsonKey(name: 'fecha_en_destino')
@@ -218,19 +218,19 @@ class TrasladoSupabaseModel {
   final String? fechaNoRealizado;
 
   // AUDITORÍA DE ASIGNACIÓN
-  @JsonKey(name: 'id_usuario_asignacion')
+  @JsonKey(name: 'usuario_asignacion')
   final String? idUsuarioAsignacion;
 
   @JsonKey(name: 'fecha_asignacion')
   final String? fechaAsignacion;
 
-  @JsonKey(name: 'id_usuario_envio')
+  @JsonKey(name: 'usuario_envio')
   final String? idUsuarioEnvio;
 
-  @JsonKey(name: 'fecha_envio')
+  @JsonKey(name: 'fecha_envio', includeToJson: false) // sin columna en traslados (solo lectura)
   final String? fechaEnvio;
 
-  @JsonKey(name: 'id_usuario_cancelacion')
+  @JsonKey(name: 'usuario_cancelacion')
   final String? idUsuarioCancelacion;
 
   @JsonKey(name: 'created_at')

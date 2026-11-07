@@ -75,6 +75,19 @@ class _IncidenciaFormModalState extends State<IncidenciaFormModal> {
     }
   }
 
+  /// Km actual del vehículo seleccionado (mínimo para una avería nueva).
+  /// Al editar no se exige: el vehículo ha podido sumar km desde el reporte.
+  double? _kmMinimo(BuildContext context) {
+    if (_isEditing || _vehiculoId == null) {
+      return null;
+    }
+    final VehiculosState state = context.watch<VehiculosBloc>().state;
+    if (state is! VehiculosLoaded) {
+      return null;
+    }
+    return state.vehiculos.where((VehiculoEntity v) => v.id == _vehiculoId).firstOrNull?.kmActual;
+  }
+
   double? get _kilometraje =>
       _kilometrajeController.text.isNotEmpty ? double.tryParse(_kilometrajeController.text) : null;
 
@@ -199,7 +212,7 @@ class _IncidenciaFormModalState extends State<IncidenciaFormModal> {
           children: <Widget>[
             GestionFormRow(
               label: 'Kilometraje',
-              child: _KilometrajeField(controller: _kilometrajeController),
+              child: _KilometrajeField(controller: _kilometrajeController, kmMinimo: _kmMinimo(context)),
             ),
             const SizedBox.shrink(),
           ],
@@ -274,17 +287,19 @@ class _VehiculoField extends StatelessWidget {
   }
 }
 
-/// Kilometraje opcional (entero, sin separadores para conservar el parseo)
+/// Kilometraje opcional (entero, sin separadores para conservar el parseo).
+/// Si se indica [kmMinimo], no admite un valor inferior (km actual del vehículo).
 class _KilometrajeField extends StatelessWidget {
-  const _KilometrajeField({required this.controller});
+  const _KilometrajeField({required this.controller, this.kmMinimo});
 
   final TextEditingController controller;
+  final double? kmMinimo;
 
   @override
   Widget build(BuildContext context) {
     return GestionTextField(
       controller: controller,
-      hint: 'Ej: 150000',
+      hint: kmMinimo == null ? 'Ej: 150000' : 'Mínimo ${kmMinimo!.round()}',
       suffixText: 'km',
       textAlign: TextAlign.end,
       keyboardType: TextInputType.number,
@@ -294,6 +309,10 @@ class _KilometrajeField extends StatelessWidget {
           final double? km = double.tryParse(value);
           if (km == null || km < 0) {
             return 'Ingresa un kilometraje válido';
+          }
+          final double? minimo = kmMinimo;
+          if (minimo != null && km < minimo) {
+            return 'No puede ser menor que el km actual del vehículo (${minimo.round()} km)';
           }
         }
         return null;

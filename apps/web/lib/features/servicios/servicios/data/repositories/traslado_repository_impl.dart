@@ -141,7 +141,7 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
   @override
   Future<TrasladoEntity> update(TrasladoEntity traslado) async {
     debugPrint('📦 TrasladoRepository: Actualizando traslado: ${traslado.id}');
-    // Construir Map con los campos de la entidad
+    // Construir Map con los campos de la entidad (solo columnas que existen en `traslados`)
     final Map<String, dynamic> updates = <String, dynamic>{
       if (traslado.codigo != null) 'codigo': traslado.codigo,
       if (traslado.idServicioRecurrente != null) 'id_servicio_recurrente': traslado.idServicioRecurrente,
@@ -149,12 +149,11 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
       if (traslado.idMotivoTraslado != null) 'id_motivo_traslado': traslado.idMotivoTraslado,
       if (traslado.idPaciente != null) 'id_paciente': traslado.idPaciente,
       if (traslado.tipoTraslado != null) 'tipo_traslado': traslado.tipoTraslado,
-      if (traslado.fecha != null) 'fecha': traslado.fecha!.toIso8601String(),
-      if (traslado.horaProgramada != null) 'hora_programada': traslado.horaProgramada!.toIso8601String(),
+      // `fecha` es DATE y `hora_programada` es TIME en la base de datos
+      if (traslado.fecha != null) 'fecha': _fechaSql(traslado.fecha!),
+      if (traslado.horaProgramada != null) 'hora_programada': _horaSql(traslado.horaProgramada!),
       if (traslado.estado != null) 'estado': traslado.estado,
-      if (traslado.idPersonalConductor != null) 'id_personal_conductor': traslado.idPersonalConductor,
-      if (traslado.idPersonalEnfermero != null) 'id_personal_enfermero': traslado.idPersonalEnfermero,
-      if (traslado.idPersonalMedico != null) 'id_personal_medico': traslado.idPersonalMedico,
+      if (traslado.idPersonalConductor != null) 'id_conductor': traslado.idPersonalConductor,
       if (traslado.idVehiculo != null) 'id_vehiculo': traslado.idVehiculo,
       if (traslado.matriculaVehiculo != null) 'matricula_vehiculo': traslado.matriculaVehiculo,
       if (traslado.tipoOrigen != null) 'tipo_origen': traslado.tipoOrigen,
@@ -162,7 +161,6 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
       if (traslado.tipoDestino != null) 'tipo_destino': traslado.tipoDestino,
       if (traslado.destino != null) 'destino': traslado.destino,
       if (traslado.observaciones != null) 'observaciones': traslado.observaciones,
-      if (traslado.observacionesInternas != null) 'observaciones_internas': traslado.observacionesInternas,
       'updated_at': DateTime.now().toIso8601String(),
     };
 
@@ -284,4 +282,12 @@ class TrasladoRepositoryImpl implements TrasladoRepository {
     debugPrint('📦 TrasladoRepository: Iniciando watch de ${ids.length} traslados');
     return _dataSource.watchByIds(ids);
   }
+
+  /// DateTime → 'yyyy-MM-dd' (columna DATE)
+  static String _fechaSql(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  /// DateTime → 'HH:mm:ss' (columna TIME)
+  static String _horaSql(DateTime d) =>
+      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}:${d.second.toString().padLeft(2, '0')}';
 }
