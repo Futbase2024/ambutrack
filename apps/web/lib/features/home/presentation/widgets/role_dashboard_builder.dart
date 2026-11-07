@@ -3,6 +3,7 @@ import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_state.dart';
 import 'package:ambutrack_web/features/home/presentation/config/dashboard_card_config.dart';
 import 'package:ambutrack_web/features/home/presentation/config/dashboard_role_config.dart';
+import 'package:ambutrack_web/features/home/presentation/widgets/inicio/dashboard_kpi_tile.dart';
 import 'package:ambutrack_web/features/home/presentation/widgets/stat_card.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -10,7 +11,7 @@ import 'package:go_router/go_router.dart';
 /// Builder dinámico de cards del dashboard según el rol del usuario.
 ///
 /// Recibe el [UserRole] y [HomeLoaded] state como parámetros y construye
-/// un [GridView] con [StatCard] widgets según la configuración del rol.
+/// una rejilla de [DashboardKpiTile] según la configuración del rol.
 class RoleDashboardBuilder extends StatelessWidget {
   const RoleDashboardBuilder({
     required this.role,
@@ -39,62 +40,47 @@ class RoleDashboardBuilder extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        final int crossAxisCount =
-            _calculateColumns(constraints, cards.length);
-        const double spacing = 16;
-        final double cellWidth =
-            (constraints.maxWidth - (crossAxisCount - 1) * spacing) /
-                crossAxisCount;
-        final double cellHeight = constraints.maxHeight;
-        final double aspectRatio =
-            cellHeight.isFinite ? (cellWidth / cellHeight) : 1.55;
-
-        return GridView.count(
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: spacing,
-          mainAxisSpacing: spacing,
-          childAspectRatio: aspectRatio.clamp(0.8, 3.0),
-          children: cards
-              .map(
-                (DashboardCardConfig config) =>
-                    _buildStatCard(context, config),
-              )
-              .toList(),
+        final int columns = _calculateColumns(constraints, cards.length);
+        const double spacing = 12;
+        final double cellWidth = (constraints.maxWidth - (columns - 1) * spacing) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: <Widget>[
+            for (final DashboardCardConfig config in cards)
+              SizedBox(width: cellWidth, child: _buildTile(context, config)),
+          ],
         );
       },
     );
   }
 
   int _calculateColumns(BoxConstraints constraints, int cardCount) {
-    if (constraints.maxWidth < 600) {
-      return cardCount < 2 ? cardCount : 2;
-    }
-    if (constraints.maxWidth < 1200) {
-      return cardCount < 3 ? cardCount : 3;
-    }
-    return cardCount < 6 ? cardCount : 6;
+    final int porAncho = constraints.maxWidth < 600
+        ? 2
+        : constraints.maxWidth < 1000
+            ? 3
+            : constraints.maxWidth < 1400
+                ? 4
+                : 6;
+    return cardCount < porAncho ? cardCount : porAncho;
   }
 
-  StatCard _buildStatCard(BuildContext context, DashboardCardConfig config) {
+  DashboardKpiTile _buildTile(BuildContext context, DashboardCardConfig config) {
     final CardData data = _resolveCardData(config);
 
-    return StatCard(
+    return DashboardKpiTile(
       title: config.title,
       value: data.value,
       icon: config.icon,
       accentColor: config.accentColor,
       subtitle: config.subtitle,
       detalles: data.detalles,
-      onTap: config.route != null
-          ? () => context.go(config.route!)
-          : null,
-      onAdd: config.addRoute != null
-          ? () => context.go(config.addRoute!)
-          : null,
+      onTap: config.route != null ? () => context.go(config.route!) : null,
+      onAdd: config.addRoute != null ? () => context.go(config.addRoute!) : null,
     );
   }
 
-  /// Resuelve el valor y detalles de una card según su tipo.
   CardData _resolveCardData(DashboardCardConfig config) {
     final HomeLoaded s = homeState;
 

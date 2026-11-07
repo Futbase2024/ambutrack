@@ -7,7 +7,6 @@ import 'package:ambutrack_web/features/agenda_pendientes/presentation/bloc/agend
 import 'package:ambutrack_web/features/agenda_pendientes/presentation/bloc/agenda_pendiente_event.dart';
 import 'package:ambutrack_web/features/agenda_pendientes/presentation/bloc/agenda_pendiente_state.dart';
 import 'package:ambutrack_web/features/agenda_pendientes/presentation/widgets/agenda_pendientes_popup_dialog.dart';
-import 'package:ambutrack_web/features/alertas_caducidad/presentation/widgets/alertas_proximas_banner.dart';
 import 'package:ambutrack_web/features/auth/data/mappers/user_mapper.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart'
@@ -15,7 +14,9 @@ import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart'
 import 'package:ambutrack_web/features/home/presentation/bloc/home_bloc.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_event.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_state.dart';
+import 'package:ambutrack_web/features/home/presentation/config/dashboard_card_config.dart';
 import 'package:ambutrack_web/features/home/presentation/config/dashboard_role_config.dart';
+import 'package:ambutrack_web/features/home/presentation/widgets/inicio/inicio_layout.dart';
 import 'package:ambutrack_web/features/home/presentation/widgets/role_dashboard_builder.dart';
 import 'package:ambutrack_web/features/home/presentation/widgets/role_dashboard_charts.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/widgets/mantenimientos_proximos_dialog.dart';
@@ -38,7 +39,7 @@ class HomePageV2 extends StatelessWidget {
           getIt<HomeBloc>()..add(const HomeStarted()),
       child: SafeArea(
         child: Scaffold(
-          backgroundColor: AppColors.gray50,
+          backgroundColor: AppColors.backgroundLight,
           body: BlocBuilder<HomeBloc, HomeState>(
             builder: (BuildContext context, HomeState state) {
               if (state is HomeLoading) {
@@ -60,26 +61,15 @@ class HomePageV2 extends StatelessWidget {
 
               if (state is HomeLoaded) {
                 final UserRole role = _getCurrentRole(context);
-                final bool hasCharts =
-                    DashboardRoleConfig.chartsForRole(role).isNotEmpty;
+                final bool hasCharts = DashboardRoleConfig.chartsForRole(role).isNotEmpty;
+                final bool gestionaServicios = DashboardRoleConfig.cardsForRole(role)
+                    .any((DashboardCardConfig c) => c.cardType == DashboardCardType.servicios);
 
-                return Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      const AlertasProximasBanner(),
-                      Flexible(
-                        flex: hasCharts ? 3 : 5,
-                        child: _RoleStatsSection(role: role),
-                      ),
-                      if (hasCharts)
-                        Flexible(
-                          flex: 7,
-                          child: _RoleChartsSection(role: role),
-                        ),
-                    ],
-                  ),
+                return InicioLayout(
+                  indicadores: _RoleStatsSection(role: role),
+                  onRefresh: () => context.read<HomeBloc>().add(const HomeRefreshed()),
+                  servicios: gestionaServicios ? state.serviciosActivos : null,
+                  graficas: hasCharts ? _RoleChartsSection(role: role) : null,
                 );
               }
 

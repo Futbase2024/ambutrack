@@ -1,5 +1,6 @@
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/features/home/presentation/config/dashboard_card_config.dart';
+import 'package:ambutrack_web/features/home/presentation/widgets/inicio/inicio_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -53,8 +54,8 @@ class DashboardCharts extends StatelessWidget {
             : 1;
 
         // Calcular aspect ratio dinámico para llenar el espacio disponible
-        const double mainSpacing = 24;
-        const double crossSpacing = 24;
+        const double mainSpacing = 14;
+        const double crossSpacing = 14;
         final double cellWidth = (constraints.maxWidth - (crossAxisCount - 1) * crossSpacing) / crossAxisCount;
 
         // Usar la altura disponible para calcular el ratio
@@ -220,49 +221,17 @@ class _ChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.gray200),
+    // Mismo estilo que los paneles del dashboard (borde fino + cabecera)
+    return InicioPanel(
+      title: title,
+      icon: icon,
+      trailing: Text(
+        subtitle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 11.5, color: AppColors.gray500),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // Header
-            Row(
-              children: <Widget>[
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, color: iconColor, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        title,
-                        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.gray900),
-                      ),
-                      Text(subtitle, style: GoogleFonts.inter(fontSize: 12, color: AppColors.gray500)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // Chart
-            Expanded(child: child),
-          ],
-        ),
-      ),
+      child: Padding(padding: const EdgeInsets.all(12), child: child),
     );
   }
 }
