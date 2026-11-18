@@ -22,6 +22,13 @@ class TipoChecklistSelector extends StatelessWidget {
   /// Callback cuando cambia el tipo seleccionado
   final ValueChanged<TipoChecklist> onTipoChanged;
 
+  /// Orden de visualización de los chips
+  static const _orden = [
+    TipoChecklist.preServicio,
+    TipoChecklist.postServicio,
+    TipoChecklist.mensual,
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -38,23 +45,16 @@ class TipoChecklistSelector extends StatelessWidget {
         const SizedBox(height: 12),
         Row(
           children: [
-            _TipoChip(
-              tipo: TipoChecklist.preServicio,
-              isSelected: tipoSeleccionado == TipoChecklist.preServicio,
-              onTap: () => onTipoChanged(TipoChecklist.preServicio),
-            ),
-            const SizedBox(width: 8),
-            _TipoChip(
-              tipo: TipoChecklist.postServicio,
-              isSelected: tipoSeleccionado == TipoChecklist.postServicio,
-              onTap: () => onTipoChanged(TipoChecklist.postServicio),
-            ),
-            const SizedBox(width: 8),
-            _TipoChip(
-              tipo: TipoChecklist.mensual,
-              isSelected: tipoSeleccionado == TipoChecklist.mensual,
-              onTap: () => onTipoChanged(TipoChecklist.mensual),
-            ),
+            for (final tipo in _orden) ...[
+              if (tipo != _orden.first) const SizedBox(width: 8),
+              Expanded(
+                child: _TipoChip(
+                  tipo: tipo,
+                  isSelected: tipoSeleccionado == tipo,
+                  onTap: () => onTipoChanged(tipo),
+                ),
+              ),
+            ],
           ],
         ),
       ],
@@ -80,7 +80,8 @@ class _TipoChip extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : AppColors.gray100,
           borderRadius: BorderRadius.circular(20),
@@ -89,12 +90,16 @@ class _TipoChip extends StatelessWidget {
             width: 1,
           ),
         ),
-        child: Text(
-          tipo.nombre,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            tipo.nombre,
+            maxLines: 1,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : AppColors.gray700,
+              color: isSelected ? Colors.white : AppColors.gray700,
+            ),
           ),
         ),
       ),

@@ -4,17 +4,16 @@ import 'package:go_router/go_router.dart';
 
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_sizes.dart';
 import '../../../../core/widgets/dialogs/professional_result_dialog.dart';
+import '../../../../core/widgets/menu/app_menu.dart';
 import '../bloc/registro_horario_bloc.dart';
 import '../bloc/registro_horario_event.dart';
 import '../bloc/registro_horario_state.dart';
 import '../widgets/boton_registro_circular_widget.dart';
 import '../widgets/cambiar_vehiculo_dialog.dart';
-import '../widgets/estado_registro_badge.dart';
 import '../widgets/historial_fichajes_widget.dart';
-import '../widgets/reloj_digital_widget.dart';
-import '../widgets/seccion_tarjetas_info_widget.dart';
+import '../widgets/info_turno_grupo.dart';
+import '../widgets/turno_estado_card.dart';
 import '../widgets/ubicacion_fichaje_dialog.dart';
 
 /// Página de Registro Horario con diseño profesional
@@ -102,51 +101,50 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
                   padding: const EdgeInsets.all(16),
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1. Reloj digital grande
-                      const RelojDigitalWidget(),
-                      const SizedBox(height: 12),
-
-                      // 2. Badge de estado
-                      EstadoRegistroBadge(estadoActual: state.estadoActual),
-                      const SizedBox(height: 24),
-
-                      // 3. Botón circular con huella dactilar
-                      BotonRegistroCircularWidget(
+                      // 1. Reloj, estado y jornada en curso
+                      TurnoEstadoCard(
                         estadoActual: state.estadoActual,
-                        onFichar: (lat, lon, precision, observaciones) {
-                          _onFichar(context, state.estadoActual, lat, lon,
-                              precision, observaciones);
-                        },
+                        ultimoRegistro: state.ultimoRegistro,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 28),
 
-                      // 3.1. Botón de ubicación del último fichaje
-                      if (state.ultimoRegistro != null &&
-                          state.ultimoRegistro!.latitud != null &&
-                          state.ultimoRegistro!.longitud != null)
-                        _BotonUbicacionFichaje(
-                          registro: state.ultimoRegistro!,
+                      // 2. Botón circular con huella dactilar
+                      Center(
+                        child: BotonRegistroCircularWidget(
+                          estadoActual: state.estadoActual,
+                          onFichar: (lat, lon, precision, observaciones) {
+                            _onFichar(context, state.estadoActual, lat, lon,
+                                precision, observaciones);
+                          },
                         ),
-                      const SizedBox(height: 16),
+                      ),
+                      const SizedBox(height: 28),
 
-                      // 4. Tarjetas informativas
-                      SeccionTarjetasInfoWidget(
+                      // 3. Información del turno
+                      const AppMenuSeccion('Mi turno'),
+                      InfoTurnoGrupo(
                         vehiculo: state.vehiculo,
                         companero: state.companero,
                         ultimoRegistro: state.ultimoRegistro,
                         proximoTurno: state.proximoTurno,
-                        estadoActual: state.estadoActual,
-                        onCambiarVehiculo: state.vehiculo != null
+                        onCambiarVehiculo: _puedeCambiarVehiculo(state)
                             ? () => _mostrarDialogoCambioVehiculo(
                                   context,
                                   state.vehiculo!,
                                 )
                             : null,
+                        onVerUbicacion: _tieneUbicacion(state.ultimoRegistro)
+                            ? () => _mostrarMapaUbicacion(
+                                  context,
+                                  state.ultimoRegistro!,
+                                )
+                            : null,
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 28),
 
-                      // 5. Historial (widget existente - sin cambios)
+                      // 4. Historial
                       HistorialFichajesWidget(historial: state.historial),
                       const SizedBox(height: 16),
                     ],
@@ -228,6 +226,24 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
     }
   }
 
+  /// Solo se puede cambiar de vehículo estando en turno con uno asignado
+  bool _puedeCambiarVehiculo(RegistroHorarioLoadedWithContext state) {
+    return state.estadoActual == EstadoFichaje.dentro && state.vehiculo != null;
+  }
+
+  bool _tieneUbicacion(RegistroHorarioEntity? registro) {
+    return registro != null && registro.latitud != null && registro.longitud != null;
+  }
+
+  /// Muestra el mapa con la ubicación del fichaje
+  void _mostrarMapaUbicacion(BuildContext context, RegistroHorarioEntity registro) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => UbicacionFichajeDialog(registro: registro),
+    );
+  }
+
   /// Muestra el diálogo para cambiar de vehículo
   void _mostrarDialogoCambioVehiculo(
     BuildContext context,
@@ -277,58 +293,6 @@ class _FichandoView extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-/// Botón para ver la ubicación del último fichaje en un mapa
-class _BotonUbicacionFichaje extends StatelessWidget {
-  const _BotonUbicacionFichaje({
-    required this.registro,
-  });
-
-  final RegistroHorarioEntity registro;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: () => _mostrarMapaUbicacion(context),
-      icon: Icon(
-        Icons.location_on,
-        size: 18,
-        color: _getTipoColor(),
-      ),
-      label: Text(
-        'Ver ubicación del ${registro.tipo.toLowerCase()}',
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: _getTipoColor(),
-        ),
-      ),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        side: BorderSide(color: _getTipoColor(), width: 1.5),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-        ),
-      ),
-    );
-  }
-
-  /// Muestra el diálogo con el mapa
-  void _mostrarMapaUbicacion(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => UbicacionFichajeDialog(registro: registro),
-    );
-  }
-
-  /// Obtiene el color según el tipo de fichaje
-  Color _getTipoColor() {
-    return registro.tipo.toLowerCase() == 'entrada'
-        ? AppColors.success
-        : AppColors.error;
   }
 }
 

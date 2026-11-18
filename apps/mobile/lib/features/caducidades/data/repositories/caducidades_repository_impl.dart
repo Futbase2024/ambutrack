@@ -13,9 +13,12 @@ class CaducidadesRepositoryImpl implements CaducidadesRepository {
   CaducidadesRepositoryImpl()
       : _stockDataSource = StockDataSourceFactory.createSupabase(),
         _incidenciaDataSource =
-            IncidenciaVehiculoDataSourceFactory.createSupabase();
+            IncidenciaVehiculoDataSourceFactory.createSupabase(),
+        _equipamientoDataSource =
+            EquipamientoVehiculoDataSourceFactory.createSupabase();
 
   final StockDataSource _stockDataSource;
+  final EquipamientoVehiculoDataSource _equipamientoDataSource;
   final IncidenciaVehiculoDataSource _incidenciaDataSource;
   final _uuid = const Uuid();
 
@@ -190,4 +193,8 @@ class CaducidadesRepositoryImpl implements CaducidadesRepository {
 
     debugPrint('✅ CaducidadesRepository: Item eliminado');
   }
+
+  @override
+  Stream<void> watchCambios(String vehiculoId) =>
+      _equipamientoDataSource.watchCambios(vehiculoId);
 }

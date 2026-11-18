@@ -36,4 +36,7 @@ class EquipamientoRepositoryImpl implements EquipamientoRepository {
 
   @override
   Future<String> getUrlAdjunto(String documentoPath) => _dataSource.getUrlAdjunto(documentoPath);
+
+  @override
+  Stream<void> watchCambios(String vehiculoId) => _dataSource.watchCambios(vehiculoId);
 }

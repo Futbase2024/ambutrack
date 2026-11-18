@@ -17,4 +17,7 @@ abstract class EquipamientoRepository {
 
   /// URL firmada temporal para ver el documento adjunto
   Future<String> getUrlAdjunto(String documentoPath);
+
+  /// Aviso en tiempo real cuando cambia la dotación del vehículo
+  Stream<void> watchCambios(String vehiculoId);
 }

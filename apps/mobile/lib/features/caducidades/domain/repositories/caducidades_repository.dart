@@ -81,4 +81,7 @@ abstract class CaducidadesRepository {
     required String usuarioId,
     required String motivo,
   });
+
+  /// Aviso en tiempo real cuando cambia el stock/caducidades del vehículo
+  Stream<void> watchCambios(String vehiculoId);
 }

@@ -39,3 +39,8 @@ class EquipamientoLineaGuardada extends EquipamientoEvent {
   @override
   List<Object?> get props => <Object?>[id, cantidad, fechaCaducidad, borrarCaducidad, lote, observaciones];
 }
+
+/// La dotación ha cambiado en Supabase (Realtime): recarga sin mostrar loading
+class EquipamientoCambiosRemotos extends EquipamientoEvent {
+  const EquipamientoCambiosRemotos();
+}

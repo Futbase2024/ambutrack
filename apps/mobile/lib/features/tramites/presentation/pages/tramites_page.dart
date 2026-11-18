@@ -7,10 +7,10 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../bloc/ausencias_bloc.dart';
 import '../bloc/ausencias_event.dart';
-import '../bloc/ausencias_state.dart';
 import '../bloc/vacaciones_bloc.dart';
 import '../bloc/vacaciones_event.dart';
-import '../bloc/vacaciones_state.dart';
+import '../../../../core/widgets/menu/app_menu.dart';
+import '../widgets/tramites_resumen.dart';
 import 'mis_tramites_page.dart';
 import 'solicitar_ausencia_page.dart';
 import 'solicitar_vacaciones_page.dart';
@@ -87,204 +87,59 @@ class _TramitesViewState extends State<_TramitesView> {
           centerTitle: true,
         ),
         body: RefreshIndicator(
-          onRefresh: () async {
-            _loadTramites();
-          },
-          child: SingleChildScrollView(
+          onRefresh: () async => _loadTramites(),
+          child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Resumen estadístico compacto
-                const _ResumenWidget(),
-
-                const SizedBox(height: 20),
-
-                // Título de sección
-                Text(
-                  'Solicitar Trámite',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.gray800,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            children: <Widget>[
+              const AppMenuSeccion('Resumen'),
+              const TramitesResumen(),
+              const SizedBox(height: 28),
+              const AppMenuSeccion('Solicitar trámite'),
+              AppMenuGrupo(
+                opciones: <AppMenuOpcion>[
+                  AppMenuOpcion(
+                    icon: Icons.beach_access_outlined,
+                    color: AppColors.info,
+                    titulo: 'Vacaciones',
+                    descripcion: 'Solicita días de vacaciones',
+                    onTap: () => _abrirVacaciones(context),
                   ),
-                ),
-                const SizedBox(height: 12),
-
-                // Cuadrícula de trámites
-                _buildTramitesGrid(context),
-
-                const SizedBox(height: 20),
-
-                // Botón ver todos mis trámites
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => MultiBlocProvider(
-                            providers: [
-                              BlocProvider.value(
-                                value: context.read<VacacionesBloc>(),
-                              ),
-                              BlocProvider.value(
-                                value: context.read<AusenciasBloc>(),
-                              ),
-                            ],
-                            child: const MisTramitesPage(),
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.list_rounded, size: 20),
-                    label: const Text(
-                      'Ver todos mis trámites',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
+                  AppMenuOpcion(
+                    icon: Icons.local_hospital_outlined,
+                    color: AppColors.error,
+                    titulo: 'Baja médica',
+                    descripcion: 'Comunica una incapacidad temporal',
+                    onTap: () => _abrirAusencia(context, tipo: 'baja_medica'),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTramitesGrid(BuildContext context) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: 1.2,
-      children: [
-        _buildTramiteCard(
-          context: context,
-          emoji: '🏖️',
-          title: 'Vacaciones',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BlocProvider.value(
-                  value: context.read<VacacionesBloc>(),
-                  child: const SolicitarVacacionesPage(),
-                ),
-              ),
-            );
-          },
-        ),
-        _buildTramiteCard(
-          context: context,
-          emoji: '🏥',
-          title: 'Baja Médica',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BlocProvider.value(
-                  value: context.read<AusenciasBloc>(),
-                  child: const SolicitarAusenciaPage(
-                    tipoPreseleccionado: 'baja_medica',
+                  AppMenuOpcion(
+                    icon: Icons.person_outline_rounded,
+                    color: AppColors.secondary,
+                    titulo: 'Permiso personal',
+                    descripcion: 'Asuntos propios y permisos retribuidos',
+                    onTap: () => _abrirAusencia(context, tipo: 'permiso_personal'),
                   ),
-                ),
-              ),
-            );
-          },
-        ),
-        _buildTramiteCard(
-          context: context,
-          emoji: '👤',
-          title: 'Permiso Personal',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BlocProvider.value(
-                  value: context.read<AusenciasBloc>(),
-                  child: const SolicitarAusenciaPage(
-                    tipoPreseleccionado: 'permiso_personal',
+                  AppMenuOpcion(
+                    icon: Icons.event_busy_outlined,
+                    color: AppColors.warning,
+                    titulo: 'Otras ausencias',
+                    descripcion: 'Cualquier otro tipo de ausencia',
+                    onTap: () => _abrirAusencia(context),
                   ),
-                ),
+                ],
               ),
-            );
-          },
-        ),
-        _buildTramiteCard(
-          context: context,
-          emoji: '📅',
-          title: 'Otras Ausencias',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => BlocProvider.value(
-                  value: context.read<AusenciasBloc>(),
-                  child: const SolicitarAusenciaPage(),
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  /// Tarjeta individual de trámite
-  Widget _buildTramiteCard({
-    required BuildContext context,
-    required String emoji,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      elevation: 1,
-      color: Colors.white,
-      shadowColor: AppColors.primary.withValues(alpha: 0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Emoji
-              Text(
-                emoji,
-                style: const TextStyle(fontSize: 48),
-              ),
-              const SizedBox(height: 8),
-
-              // Título
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.gray800,
-                ),
+              const SizedBox(height: 28),
+              const AppMenuSeccion('Consultar'),
+              AppMenuGrupo(
+                opciones: <AppMenuOpcion>[
+                  AppMenuOpcion(
+                    icon: Icons.list_alt_rounded,
+                    color: AppColors.primary,
+                    titulo: 'Mis trámites',
+                    descripcion: 'Historial y estado de tus solicitudes',
+                    onTap: () => _abrirMisTramites(context),
+                  ),
+                ],
               ),
             ],
           ),
@@ -292,137 +147,41 @@ class _TramitesViewState extends State<_TramitesView> {
       ),
     );
   }
-}
 
-/// Widget de resumen estadístico compacto.
-class _ResumenWidget extends StatelessWidget {
-  const _ResumenWidget();
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<VacacionesBloc, VacacionesState>(
-      builder: (context, vacacionesState) {
-        return BlocBuilder<AusenciasBloc, AusenciasState>(
-          builder: (context, ausenciasState) {
-            // Calcular estadísticas
-            final pendientesVacaciones = vacacionesState is VacacionesLoaded
-                ? vacacionesState.pendientes.length
-                : 0;
-            final aprobadasVacaciones = vacacionesState is VacacionesLoaded
-                ? vacacionesState.aprobadas.length
-                : 0;
-            final rechazadasVacaciones = vacacionesState is VacacionesLoaded
-                ? vacacionesState.rechazadas.length
-                : 0;
-
-            final pendientesAusencias = ausenciasState is AusenciasLoaded
-                ? ausenciasState.pendientes.length
-                : 0;
-            final aprobadasAusencias = ausenciasState is AusenciasLoaded
-                ? ausenciasState.aprobadas.length
-                : 0;
-            final rechazadasAusencias = ausenciasState is AusenciasLoaded
-                ? ausenciasState.rechazadas.length
-                : 0;
-
-            final pendientes = pendientesVacaciones + pendientesAusencias;
-            final aprobadas = aprobadasVacaciones + aprobadasAusencias;
-            final rechazadas = rechazadasVacaciones + rechazadasAusencias;
-
-            return Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    label: 'Pendientes',
-                    value: '$pendientes',
-                    color: AppColors.warning,
-                    emoji: '⏳',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    label: 'Aprobadas',
-                    value: '$aprobadas',
-                    color: AppColors.success,
-                    emoji: '✅',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    label: 'Rechazadas',
-                    value: '$rechazadas',
-                    color: AppColors.error,
-                    emoji: '❌',
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  void _abrirVacaciones(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => BlocProvider<VacacionesBloc>.value(
+          value: context.read<VacacionesBloc>(),
+          child: const SolicitarVacacionesPage(),
+        ),
+      ),
     );
   }
-}
 
-/// Tarjeta de estadística minimalista.
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.emoji,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-  final String emoji;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      color: Colors.white,
-      shadowColor: AppColors.primary.withValues(alpha: 0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+  void _abrirAusencia(BuildContext context, {String? tipo}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => BlocProvider<AusenciasBloc>.value(
+          value: context.read<AusenciasBloc>(),
+          child: SolicitarAusenciaPage(tipoPreseleccionado: tipo),
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Emoji
-            Text(
-              emoji,
-              style: const TextStyle(fontSize: 28),
-            ),
-            const SizedBox(height: 6),
+    );
+  }
 
-            // Valor
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 2),
-
-            // Label
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: AppColors.gray600,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
+  void _abrirMisTramites(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => MultiBlocProvider(
+          providers: <BlocProvider<dynamic>>[
+            BlocProvider<VacacionesBloc>.value(value: context.read<VacacionesBloc>()),
+            BlocProvider<AusenciasBloc>.value(value: context.read<AusenciasBloc>()),
           ],
+          child: const MisTramitesPage(),
         ),
       ),
     );

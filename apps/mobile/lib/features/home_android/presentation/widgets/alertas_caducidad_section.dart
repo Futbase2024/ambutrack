@@ -1,8 +1,9 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../caducidades/presentation/bloc/caducidades_bloc.dart';
@@ -10,25 +11,21 @@ import '../../../caducidades/presentation/bloc/caducidades_event.dart';
 import '../../../caducidades/presentation/bloc/caducidades_state.dart';
 import '../../../checklist_ambulancia/data/services/vehiculo_cache_service.dart';
 import '../../../checklist_ambulancia/domain/repositories/checklist_repository.dart';
-import '../../data/services/alertas_caducidad_cache_service.dart';
 import 'dialogs/alertas_caducidad_dialog.dart';
 
-/// Sección de alertas de caducidad en el home
+/// Franja de avisos de caducidad del vehículo asignado
 ///
-/// Muestra items próximos a caducar y críticos agrupados por categoría
+/// Solo ocupa espacio si hay productos caducados, críticos o próximos a caducar.
+/// Al pulsarla se abre el detalle agrupado por categoría.
 class AlertasCaducidadHomeSection extends StatefulWidget {
   const AlertasCaducidadHomeSection({super.key});
 
   @override
-  State<AlertasCaducidadHomeSection> createState() =>
-      _AlertasCaducidadHomeSectionState();
+  State<AlertasCaducidadHomeSection> createState() => _AlertasCaducidadHomeSectionState();
 }
 
-class _AlertasCaducidadHomeSectionState
-    extends State<AlertasCaducidadHomeSection> {
+class _AlertasCaducidadHomeSectionState extends State<AlertasCaducidadHomeSection> {
   String? _vehiculoId;
-  bool _cargandoVehiculo = true;
-  bool _fueronRevisadasHoy = false;
 
   @override
   void initState() {
@@ -37,164 +34,179 @@ class _AlertasCaducidadHomeSectionState
   }
 
   Future<void> _cargarVehiculo() async {
-    final authState = context.read<AuthBloc>().state;
-    if (authState is AuthAuthenticated && authState.personal != null) {
-      final personal = authState.personal!;
-      final personalId = personal.id;
+    final AuthState authState = context.read<AuthBloc>().state;
+    if (authState is! AuthAuthenticated || authState.personal == null) {
+      return;
+    }
 
-      // Intentar obtener vehículo desde caché primero
-      final cache = VehiculoCacheService.instance;
-      String? vehiculoId = cache.getVehiculoAsignado(personalId);
+    final String personalId = authState.personal!.id;
+    final VehiculoCacheService cache = VehiculoCacheService.instance;
+    String? vehiculoId = cache.getVehiculoAsignado(personalId);
 
-      // Si no está en caché, consultar al repository
-      if (vehiculoId == null) {
-        try {
-          final repository = getIt<ChecklistRepository>();
-          vehiculoId = await repository.getVehiculoAsignadoHoy(personalId);
-
-          // Guardar en caché
-          if (vehiculoId != null) {
-            cache.setVehiculoAsignado(personalId, vehiculoId);
-          }
-        } catch (e) {
-          debugPrint('❌ Error al obtener vehículo asignado: $e');
+    if (vehiculoId == null) {
+      try {
+        vehiculoId = await getIt<ChecklistRepository>().getVehiculoAsignadoHoy(personalId);
+        if (vehiculoId != null) {
+          cache.setVehiculoAsignado(personalId, vehiculoId);
         }
+      } catch (e) {
+        debugPrint('❌ AlertasCaducidad: error al obtener vehículo asignado: $e');
       }
+    }
 
-      if (mounted) {
-        // Verificar si las alertas ya fueron revisadas hoy
-        final cache = AlertasCaducidadCacheService.instance;
-        final revisadasHoy = vehiculoId != null ? cache.fueronRevisadasHoy(vehiculoId) : false;
-
-        setState(() {
-          _vehiculoId = vehiculoId;
-          _fueronRevisadasHoy = revisadasHoy;
-          _cargandoVehiculo = false;
-        });
-      }
-    } else {
-      if (mounted) {
-        setState(() {
-          _cargandoVehiculo = false;
-        });
-      }
+    if (mounted && vehiculoId != null) {
+      setState(() => _vehiculoId = vehiculoId);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // No mostrar si está cargando, no hay vehículo asignado, o ya fueron revisadas hoy
-    if (_cargandoVehiculo || _vehiculoId == null || _fueronRevisadasHoy) {
+    final String? vehiculoId = _vehiculoId;
+    if (vehiculoId == null) {
       return const SizedBox.shrink();
     }
 
-    return BlocProvider(
-      create: (context) => getIt<CaducidadesBloc>()
-        ..add(CaducidadesEvent.started(vehiculoId: _vehiculoId!)),
-      child: _AlertasCaducidadContent(vehiculoId: _vehiculoId!),
+    return BlocProvider<CaducidadesBloc>(
+      create: (_) => getIt<CaducidadesBloc>()..add(CaducidadesEvent.started(vehiculoId: vehiculoId)),
+      child: BlocBuilder<CaducidadesBloc, CaducidadesState>(
+        builder: (context, state) {
+          final List<StockVehiculoEntity> items = state.maybeWhen(
+            loaded: (items, _, _, _, _, _, _, _, _, _) => items,
+            orElse: () => const <StockVehiculoEntity>[],
+          );
+          final _ResumenAlertas resumen = _ResumenAlertas.desde(items);
+          if (resumen.total == 0) {
+            return const SizedBox.shrink();
+          }
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _AlertasBanner(resumen: resumen, vehiculoId: vehiculoId),
+          );
+        },
+      ),
     );
   }
 }
 
-class _AlertasCaducidadContent extends StatefulWidget {
-  const _AlertasCaducidadContent({required this.vehiculoId});
+/// Conteo de productos con aviso de caducidad
+class _ResumenAlertas {
+  const _ResumenAlertas({required this.items, required this.caducados, required this.criticos});
 
+  factory _ResumenAlertas.desde(List<StockVehiculoEntity> todos) {
+    final List<StockVehiculoEntity> items = <StockVehiculoEntity>[];
+    int caducados = 0;
+    int criticos = 0;
+    for (final StockVehiculoEntity item in todos) {
+      final String estado = _estado(item);
+      if (estado == 'caducado' || estado == 'critico' || estado == 'proximo') {
+        items.add(item);
+        if (estado == 'caducado') {
+          caducados++;
+        } else if (estado == 'critico') {
+          criticos++;
+        }
+      }
+    }
+    return _ResumenAlertas(items: items, caducados: caducados, criticos: criticos);
+  }
+
+  final List<StockVehiculoEntity> items;
+  final int caducados;
+  final int criticos;
+
+  int get total => items.length;
+  int get proximos => total - caducados - criticos;
+
+  /// Usa el estado calculado en BD o lo deduce de la fecha de caducidad
+  static String _estado(StockVehiculoEntity item) {
+    final String? estado = item.estadoCaducidad;
+    if (estado != null && estado != 'null') {
+      return estado;
+    }
+    final DateTime? fecha = item.fechaCaducidad;
+    if (fecha == null) {
+      return 'sin_caducidad';
+    }
+    final int dias = fecha.difference(DateTime.now()).inDays;
+    if (dias < 0) {
+      return 'caducado';
+    }
+    if (dias <= 7) {
+      return 'critico';
+    }
+    return dias <= 30 ? 'proximo' : 'ok';
+  }
+}
+
+/// Franja visual con el resumen de avisos
+class _AlertasBanner extends StatelessWidget {
+  const _AlertasBanner({required this.resumen, required this.vehiculoId});
+
+  final _ResumenAlertas resumen;
   final String vehiculoId;
 
   @override
-  State<_AlertasCaducidadContent> createState() => _AlertasCaducidadContentState();
+  Widget build(BuildContext context) {
+    final bool grave = resumen.caducados > 0 || resumen.criticos > 0;
+    final Color color = grave ? AppColors.error : AppColors.warning;
+
+    return Material(
+      color: color.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => showDialog<void>(
+          context: context,
+          builder: (_) => AlertasCaducidadDialog(items: resumen.items, vehiculoId: vehiculoId),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: <Widget>[
+              Icon(grave ? Icons.error_outline_rounded : Icons.warning_amber_rounded, color: color, size: 24),
+              const SizedBox(width: 12),
+              Expanded(child: _AlertasTexto(resumen: resumen)),
+              Icon(Icons.chevron_right_rounded, color: color),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _AlertasCaducidadContentState extends State<_AlertasCaducidadContent> {
-  bool _dialogoMostrado = false;
+/// Título y desglose de la franja
+class _AlertasTexto extends StatelessWidget {
+  const _AlertasTexto({required this.resumen});
+
+  final _ResumenAlertas resumen;
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<CaducidadesBloc, CaducidadesState>(
-      builder: (context, state) {
-        return state.maybeWhen(
-          loaded: (
-            items,
-            alertas,
-            vehiculoIdEstado,
-            filtroActual,
-            totalItems,
-            itemsOk,
-            itemsProximos,
-            itemsCriticos,
-            itemsCaducados,
-            isRefreshing,
-          ) {
-            // Debug: Ver qué items recibimos
-            debugPrint('🏠 AlertasCaducidadHomeSection: Recibidos ${items.length} items');
-            for (final item in items) {
-              debugPrint('   - ${item.productoNombre}: estado="${item.estadoCaducidad}"');
-            }
+    final int total = resumen.total;
+    final List<String> partes = <String>[
+      if (resumen.caducados > 0) '${resumen.caducados} caducado${resumen.caducados == 1 ? '' : 's'}',
+      if (resumen.criticos > 0) '${resumen.criticos} crítico${resumen.criticos == 1 ? '' : 's'}',
+      if (resumen.proximos > 0) '${resumen.proximos} próximo${resumen.proximos == 1 ? '' : 's'}',
+    ];
 
-            // Filtrar solo items próximos y críticos
-            // Calcular estado si viene null
-            final itemsAlerta = items.where((item) {
-              final estadoCalculado = _calcularEstadoCaducidad(item);
-              return estadoCalculado == 'proximo' || estadoCalculado == 'critico';
-            }).toList();
-
-            debugPrint('🏠 AlertasCaducidadHomeSection: ${itemsAlerta.length} items después de filtrar');
-
-            // No mostrar nada si no hay alertas
-            if (itemsAlerta.isEmpty) {
-              return const SizedBox.shrink();
-            }
-
-            // Mostrar diálogo automáticamente si no se ha mostrado aún
-            if (!_dialogoMostrado) {
-              _dialogoMostrado = true;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  showDialog<void>(
-                    context: context,
-                    barrierDismissible: true,
-                    builder: (context) => AlertasCaducidadDialog(
-                      items: itemsAlerta,
-                      vehiculoId: widget.vehiculoId,
-                    ),
-                  );
-                }
-              });
-            }
-
-            // Retornar widget invisible ya que mostramos el diálogo
-            return const SizedBox.shrink();
-          },
-          orElse: () => const SizedBox.shrink(),
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          '$total producto${total == 1 ? '' : 's'} con caducidad a revisar',
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.gray900),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          partes.join(' · '),
+          style: const TextStyle(fontSize: 13, color: AppColors.gray600),
+        ),
+      ],
     );
-  }
-
-  /// Calcula el estado de caducidad si viene null
-  String _calcularEstadoCaducidad(StockVehiculoEntity item) {
-    // Si ya tiene estado definido, usarlo
-    if (item.estadoCaducidad != null && item.estadoCaducidad != 'null') {
-      return item.estadoCaducidad!;
-    }
-
-    // Si no tiene fecha de caducidad, no tiene estado
-    if (item.fechaCaducidad == null) {
-      return 'sin_caducidad';
-    }
-
-    // Calcular días restantes
-    final diasRestantes = item.fechaCaducidad!.difference(DateTime.now()).inDays;
-
-    // Clasificar según días restantes
-    if (diasRestantes < 0) {
-      return 'caducado';
-    } else if (diasRestantes <= 7) {
-      return 'critico';
-    } else if (diasRestantes <= 30) {
-      return 'proximo';
-    } else {
-      return 'ok';
-    }
   }
 }

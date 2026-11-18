@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,14 +13,42 @@ class EquipamientoBloc extends Bloc<EquipamientoEvent, EquipamientoState> {
   EquipamientoBloc(this._repository) : super(const EquipamientoState()) {
     on<EquipamientoLoadRequested>(_onLoad);
     on<EquipamientoLineaGuardada>(_onGuardar);
+    on<EquipamientoCambiosRemotos>(_onCambiosRemotos);
   }
 
   final EquipamientoRepository _repository;
+  StreamSubscription<void>? _cambiosSub;
+  String? _vehiculoEscuchado;
 
   Future<void> _onLoad(EquipamientoLoadRequested event, Emitter<EquipamientoState> emit) async {
     emit(state.copyWith(vehiculoId: event.vehiculoId, status: EquipamientoStatus.loading));
+    _escucharCambios(event.vehiculoId);
+    await _cargarLineas(event.vehiculoId, emit);
+  }
+
+  /// Recarga silenciosa tras un cambio remoto (no muestra el loading)
+  Future<void> _onCambiosRemotos(EquipamientoCambiosRemotos event, Emitter<EquipamientoState> emit) async {
+    final String? vehiculoId = state.vehiculoId;
+    if (vehiculoId == null || state.saving) {
+      return;
+    }
+    debugPrint('🔄 EquipamientoBloc: cambio remoto, recargando dotación');
+    await _cargarLineas(vehiculoId, emit);
+  }
+
+  /// Se suscribe a Realtime del vehículo (una sola vez por vehículo)
+  void _escucharCambios(String vehiculoId) {
+    if (_vehiculoEscuchado == vehiculoId) {
+      return;
+    }
+    _cambiosSub?.cancel();
+    _vehiculoEscuchado = vehiculoId;
+    _cambiosSub = _repository.watchCambios(vehiculoId).listen((_) => add(const EquipamientoCambiosRemotos()));
+  }
+
+  Future<void> _cargarLineas(String vehiculoId, Emitter<EquipamientoState> emit) async {
     try {
-      final List<StockVehiculoEntity> lineas = await _repository.getDotacion(event.vehiculoId);
+      final List<StockVehiculoEntity> lineas = await _repository.getDotacion(vehiculoId);
       debugPrint('✅ EquipamientoBloc: ${lineas.length} líneas');
       emit(state.copyWith(
         status: EquipamientoStatus.loaded,
@@ -58,5 +88,11 @@ class EquipamientoBloc extends Bloc<EquipamientoEvent, EquipamientoState> {
         error: e.toString(),
       ));
     }
+  }
+
+  @override
+  Future<void> close() async {
+    await _cambiosSub?.cancel();
+    return super.close();
   }
 }

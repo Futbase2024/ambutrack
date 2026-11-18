@@ -138,8 +138,8 @@ class _BotonRegistroCircularWidgetState
     final esFicharEntrada = widget.estadoActual == EstadoFichaje.fuera;
     final color = esFicharEntrada ? AppColors.success : AppColors.error;
     final colorDark = esFicharEntrada
-        ? const Color(0xFF059669)
-        : const Color(0xFFDC2626);
+        ? AppColors.secondary
+        : AppColors.emergency;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -355,7 +355,7 @@ class _IndicadorPrecisionGPS extends StatelessWidget {
     } else if (precision <= 50) {
       // Buena: 21-50m
       return (
-        color: const Color(0xFFF59E0B), // Amarillo/Ámbar
+        color: AppColors.warning,
         icono: Icons.gps_fixed,
         etiqueta: 'Buena',
       );

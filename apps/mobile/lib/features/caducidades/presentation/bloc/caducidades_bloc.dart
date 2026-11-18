@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
@@ -20,6 +22,28 @@ class CaducidadesBloc extends Bloc<CaducidadesEvent, CaducidadesState> {
   }
 
   final CaducidadesRepository _repository;
+  StreamSubscription<void>? _cambiosSub;
+  String? _vehiculoEscuchado;
+
+  /// Se suscribe a Realtime del vehículo (una sola vez por vehículo).
+  /// Cada cambio remoto dispara un refresco silencioso.
+  void _escucharCambios(String vehiculoId) {
+    if (_vehiculoEscuchado == vehiculoId) {
+      return;
+    }
+    _cambiosSub?.cancel();
+    _vehiculoEscuchado = vehiculoId;
+    _cambiosSub = _repository.watchCambios(vehiculoId).listen((_) {
+      debugPrint('🔄 CaducidadesBloc: cambio remoto, refrescando');
+      add(const CaducidadesEvent.refrescar());
+    });
+  }
+
+  @override
+  Future<void> close() async {
+    await _cambiosSub?.cancel();
+    return super.close();
+  }
 
   /// Manejador principal de eventos
   Future<void> _onEvent(
@@ -113,7 +137,7 @@ class CaducidadesBloc extends Bloc<CaducidadesEvent, CaducidadesState> {
     Emitter<CaducidadesState> emit,
     String? filtro,
   ) async {
-    state.maybeWhen(
+    await state.maybeWhen<Future<void>>(
       loaded: (
         items,
         alertas,
@@ -127,9 +151,9 @@ class CaducidadesBloc extends Bloc<CaducidadesEvent, CaducidadesState> {
         isRefreshing,
       ) {
         debugPrint('📋 CaducidadesBloc: Aplicando filtro: ${filtro ?? 'todas'}');
-        _cargarDatos(emit, vehiculoId, filtro);
+        return _cargarDatos(emit, vehiculoId, filtro);
       },
-      orElse: () {},
+      orElse: () async {},
     );
   }
 
@@ -238,7 +262,7 @@ class CaducidadesBloc extends Bloc<CaducidadesEvent, CaducidadesState> {
       await _repository.resolverAlerta(alertaId: alertaId, usuarioId: usuarioId);
 
       // Recargar datos después de resolver
-      state.maybeWhen(
+      await state.maybeWhen<Future<void>>(
         loaded: (
           items,
           alertas,
@@ -251,9 +275,9 @@ class CaducidadesBloc extends Bloc<CaducidadesEvent, CaducidadesState> {
           caducados,
           isRefreshing,
         ) {
-          _cargarDatos(emit, vehiculoId, filtroActual);
+          return _cargarDatos(emit, vehiculoId, filtroActual);
         },
-        orElse: () {},
+        orElse: () async {},
       );
     } catch (e) {
       debugPrint('❌ CaducidadesBloc: Error al resolver alerta - $e');
@@ -420,7 +444,7 @@ class CaducidadesBloc extends Bloc<CaducidadesEvent, CaducidadesState> {
   }
 
   Future<void> _onRefrescar(Emitter<CaducidadesState> emit) async {
-    state.maybeWhen(
+    await state.maybeWhen<Future<void>>(
       loaded: (
         items,
         alertas,
@@ -434,9 +458,9 @@ class CaducidadesBloc extends Bloc<CaducidadesEvent, CaducidadesState> {
         isRefreshing,
       ) {
         debugPrint('🔄 CaducidadesBloc: Refrescando datos...');
-        _cargarDatos(emit, vehiculoId, filtroActual, isRefreshing: true);
+        return _cargarDatos(emit, vehiculoId, filtroActual, isRefreshing: true);
       },
-      orElse: () {},
+      orElse: () async {},
     );
   }
 
@@ -448,6 +472,7 @@ class CaducidadesBloc extends Bloc<CaducidadesEvent, CaducidadesState> {
     String? filtro, {
     bool isRefreshing = false,
   }) async {
+    _escucharCambios(vehiculoId);
     try {
       if (!isRefreshing) {
         emit(const CaducidadesState.loading());
