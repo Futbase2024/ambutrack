@@ -3,6 +3,7 @@ import 'package:ambutrack_web/core/services/auth_service.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
 import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
+import 'package:ambutrack_web/features/taller/presentation/widgets/taller_nombre_field.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_state.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ import 'package:uuid/uuid.dart';
 /// - Título (máx 100 caracteres)
 /// - Descripción (máx 500 caracteres)
 /// - Kilometraje (opcional, validado ≥ KM actual)
+/// - Taller (solo al editar; catálogo de talleres, requiere TallerBloc)
 class IncidenciaFormModal extends StatefulWidget {
   const IncidenciaFormModal({
     this.incidencia,
@@ -43,6 +45,7 @@ class _IncidenciaFormModalState extends State<IncidenciaFormModal> {
   String? _vehiculoId;
   TipoIncidencia? _tipo;
   PrioridadIncidencia? _prioridad;
+  String? _taller;
   bool _isSaving = false;
 
   bool get _isEditing => widget.incidencia != null;
@@ -68,6 +71,7 @@ class _IncidenciaFormModalState extends State<IncidenciaFormModal> {
     _vehiculoId = incidencia.vehiculoId;
     _tipo = incidencia.tipo;
     _prioridad = incidencia.prioridad;
+    _taller = incidencia.tallerResponsable;
     _tituloController.text = incidencia.titulo;
     _descripcionController.text = incidencia.descripcion;
     if (incidencia.kilometrajeReporte != null) {
@@ -118,6 +122,7 @@ class _IncidenciaFormModalState extends State<IncidenciaFormModal> {
               titulo: _tituloController.text.trim(),
               descripcion: _descripcionController.text.trim(),
               kilometrajeReporte: _kilometraje,
+              tallerResponsable: _taller,
               updatedAt: DateTime.now(),
             )
           : IncidenciaVehiculoEntity(
@@ -214,7 +219,13 @@ class _IncidenciaFormModalState extends State<IncidenciaFormModal> {
               label: 'Kilometraje',
               child: _KilometrajeField(controller: _kilometrajeController, kmMinimo: _kmMinimo(context)),
             ),
-            const SizedBox.shrink(),
+            if (_isEditing)
+              GestionFormRow(
+                label: 'Taller',
+                child: TallerNombreField(value: _taller, onChanged: (String? v) => setState(() => _taller = v)),
+              )
+            else
+              const SizedBox.shrink(),
           ],
         ),
         const GestionFormSection(title: 'Descripción'),

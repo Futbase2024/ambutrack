@@ -1,7 +1,9 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/averia_gestion_columns.dart';
+import 'package:ambutrack_web/features/vehiculos/widgets/gestion/averia_ordenes_tab.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/flota_gestion_common.dart';
 import 'package:flutter/material.dart';
 
@@ -12,6 +14,8 @@ class AveriaDetailPanel extends StatelessWidget {
     required this.vehiculos,
     required this.onEdit,
     required this.onDelete,
+    required this.onCrearOrden,
+    this.ordenesRefresh = 0,
     super.key,
   });
 
@@ -19,6 +23,15 @@ class AveriaDetailPanel extends StatelessWidget {
   final Map<String, VehiculoEntity> vehiculos;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+
+  /// Crea una orden de reparación a partir de la avería
+  final VoidCallback onCrearOrden;
+
+  /// Cambia para recargar la pestaña de órdenes vinculadas
+  final int ordenesRefresh;
+
+  static bool _admiteOrden(EstadoIncidencia e) =>
+      e != EstadoIncidencia.resuelta && e != EstadoIncidencia.cerrada;
 
   @override
   Widget build(BuildContext context) {
@@ -43,11 +56,22 @@ class AveriaDetailPanel extends StatelessWidget {
         ),
         GestionDetailTab(label: 'Resolución', child: _AveriaResolucionTab(incidencia: i)),
         GestionDetailTab(
+          label: 'Taller',
+          child: AveriaOrdenesTab(averia: i, refreshToken: ordenesRefresh),
+        ),
+        GestionDetailTab(
           label: 'Cambios',
           child: RegistroHistorialTab(tabla: 'incidencias_vehiculos', registroId: i.id),
         ),
       ],
       actions: <Widget>[
+        if (_admiteOrden(i.estado))
+          FlotaPanelButton(
+            icon: Icons.build_outlined,
+            label: 'Crear orden',
+            color: AppColors.secondary,
+            onPressed: onCrearOrden,
+          ),
         FlotaPanelButton.edit(onPressed: onEdit),
         FlotaPanelButton.delete(onPressed: onDelete),
       ],

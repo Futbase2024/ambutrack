@@ -2,6 +2,7 @@ import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/widgets/form/mantenimiento_form_data.dart';
 import 'package:ambutrack_web/features/mantenimiento/presentation/widgets/form/mantenimiento_form_fields.dart';
+import 'package:ambutrack_web/features/taller/presentation/widgets/taller_nombre_field.dart';
 import 'package:flutter/material.dart';
 
 /// Campos del formulario de programación de mantenimiento
@@ -59,7 +60,7 @@ class MantenimientoCreateFormBody extends StatelessWidget {
             ),
             GestionFormRow(
               label: 'Taller',
-              child: MantenimientoTallerField(
+              child: TallerNombreField(
                 value: data.taller,
                 onChanged: (String? v) => _set(() => data.taller = v),
               ),

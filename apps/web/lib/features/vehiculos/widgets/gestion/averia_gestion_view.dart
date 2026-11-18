@@ -2,6 +2,7 @@ import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/incidencia_vehiculo/incidencia_vehiculo_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/incidencia_vehiculo/incidencia_vehiculo_event.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/incidencia_vehiculo/incidencia_vehiculo_state.dart';
@@ -12,6 +13,7 @@ import 'package:ambutrack_web/features/vehiculos/presentation/widgets/incidencia
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/averia_detail_panel.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/averia_gestion_bars.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/averia_gestion_columns.dart';
+import 'package:ambutrack_web/features/vehiculos/widgets/gestion/averia_orden_reparacion.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/flota_gestion_common.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -38,6 +40,9 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
   int _page = 0;
   int _pageSize = 25;
   String? _selectedId;
+
+  /// Se incrementa para recargar las órdenes vinculadas de la ficha
+  int _ordenesRefresh = 0;
 
   /// Identificador de la avería cuyo borrado está en curso (para el aviso de éxito)
   String? _deletingNombre;
@@ -95,8 +100,11 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext _) => BlocProvider<VehiculosBloc>.value(
-        value: context.read<VehiculosBloc>(),
+      builder: (BuildContext _) => MultiBlocProvider(
+        providers: <BlocProvider<dynamic>>[
+          BlocProvider<VehiculosBloc>.value(value: context.read<VehiculosBloc>()),
+          BlocProvider<TallerBloc>.value(value: context.read<TallerBloc>()),
+        ],
         child: IncidenciaFormModal(
           incidencia: incidencia,
           onSave: (IncidenciaVehiculoEntity result) async {
@@ -109,6 +117,16 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
         ),
       ),
     );
+  }
+
+  /// Crea una orden de reparación desde la avería y la pasa a "En reparación"
+  Future<void> _crearOrden(IncidenciaVehiculoEntity incidencia) async {
+    final OrdenReparacionEntity? orden = await crearOrdenDesdeAveria(context, incidencia);
+    if (orden == null || !mounted) {
+      return;
+    }
+    setState(() => _ordenesRefresh++);
+    _bloc.add(IncidenciaVehiculoEvent.updateIncidencia(averiaTrasCrearOrden(incidencia, orden)));
   }
 
   Future<void> _confirmDelete(IncidenciaVehiculoEntity incidencia, Map<String, VehiculoEntity> vehiculos) async {
@@ -246,6 +264,8 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
             vehiculos: vehiculos,
             onEdit: () => _openForm(selected),
             onDelete: () => _confirmDelete(selected!, vehiculos),
+            onCrearOrden: () => _crearOrden(selected!),
+            ordenesRefresh: _ordenesRefresh,
           ),
           statusBar: GestionStatusBar(
             items: data == null ? const <String>[] : resumenAverias(data, visibles.length),

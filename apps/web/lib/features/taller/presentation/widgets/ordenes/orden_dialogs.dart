@@ -9,13 +9,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// Abre el formulario de creación/edición de una orden
-Future<void> showOrdenFormDialog(BuildContext context, {OrdenReparacionEntity? orden}) {
+Future<void> showOrdenFormDialog(
+  BuildContext context, {
+  OrdenReparacionEntity? orden,
+  OrdenReparacionEntity? plantilla,
+}) {
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (BuildContext _) => BlocProvider<OrdenReparacionBloc>.value(
       value: context.read<OrdenReparacionBloc>(),
-      child: OrdenFormDialog(orden: orden),
+      child: OrdenFormDialog(orden: orden, plantilla: plantilla),
     ),
   );
 }

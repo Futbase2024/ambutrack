@@ -22,9 +22,14 @@ import 'package:uuid/uuid.dart';
 
 /// Diálogo de formulario para crear/editar una Orden de Reparación
 class OrdenFormDialog extends StatefulWidget {
-  const OrdenFormDialog({super.key, this.orden});
+  const OrdenFormDialog({super.key, this.orden, this.plantilla});
 
+  /// Orden a editar (null = creación)
   final OrdenReparacionEntity? orden;
+
+  /// Valores iniciales para una orden nueva (p.ej. creada desde una avería).
+  /// Su `incidenciaId`/`mantenimientoId` se conservan al guardar.
+  final OrdenReparacionEntity? plantilla;
 
   @override
   State<OrdenFormDialog> createState() => _OrdenFormDialogState();
@@ -54,7 +59,7 @@ class _OrdenFormDialogState extends State<OrdenFormDialog> {
   @override
   void initState() {
     super.initState();
-    final OrdenReparacionEntity? o = widget.orden;
+    final OrdenReparacionEntity? o = widget.orden ?? widget.plantilla;
     if (o != null) {
       _c.populate(o);
       _vehiculoId = o.vehiculoId;
@@ -110,8 +115,8 @@ class _OrdenFormDialogState extends State<OrdenFormDialog> {
       vehiculoId: _vehiculoId!,
       tallerId: _tallerId,
       origen: _origen,
-      incidenciaId: base?.incidenciaId,
-      mantenimientoId: base?.mantenimientoId,
+      incidenciaId: base?.incidenciaId ?? widget.plantilla?.incidenciaId,
+      mantenimientoId: base?.mantenimientoId ?? widget.plantilla?.mantenimientoId,
       estado: base?.estado ?? EstadoOrdenReparacion.abierta,
       prioridad: _prioridad,
       diagnostico: textOrNull(_c.diagnostico),
