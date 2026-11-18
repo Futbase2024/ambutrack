@@ -7,7 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 /// Badge con la jornada real del turno según los fichajes:
-/// - "● En curso 2h 10m" (azul) si fichó entrada y no salida
+/// - "● Desde 11:30" (azul) si está dentro: hora de la entrada actual
 /// - "✓ 8h 05m" (verde) si finalizó dentro de lo planificado
 /// - "✓ 9h 10m (+1h 10m)" (naranja) si se desvía más de 30 min
 /// No se muestra nada si no hay fichajes asociados al turno.
@@ -35,7 +35,7 @@ class TurnoJornadaRealBadge extends StatelessWidget {
     final String texto = jornada.finalizada
         ? '✓ ${JornadaReal.formatear(jornada.trabajado)}'
             '${desviado ? ' ($signo${JornadaReal.formatear(desvio)})' : ''}'
-        : '● En curso ${JornadaReal.formatear(jornada.trabajado)}';
+        : '● Desde ${DateFormat('HH:mm').format(jornada.entradaActual)}';
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -52,6 +52,7 @@ class TurnoJornadaRealBadge extends StatelessWidget {
             ),
             child: Text(
               texto,
+              strutStyle: const StrutStyle(fontSize: 10, height: 1.3, forceStrutHeight: true),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: color),
@@ -65,10 +66,16 @@ class TurnoJornadaRealBadge extends StatelessWidget {
   String _tooltip(JornadaReal jornada) {
     final DateFormat hora = DateFormat('HH:mm');
     final Duration planificado = turno.finReal.difference(turno.inicioReal);
-    final String salida = jornada.salida == null ? 'sin fichar' : hora.format(jornada.salida!);
+    final int n = jornada.tramos.length;
+    final String tramos = jornada.tramos
+        .map((TramoJornada t) =>
+            '  ${hora.format(t.entrada)} – ${t.salida == null ? 'en curso' : hora.format(t.salida!)}'
+            '  (${JornadaReal.formatear(t.duracion)})')
+        .join('\n');
     return 'Jornada real según fichajes\n'
-        'Entrada: ${hora.format(jornada.entrada)} · Salida: $salida\n'
-        'Trabajado: ${JornadaReal.formatear(jornada.trabajado)} · '
-        'Planificado: ${JornadaReal.formatear(planificado)}';
+        '$n ${n == 1 ? 'tramo' : 'tramos'} · ${JornadaReal.formatear(jornada.trabajado)} trabajados\n'
+        '$tramos\n'
+        'Planificado: ${JornadaReal.formatear(planificado)} '
+        '(${turno.horaInicio} – ${turno.horaFin})';
   }
 }

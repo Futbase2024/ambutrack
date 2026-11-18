@@ -1,5 +1,15 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
+/// Tramo trabajado entre una entrada y su salida (salida null = en curso)
+class TramoJornada {
+  const TramoJornada({required this.entrada, this.salida});
+
+  final DateTime entrada;
+  final DateTime? salida;
+
+  Duration get duracion => (salida ?? DateTime.now()).difference(entrada);
+}
+
 /// Jornada realmente trabajada en un turno, a partir de los fichajes
 ///
 /// Se asocian al turno los fichajes entre 3h antes de su inicio y 6h
@@ -9,8 +19,15 @@ class JornadaReal {
   const JornadaReal({
     required this.entrada,
     required this.trabajado,
+    required this.tramos,
     this.salida,
   });
+
+  /// Tramos entrada → salida (más de uno si hubo pausas o cambios)
+  final List<TramoJornada> tramos;
+
+  /// Entrada del tramo actual (en curso) o del último tramo
+  DateTime get entradaActual => tramos.last.entrada;
 
   /// Primer fichaje de entrada del turno
   final DateTime entrada;
@@ -40,32 +57,32 @@ class JornadaReal {
         .toList()
       ..sort((RegistroHorarioEntity a, RegistroHorarioEntity b) => a.fechaHora.compareTo(b.fechaHora));
 
-    DateTime? primeraEntrada;
+    final List<TramoJornada> tramos = <TramoJornada>[];
     DateTime? entradaAbierta;
-    DateTime? ultimaSalida;
-    Duration total = Duration.zero;
-
     for (final RegistroHorarioEntity f in delTurno) {
-      final bool esEntrada = f.tipo.toLowerCase() == 'entrada';
-      if (esEntrada) {
-        primeraEntrada ??= f.fechaHora;
+      if (f.tipo.toLowerCase() == 'entrada') {
         entradaAbierta ??= f.fechaHora;
       } else if (entradaAbierta != null) {
-        total += f.fechaHora.difference(entradaAbierta);
-        ultimaSalida = f.fechaHora;
+        tramos.add(TramoJornada(entrada: entradaAbierta, salida: f.fechaHora));
         entradaAbierta = null;
       }
     }
-
-    if (primeraEntrada == null) {
+    // Sigue dentro: tramo en curso
+    if (entradaAbierta != null) {
+      tramos.add(TramoJornada(entrada: entradaAbierta));
+    }
+    if (tramos.isEmpty) {
       return null;
     }
-    // Sigue dentro: cuenta hasta ahora
-    if (entradaAbierta != null) {
-      total += DateTime.now().difference(entradaAbierta);
-      ultimaSalida = null;
-    }
-    return JornadaReal(entrada: primeraEntrada, salida: ultimaSalida, trabajado: total);
+
+    final Duration total =
+        tramos.fold(Duration.zero, (Duration acc, TramoJornada t) => acc + t.duracion);
+    return JornadaReal(
+      entrada: tramos.first.entrada,
+      salida: tramos.last.salida,
+      trabajado: total,
+      tramos: tramos,
+    );
   }
 
   /// Diferencia con la duración planificada del turno (+ = más horas)

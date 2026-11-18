@@ -1062,6 +1062,10 @@ class _TurnoChipWithHover extends StatefulWidget {
 }
 
 class _TurnoChipWithHoverState extends State<_TurnoChipWithHover> {
+  /// Altura de línea fija: los emojis/símbolos usan fuentes de reserva con
+  /// otras métricas y descuadraban el cálculo de IntrinsicHeight (overflow).
+  static const StrutStyle _strutFila = StrutStyle(fontSize: 12, height: 1.3, forceStrutHeight: true);
+
   bool _isHovering = false;
 
   /// Obtiene el emoji según la categoría del personal
@@ -1185,11 +1189,12 @@ class _TurnoChipWithHoverState extends State<_TurnoChipWithHover> {
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      strutStyle: _strutFila,
                     ),
                   ),
                   if (widget.vehiculoMatricula != null && widget.vehiculoMatricula!.isNotEmpty) ...<Widget>[
                     const SizedBox(width: 4),
-                    const Text('🚑', style: TextStyle(fontSize: 12)),
+                    const Text('🚑', style: TextStyle(fontSize: 12), strutStyle: _strutFila),
                     const SizedBox(width: 2),
                     Flexible(
                       child: Text(
@@ -1202,6 +1207,7 @@ class _TurnoChipWithHoverState extends State<_TurnoChipWithHover> {
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                        strutStyle: _strutFila,
                       ),
                     ),
                   ],
