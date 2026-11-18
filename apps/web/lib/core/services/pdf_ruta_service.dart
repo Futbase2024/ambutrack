@@ -348,7 +348,7 @@ class PdfRutaService {
       child: pw.Column(
         children: <pw.Widget>[
           pw.Text(
-            'Generado con AmbuTrack',
+            'Generado con EmerTrack',
             style: pw.TextStyle(
               fontSize: 10,
               color: PdfColors.grey600,

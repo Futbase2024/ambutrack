@@ -31,7 +31,7 @@ class SatisfaccionPacientePage extends StatelessWidget {
           content: InformeSinDatos(
             icon: Icons.poll_outlined,
             title: 'Aún no hay datos de satisfacción',
-            message: 'AmbuTrack todavía no registra encuestas ni valoraciones de los pacientes, '
+            message: 'EmerTrack todavía no registra encuestas ni valoraciones de los pacientes, '
                 'por lo que este informe no puede calcularse. Para activarlo es necesario:',
             puntos: <String>[
               'Crear las tablas de encuestas y respuestas vinculadas a cada traslado finalizado.',

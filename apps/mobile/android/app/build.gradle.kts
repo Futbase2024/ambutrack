@@ -34,11 +34,11 @@ android {
             dimension = "environment"
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
-            resValue("string", "app_name", "AmbuTrack DEV")
+            resValue("string", "app_name", "EmerTrack DEV")
         }
         create("prod") {
             dimension = "environment"
-            resValue("string", "app_name", "AmbuTrack")
+            resValue("string", "app_name", "EmerTrack")
         }
     }
 

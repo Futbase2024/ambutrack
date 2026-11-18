@@ -179,28 +179,12 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildHeader() {
     return Column(
       children: <Widget>[
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.local_hospital,
-            size: 64,
-            color: AppColors.primary,
-          ),
+        Image.asset(
+          'lib/core/assets/logo_emertrack.png',
+          width: 150,
+          height: 150,
         ),
         const SizedBox(height: 16),
-        Text(
-          'AmbuTrack',
-          style: GoogleFonts.inter(
-            fontSize: 32,
-            fontWeight: FontWeight.w800,
-            color: AppColors.primary,
-          ),
-        ),
-        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[

@@ -77,10 +77,11 @@ class _LoginPageState extends State<LoginPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
-                      // Logo AmbuTrack
+                      // Logo EmerTrack
                       Image.asset(
-                        'lib/assets/images/logonuevo.png',
-                        width: 300,
+                        'lib/assets/images/logo_emertrack.png',
+                        width: 160,
+                        height: 160,
                         fit: BoxFit.contain,
                       ),
                       const SizedBox(height: 24),

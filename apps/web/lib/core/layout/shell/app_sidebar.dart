@@ -74,11 +74,10 @@ class _SidebarHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDev = F.appFlavor == Flavor.dev;
-    final Widget logo = Container(
+    const Widget logo = Image(
+      image: AssetImage('lib/core/assets/logo_emertrack_simbolo.png'),
       width: 30,
       height: 30,
-      decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(7)),
-      child: const Icon(Icons.local_hospital, size: 18, color: Colors.white),
     );
     return Container(
       height: 52,
@@ -92,7 +91,7 @@ class _SidebarHeader extends StatelessWidget {
                 logo,
                 const SizedBox(width: 10),
                 const Text(
-                  'AmbuTrack',
+                  'EmerTrack',
                   style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800, color: AppColors.gray900),
                 ),
                 if (isDev) ...<Widget>[

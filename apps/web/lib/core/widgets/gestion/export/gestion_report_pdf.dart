@@ -30,7 +30,7 @@ class GestionReportPdf {
     debugPrint('📄 GestionReportPdf: generando ${reports.length} informe(s)');
     final pw.ThemeData theme = await _theme();
     final String generado = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
-    final pw.Document doc = pw.Document(title: reports.first.title, author: 'AmbuTrack', theme: theme);
+    final pw.Document doc = pw.Document(title: reports.first.title, author: 'EmerTrack', theme: theme);
     for (final GestionReport r in reports) {
       doc.addPage(
         pw.MultiPage(
@@ -139,7 +139,7 @@ class _PdfParts {
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: <pw.Widget>[
-          pw.Text('Documento generado por AmbuTrack el $generado', style: style),
+          pw.Text('Documento generado por EmerTrack el $generado', style: style),
           pw.Text('Página ${ctx.pageNumber} de ${ctx.pagesCount}', style: style),
         ],
       ),

@@ -83,7 +83,7 @@ class GestionPrint {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: <pw.Widget>[
               pw.Text(
-                'AmbuTrack',
+                'EmerTrack',
                 style: pw.TextStyle(fontSize: 9, color: _primary, fontWeight: pw.FontWeight.bold),
               ),
               pw.Text(title, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),

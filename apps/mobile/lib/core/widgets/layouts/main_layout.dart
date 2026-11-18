@@ -30,7 +30,7 @@ class MainLayout extends StatelessWidget {
     debugPrint('📍 [MainLayout] Obteniendo título para: $currentLocation');
     switch (currentLocation) {
       case '/':
-        return 'AmbuTrack';
+        return 'EmerTrack';
       case '/registro-horario':
         return 'Registro Horario';
       // Checklist Ambulancia se accede desde Mi Vehículo
@@ -43,7 +43,7 @@ class MainLayout extends StatelessWidget {
       case '/notificaciones':
         return 'Notificaciones';
       default:
-        return 'AmbuTrack';
+        return 'EmerTrack';
     }
   }
 
