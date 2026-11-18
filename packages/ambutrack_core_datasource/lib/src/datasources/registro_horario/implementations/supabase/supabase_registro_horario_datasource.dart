@@ -104,7 +104,7 @@ class SupabaseRegistroHorarioDataSource
       final model = RegistroHorarioSupabaseModel.fromEntity(entity);
       final data = model.toJson();
       data.remove('created_at');
-      data['updated_at'] = DateTime.now().toIso8601String();
+      data['updated_at'] = DateTime.now().toUtc().toIso8601String();
 
       final response = await _supabase
           .from(_tableName)
@@ -195,8 +195,8 @@ class SupabaseRegistroHorarioDataSource
           .from(_tableName)
           .select()
           .eq('personal_id', personalId)
-          .gte('fecha_hora', fechaInicio.toIso8601String())
-          .lte('fecha_hora', fechaFin.toIso8601String())
+          .gte('fecha_hora', fechaInicio.toUtc().toIso8601String())
+          .lte('fecha_hora', fechaFin.toUtc().toIso8601String())
           .order('fecha_hora', ascending: false);
 
       return (response as List)
@@ -256,18 +256,18 @@ class SupabaseRegistroHorarioDataSource
       final DateTime fechaFinUtc = fechaFin.toUtc();
 
       print('🔍 [DataSource] Consultando tabla: $_tableName');
-      print('   Desde (local): ${fechaInicio.toIso8601String()}');
-      print('   Desde (UTC):   ${fechaInicioUtc.toIso8601String()}');
-      print('   Hasta (local): ${fechaFin.toIso8601String()}');
-      print('   Hasta (UTC):   ${fechaFinUtc.toIso8601String()}');
+      print('   Desde (local): ${fechaInicio.toUtc().toIso8601String()}');
+      print('   Desde (UTC):   ${fechaInicioUtc.toUtc().toIso8601String()}');
+      print('   Hasta (local): ${fechaFin.toUtc().toIso8601String()}');
+      print('   Hasta (UTC):   ${fechaFinUtc.toUtc().toIso8601String()}');
 
       // Consultar con filtro de fecha en UTC
       // TODO: Agregar JOIN con tvehiculos cuando exista la foreign key
       final response = await _supabase
           .from(_tableName)
           .select()
-          .gte('fecha_hora', fechaInicioUtc.toIso8601String())
-          .lte('fecha_hora', fechaFinUtc.toIso8601String())
+          .gte('fecha_hora', fechaInicioUtc.toUtc().toIso8601String())
+          .lte('fecha_hora', fechaFinUtc.toUtc().toIso8601String())
           .order('fecha_hora', ascending: false);
 
       print('   Registros encontrados con filtro: ${(response as List).length}');

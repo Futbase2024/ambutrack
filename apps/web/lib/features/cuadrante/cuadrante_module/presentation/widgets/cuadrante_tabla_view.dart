@@ -6,6 +6,7 @@ import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/b
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/bloc/cuadrante_event.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/bloc/cuadrante_state.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/widgets/turno_app_pendiente_badge.dart';
+import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/widgets/turno_jornada_real_badge.dart';
 import 'package:ambutrack_web/features/turnos/presentation/bloc/turnos_bloc.dart';
 import 'package:ambutrack_web/features/turnos/presentation/bloc/turnos_event.dart';
 import 'package:ambutrack_web/features/turnos/presentation/bloc/turnos_state.dart';
@@ -481,7 +482,7 @@ class CuadranteTablaView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         // Chips de turnos existentes
-        ...turnos.map((TurnoEntity turno) => _buildTurnoChip(turno, dia)),
+        ...turnos.map((TurnoEntity turno) => _buildTurnoChip(turno, dia, personalConTurnos.fichajes)),
         // Botón para agregar otro turno
         const SizedBox(height: 4),
         _buildAddTurnoButton(personalConTurnos, dia),
@@ -529,7 +530,7 @@ class CuadranteTablaView extends StatelessWidget {
     );
   }
 
-  Widget _buildTurnoChip(TurnoEntity turno, DateTime dia) {
+  Widget _buildTurnoChip(TurnoEntity turno, DateTime dia, List<RegistroHorarioEntity> fichajes) {
     // Detectar tipo especial de turno
     final bool cruzaMedianoche = _cruzaMedianoche(turno);
     final bool esTurno24h = _esTurno24Horas(turno);
@@ -607,6 +608,7 @@ Arrastra para copiar'''.trim();
       horaInicioDisplay: horaInicioDisplay,
       horaFinDisplay: horaFinDisplay,
       vehiculoMatricula: vehiculoMatricula,
+      fichajes: fichajes,
       onTap: _showEditarTurnoDialog,
       onDelete: _confirmDeleteTurno,
     );
@@ -1038,6 +1040,7 @@ class _TurnoChipWithHover extends StatefulWidget {
     required this.horaInicioDisplay,
     required this.horaFinDisplay,
     this.vehiculoMatricula,
+    this.fichajes = const <RegistroHorarioEntity>[],
     required this.onTap,
     required this.onDelete,
   });
@@ -1050,6 +1053,7 @@ class _TurnoChipWithHover extends StatefulWidget {
   final String horaInicioDisplay;
   final String horaFinDisplay;
   final String? vehiculoMatricula;
+  final List<RegistroHorarioEntity> fichajes;
   final void Function(BuildContext, TurnoEntity) onTap;
   final Future<void> Function(BuildContext, TurnoEntity) onDelete;
 
@@ -1167,9 +1171,12 @@ class _TurnoChipWithHoverState extends State<_TurnoChipWithHover> {
                 ],
               ),
               const SizedBox(height: 2),
-              // Segunda fila: Horario (izquierda) + Matrícula (derecha)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // Segunda fila: Horario (izquierda) + Matrícula (derecha).
+              // Wrap: si no cabe en la celda, la matrícula baja de línea.
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 4,
                 children: <Widget>[
                   Text(
                     '${widget.horaInicioDisplay} - ${widget.horaFinDisplay}',
@@ -1202,6 +1209,7 @@ class _TurnoChipWithHoverState extends State<_TurnoChipWithHover> {
               ),
               if (widget.turno.pendienteValidacion && !isDragging)
                 TurnoAppPendienteBadge(turno: widget.turno),
+              if (!isDragging) TurnoJornadaRealBadge(turno: widget.turno, fichajes: widget.fichajes),
             ],
           ),
 

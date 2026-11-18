@@ -61,7 +61,7 @@ class RegistroHorarioSupabaseModel {
       personalId: json['personal_id'] as String,
       nombrePersonal: json['nombre_personal'] as String?,
       tipo: json['tipo'] as String,
-      fechaHora: DateTime.parse(json['fecha_hora'] as String),
+      fechaHora: DateTime.parse(json['fecha_hora'] as String).toLocal(),
       ubicacion: json['ubicacion'] as String?,
       latitud: json['latitud'] != null ? (json['latitud'] as num).toDouble() : null,
       longitud: json['longitud'] != null ? (json['longitud'] as num).toDouble() : null,
@@ -77,8 +77,8 @@ class RegistroHorarioSupabaseModel {
           ? (json['horas_trabajadas'] as num).toDouble()
           : null,
       activo: json['activo'] as bool? ?? true,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
+      updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
     );
   }
 
@@ -89,7 +89,7 @@ class RegistroHorarioSupabaseModel {
       'personal_id': personalId,
       'nombre_personal': nombrePersonal,
       'tipo': tipo,
-      'fecha_hora': fechaHora.toIso8601String(),
+      'fecha_hora': fechaHora.toUtc().toIso8601String(),
       'ubicacion': ubicacion,
       'latitud': latitud,
       'longitud': longitud,
@@ -103,8 +103,8 @@ class RegistroHorarioSupabaseModel {
       'turno': turno,
       'horas_trabajadas': horasTrabajadas,
       'activo': activo,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
     };
   }
 

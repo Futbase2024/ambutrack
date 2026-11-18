@@ -11,10 +11,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 @LazySingleton(as: CuadranteRepository)
 class CuadranteRepositoryImpl implements CuadranteRepository {
   CuadranteRepositoryImpl(this._supabase)
-      : _turnosDataSource = TurnoDataSourceFactory.createSupabase();
+      : _turnosDataSource = TurnoDataSourceFactory.createSupabase(),
+        _fichajesDataSource = RegistroHorarioDataSourceFactory.createSupabase();
 
   final SupabaseClient _supabase;
   final TurnoDataSource _turnosDataSource;
+  final RegistroHorarioDataSource _fichajesDataSource;
 
   @override
   Future<List<PersonalConTurnosEntity>> getCuadrante(CuadranteFilter filter) async {
@@ -67,7 +69,9 @@ class CuadranteRepositoryImpl implements CuadranteRepository {
 
       debugPrint('✅ Turnos obtenidos: ${turnosList.length}');
 
-      // Combinar personal con sus turnos
+      final List<RegistroHorarioEntity> fichajesList = await _getFichajes(filter);
+
+      // Combinar personal con sus turnos y fichajes
       final List<PersonalConTurnosEntity> cuadrante = personalList.map((PersonalEntity persona) {
         final List<TurnoEntity> turnosPersona = turnosList
             .where((TurnoEntity turno) => turno.idPersonal == persona.id)
@@ -76,6 +80,7 @@ class CuadranteRepositoryImpl implements CuadranteRepository {
         return PersonalConTurnosEntity(
           personal: persona,
           turnos: turnosPersona,
+          fichajes: fichajesList.where((RegistroHorarioEntity f) => f.personalId == persona.id).toList(),
         );
       }).toList();
 
@@ -93,6 +98,25 @@ class CuadranteRepositoryImpl implements CuadranteRepository {
       debugPrint('❌ Error al obtener cuadrante: $e');
       debugPrint('❌ StackTrace: $stackTrace');
       rethrow;
+    }
+  }
+
+  /// Fichajes del rango (+1 día por los turnos que cruzan medianoche).
+  /// Si fallan no se bloquea el cuadrante: solo no se ve la jornada real.
+  Future<List<RegistroHorarioEntity>> _getFichajes(CuadranteFilter filter) async {
+    if (filter.fechaInicio == null || filter.fechaFin == null) {
+      return <RegistroHorarioEntity>[];
+    }
+    try {
+      final List<RegistroHorarioEntity> fichajes = await _fichajesDataSource.getByDateRange(
+        filter.fechaInicio!.subtract(const Duration(days: 1)),
+        filter.fechaFin!.add(const Duration(days: 1)),
+      );
+      debugPrint('✅ Fichajes obtenidos: ${fichajes.length}');
+      return fichajes;
+    } catch (e) {
+      debugPrint('⚠️ CuadranteRepository: No se pudieron cargar fichajes: $e');
+      return <RegistroHorarioEntity>[];
     }
   }
 

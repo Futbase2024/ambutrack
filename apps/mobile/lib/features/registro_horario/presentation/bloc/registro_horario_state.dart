@@ -79,6 +79,29 @@ class RegistroHorarioLoadedWithContext extends RegistroHorarioState {
   final PersonalContexto? companero;
   final TurnoContexto? proximoTurno;
 
+  /// Entrada con la que empezó la jornada en curso (null si está fuera).
+  ///
+  /// Se salta los pares salida/entrada de "Cambio de vehículo" para no
+  /// confundir el cambio con el inicio de la jornada.
+  RegistroHorarioEntity? get entradaJornada {
+    if (estadoActual != EstadoFichaje.dentro || historial.isEmpty) {
+      return null;
+    }
+    RegistroHorarioEntity? inicio;
+    for (int i = 0; i < historial.length; i++) {
+      final RegistroHorarioEntity r = historial[i];
+      final bool esEntrada = r.tipo.toLowerCase() == 'entrada';
+      if (esEntrada) {
+        inicio = r;
+        continue;
+      }
+      if (r.notas != 'Cambio de vehículo') {
+        break;
+      }
+    }
+    return inicio ?? ultimoRegistro;
+  }
+
   @override
   List<Object?> get props => [
         ultimoRegistro,

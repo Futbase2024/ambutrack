@@ -388,10 +388,7 @@ class CuadranteBloc extends Bloc<CuadranteEvent, CuadranteState> {
           ...p.turnos.whereType<TurnoEntity>(),
           event.turno,
         ];
-        return PersonalConTurnosEntity(
-          personal: p.personal,
-          turnos: updatedTurnos,
-        );
+        return p.copyWith(turnos: updatedTurnos);
       }
       return p;
     }).toList();
@@ -421,10 +418,7 @@ class CuadranteBloc extends Bloc<CuadranteEvent, CuadranteState> {
           return t;
         }).toList();
 
-        return PersonalConTurnosEntity(
-          personal: p.personal,
-          turnos: updatedTurnos,
-        );
+        return p.copyWith(turnos: updatedTurnos);
       }
       return p;
     }).toList();
@@ -454,10 +448,7 @@ class CuadranteBloc extends Bloc<CuadranteEvent, CuadranteState> {
       // Si se modificó la lista de turnos, crear nueva entidad
       final int originalCount = p.turnos.whereType<TurnoEntity>().length;
       if (updatedTurnos.length != originalCount) {
-        return PersonalConTurnosEntity(
-          personal: p.personal,
-          turnos: updatedTurnos,
-        );
+        return p.copyWith(turnos: updatedTurnos);
       }
 
       return p;

@@ -31,7 +31,7 @@ mixin SupabaseRegistroHorarioOperations {
         'personal_id': personalId,
         'nombre_personal': nombrePersonal,
         'tipo': 'entrada',
-        'fecha_hora': now.toIso8601String(),
+        'fecha_hora': now.toUtc().toIso8601String(),
         'ubicacion': ubicacion,
         'latitud': latitud,
         'longitud': longitud,
@@ -85,7 +85,7 @@ mixin SupabaseRegistroHorarioOperations {
         'personal_id': personalId,
         'nombre_personal': nombrePersonal,
         'tipo': 'salida',
-        'fecha_hora': now.toIso8601String(),
+        'fecha_hora': now.toUtc().toIso8601String(),
         'ubicacion': ubicacion,
         'latitud': latitud,
         'longitud': longitud,
@@ -137,7 +137,7 @@ mixin SupabaseRegistroHorarioOperations {
         'personal_id': personalId,
         'nombre_personal': nombrePersonal,
         'tipo': tipo,
-        'fecha_hora': fechaHora.toIso8601String(),
+        'fecha_hora': fechaHora.toUtc().toIso8601String(),
         'ubicacion': ubicacion,
         'vehiculo_id': vehiculoId,
         'turno': turno,
@@ -193,7 +193,7 @@ mixin SupabaseRegistroHorarioOperations {
           .select()
           .eq('personal_id', personalId)
           .eq('tipo', 'salida')
-          .gt('fecha_hora', ultimaEntrada.fechaHora.toIso8601String())
+          .gt('fecha_hora', ultimaEntrada.fechaHora.toUtc().toIso8601String())
           .limit(1)
           .maybeSingle();
 
@@ -234,8 +234,8 @@ mixin SupabaseRegistroHorarioOperations {
           .from(tableName)
           .select()
           .eq('personal_id', personalId)
-          .gte('fecha_hora', fechaInicio.toIso8601String())
-          .lte('fecha_hora', fechaFin.toIso8601String())
+          .gte('fecha_hora', fechaInicio.toUtc().toIso8601String())
+          .lte('fecha_hora', fechaFin.toUtc().toIso8601String())
           .order('fecha_hora', ascending: true);
 
       final registros = (response as List)
@@ -270,10 +270,10 @@ mixin SupabaseRegistroHorarioOperations {
       var query = supabase.from(tableName).select();
 
       if (fechaInicio != null) {
-        query = query.gte('fecha_hora', fechaInicio.toIso8601String());
+        query = query.gte('fecha_hora', fechaInicio.toUtc().toIso8601String());
       }
       if (fechaFin != null) {
-        query = query.lte('fecha_hora', fechaFin.toIso8601String());
+        query = query.lte('fecha_hora', fechaFin.toUtc().toIso8601String());
       }
 
       final response = await query;
@@ -305,7 +305,7 @@ mixin SupabaseRegistroHorarioOperations {
     try {
       final data = {
         'activo': false,
-        'updated_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
       };
 
       final response = await supabase
@@ -325,7 +325,7 @@ mixin SupabaseRegistroHorarioOperations {
     try {
       final data = {
         'activo': true,
-        'updated_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
       };
 
       final response = await supabase
@@ -355,17 +355,17 @@ mixin SupabaseRegistroHorarioOperations {
         query = query.eq('personal_id', personalId);
       }
       if (fechaInicio != null) {
-        query = query.gte('fecha_hora', fechaInicio.toIso8601String());
+        query = query.gte('fecha_hora', fechaInicio.toUtc().toIso8601String());
       }
       if (fechaFin != null) {
-        query = query.lte('fecha_hora', fechaFin.toIso8601String());
+        query = query.lte('fecha_hora', fechaFin.toUtc().toIso8601String());
       }
 
       final response = await query.order('fecha_hora', ascending: true);
 
       return {
         'version': '1.0',
-        'exportedAt': DateTime.now().toIso8601String(),
+        'exportedAt': DateTime.now().toUtc().toIso8601String(),
         'count': (response as List).length,
         'registros': response.map((json) =>
             RegistroHorarioSupabaseModel.fromJson(json).toEntity().toJson()).toList(),
@@ -399,7 +399,7 @@ mixin SupabaseRegistroHorarioOperations {
 
           if (exists != null) {
             data.remove('created_at');
-            data['updated_at'] = DateTime.now().toIso8601String();
+            data['updated_at'] = DateTime.now().toUtc().toIso8601String();
 
             final response = await supabase
                 .from(tableName)

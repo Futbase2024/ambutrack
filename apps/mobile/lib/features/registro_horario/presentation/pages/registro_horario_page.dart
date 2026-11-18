@@ -14,6 +14,7 @@ import '../bloc/registro_horario_state.dart';
 import '../widgets/boton_registro_circular_widget.dart';
 import '../widgets/cambiar_vehiculo_dialog.dart';
 import '../widgets/historial_fichajes_widget.dart';
+import '../widgets/finalizar_jornada/finalizar_jornada_dialog.dart';
 import '../widgets/inicio_turno/iniciar_turno_sheet.dart';
 import '../widgets/info_turno_grupo.dart';
 import '../widgets/turno_estado_card.dart';
@@ -211,13 +212,14 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
     double precision,
     String? observaciones,
   ) async {
+    final AuthState authState = context.read<AuthBloc>().state;
+    final String? idPersonal = authState is AuthAuthenticated ? authState.personal?.id : null;
+    if (idPersonal == null) {
+      return;
+    }
+    final RegistroHorarioBloc bloc = context.read<RegistroHorarioBloc>();
+
     if (estadoActual == EstadoFichaje.fuera) {
-      final AuthState authState = context.read<AuthBloc>().state;
-      final String? idPersonal = authState is AuthAuthenticated ? authState.personal?.id : null;
-      if (idPersonal == null) {
-        return;
-      }
-      final RegistroHorarioBloc bloc = context.read<RegistroHorarioBloc>();
       final InicioTurnoSeleccion? seleccion = await showIniciarTurnoSheet(context, idPersonal: idPersonal);
       if (seleccion == null) {
         return;
@@ -232,14 +234,28 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
         ),
       );
     } else {
-      context.read<RegistroHorarioBloc>().add(
-            FicharSalida(
-              latitud: lat,
-              longitud: lon,
-              precisionGps: precision,
-              observaciones: observaciones,
-            ),
-          );
+      final RegistroHorarioState state = bloc.state;
+      final RegistroHorarioEntity? entrada = state is RegistroHorarioLoadedWithContext ? state.entradaJornada : null;
+      final String? matricula = state is RegistroHorarioLoadedWithContext
+          ? state.vehiculo?.matricula ?? entrada?.vehiculoMatricula
+          : null;
+      final bool confirmado = await showFinalizarJornadaDialog(
+        context,
+        idPersonal: idPersonal,
+        entrada: entrada?.tipo.toLowerCase() == 'entrada' ? entrada?.fechaHora : null,
+        matricula: matricula,
+      );
+      if (!confirmado) {
+        return;
+      }
+      bloc.add(
+        FicharSalida(
+          latitud: lat,
+          longitud: lon,
+          precisionGps: precision,
+          observaciones: observaciones,
+        ),
+      );
     }
   }
 

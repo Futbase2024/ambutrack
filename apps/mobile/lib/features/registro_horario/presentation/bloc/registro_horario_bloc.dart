@@ -155,7 +155,8 @@ class RegistroHorarioBloc
         deAyer.finReal.isAfter(ahora)) {
       turno = deAyer;
     }
-    return turno.copyWith(fechaInicio: turno.inicioReal, fechaFin: turno.finReal);
+    // En UTC: un DateTime local sin offset se guardaría como UTC en BD
+    return turno.copyWith(fechaInicio: turno.inicioReal.toUtc(), fechaFin: turno.finReal.toUtc());
   }
 
   Future<void> _onFicharSalida(
@@ -168,19 +169,36 @@ class RegistroHorarioBloc
       return;
     }
 
+    final RegistroHorarioState previo = state;
+    final DateTime? inicioJornada =
+        previo is RegistroHorarioLoadedWithContext ? previo.entradaJornada?.fechaHora : null;
+
     try {
       emit(const RegistroHorarioFichando());
-      final VehiculoEntity? vehiculo = await _vehiculoDelTurno(personal.id);
+      // El vehículo sale de la última entrada: si se ficha la salida con
+      // horas extra fuera del turno, el turno vigente ya no se encuentra.
+      final RegistroHorarioEntity? entrada = await _registroRepository.obtenerUltimo(personal.id);
+      final bool hayEntrada = entrada?.tipo.toLowerCase() == 'entrada';
+      final VehiculoEntity? vehiculoTurno =
+          hayEntrada && entrada?.vehiculoId != null ? null : await _vehiculoDelTurno(personal.id);
+
       await _registroRepository.crear(_nuevoRegistro(
         personalId: personal.id,
         tipo: 'salida',
         latitud: event.latitud,
         longitud: event.longitud,
         precisionGps: event.precisionGps,
-        vehiculo: vehiculo,
+        vehiculo: vehiculoTurno,
+        vehiculoId: hayEntrada ? entrada?.vehiculoId : null,
+        vehiculoMatricula: hayEntrada ? entrada?.vehiculoMatricula : null,
         notas: event.observaciones,
       ));
-      emit(const RegistroHorarioSuccess('Salida fichada correctamente'));
+      final DateTime? inicio = inicioJornada ?? (hayEntrada ? entrada?.fechaHora : null);
+      emit(RegistroHorarioSuccess(
+        inicio != null
+            ? 'Jornada finalizada. Tiempo trabajado: ${_formatearDuracion(DateTime.now().difference(inicio))}.'
+            : 'Salida fichada correctamente',
+      ));
       add(const ObtenerContextoTurno());
     } catch (e) {
       debugPrint('❌ [RegistroHorarioBloc] Error al fichar salida: $e');
@@ -344,6 +362,8 @@ class RegistroHorarioBloc
     required double longitud,
     required double precisionGps,
     VehiculoEntity? vehiculo,
+    String? vehiculoId,
+    String? vehiculoMatricula,
     String? notas,
   }) {
     final DateTime ahora = DateTime.now();
@@ -355,11 +375,17 @@ class RegistroHorarioBloc
       latitud: latitud,
       longitud: longitud,
       precisionGps: precisionGps,
-      vehiculoId: vehiculo?.id,
-      vehiculoMatricula: vehiculo?.matricula,
+      vehiculoId: vehiculo?.id ?? vehiculoId,
+      vehiculoMatricula: vehiculo?.matricula ?? vehiculoMatricula,
       notas: notas,
       createdAt: ahora,
       updatedAt: ahora,
     );
+  }
+
+  /// Formato "8h 05m"
+  String _formatearDuracion(Duration d) {
+    final int m = d.inMinutes.remainder(60);
+    return '${d.inHours}h ${m.toString().padLeft(2, '0')}m';
   }
 }

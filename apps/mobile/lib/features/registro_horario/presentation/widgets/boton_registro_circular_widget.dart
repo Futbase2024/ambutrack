@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/dialogs/professional_confirm_dialog.dart';
 import '../../../../core/widgets/dialogs/professional_result_dialog.dart';
 import '../bloc/registro_horario_state.dart';
 
@@ -108,29 +107,14 @@ class _BotonRegistroCircularWidgetState
       return;
     }
 
-    // Mostrar diálogo de confirmación profesional
-    final esFicharEntrada = widget.estadoActual == EstadoFichaje.fuera;
-    final confirmed = await showProfessionalConfirmDialog(
-      context,
-      title: esFicharEntrada ? 'Iniciar Jornada' : 'Finalizar Jornada',
-      message: esFicharEntrada
-          ? '¿Confirmas que deseas iniciar tu jornada laboral?'
-          : '¿Confirmas que deseas finalizar tu jornada laboral?',
-      confirmLabel: 'Confirmar',
-      cancelLabel: 'Cancelar',
-      icon: Icons.fingerprint,
-      iconColor: esFicharEntrada ? AppColors.success : AppColors.error,
+    // La confirmación la hace la página: hoja "Iniciar turno" en la
+    // entrada y diálogo "Finalizar jornada" (resumen + traslados) en la salida
+    widget.onFichar(
+      _currentPosition!.latitude,
+      _currentPosition!.longitude,
+      _currentPosition!.accuracy,
+      null,
     );
-
-    if (confirmed == true) {
-      // Disparar callback con datos GPS
-      widget.onFichar(
-        _currentPosition!.latitude,
-        _currentPosition!.longitude,
-        _currentPosition!.accuracy,
-        null, // Sin observaciones en este diseño (opcional: agregar TextField)
-      );
-    }
   }
 
   @override
