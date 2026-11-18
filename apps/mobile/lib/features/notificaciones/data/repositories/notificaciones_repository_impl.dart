@@ -14,7 +14,8 @@ class NotificacionesRepositoryImpl implements NotificacionesRepository {
     required AuthBloc authBloc,
   })  : _authBloc = authBloc,
         _dataSource = NotificacionesDataSourceFactory.createSupabase(
-          empresaId: 'ambutrack', // TODO: Obtener dinámicamente si multi-tenant
+          // El datasource filtra por usuario_id (RLS); empresaId no se usa en las consultas
+          empresaId: 'ambutrack',
         );
 
   final AuthBloc _authBloc;

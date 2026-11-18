@@ -348,9 +348,7 @@ class _ChecklistCard extends StatelessWidget {
         ],
       ),
       child: InkWell(
-        onTap: () {
-          // TODO: Navegar a detalle del checklist
-        },
+        onTap: () => context.push('/checklist-ambulancia/${checklist.id}'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),

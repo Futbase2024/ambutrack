@@ -35,7 +35,7 @@ class MainLayout extends StatelessWidget {
         return 'Registro Horario';
       // Checklist Ambulancia se accede desde Mi Vehículo
       case '/partes-diarios':
-        return 'Partes Diarios';
+        return 'Parte diario';
       case '/incidencias':
         return 'Incidencias';
       case '/perfil':
@@ -200,16 +200,16 @@ class MainLayout extends StatelessWidget {
               _buildDrawerItem(
                 context,
                 icon: AppIcons.assignment,
-                title: 'Partes Diarios',
+                title: 'Parte diario',
                 route: '/partes-diarios',
                 isSelected: currentLocation == '/partes-diarios',
               ),
               _buildDrawerItem(
                 context,
                 icon: AppIcons.warningAmber,
-                title: 'Incidencias',
-                route: '/incidencias',
-                isSelected: currentLocation == '/incidencias',
+                title: 'Reportar incidencia',
+                route: '/vehiculo/reportar-incidencia',
+                isSelected: currentLocation == '/vehiculo/reportar-incidencia',
               ),
               const Divider(),
               _buildDrawerItem(

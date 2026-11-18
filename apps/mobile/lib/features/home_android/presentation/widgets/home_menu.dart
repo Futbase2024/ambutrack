@@ -42,6 +42,13 @@ class HomeMenu extends StatelessWidget {
               enabled: turnoActivo,
               onTap: () => context.push('/servicios'),
             ),
+            AppMenuOpcion(
+              icon: Icons.assignment_outlined,
+              color: AppColors.success,
+              titulo: 'Parte diario',
+              descripcion: 'Resumen de fichajes, servicios y km del día',
+              onTap: () => context.push('/partes-diarios'),
+            ),
           ],
         ),
         const SizedBox(height: 28),

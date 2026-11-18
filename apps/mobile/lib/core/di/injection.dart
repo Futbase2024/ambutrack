@@ -28,10 +28,6 @@ import '../../features/vehiculo/domain/repositories/checklist_vehiculo_repositor
 import '../../features/vehiculo/presentation/bloc/checklist/checklist_bloc.dart'
     as vehiculo_checklist;
 import '../../features/vehiculo/presentation/bloc/vehiculo_asignado/vehiculo_asignado_bloc.dart';
-import '../../features/ambulancias/data/repositories/ambulancias_repository_impl.dart';
-import '../../features/ambulancias/domain/repositories/ambulancias_repository.dart';
-import '../../features/ambulancias/presentation/bloc/ambulancias_bloc.dart';
-import '../../features/ambulancias/presentation/bloc/revisiones_bloc.dart';
 import '../../features/vehiculo/data/repositories/stock_repository_impl.dart';
 import '../../features/vehiculo/domain/repositories/stock_repository.dart';
 import '../../features/vehiculo/presentation/bloc/caducidades/caducidades_bloc.dart'
@@ -201,22 +197,6 @@ Future<void> configureDependencies() async {
   // BLoC (Factory para crear nueva instancia en cada página)
   getIt.registerFactory<EquipamientoBloc>(
     () => EquipamientoBloc(getIt<EquipamientoRepository>()),
-  );
-
-  // ===== AMBULANCIAS =====
-
-  // Repository
-  getIt.registerLazySingleton<AmbulanciasRepository>(
-    () => AmbulanciasRepositoryImpl(),
-  );
-
-  // BLoCs (Factory para crear nueva instancia en cada página)
-  getIt.registerFactory<AmbulanciasBloc>(
-    () => AmbulanciasBloc(getIt<AmbulanciasRepository>()),
-  );
-
-  getIt.registerFactory<RevisionesBloc>(
-    () => RevisionesBloc(getIt<AmbulanciasRepository>()),
   );
 
   // ===== STOCK Y CADUCIDADES =====

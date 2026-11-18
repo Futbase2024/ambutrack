@@ -29,6 +29,9 @@ dependencies:
   # ===== BACKEND =====
   supabase_flutter: ^2.18.3
 
+  # Monitor de errores (solo activo con --dart-define=SENTRY_DSN=...)
+  sentry_flutter: ^10.5.0
+
   # ===== DEPENDENCY INJECTION =====
   get_it: ^9.3.0
   injectable: ^3.0.0

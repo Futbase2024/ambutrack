@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -182,25 +183,19 @@ class PerfilPage extends StatelessWidget {
                       _buildOption(
                         icon: Icons.schedule,
                         title: 'Mis Horarios',
-                        onTap: () {
-                          // TODO: Ver horarios
-                        },
+                        onTap: () => context.push('/registro-horario'),
                       ),
                       const Divider(height: 1),
                       _buildOption(
                         icon: Icons.history,
                         title: 'Historial de Servicios',
-                        onTap: () {
-                          // TODO: Ver historial
-                        },
+                        onTap: () => context.push('/servicios/historico'),
                       ),
                       const Divider(height: 1),
                       _buildOption(
-                        icon: Icons.settings,
-                        title: 'Configuración',
-                        onTap: () {
-                          // TODO: Abrir configuración
-                        },
+                        icon: Icons.assignment_outlined,
+                        title: 'Parte diario',
+                        onTap: () => context.push('/partes-diarios'),
                       ),
                     ],
                   ),

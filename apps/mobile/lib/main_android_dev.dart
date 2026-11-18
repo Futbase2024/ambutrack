@@ -8,6 +8,7 @@ import 'app/flavors.dart';
 import 'core/config/supabase_config.dart';
 import 'core/di/injection.dart';
 import 'features/notificaciones/services/local_notifications_service.dart';
+import 'core/monitoring/error_monitoring.dart';
 
 /// Entry point para Android en modo DESARROLLO
 void main() async {
@@ -45,5 +46,6 @@ void main() async {
   }
 
   // Ejecutar app
-  runApp(const App());
+  // Monitor de errores: solo activo si se compila con --dart-define=SENTRY_DSN=...
+  await ErrorMonitoring.run(environment: 'development', appRunner: () => runApp(const App()));
 }

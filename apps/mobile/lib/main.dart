@@ -5,6 +5,7 @@ import 'app/app.dart';
 import 'app/flavors.dart';
 import 'core/config/supabase_config.dart';
 import 'core/di/injection.dart';
+import 'core/monitoring/error_monitoring.dart';
 
 /// Punto de entrada principal de AmbuTrack Mobile
 ///
@@ -33,5 +34,6 @@ Future<void> main() async {
   debugPrint('✅ [Main] Dependencias configuradas');
 
   // Ejecutar aplicación
-  runApp(const App());
+  // Monitor de errores: solo activo si se compila con --dart-define=SENTRY_DSN=...
+  await ErrorMonitoring.run(environment: 'production', appRunner: () => runApp(const App()));
 }

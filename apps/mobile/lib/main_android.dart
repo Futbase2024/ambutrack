@@ -7,6 +7,7 @@ import 'app/app.dart';
 import 'app/flavors.dart';
 import 'core/config/supabase_config.dart';
 import 'core/di/injection.dart';
+import 'core/monitoring/error_monitoring.dart';
 
 /// Entry point para Android en modo PRODUCCIÓN
 void main() async {
@@ -32,5 +33,6 @@ void main() async {
   await configureDependencies();
 
   // Ejecutar app
-  runApp(const App());
+  // Monitor de errores: solo activo si se compila con --dart-define=SENTRY_DSN=...
+  await ErrorMonitoring.run(environment: 'production', appRunner: () => runApp(const App()));
 }

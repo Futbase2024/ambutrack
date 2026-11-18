@@ -15,7 +15,6 @@ import '../../features/checklist_ambulancia/presentation/pages/detalle_checklist
 import '../../features/caducidades/presentation/pages/caducidades_page.dart';
 import '../di/injection.dart';
 import '../../features/home_android/presentation/pages/home_android_page.dart';
-import '../../features/incidencias/presentation/pages/incidencias_page.dart';
 import '../../features/partes_diarios/presentation/pages/partes_diarios_page.dart';
 import '../../features/perfil/presentation/pages/perfil_page.dart';
 import '../../features/registro_horario/presentation/pages/registro_horario_page.dart';
@@ -30,9 +29,6 @@ import '../../features/vehiculo/presentation/pages/checklist/checklist_mensual_p
 import '../../features/equipamiento/presentation/pages/equipamiento_page.dart';
 import '../../features/vehiculo/presentation/pages/historial/historial_page.dart';
 import '../../features/vestuario/presentation/pages/vestuario_page.dart';
-import '../../features/ambulancias/presentation/pages/ambulancias_page.dart';
-import '../../features/ambulancias/presentation/pages/ambulancia_detalle_page.dart';
-import '../../features/ambulancias/presentation/pages/revision_page.dart';
 import '../../features/notificaciones/presentation/pages/notificaciones_page.dart';
 import '../widgets/layouts/main_layout.dart';
 
@@ -68,8 +64,8 @@ class _RouterMemory {
 /// 2. / - Home Android (protegida)
 /// 3. /registro-horario - Fichar entrada/salida (protegida)
 /// 4. /checklist-ambulancia - Revisión pre-servicio (protegida)
-/// 5. /partes-diarios - Informes de servicio (protegida)
-/// 6. /incidencias - Reportar problemas (protegida)
+/// 5. /partes-diarios - Parte diario: resumen de la jornada (protegida)
+/// 6. /incidencias - Redirige a /vehiculo/reportar-incidencia
 /// 7. /servicios - Mis servicios/traslados del día (protegida)
 /// 8. /servicios/historico - Histórico de servicios (protegida)
 /// 9. /servicios/:id - Detalle de traslado (protegida)
@@ -181,17 +177,11 @@ GoRouter createAppRouter(AuthBloc authBloc) {
         },
       ),
 
-      // Incidencias
+      // Incidencias: se reportan desde "Mi vehículo"
       GoRoute(
         path: '/incidencias',
         name: 'incidencias',
-        pageBuilder: (BuildContext context, GoRouterState state) {
-          return _buildPageWithTransition(
-            context: context,
-            state: state,
-            child: const IncidenciasPage(),
-          );
-        },
+        redirect: (BuildContext context, GoRouterState state) => '/vehiculo/reportar-incidencia',
       ),
 
       // Perfil
@@ -392,49 +382,6 @@ GoRouter createAppRouter(AuthBloc authBloc) {
             child: const VestuarioPage(),
           );
         },
-      ),
-
-      // Ambulancias
-      GoRoute(
-        path: '/ambulancias',
-        name: 'ambulancias',
-        pageBuilder: (BuildContext context, GoRouterState state) {
-          return _buildPageWithTransition(
-            context: context,
-            state: state,
-            child: const AmbulanciasPage(),
-          );
-        },
-        routes: [
-          // Detalle de ambulancia
-          GoRoute(
-            path: ':id',
-            name: 'ambulancia-detalle',
-            pageBuilder: (BuildContext context, GoRouterState state) {
-              final ambulanciaId = state.pathParameters['id']!;
-              return _buildPageWithTransition(
-                context: context,
-                state: state,
-                child: AmbulanciaDetallePage(ambulanciaId: ambulanciaId),
-              );
-            },
-            routes: [
-              // Detalle de revisión
-              GoRoute(
-                path: 'revision/:revisionId',
-                name: 'revision-detalle',
-                pageBuilder: (BuildContext context, GoRouterState state) {
-                  final revisionId = state.pathParameters['revisionId']!;
-                  return _buildPageWithTransition(
-                    context: context,
-                    state: state,
-                    child: RevisionPage(revisionId: revisionId),
-                  );
-                },
-              ),
-            ],
-          ),
-        ],
       ),
     ],
 
