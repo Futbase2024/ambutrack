@@ -46,6 +46,9 @@ abstract class TurnoActualRepository {
   /// Documentación del trabajador (carnet, certificados...)
   Future<List<DocumentoPersonalEntity>> obtenerDocumentosPersonal(String idPersonal);
 
+  /// Material (stock) del vehículo, para avisar de caducidades
+  Future<List<StockVehiculoEntity>> obtenerMaterialVehiculo(String idVehiculo);
+
   /// Personal activo (para elegir compañero)
   Future<List<TPersonalEntity>> obtenerPersonalActivo();
 

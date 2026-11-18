@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../../core/theme/app_colors.dart';
 import '../../../../../../core/theme/app_sizes.dart';
 import '../../../cubit/inicio_turno_cubit.dart';
+import '../../../cubit/inicio_turno_reglas.dart';
 import '../../../cubit/inicio_turno_state.dart';
 import '../inicio_turno_comunes.dart';
 
@@ -18,30 +19,34 @@ class PasoChecklist extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final InicioTurnoCubit cubit = context.read<InicioTurnoCubit>();
-    if (state.checklistNombres.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.only(top: 24),
-        child: Text(
-          'No hay revisión rápida configurada. Puedes continuar.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.gray600),
-        ),
-      );
-    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            const Expanded(child: TituloSeccionInicio('Revisión rápida')),
-            TextButton.icon(
-              onPressed: cubit.marcarTodoCorrecto,
-              icon: const Icon(Icons.done_all_rounded, size: 18),
-              label: const Text('Todo OK'),
-              style: TextButton.styleFrom(foregroundColor: AppColors.success),
+        if (state.avisosMaterial.isNotEmpty) ...<Widget>[
+          const TituloSeccionInicio('Material con caducidad'),
+          AvisosInicioTurnoList(avisos: state.avisosMaterial),
+        ],
+        if (state.checklistNombres.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 24),
+            child: Text(
+              'No hay revisión rápida configurada. Puedes continuar.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.gray600),
             ),
-          ],
-        ),
+          )
+        else
+          Row(
+            children: <Widget>[
+              const Expanded(child: TituloSeccionInicio('Revisión rápida')),
+              TextButton.icon(
+                onPressed: cubit.marcarTodoCorrecto,
+                icon: const Icon(Icons.done_all_rounded, size: 18),
+                label: const Text('Todo OK'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.success),
+              ),
+            ],
+          ),
         for (int i = 0; i < state.checklistNombres.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -83,8 +88,8 @@ class _ItemChecklist extends StatelessWidget {
     final Color borde = respuesta == null
         ? AppColors.gray300
         : respuesta!
-            ? AppColors.success
-            : AppColors.warning;
+        ? AppColors.success
+        : AppColors.warning;
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
       decoration: BoxDecoration(
@@ -97,7 +102,9 @@ class _ItemChecklist extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Expanded(child: Text(nombre, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600))),
+              Expanded(
+                child: Text(nombre, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              ),
               _BotonRespuesta(
                 icono: Icons.check_rounded,
                 color: AppColors.success,
@@ -120,10 +127,7 @@ class _ItemChecklist extends StatelessWidget {
                 initialValue: observacion,
                 onChanged: onObservar,
                 textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
-                  hintText: '¿Qué ocurre? (obligatorio)',
-                  isDense: true,
-                ),
+                decoration: const InputDecoration(hintText: '¿Qué ocurre? (obligatorio)', isDense: true),
               ),
             ),
         ],
@@ -147,10 +151,7 @@ class _BotonRespuesta extends StatelessWidget {
       customBorder: const CircleBorder(),
       child: Container(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: activo ? color : color.withValues(alpha: 0.08),
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: activo ? color : color.withValues(alpha: 0.08), shape: BoxShape.circle),
         child: Icon(icono, size: 20, color: activo ? Colors.white : color),
       ),
     );

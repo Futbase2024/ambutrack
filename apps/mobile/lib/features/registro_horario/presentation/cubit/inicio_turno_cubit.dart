@@ -151,13 +151,19 @@ class InicioTurnoCubit extends Cubit<InicioTurnoState> {
   // ===== Privados =====
 
   Future<void> _cargarOcupacion(String idVehiculo) async {
-    emit(state.copyWith(cargandoOcupacion: true));
-    final List<OcupanteVehiculoEntity> ocupantes =
-        await _seguro(_repository.obtenerOcupacionVehiculo(idVehiculo), const <OcupanteVehiculoEntity>[]);
+    emit(state.copyWith(cargandoOcupacion: true, material: const <StockVehiculoEntity>[]));
+    final List<Object> datos = await Future.wait<Object>(<Future<Object>>[
+      _seguro(_repository.obtenerOcupacionVehiculo(idVehiculo), const <OcupanteVehiculoEntity>[]),
+      _seguro(_repository.obtenerMaterialVehiculo(idVehiculo), const <StockVehiculoEntity>[]),
+    ]);
     if (isClosed || state.vehiculoSeleccionado?.id != idVehiculo) {
       return;
     }
-    emit(state.copyWith(ocupantes: ocupantes, cargandoOcupacion: false));
+    emit(state.copyWith(
+      ocupantes: datos[0] as List<OcupanteVehiculoEntity>,
+      material: datos[1] as List<StockVehiculoEntity>,
+      cargandoOcupacion: false,
+    ));
   }
 
   /// Datos opcionales: si fallan no impiden iniciar turno

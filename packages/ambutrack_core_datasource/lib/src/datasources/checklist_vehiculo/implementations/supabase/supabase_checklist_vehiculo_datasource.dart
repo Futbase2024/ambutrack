@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../turnos/entities/turno_entity.dart';
+import '../../../turnos/turno_factory.dart';
 import '../../checklist_vehiculo_contract.dart';
 import '../../entities/checklist_vehiculo_entity.dart';
 import '../../entities/item_checklist_entity.dart';
@@ -322,31 +324,45 @@ class SupabaseChecklistVehiculoDataSource
         });
   }
 
+  /// Vehículo con el que trabaja hoy el personal
+  ///
+  /// 1. Jornada abierta: vehículo del último fichaje de entrada (es el real,
+  ///    incluso si cambió de vehículo respecto al cuadrante)
+  /// 2. Si no hay jornada abierta: vehículo del turno vigente (±1 h), incluidos
+  ///    turnos de noche o de 24 h que terminan mañana
   @override
   Future<String?> getVehiculoAsignadoHoy(String personalId) async {
     try {
-      final hoy = DateTime.now();
-      final fechaHoy = DateTime(hoy.year, hoy.month, hoy.day);
-
-      // Buscar en tabla turnos por idPersonal y fecha actual
-      final response = await _supabase
-          .from('turnos')
-          .select('idVehiculo')
-          .eq('idPersonal', personalId)
-          .gte('fechaInicio', fechaHoy.toIso8601String())
-          .lte('fechaFin', fechaHoy.add(const Duration(days: 1)).toIso8601String())
-          .eq('activo', true)
-          .maybeSingle();
-
-      if (response != null && response['idVehiculo'] != null) {
-        return response['idVehiculo'] as String;
+      final String? enJornada = await _vehiculoJornadaAbierta(personalId);
+      if (enJornada != null) {
+        return enJornada;
       }
-
-      return null;
+      return await _vehiculoTurnoVigente(personalId);
     } catch (e) {
-      print('Error al obtener vehículo asignado: $e');
+      debugPrint('❌ Error al obtener vehículo asignado: $e');
       return null;
     }
+  }
+
+  Future<String?> _vehiculoJornadaAbierta(String personalId) async {
+    final Map<String, dynamic>? ultimo = await _supabase
+        .from('registros_horarios')
+        .select('tipo, vehiculo_id')
+        .eq('personal_id', personalId)
+        .order('fecha_hora', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    final String? vehiculoId = ultimo?['vehiculo_id'] as String?;
+    final bool abierta = (ultimo?['tipo'] as String?)?.toLowerCase() == 'entrada';
+    return abierta && vehiculoId != null && vehiculoId.isNotEmpty ? vehiculoId : null;
+  }
+
+  /// Turno vigente (±1 h) calculado con hora real: los turnos del cuadrante
+  /// guardan la hora en `horaInicio`/`horaFin`, no en las fechas
+  Future<String?> _vehiculoTurnoVigente(String personalId) async {
+    final TurnoEntity? turno = await TurnoDataSourceFactory.createSupabase(_supabase).getTurnoVigente(personalId);
+    final String? vehiculoId = turno?.idVehiculo;
+    return vehiculoId == null || vehiculoId.isEmpty ? null : vehiculoId;
   }
 
   /// Helper para obtener un checklist con sus items

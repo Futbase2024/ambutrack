@@ -47,6 +47,9 @@ import '../../features/notificaciones/data/repositories/notificaciones_repositor
 import '../../features/notificaciones/domain/repositories/notificaciones_repository.dart';
 import '../../features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
 import '../../features/notificaciones/services/local_notifications_service.dart';
+import '../../features/alertas_turno/data/repositories/alertas_turno_repository_impl.dart';
+import '../../features/alertas_turno/domain/repositories/alertas_turno_repository.dart';
+import '../../features/alertas_turno/presentation/cubit/alertas_turno_cubit.dart';
 import '../../features/perfil/data/repositories/ajustes_dispositivo_repository_impl.dart';
 import '../../features/perfil/domain/repositories/ajustes_dispositivo_repository.dart';
 import '../services/app_lock_service.dart';
@@ -78,6 +81,14 @@ Future<void> configureDependencies() async {
 
   getIt.registerLazySingleton<AjustesDispositivoRepository>(
     () => AjustesDispositivoRepositoryImpl(),
+  );
+
+  // Caducidades del técnico y del vehículo en turno (indicador global)
+  getIt.registerLazySingleton<AlertasTurnoRepository>(
+    () => AlertasTurnoRepositoryImpl(),
+  );
+  getIt.registerLazySingleton<AlertasTurnoCubit>(
+    () => AlertasTurnoCubit(getIt<AlertasTurnoRepository>()),
   );
 
   // DataSources

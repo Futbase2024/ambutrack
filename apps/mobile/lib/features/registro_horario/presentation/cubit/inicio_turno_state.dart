@@ -47,6 +47,7 @@ class InicioTurnoState extends Equatable {
     this.personalActivo = const <TPersonalEntity>[],
     this.ocupantes = const <OcupanteVehiculoEntity>[],
     this.cargandoOcupacion = false,
+    this.material = const <StockVehiculoEntity>[],
     this.rol,
     this.companero,
     this.km,
@@ -77,6 +78,9 @@ class InicioTurnoState extends Equatable {
   final List<TPersonalEntity> personalActivo;
   final List<OcupanteVehiculoEntity> ocupantes;
   final bool cargandoOcupacion;
+
+  /// Material del vehículo elegido (para avisar de caducidades)
+  final List<StockVehiculoEntity> material;
   final RolDotacion? rol;
   final TPersonalEntity? companero;
   final int? km;
@@ -119,6 +123,7 @@ class InicioTurnoState extends Equatable {
     String? filtro,
     List<OcupanteVehiculoEntity>? ocupantes,
     bool? cargandoOcupacion,
+    List<StockVehiculoEntity>? material,
     RolDotacion? rol,
     TPersonalEntity? companero,
     bool limpiarCompanero = false,
@@ -151,6 +156,7 @@ class InicioTurnoState extends Equatable {
       personalActivo: personalActivo,
       ocupantes: ocupantes ?? this.ocupantes,
       cargandoOcupacion: cargandoOcupacion ?? this.cargandoOcupacion,
+      material: material ?? this.material,
       rol: rol ?? this.rol,
       companero: limpiarCompanero ? null : companero ?? this.companero,
       km: limpiarKm ? null : km ?? this.km,
@@ -184,6 +190,7 @@ class InicioTurnoState extends Equatable {
         personalActivo,
         ocupantes,
         cargandoOcupacion,
+        material,
         rol,
         companero,
         km,

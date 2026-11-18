@@ -11,7 +11,8 @@ class TurnoActualRepositoryImpl implements TurnoActualRepository {
         _vehiculoDataSource = VehiculoDataSourceFactory.createSupabase(),
         _inicioDataSource = InicioTurnoDataSourceFactory.createSupabase(),
         _documentosDataSource = DocumentosPersonalDataSourceFactory.createSupabase(),
-        _personalDataSource = TPersonalDataSourceFactory.createSupabase();
+        _personalDataSource = TPersonalDataSourceFactory.createSupabase(),
+        _stockDataSource = StockDataSourceFactory.createSupabase();
 
   final TurnoDataSource _turnoDataSource;
   final PlantillaTurnoDataSource _plantillaDataSource;
@@ -19,6 +20,7 @@ class TurnoActualRepositoryImpl implements TurnoActualRepository {
   final InicioTurnoDataSource _inicioDataSource;
   final DocumentosPersonalDataSource _documentosDataSource;
   final TPersonalDataSource _personalDataSource;
+  final StockDataSource _stockDataSource;
 
   static const Duration _margen = Duration(hours: 1);
 
@@ -108,6 +110,11 @@ class TurnoActualRepositoryImpl implements TurnoActualRepository {
   @override
   Future<List<DocumentoPersonalEntity>> obtenerDocumentosPersonal(String idPersonal) async {
     return _documentosDataSource.getByPersonal(idPersonal);
+  }
+
+  @override
+  Future<List<StockVehiculoEntity>> obtenerMaterialVehiculo(String idVehiculo) async {
+    return _stockDataSource.getStockVehiculo(idVehiculo);
   }
 
   @override

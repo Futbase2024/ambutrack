@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/menu/app_menu.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../alertas_turno/presentation/widgets/alertas_turno_badge.dart';
 import '../bloc/registro_horario_bloc.dart';
 import '../bloc/registro_horario_event.dart';
 import '../bloc/registro_horario_state.dart';
@@ -32,8 +33,8 @@ class RegistroHorarioPage extends StatefulWidget {
 }
 
 class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
-  /// Se está fichando la salida (para cerrar sesión en dispositivo compartido)
-  bool _salidaEnCurso = false;
+  /// Fichaje en curso: entrada → resumen de caducidades; salida → cierre en modo compartido
+  FichajeEnCurso _fichajeEnCurso = FichajeEnCurso.ninguno;
 
   @override
   void initState() {
@@ -51,6 +52,7 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: const <Widget>[AlertasTurnoBadge(colorIcono: Colors.white)],
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () {
@@ -66,8 +68,8 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
         child: BlocConsumer<RegistroHorarioBloc, RegistroHorarioState>(
           listener: (context, state) {
             if (state is RegistroHorarioSuccess || state is RegistroHorarioError) {
-              mostrarResultadoRegistro(context, state, eraSalida: _salidaEnCurso);
-              _salidaEnCurso = false;
+              mostrarResultadoRegistro(context, state, fichaje: _fichajeEnCurso);
+              _fichajeEnCurso = FichajeEnCurso.ninguno;
             }
           },
           builder: (context, state) {
@@ -218,6 +220,7 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
       if (seleccion == null) {
         return;
       }
+      _fichajeEnCurso = FichajeEnCurso.entrada;
       bloc.add(
         FicharEntrada(
           latitud: lat,
@@ -242,7 +245,7 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
       if (!confirmado) {
         return;
       }
-      _salidaEnCurso = true;
+      _fichajeEnCurso = FichajeEnCurso.salida;
       bloc.add(
         FicharSalida(
           latitud: lat,

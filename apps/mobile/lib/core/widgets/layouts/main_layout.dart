@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../features/alertas_turno/presentation/widgets/alertas_turno_badge.dart';
 import '../../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../../features/auth/presentation/bloc/auth_state.dart';
 import '../../../features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
@@ -56,6 +57,8 @@ class MainLayout extends StatelessWidget {
       appBar: AppBar(
         title: Text(_getPageTitle()),
         actions: <Widget>[
+          // Caducidades pendientes (oculto si todo está en orden)
+          const AlertasTurnoBadge(),
           // Badge de notificaciones
           // Nota: Usamos BlocProvider.value para compartir la instancia creada en app.dart
           // que ya está inicializada después de la autenticación.

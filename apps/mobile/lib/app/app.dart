@@ -13,6 +13,7 @@ import '../core/services/gps_tracking_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_lock/app_lock_gate.dart';
 import '../core/widgets/app_lock/oferta_biometria.dart';
+import '../features/alertas_turno/presentation/cubit/alertas_turno_cubit.dart';
 import '../features/auth/presentation/bloc/auth_bloc.dart';
 import '../features/auth/presentation/bloc/auth_event.dart';
 import '../features/auth/presentation/bloc/auth_state.dart';
@@ -41,6 +42,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   late final GoRouter _router;
   late final GpsTrackingService _gpsService;
   final AppLockService _appLock = getIt<AppLockService>();
+  final AlertasTurnoCubit _alertasTurno = getIt<AlertasTurnoCubit>();
   bool _isNotificacionesBlocInitialized = false;
   bool _sesionBloqueable = false;
   bool _loginEnCurso = false;
@@ -85,6 +87,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     debugPrint('🔔 [App] Estado actual de AuthBloc: ${currentState.runtimeType}');
     if (currentState is AuthAuthenticated) {
       _actualizarBloqueo(currentState);
+      _actualizarAlertas(currentState);
       debugPrint('🔔 [App] Usuario YA autenticado, inicializando NotificacionesBloc...');
       _initializeNotificacionesBloc();
     }
@@ -94,11 +97,24 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   void _onAuthStateChanged(AuthState state) {
     _gpsService.setAutenticado(value: state is AuthAuthenticated);
     _actualizarBloqueo(state);
+    _actualizarAlertas(state);
     debugPrint('🔔 [App] Estado de AuthBloc cambiado: ${state.runtimeType}');
 
     if (!_isNotificacionesBlocInitialized && state is AuthAuthenticated) {
       debugPrint('🔔 [App] Usuario autenticado (stream), inicializando NotificacionesBloc...');
       _initializeNotificacionesBloc();
+    }
+  }
+
+  /// Caducidades (indicador de la barra): se recalculan al entrar y se limpian al salir
+  void _actualizarAlertas(AuthState state) {
+    if (state is AuthAuthenticated) {
+      final String? idPersonal = state.personal?.id;
+      if (idPersonal != null) {
+        _alertasTurno.actualizar(idPersonal);
+      }
+    } else if (state is AuthUnauthenticated) {
+      _alertasTurno.limpiar();
     }
   }
 
@@ -160,6 +176,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       _appLock.irASegundoPlano();
     } else if (isInForeground) {
       _appLock.volverAPrimerPlano();
+      _actualizarAlertas(_authBloc.state);
     }
 
     // GPS: "inactive" (diálogos del sistema, p.ej. permisos) cuenta como primer plano
@@ -250,6 +267,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     final providers = <BlocProvider<dynamic>>[
       BlocProvider<AuthBloc>.value(value: _authBloc),
       BlocProvider<RegistroHorarioBloc>.value(value: _registroHorarioBloc),
+      BlocProvider<AlertasTurnoCubit>.value(value: _alertasTurno),
     ];
 
     // Añadir NotificacionesBloc solo si está inicializado

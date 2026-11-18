@@ -1,5 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
+import '../../../alertas_turno/domain/models/aviso_caducidad.dart';
+import '../../../alertas_turno/domain/services/calculador_avisos_caducidad.dart';
 import '../../domain/models/datos_inicio_turno.dart';
 import '../../domain/services/validador_inicio_turno.dart';
 import '../bloc/registro_horario_event.dart';
@@ -26,6 +28,15 @@ extension InicioTurnoReglas on InicioTurnoState {
         ),
     ];
   }
+
+  /// Material caducado o a punto de caducar (solo avisa, nunca bloquea)
+  List<AvisoInicioTurno> get avisosMaterial => <AvisoInicioTurno>[
+        for (final AvisoCaducidad a in CalculadorAvisosCaducidad.deMaterial(material, DateTime.now()))
+          AvisoInicioTurno.aviso(
+            '${a.titulo} (${a.detalle}) ${a.caducado ? 'CADUCADO' : 'caduca pronto'}'
+            '${a.fecha == null ? '' : ' · ${a.fecha!.day}/${a.fecha!.month}/${a.fecha!.year}'}',
+          ),
+      ];
 
   List<AvisoInicioTurno> get avisosPersonal => ValidadorInicioTurno.documentacionPersonal(
         documentos,
@@ -108,6 +119,7 @@ extension InicioTurnoReglas on InicioTurnoState {
     final List<String> avisos = <String>[
       ...avisosVehiculo.map((AvisoInicioTurno a) => a.mensaje),
       ...avisosPersonal.map((AvisoInicioTurno a) => a.mensaje),
+      ...avisosMaterial.map((AvisoInicioTurno a) => a.mensaje),
       ?avisoKm?.mensaje,
     ];
     final TPersonalEntity? c = companero;
