@@ -970,6 +970,7 @@ class _ServiciosPageContentState extends State<_ServiciosPageContent> {
       case EstadoTraslado.enviado:
         return Icons.send_outlined;
       case EstadoTraslado.recibido:
+      case EstadoTraslado.recibidoConductor:
         return Icons.check_circle_outline;
       case EstadoTraslado.enOrigen:
         return Icons.location_on;

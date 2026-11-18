@@ -101,8 +101,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         desde: inicioDia,
         hasta: finDia,
       );
+      // En curso = sin finalizar, de hoy o atrasados (los de días futuros no cuentan)
       final List<TrasladoEntity> serviciosActivos =
-          await _trasladoRepository.getEnCurso();
+          (await _trasladoRepository.getEnCurso())
+              .where((TrasladoEntity t) => t.fecha != null && t.fecha!.isBefore(finDia))
+              .toList();
 
       // Métricas de flota por clasificación oficial (RD 836/2012):
       // urgencias = B (SVB), C (SVA) y A1 UR; programados = A1 y A2

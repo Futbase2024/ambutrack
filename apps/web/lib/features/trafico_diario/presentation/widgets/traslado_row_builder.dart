@@ -3,15 +3,12 @@ import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/context_menu/custom_context_menu.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/entities/servicio_entity.dart';
-import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/resizable_data_table.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-/// Builder para construir filas de traslados en la tabla
-///
-/// Separado para reducir complejidad y líneas del componente principal
+/// Acciones de un traslado en la planificación: menú contextual (clic
+/// derecho) y diálogo de detalles
 class TrasladoRowBuilder {
   const TrasladoRowBuilder({
     required this.serviciosPorTraslado,
@@ -19,7 +16,6 @@ class TrasladoRowBuilder {
     required this.personalPorId,
     required this.localidadesPorNombreHospital,
     required this.trasladosSeleccionados,
-    required this.onSelectionChanged,
     required this.context,
     this.onDesasignarConductor,
     this.onDesasignarConductorMasivoRequested,
@@ -36,7 +32,6 @@ class TrasladoRowBuilder {
   final Map<String, String> personalPorId;
   final Map<String, String> localidadesPorNombreHospital;
   final Set<String> trasladosSeleccionados;
-  final ValueChanged<Set<String>> onSelectionChanged;
   final BuildContext context;
 
   /// Callback para desasignar conductor de un traslado individual
@@ -69,212 +64,9 @@ class TrasladoRowBuilder {
   /// Recibe el ID del traslado y el nombre del paciente para mostrar contexto
   final void Function(String idTraslado, String pacienteNombre)? onVerHistorial;
 
-  /// Construye una fila de datos para un traslado
-  DataTableRow buildRow(TrasladoEntity traslado, [int index = 0]) {
+  /// Opciones del menú contextual (clic derecho) de un traslado
+  List<ContextMenuOption> contextMenuOptions(TrasladoEntity traslado) {
     final ServicioEntity? servicio = serviciosPorTraslado[traslado.id];
-
-    // Usar paciente del servicio (traslado no tiene paciente directo)
-    final PacienteEntity? paciente = servicio?.paciente;
-
-    final String tipoTraslado = (traslado.tipoTraslado ?? 'SIN TIPO').toUpperCase();
-    // Formatear hora a HH:mm desde DateTime
-    final String horaProgramada = traslado.horaProgramada != null
-        ? DateFormat('HH:mm').format(traslado.horaProgramada!)
-        : '';
-
-    final EstadoTraslado estadoEnum = EstadoTraslado.fromValue(traslado.estado) ?? EstadoTraslado.pendiente;
-    final String estatus = _getEstatusTexto(estadoEnum);
-    final Color estatusColor = _getEstatusColor(traslado);
-
-    final String pacienteNombre = paciente != null
-        ? '${paciente.nombre} ${paciente.primerApellido}${paciente.segundoApellido != null ? ' ${paciente.segundoApellido}' : ''}'
-        : '';
-
-    final String domicilioOrigen = traslado.tipoOrigen == 'domicilio_paciente'
-        ? (paciente?.domicilioDireccion ?? '')
-        : 'HOSPITAL';
-
-    final String domicilioDestino = traslado.tipoDestino == 'domicilio_paciente'
-        ? (paciente?.domicilioDireccion ?? '')
-        : 'HOSPITAL';
-
-    String localidadOrigen = '';
-    if (traslado.tipoOrigen == 'domicilio_paciente') {
-      localidadOrigen = paciente?.localidadId != null
-          ? (localidadesPorId[paciente!.localidadId!] ?? '')
-          : '';
-    } else if (traslado.origen != null && traslado.origen!.isNotEmpty) {
-      localidadOrigen = localidadesPorNombreHospital[traslado.origen!] ?? '';
-    }
-
-    String localidadDestino = '';
-    if (traslado.tipoDestino == 'domicilio_paciente') {
-      localidadDestino = paciente?.localidadId != null
-          ? (localidadesPorId[paciente!.localidadId!] ?? '')
-          : '';
-    } else if (traslado.destino != null && traslado.destino!.isNotEmpty) {
-      localidadDestino = localidadesPorNombreHospital[traslado.destino!] ?? '';
-    }
-
-    final String nombreOrigen = traslado.tipoOrigen == 'centro_hospitalario' &&
-            traslado.origen != null &&
-            traslado.origen!.isNotEmpty
-        ? traslado.origen!
-        : 'DOMICILIO';
-
-    final String nombreDestino = traslado.tipoDestino == 'centro_hospitalario' &&
-            traslado.destino != null &&
-            traslado.destino!.isNotEmpty
-        ? traslado.destino!
-        : 'DOMICILIO';
-
-    // Usar motivo traslado del servicio (traslado solo tiene idMotivoTraslado)
-    final String terapia = servicio?.motivoTraslado?.nombre ?? '';
-    final String conductor = traslado.idConductor != null
-        ? (personalPorId[traslado.idConductor!] ?? traslado.conductorNombre ?? '')
-        : '';
-    final String matricula = traslado.matriculaVehiculo ?? '';
-
-    // Construir las celdas de la fila
-    final List<DataTableCell> cells = <DataTableCell>[
-        DataTableCell(
-          child: Checkbox(
-            value: trasladosSeleccionados.contains(traslado.id),
-            onChanged: (bool? value) {
-              final Set<String> newSelection = Set<String>.from(trasladosSeleccionados);
-              if (value == true) {
-                newSelection.add(traslado.id);
-              } else {
-                newSelection.remove(traslado.id);
-              }
-              onSelectionChanged(newSelection);
-            },
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-          ),
-          alignment: Alignment.center,
-        ),
-        DataTableCell(
-          child: Tooltip(
-            message: tipoTraslado,
-            child: Container(
-              width: 28,
-              height: 22,
-              decoration: BoxDecoration(
-                color: tipoTraslado == 'IDA'
-                    ? AppColors.success.withValues(alpha: 0.15)
-                    : AppColors.error.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: tipoTraslado == 'IDA'
-                      ? AppColors.success.withValues(alpha: 0.4)
-                      : AppColors.error.withValues(alpha: 0.4),
-                ),
-              ),
-              child: Icon(
-                tipoTraslado == 'IDA' ? Icons.arrow_forward_rounded : Icons.arrow_back_rounded,
-                size: 18,
-                color: tipoTraslado == 'IDA' ? AppColors.success : AppColors.error,
-              ),
-            ),
-          ),
-          alignment: Alignment.center,
-        ),
-        DataTableCell(child: _buildHoraCell(horaProgramada), alignment: Alignment.center),
-        DataTableCell(child: _buildCellText(pacienteNombre, false, 11)),
-        DataTableCell(child: _buildCellText(domicilioOrigen, false, 11)),
-        DataTableCell(child: _buildCellText(localidadOrigen, false, 11)),
-        DataTableCell(child: _buildCellText(nombreOrigen, false, 11)),
-        DataTableCell(child: _buildCellText(domicilioDestino, false, 11)),
-        DataTableCell(child: _buildCellText(localidadDestino, false, 11)),
-        DataTableCell(child: _buildCellText(nombreDestino, false, 11)),
-        DataTableCell(child: _buildCellText(terapia, false, 11)),
-        DataTableCell(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: estatusColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              estatus,
-              style: GoogleFonts.inter(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                color: estatusColor,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          alignment: Alignment.center,
-        ),
-        DataTableCell(child: _buildCellText(conductor, true, 11), alignment: Alignment.center),
-        ..._buildCheckboxesRequisitos(traslado),
-        DataTableCell(child: _buildCellText(matricula, true, 11), alignment: Alignment.center),
-        ..._buildHorasCronologicas(traslado),
-    ];
-
-    // Verificar si esta fila está seleccionada
-    final bool estaSeleccionado = trasladosSeleccionados.contains(traslado.id);
-
-    // Envolver la fila completa con menú contextual
-    return DataTableRow(
-      cells: cells.asMap().entries.map((MapEntry<int, DataTableCell> entry) {
-        final int index = entry.key;
-        final DataTableCell cell = entry.value;
-
-        // No envolver el checkbox con menú contextual
-        if (index == 0) {
-          return cell;
-        }
-
-        return DataTableCell(
-          child: CustomContextMenu(
-            menuOptions: _buildContextMenuOptions(traslado, servicio),
-            child: cell.child,
-          ),
-          alignment: cell.alignment,
-        );
-      }).toList(),
-      // Color de fondo verde claro cuando está seleccionado
-      backgroundColor: estaSeleccionado
-          ? AppColors.tableSelectedRowBg
-          : null,
-      isSelected: estaSeleccionado,
-      // Selección con Shift para múltiple, clic normal para única
-      onTap: () {
-        // Verificar si Shift está presionado para selección múltiple
-        final bool shiftPressed = HardwareKeyboard.instance.logicalKeysPressed
-            .any((LogicalKeyboardKey key) =>
-                key == LogicalKeyboardKey.shiftLeft ||
-                key == LogicalKeyboardKey.shiftRight);
-
-        if (shiftPressed) {
-          // Shift + clic: añadir/quitar de la selección múltiple
-          final Set<String> newSelection = Set<String>.from(trasladosSeleccionados);
-          if (estaSeleccionado) {
-            newSelection.remove(traslado.id);
-          } else {
-            newSelection.add(traslado.id);
-          }
-          onSelectionChanged(newSelection);
-        } else {
-          // Clic normal: seleccionar solo esta fila (o deseleccionar si ya está sola)
-          if (estaSeleccionado && trasladosSeleccionados.length == 1) {
-            // Si solo está esta seleccionada, deseleccionarla
-            onSelectionChanged(<String>{});
-          } else {
-            // Seleccionar solo esta fila
-            onSelectionChanged(<String>{traslado.id});
-          }
-        }
-      },
-    );
-  }
-
-  /// Construye las opciones del menú contextual para un traslado
-  List<ContextMenuOption> _buildContextMenuOptions(TrasladoEntity traslado, ServicioEntity? servicio) {
     final bool tieneServicio = servicio != null;
     final bool tieneHoraProgramada = traslado.horaProgramada != null;
     final EstadoTraslado? estadoEnum = EstadoTraslado.fromValue(traslado.estado);
@@ -291,7 +83,7 @@ class TrasladoRowBuilder {
         emoji: '📋',
         onTap: () {
           debugPrint('📋 Ver detalles de traslado: ${traslado.id}');
-          _mostrarDetallesServicio(traslado, servicio);
+          mostrarDetalles(traslado);
         },
       ),
       if (tieneServicio)
@@ -419,7 +211,8 @@ class TrasladoRowBuilder {
   }
 
   /// Muestra un dialog con los detalles completos del traslado (diseño profesional con secciones)
-  void _mostrarDetallesServicio(TrasladoEntity traslado, ServicioEntity? servicio) {
+  void mostrarDetalles(TrasladoEntity traslado) {
+    final ServicioEntity? servicio = serviciosPorTraslado[traslado.id];
     final String tipoTraslado = (traslado.tipoTraslado ?? 'SIN TIPO').toUpperCase();
     final bool esIda = tipoTraslado == 'IDA';
     final String horaProgramada = traslado.horaProgramada != null
@@ -1402,197 +1195,6 @@ class TrasladoRowBuilder {
 
     if (onAsignarConductorRequested != null) {
       onAsignarConductorRequested!(traslado.id, pacienteNombre);
-    }
-  }
-
-  List<DataTableCell> _buildHorasCronologicas(TrasladoEntity traslado) {
-    return <DataTableCell>[
-      DataTableCell(
-        child: _buildHoraCronologicaCell(
-          traslado.fechaEnviado != null ? DateFormat('HH:mm').format(traslado.fechaEnviado!) : '',
-        ),
-        alignment: Alignment.center,
-      ),
-      DataTableCell(
-        child: _buildHoraCronologicaCell(
-          traslado.fechaRecibidoConductor != null ? DateFormat('HH:mm').format(traslado.fechaRecibidoConductor!) : '',
-        ),
-        alignment: Alignment.center,
-      ),
-      DataTableCell(
-        child: _buildHoraCronologicaCell(
-          traslado.fechaEnOrigen != null ? DateFormat('HH:mm').format(traslado.fechaEnOrigen!) : '',
-        ),
-        alignment: Alignment.center,
-      ),
-      DataTableCell(
-        child: _buildHoraCronologicaCell(
-          traslado.fechaSaliendoOrigen != null ? DateFormat('HH:mm').format(traslado.fechaSaliendoOrigen!) : '',
-        ),
-        alignment: Alignment.center,
-      ),
-      DataTableCell(
-        child: _buildHoraCronologicaCell(
-          traslado.fechaEnDestino != null ? DateFormat('HH:mm').format(traslado.fechaEnDestino!) : '',
-        ),
-        alignment: Alignment.center,
-      ),
-      DataTableCell(
-        child: _buildHoraCronologicaCell(
-          traslado.fechaFinalizado != null ? DateFormat('HH:mm').format(traslado.fechaFinalizado!) : '',
-        ),
-        alignment: Alignment.center,
-      ),
-    ];
-  }
-
-  /// Construye la celda de hora cronológica con estilo destacado (negrita y más grande)
-  Widget _buildHoraCronologicaCell(String hora) {
-    if (hora.isEmpty) {
-      return Text(
-        '-',
-        style: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w400,
-          color: AppColors.textSecondaryLight,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      );
-    }
-    return Text(
-      hora,
-      style: GoogleFonts.inter(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textPrimaryLight,
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  List<DataTableCell> _buildCheckboxesRequisitos(TrasladoEntity traslado) {
-    return <DataTableCell>[
-      // SIC = Solo Silla de Ruedas
-      DataTableCell(
-        child: _buildCheckboxCell(traslado.requiereSillaRuedas ?? false),
-        alignment: Alignment.center,
-      ),
-      // CA = Solo Camilla
-      DataTableCell(child: _buildCheckboxCell(traslado.requiereCamilla ?? false), alignment: Alignment.center),
-      // Ayu = Ayuda
-      DataTableCell(child: _buildCheckboxCell(traslado.requiereAyuda ?? false), alignment: Alignment.center),
-      // Ac = Acompañante
-      DataTableCell(child: _buildCheckboxCell(traslado.requiereAcompanante ?? false), alignment: Alignment.center),
-    ];
-  }
-
-  Widget _buildCellText(String text, bool negrita, double tamTexto) {
-    return Text(
-      text.toUpperCase(),
-      style: GoogleFonts.inter(
-        fontSize: tamTexto,
-        fontWeight: negrita ? FontWeight.w600 : FontWeight.normal,
-        color: AppColors.textPrimaryLight,
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildCheckboxCell(bool value) {
-    return Icon(
-      value ? Icons.check_box : Icons.check_box_outline_blank,
-      size: 16,
-      color: value ? AppColors.success : AppColors.gray400,
-    );
-  }
-
-  Color _getEstatusColor(TrasladoEntity traslado) {
-    final EstadoTraslado? estadoEnum = EstadoTraslado.fromValue(traslado.estado);
-    if (estadoEnum == null) {
-      return AppColors.gray500;
-    }
-
-    switch (estadoEnum) {
-      // Rojo: Estados finales negativos
-      case EstadoTraslado.cancelado:
-      case EstadoTraslado.noRealizado:
-      case EstadoTraslado.anulado:
-        return AppColors.error;
-      // Verde: Finalizado exitoso
-      case EstadoTraslado.finalizado:
-        return AppColors.success;
-      // Naranja: Pendiente y suspendido
-      case EstadoTraslado.pendiente:
-      case EstadoTraslado.suspendido:
-        return AppColors.warning;
-      // Verde: Todos los demás estados activos
-      case EstadoTraslado.asignado:
-      case EstadoTraslado.enviado:
-      case EstadoTraslado.recibido:
-      case EstadoTraslado.recibidoConductor:
-      case EstadoTraslado.enOrigen:
-      case EstadoTraslado.saliendoOrigen:
-      case EstadoTraslado.enTransito:
-      case EstadoTraslado.enDestino:
-        return AppColors.success;
-    }
-  }
-
-  /// Obtiene el texto de visualización para el estado del traslado
-  /// Usa el label del enum pero cambia "SALIENDO" por "EN RUTA"
-  String _getEstatusTexto(EstadoTraslado estado) {
-    // Caso especial: mostrar "EN RUTA" en lugar de "SALIENDO"
-    if (estado == EstadoTraslado.saliendoOrigen) {
-      return 'EN RUTA';
-    }
-    // Para el resto, usar el label del enum
-    return estado.label;
-  }
-
-  /// Construye la celda de hora programada con estilo destacado
-  Widget _buildHoraCell(String hora) {
-    return Text(
-      hora,
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
-        color: AppColors.primary,
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-
-  /// Obtiene el valor de una columna para filtrado
-  String obtenerValorColumna(TrasladoEntity traslado, String columna) {
-    final ServicioEntity? servicio = serviciosPorTraslado[traslado.id];
-    // Usar paciente del servicio
-    final PacienteEntity? paciente = servicio?.paciente;
-
-    switch (columna) {
-      case 'tipoTraslado':
-        return (traslado.tipoTraslado ?? '').toUpperCase();
-      case 'paciente':
-        return paciente != null
-            ? '${paciente.nombre} ${paciente.primerApellido}'
-            : '';
-      case 'terapia':
-        // Usar motivo traslado del servicio
-        return servicio?.motivoTraslado?.nombre ?? '';
-      case 'estatus':
-        return EstadoTraslado.fromValue(traslado.estado)?.label ?? traslado.estado ?? '';
-      case 'conductor':
-        return traslado.idConductor != null
-            ? (personalPorId[traslado.idConductor!] ?? traslado.conductorNombre ?? '')
-            : '';
-      case 'matricula':
-        return traslado.matriculaVehiculo ?? '';
-      default:
-        return '';
     }
   }
 }

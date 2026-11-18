@@ -3,13 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../features/auth/presentation/bloc/auth_bloc.dart';
-import '../../../features/auth/presentation/bloc/auth_event.dart';
 import '../../../features/auth/presentation/bloc/auth_state.dart';
 import '../../../features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
 import '../../../features/notificaciones/presentation/bloc/notificaciones_state.dart';
 import '../../../features/notificaciones/presentation/widgets/notificacion_badge.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_icons.dart';
+import '../dialogs/logout_flow.dart';
 
 /// Layout principal de AmbuTrack Mobile
 ///
@@ -47,31 +47,6 @@ class MainLayout extends StatelessWidget {
     }
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Cerrar Sesión'),
-        content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              context.read<AuthBloc>().add(const AuthSignOutRequested());
-            },
-            child: const Text(
-              'Cerrar Sesión',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +78,7 @@ class MainLayout extends StatelessWidget {
           IconButton(
             icon: const Icon(AppIcons.logout),
             tooltip: 'Cerrar Sesión',
-            onPressed: () => _showLogoutDialog(context),
+            onPressed: () => iniciarLogout(context),
           ),
         ],
       ),
@@ -230,7 +205,7 @@ class MainLayout extends StatelessWidget {
                 ),
                 onTap: () {
                   Navigator.pop(context); // Cerrar drawer
-                  _showLogoutDialog(context);
+                  iniciarLogout(context);
                 },
               ),
             ],

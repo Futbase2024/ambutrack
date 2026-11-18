@@ -87,6 +87,19 @@ class DashboardRoleConfig {
     },
   };
 
+  // ─── Card compartida: Técnicos en turno ──────────────────────────
+
+  /// "Fichados / con turno en curso" de TES y conductores.
+  /// Al pulsar abre el detalle (no navega), por eso no lleva `route`.
+  static const DashboardCardConfig _tecnicosEnTurnoCard = DashboardCardConfig(
+    cardType: DashboardCardType.tecnicosEnTurno,
+    title: 'Técnicos en turno',
+    icon: Icons.groups_outlined,
+    accentColor: AppColors.primary,
+    subtitle: 'fichados',
+    hasDetalles: true,
+  );
+
   // ─── Cards: Admin (6 cards) ───────────────────────────────────────
 
   static const List<DashboardCardConfig> _adminCards = <DashboardCardConfig>[
@@ -113,13 +126,7 @@ class DashboardRoleConfig {
       route: '/flota/mantenimiento-preventivo',
       addRoute: '/flota/mantenimiento-preventivo',
     ),
-    DashboardCardConfig(
-      cardType: DashboardCardType.personal,
-      title: 'Personal',
-      icon: Icons.badge_outlined,
-      accentColor: Color(0xFF7C3AED),
-      route: '/personal',
-    ),
+    _tecnicosEnTurnoCard,
     DashboardCardConfig(
       cardType: DashboardCardType.agendaPendientes,
       title: 'Agenda Pend.',
@@ -143,13 +150,7 @@ class DashboardRoleConfig {
 
   static const List<DashboardCardConfig> _jefePersonalCards =
       <DashboardCardConfig>[
-    DashboardCardConfig(
-      cardType: DashboardCardType.personal,
-      title: 'Personal',
-      icon: Icons.badge_outlined,
-      accentColor: Color(0xFF7C3AED),
-      route: '/personal',
-    ),
+    _tecnicosEnTurnoCard,
     DashboardCardConfig(
       cardType: DashboardCardType.ausencias,
       title: 'Ausencias',
@@ -183,7 +184,7 @@ class DashboardRoleConfig {
     ),
   ];
 
-  // ─── Cards: Jefe de Tráfico (5 cards) ─────────────────────────────
+  // ─── Cards: Jefe de Tráfico (6 cards) ─────────────────────────────
 
   static const List<DashboardCardConfig> _jefeTraficCards =
       <DashboardCardConfig>[
@@ -194,6 +195,7 @@ class DashboardRoleConfig {
       accentColor: AppColors.primary,
       route: '/servicios/planificar',
     ),
+    _tecnicosEnTurnoCard,
     DashboardCardConfig(
       cardType: DashboardCardType.vehiculos,
       title: 'Vehículos',
@@ -226,7 +228,7 @@ class DashboardRoleConfig {
     ),
   ];
 
-  // ─── Cards: Coordinador (5 cards) ─────────────────────────────────
+  // ─── Cards: Coordinador (6 cards) ─────────────────────────────────
 
   static const List<DashboardCardConfig> _coordinadorCards =
       <DashboardCardConfig>[
@@ -237,6 +239,7 @@ class DashboardRoleConfig {
       accentColor: AppColors.primary,
       route: '/servicios/planificar',
     ),
+    _tecnicosEnTurnoCard,
     DashboardCardConfig(
       cardType: DashboardCardType.incidencias,
       title: 'Incidencias',
@@ -433,13 +436,7 @@ class DashboardRoleConfig {
       accentColor: AppColors.secondary,
       route: '/vehiculos',
     ),
-    DashboardCardConfig(
-      cardType: DashboardCardType.personal,
-      title: 'Personal',
-      icon: Icons.badge_outlined,
-      accentColor: Color(0xFF7C3AED),
-      route: '/personal',
-    ),
+    _tecnicosEnTurnoCard,
   ];
 
   // ─── Charts: todos ────────────────────────────────────────────────

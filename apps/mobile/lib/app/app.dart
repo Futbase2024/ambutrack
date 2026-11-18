@@ -8,8 +8,11 @@ import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 import '../core/config/router_config.dart';
 import '../core/di/injection.dart';
+import '../core/services/app_lock_service.dart';
 import '../core/services/gps_tracking_service.dart';
 import '../core/theme/app_theme.dart';
+import '../core/widgets/app_lock/app_lock_gate.dart';
+import '../core/widgets/app_lock/oferta_biometria.dart';
 import '../features/auth/presentation/bloc/auth_bloc.dart';
 import '../features/auth/presentation/bloc/auth_event.dart';
 import '../features/auth/presentation/bloc/auth_state.dart';
@@ -37,7 +40,10 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   late final LocalNotificationsService _notificationsService;
   late final GoRouter _router;
   late final GpsTrackingService _gpsService;
+  final AppLockService _appLock = getIt<AppLockService>();
   bool _isNotificacionesBlocInitialized = false;
+  bool _sesionBloqueable = false;
+  bool _loginEnCurso = false;
 
   @override
   void initState() {
@@ -78,6 +84,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     final currentState = _authBloc.state;
     debugPrint('🔔 [App] Estado actual de AuthBloc: ${currentState.runtimeType}');
     if (currentState is AuthAuthenticated) {
+      _actualizarBloqueo(currentState);
       debugPrint('🔔 [App] Usuario YA autenticado, inicializando NotificacionesBloc...');
       _initializeNotificacionesBloc();
     }
@@ -86,11 +93,38 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   /// Inicializa NotificacionesBloc cuando el usuario se autentica
   void _onAuthStateChanged(AuthState state) {
     _gpsService.setAutenticado(value: state is AuthAuthenticated);
+    _actualizarBloqueo(state);
     debugPrint('🔔 [App] Estado de AuthBloc cambiado: ${state.runtimeType}');
 
     if (!_isNotificacionesBlocInitialized && state is AuthAuthenticated) {
       debugPrint('🔔 [App] Usuario autenticado (stream), inicializando NotificacionesBloc...');
       _initializeNotificacionesBloc();
+    }
+  }
+
+  /// Bloqueo por inactividad: activo solo con sesión iniciada
+  void _actualizarBloqueo(AuthState state) {
+    if (state is AuthLoading) {
+      _loginEnCurso = true;
+    } else if (state is AuthAuthenticated) {
+      if (!_sesionBloqueable) {
+        _sesionBloqueable = true;
+        // Sesión restaurada al abrir la app (no viene del login) → pedir huella/PIN
+        _appLock.setSesionActiva(value: true, sesionRestaurada: !_loginEnCurso);
+        if (_loginEnCurso) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final BuildContext? ctx = _router.routerDelegate.navigatorKey.currentContext;
+            if (ctx != null && ctx.mounted) {
+              ofrecerBiometriaTrasLogin(ctx);
+            }
+          });
+        }
+      }
+      _loginEnCurso = false;
+    } else if (state is AuthUnauthenticated) {
+      _loginEnCurso = false;
+      _sesionBloqueable = false;
+      _appLock.setSesionActiva(value: false);
     }
   }
 
@@ -120,6 +154,13 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     // Actualizar estado del servicio de notificaciones
     final isInForeground = state == AppLifecycleState.resumed;
     _notificationsService.setAppLifecycleState(isInForeground);
+
+    // Bloqueo por inactividad
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      _appLock.irASegundoPlano();
+    } else if (isInForeground) {
+      _appLock.volverAPrimerPlano();
+    }
 
     // GPS: "inactive" (diálogos del sistema, p.ej. permisos) cuenta como primer plano
     _gpsService.setPrimerPlano(
@@ -240,6 +281,9 @@ class _AppState extends State<App> with WidgetsBindingObserver {
 
         // Router con GoRouter y protección de rutas
         routerConfig: _router,
+
+        // Bloqueo por inactividad (huella / PIN) sobre toda la app
+        builder: (BuildContext context, Widget? child) => AppLockGate(child: child ?? const SizedBox.shrink()),
       ),
     );
   }

@@ -3,41 +3,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/dialogs/logout_flow.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../widgets/ajustes_dispositivo_card.dart';
 
 /// Página de Perfil de Usuario
 ///
 /// Muestra información del usuario autenticado y opciones de configuración.
 class PerfilPage extends StatelessWidget {
   const PerfilPage({super.key});
-
-  void _showLogoutConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Cerrar Sesión'),
-        content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              context.read<AuthBloc>().add(const AuthSignOutRequested());
-            },
-            child: const Text(
-              'Cerrar Sesión',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -202,13 +177,17 @@ class PerfilPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
+                // Seguridad y dispositivo
+                const AjustesDispositivoCard(),
+                const SizedBox(height: 16),
+
                 // Cerrar sesión
                 Card(
                   child: _buildOption(
                     icon: Icons.logout,
                     title: 'Cerrar Sesión',
                     textColor: AppColors.error,
-                    onTap: () => _showLogoutConfirmation(context),
+                    onTap: () => iniciarLogout(context),
                   ),
                 ),
               ],

@@ -2,10 +2,8 @@ import 'dart:async';
 
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/theme/app_text_styles.dart';
+import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/entities/servicio_entity.dart';
-import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/resizable_data_table.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/trafico_diario_bloc.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/trafico_diario_event.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/models/conductor_con_vehiculo.dart';
@@ -13,20 +11,22 @@ import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/asign
 import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/asignacion_masiva_dialog.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/cancelar_traslado_dialog.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/modificar_hora_dialog.dart';
-import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/servicios_filters.dart';
+import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/planificar_traslado_valores.dart';
+import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/planificar_traslados_bar.dart';
+import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/planificar_traslados_columns.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/traslado_row_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Tabla de servicios pendientes de asignar
+/// Rejilla de traslados del día en "Planificar Servicios".
 ///
-/// Incluye:
-/// - Header con información de selección
-/// - Tabla ResizableDataTable con filtros
-/// - Checkboxes de selección múltiple
-/// - Diálogo de asignación masiva
+/// Usa `GestionGrid` (la misma rejilla que el resto de pantallas de gestión):
+/// - Columnas flexibles con ancho mínimo (desplazamiento horizontal si no caben)
+/// - Ordenación por cabecera y filtros estilo Excel por columna
+/// - Casillas para marcar varios traslados y asignarlos a la vez
+/// - Doble clic / Intro: detalles del traslado; clic derecho: menú de acciones
 class ServiciosTable extends StatefulWidget {
   const ServiciosTable({
     required this.traslados,
@@ -56,156 +56,22 @@ class ServiciosTable extends StatefulWidget {
 }
 
 class _ServiciosTableState extends State<ServiciosTable> {
-  // Filtros para cada columna
-  final Map<String, Set<String>> _filtrosActivos = <String, Set<String>>{
-    'tipoTraslado': <String>{},
-    'paciente': <String>{},
-    'localidadOrigen': <String>{},
-    'origen': <String>{},
-    'localidadDestino': <String>{},
-    'destino': <String>{},
-    'terapia': <String>{},
-    'estatus': <String>{},
-    'conductor': <String>{},
-    'matricula': <String>{},
-  };
+  GestionColumnFilters _filters = const GestionColumnFilters();
+  GestionSort _sort = const GestionSort(columnIndex: 1);
+  String? _selectedId;
 
-  // Controladores de texto para los filtros en línea
-  final Map<String, TextEditingController> _filtroTextControllers = <String, TextEditingController>{};
-
-
-  @override
-  void dispose() {
-    for (final TextEditingController controller in _filtroTextControllers.values) {
-      controller.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.traslados.isEmpty) {
-      return _buildEmptyState('No hay traslados para el día seleccionado');
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingSmall),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(color: AppColors.gray200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          // Header con información y botón de asignación masiva
-          _buildHeader(),
-          const SizedBox(height: 8),
-
-          // Tabla de traslados (ocupa todo el espacio vertical disponible)
-          Expanded(
-            child: _buildTablaTraslados(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Construye el header de la sección de traslados pendientes
-  Widget _buildHeader() {
-    final int totalSeleccionados = widget.trasladosSeleccionados.length;
-
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: Text(
-            totalSeleccionados > 0
-                ? '$totalSeleccionados traslado${totalSeleccionados > 1 ? 's' : ''} seleccionado${totalSeleccionados > 1 ? 's' : ''}'
-                : 'Traslados pendientes de asignar',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: totalSeleccionados > 0 ? AppColors.primary : AppColors.textPrimaryLight,
-            ),
-          ),
-        ),
-
-        if (totalSeleccionados > 0) ...<Widget>[
-          Material(
-            color: AppColors.gray300,
-            borderRadius: BorderRadius.circular(6),
-            child: InkWell(
-              onTap: () {
-                widget.onSelectionChanged(<String>{});
-              },
-              borderRadius: BorderRadius.circular(6),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    const Icon(Icons.clear, size: 16, color: Colors.white),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Limpiar',
-                      style: AppTextStyles.buttonSmall,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          Material(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(6),
-            elevation: 2,
-            child: InkWell(
-              onTap: _mostrarDialogoAsignacionMasiva,
-              borderRadius: BorderRadius.circular(6),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    const Icon(Icons.assignment_ind, size: 16, color: Colors.white),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Asignar Conductor',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  /// Construye la tabla de traslados redimensionable
-  Widget _buildTablaTraslados() {
-    final List<TrasladoEntity> trasladosFiltrados = _aplicarFiltros(widget.traslados);
-
-    final TrasladoRowBuilder rowBuilder = TrasladoRowBuilder(
+  TrasladoRowBuilder _acciones() {
+    return TrasladoRowBuilder(
       serviciosPorTraslado: widget.serviciosPorTraslado,
       localidadesPorId: widget.localidadesPorId,
       personalPorId: widget.personalPorId,
       localidadesPorNombreHospital: widget.localidadesPorNombreHospital,
       trasladosSeleccionados: widget.trasladosSeleccionados,
-      onSelectionChanged: widget.onSelectionChanged,
       context: context,
       onDesasignarConductor: (String idTraslado) {
-        debugPrint('🚫 ServiciosTable: Desasignando conductor del traslado $idTraslado');
         context.read<TraficoDiarioBloc>().add(
-          TraficoDiarioEvent.desasignarConductorRequested(idTraslado: idTraslado),
-        );
+              TraficoDiarioEvent.desasignarConductorRequested(idTraslado: idTraslado),
+            );
       },
       onDesasignarConductorMasivoRequested: _desasignarConductorMasivo,
       onEditarServicio: widget.onEditarServicio,
@@ -215,128 +81,65 @@ class _ServiciosTableState extends State<ServiciosTable> {
       onCancelarTraslado: _mostrarDialogoCancelarTraslado,
       onVerHistorial: _mostrarDialogoHistorial,
     );
+  }
 
-    return ResizableDataTable(
-      // Usar nueva key para forzar reset de anchos guardados
-      storageKey: 'planificar_servicios_table_widths_v5',
-      rowHeight: 35.0,
-      fillHeight: true, // La tabla ocupa todo el espacio vertical disponible
-      initialColumnWidths: const <double>[
-        40, // (Checkbox)
-        50, // I/V (solo flecha)
-        70, // Hora
-        200, // Paciente
-        180, // Dom. Origen
-        110, // Loc. Origen
-        130, // Origen
-        180, // Dom. Destino
-        110, // Loc. Dest
-        130, // Destino
-        120, // Terapia
-        100, // Estado
-        140, // Conductor
-        45, // SIC
-        45, // CA
-        45, // Ayu
-        45, // Ac
-        90, // Matrícula
-        60, // H. Env
-        60, // H. Rec
-        60, // H. Org
-        60, // H. Sal
-        60, // H. Dst
-        60, // H. Fin
-      ],
-      filterRow: ServiciosFilters(
-        traslados: widget.traslados,
-        trasladosFiltrados: trasladosFiltrados,
-        trasladosSeleccionados: widget.trasladosSeleccionados,
-        filtrosActivos: _filtrosActivos,
-        filtroTextControllers: _filtroTextControllers,
+  @override
+  Widget build(BuildContext context) {
+    final TrasladoRowBuilder acciones = _acciones();
+    final List<GestionColumn<TrasladoEntity>> columns = planificarTrasladosColumns(
+      valores: PlanificarTrasladoValores(
         serviciosPorTraslado: widget.serviciosPorTraslado,
         localidadesPorId: widget.localidadesPorId,
         personalPorId: widget.personalPorId,
         localidadesPorNombreHospital: widget.localidadesPorNombreHospital,
-        onFilterChanged: (Map<String, Set<String>> newFilters) {
-          setState(() {
-            _filtrosActivos
-              ..clear()
-              ..addAll(newFilters);
-          });
-        },
-        onSelectionChanged: widget.onSelectionChanged,
-      ).build(),
-      columns: const <DataTableColumn>[
-        DataTableColumn(label: '', alignment: Alignment.center),
-        DataTableColumn(label: 'I/V', alignment: Alignment.center),
-        DataTableColumn(label: 'Hora', alignment: Alignment.center),
-        DataTableColumn(label: 'Paciente'),
-        DataTableColumn(label: 'Dom. Origen'),
-        DataTableColumn(label: 'Loc. Origen'),
-        DataTableColumn(label: 'Origen'),
-        DataTableColumn(label: 'Dom. Destino'),
-        DataTableColumn(label: 'Loc. Dest'),
-        DataTableColumn(label: 'Destino'),
-        DataTableColumn(label: 'Terapia'),
-        DataTableColumn(label: 'Estado', alignment: Alignment.center),
-        DataTableColumn(label: 'Conductor', alignment: Alignment.center),
-        DataTableColumn(label: 'SIC', alignment: Alignment.center),
-        DataTableColumn(label: 'CA', alignment: Alignment.center),
-        DataTableColumn(label: 'Ayu', alignment: Alignment.center),
-        DataTableColumn(label: 'Ac', alignment: Alignment.center),
-        DataTableColumn(label: 'Matrícula', alignment: Alignment.center),
-        DataTableColumn(label: 'H. Env', alignment: Alignment.center),
-        DataTableColumn(label: 'H. Rec', alignment: Alignment.center),
-        DataTableColumn(label: 'H. Org', alignment: Alignment.center),
-        DataTableColumn(label: 'H. Sal', alignment: Alignment.center),
-        DataTableColumn(label: 'H. Dst', alignment: Alignment.center),
-        DataTableColumn(label: 'H. Fin', alignment: Alignment.center),
-      ],
-      rows: trasladosFiltrados.map(rowBuilder.buildRow).toList(),
+      ),
+      menu: acciones.contextMenuOptions,
     );
-  }
+    final List<TrasladoEntity> visibles = _sort.apply(_filters.apply(widget.traslados, columns), columns);
 
-  Widget _buildEmptyState(String mensaje) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          const Icon(Icons.event_busy, size: 48, color: AppColors.gray300),
-          const SizedBox(height: AppSizes.spacing),
-          Text(
-            mensaje,
-            style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondaryLight),
-            textAlign: TextAlign.center,
-          ),
-        ],
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.gray200),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            PlanificarTrasladosBar(
+              seleccionados: widget.trasladosSeleccionados.length,
+              columns: columns,
+              filters: _filters,
+              onFiltersChanged: (GestionColumnFilters f) => setState(() => _filters = f),
+              onLimpiarSeleccion: () => widget.onSelectionChanged(<String>{}),
+              onAsignar: _mostrarDialogoAsignacionMasiva,
+            ),
+            Expanded(
+              child: GestionGrid<TrasladoEntity>(
+                columns: columns,
+                rows: visibles,
+                rowId: (TrasladoEntity t) => t.id,
+                selectedId: _selectedId,
+                onSelect: (TrasladoEntity t) => setState(() => _selectedId = t.id),
+                onActivate: acciones.mostrarDetalles,
+                sort: _sort,
+                onSort: (GestionSort s) => setState(() => _sort = s),
+                filters: _filters,
+                onFiltersChanged: (GestionColumnFilters f) => setState(() => _filters = f),
+                filterSource: widget.traslados,
+                checkedIds: widget.trasladosSeleccionados,
+                onCheckedChanged: widget.onSelectionChanged,
+                emptyMessage: widget.traslados.isEmpty
+                    ? 'No hay traslados para el día seleccionado'
+                    : 'Ningún traslado coincide con los filtros',
+              ),
+            ),
+          ],
+        ),
       ),
     );
-  }
-
-  List<TrasladoEntity> _aplicarFiltros(List<TrasladoEntity> traslados) {
-    final TrasladoRowBuilder rowBuilder = TrasladoRowBuilder(
-      serviciosPorTraslado: widget.serviciosPorTraslado,
-      localidadesPorId: widget.localidadesPorId,
-      personalPorId: widget.personalPorId,
-      localidadesPorNombreHospital: widget.localidadesPorNombreHospital,
-      trasladosSeleccionados: widget.trasladosSeleccionados,
-      onSelectionChanged: widget.onSelectionChanged,
-      context: context,
-    );
-
-    return traslados.where((TrasladoEntity traslado) {
-      for (final MapEntry<String, Set<String>> entry in _filtrosActivos.entries) {
-        if (entry.value.isEmpty) {
-          continue;
-        }
-
-        final String valorTraslado = rowBuilder.obtenerValorColumna(traslado, entry.key);
-        if (!entry.value.contains(valorTraslado)) {
-          return false;
-        }
-      }
-      return true;
-    }).toList();
   }
 
   Future<void> _mostrarDialogoAsignacionMasiva() async {

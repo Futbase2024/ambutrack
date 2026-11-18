@@ -1,6 +1,7 @@
-import 'package:ambutrack_web/core/widgets/gestion_frame/gestion_frame.dart';
+import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/entities/servicio_entity.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/servicios_state.dart';
+import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/gestion/servicio_gestion_columns.dart';
 import 'package:flutter/material.dart';
 
 /// Servicio seleccionado en el estado del BLoC (o null)
@@ -104,6 +105,9 @@ class ServiciosFilterBar extends StatelessWidget {
     required this.onYearChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
+    required this.onClear,
     super.key,
   });
 
@@ -115,6 +119,13 @@ class ServiciosFilterBar extends StatelessWidget {
   /// Estado seleccionado (null = todos)
   final String? estado;
   final ValueChanged<String?> onEstadoChanged;
+
+  /// Filtros por columna (estilo Excel) activos en la rejilla
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
+
+  /// Limpia todos los filtros (null = no hay filtros que limpiar)
+  final VoidCallback? onClear;
 
   static const String _todos = 'TODOS';
 
@@ -149,39 +160,46 @@ class ServiciosFilterBar extends StatelessWidget {
           },
           onChanged: (String v) => onEstadoChanged(v == _todos ? null : v),
         ),
+        GestionColumnFilterChips<ServicioEntity>(
+          filters: columnFilters,
+          columns: servicioGestionColumns,
+          onChanged: onColumnFiltersChanged,
+        ),
+        GestionClearFiltersButton(onPressed: onClear),
       ],
     );
   }
 }
 
-/// Barra de estado con el resumen de servicios (antes estadísticas del header)
+/// Barra de estado con el resumen de servicios y la paginación
 class ServiciosStatusBar extends StatelessWidget {
-  const ServiciosStatusBar({required this.state, super.key});
+  const ServiciosStatusBar({
+    required this.state,
+    required this.servicios,
+    required this.visibles,
+    required this.pagination,
+    super.key,
+  });
 
   final ServiciosState state;
 
+  /// Servicios cargados (con los filtros de la barra superior aplicados)
+  final List<ServicioEntity>? servicios;
+
+  /// Filas visibles tras los filtros de columna
+  final int visibles;
+  final GestionPagination pagination;
+
   @override
   Widget build(BuildContext context) {
-    final List<String> items = state.maybeWhen(
-      loaded: (
-        List<ServicioEntity> servicios,
-        String searchQuery,
-        int? yearFilter,
-        String? estadoFilter,
-        bool isRefreshing,
-        ServicioEntity? selectedServicio,
-        bool isLoadingDetails,
-      ) {
-        int count(String estado) => servicios.where((ServicioEntity s) => s.estado == estado).length;
-        return <String>[
-          '${servicios.length} servicios',
-          'Activos: ${count('ACTIVO')}',
-          'Suspendidos: ${count('SUSPENDIDO')}',
-          if (selectedServicio?.codigo != null) 'Seleccionado: ${selectedServicio!.codigo}',
-        ];
-      },
-      orElse: () => const <String>['Cargando servicios...'],
-    );
-    return GestionStatusBar(items: items);
+    final List<ServicioEntity>? todos = servicios;
+    final ServicioEntity? sel = servicioSeleccionado(state);
+    final List<String> items = todos == null
+        ? const <String>['Cargando servicios...']
+        : <String>[
+            ...ServicioGestion.resumen(todos, visibles),
+            if (sel?.codigo != null) 'Seleccionado: ${sel!.codigo}',
+          ];
+    return GestionStatusBar(items: items, pagination: todos == null ? null : pagination);
   }
 }

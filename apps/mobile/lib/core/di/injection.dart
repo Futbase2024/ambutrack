@@ -47,6 +47,10 @@ import '../../features/notificaciones/data/repositories/notificaciones_repositor
 import '../../features/notificaciones/domain/repositories/notificaciones_repository.dart';
 import '../../features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
 import '../../features/notificaciones/services/local_notifications_service.dart';
+import '../../features/perfil/data/repositories/ajustes_dispositivo_repository_impl.dart';
+import '../../features/perfil/domain/repositories/ajustes_dispositivo_repository.dart';
+import '../services/app_lock_service.dart';
+import '../services/preferencias_dispositivo_service.dart';
 
 /// Localizador de servicios global usando GetIt
 final GetIt getIt = GetIt.instance;
@@ -60,6 +64,20 @@ Future<void> configureDependencies() async {
   // Registro de SupabaseClient
   getIt.registerLazySingleton<SupabaseClient>(
     () => Supabase.instance.client,
+  );
+
+  // Preferencias del dispositivo (modo personal/compartido, DNI recordado...)
+  final PreferenciasDispositivoService preferencias = PreferenciasDispositivoService();
+  await preferencias.init();
+  getIt.registerSingleton<PreferenciasDispositivoService>(preferencias);
+
+  // Bloqueo por inactividad (huella / PIN)
+  getIt.registerLazySingleton<AppLockService>(
+    () => AppLockService(getIt<PreferenciasDispositivoService>()),
+  );
+
+  getIt.registerLazySingleton<AjustesDispositivoRepository>(
+    () => AjustesDispositivoRepositoryImpl(),
   );
 
   // DataSources

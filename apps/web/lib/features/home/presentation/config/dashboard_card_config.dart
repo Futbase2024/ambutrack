@@ -25,6 +25,9 @@ enum DashboardCardType {
   agendaPendientes,
   incidencias,
 
+  /// Técnicos (TES / conductor) fichados vs con turno en curso: "3 / 10"
+  tecnicosEnTurno,
+
   // Cards RRHH
   ausencias,
   turnos,

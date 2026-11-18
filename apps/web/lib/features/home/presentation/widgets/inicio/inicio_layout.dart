@@ -125,7 +125,8 @@ class _CuerpoApilado extends StatelessWidget {
         layout.indicadores,
         if (layout.graficas != null) ...<Widget>[
           const SizedBox(height: 14),
-          SizedBox(height: _kAlturaPanelApilado, child: layout.graficas),
+          // Altura libre: DashboardCharts reparte las gráficas en filas según el ancho
+          layout.graficas!,
         ],
         if (layout.servicios != null) ...<Widget>[
           const SizedBox(height: 14),

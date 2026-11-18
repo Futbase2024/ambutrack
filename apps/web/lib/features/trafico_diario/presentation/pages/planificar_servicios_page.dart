@@ -396,9 +396,6 @@ class _PlanificarServiciosViewState extends State<_PlanificarServiciosView> {
                     // Tabla de traslados
                     Expanded(
                       child: ServiciosTable(
-                        // ✅ Key único basado en el contenido de traslados
-                        // Esto fuerza la reconstrucción cuando cambian los datos
-                        key: ValueKey<String>('servicios_table_${trasladosPendientes.length}_${trasladosPendientes.map((TrasladoEntity t) => '${t.id}_${t.idConductor ?? 'null'}').join('_')}'),
                         traslados: trasladosPendientes,
                         trasladosSeleccionados: _trasladosSeleccionados,
                         serviciosPorTraslado: _serviciosPorTraslado,

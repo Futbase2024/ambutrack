@@ -471,6 +471,7 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
             const estadosInvalidos = [
               // Estados avanzados (en progreso)
               EstadoTraslado.recibido,
+              EstadoTraslado.recibidoConductor,
               EstadoTraslado.enOrigen,
               EstadoTraslado.saliendoOrigen,
               EstadoTraslado.enTransito,

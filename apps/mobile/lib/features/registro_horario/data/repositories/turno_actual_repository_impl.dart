@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:flutter/foundation.dart';
 
@@ -8,11 +10,17 @@ class TurnoActualRepositoryImpl implements TurnoActualRepository {
   TurnoActualRepositoryImpl()
       : _turnoDataSource = TurnoDataSourceFactory.createSupabase(),
         _plantillaDataSource = PlantillaTurnoDataSourceFactory.createSupabase(),
-        _vehiculoDataSource = VehiculoDataSourceFactory.createSupabase();
+        _vehiculoDataSource = VehiculoDataSourceFactory.createSupabase(),
+        _inicioDataSource = InicioTurnoDataSourceFactory.createSupabase(),
+        _documentosDataSource = DocumentosPersonalDataSourceFactory.createSupabase(),
+        _personalDataSource = TPersonalDataSourceFactory.createSupabase();
 
   final TurnoDataSource _turnoDataSource;
   final PlantillaTurnoDataSource _plantillaDataSource;
   final VehiculoDataSource _vehiculoDataSource;
+  final InicioTurnoDataSource _inicioDataSource;
+  final DocumentosPersonalDataSource _documentosDataSource;
+  final TPersonalDataSource _personalDataSource;
 
   static const Duration _margen = Duration(hours: 1);
 
@@ -82,5 +90,42 @@ class TurnoActualRepositoryImpl implements TurnoActualRepository {
   @override
   Future<List<PlantillaTurnoEntity>> obtenerPlantillas() async {
     return _plantillaDataSource.getActivos();
+  }
+
+  @override
+  Future<List<String>> obtenerPlantillaChecklist() async {
+    return _inicioDataSource.getPlantillaChecklist();
+  }
+
+  @override
+  Future<List<OcupanteVehiculoEntity>> obtenerOcupacionVehiculo(String idVehiculo) async {
+    return _inicioDataSource.getOcupacionVehiculo(idVehiculo);
+  }
+
+  @override
+  Future<UbicacionBaseEntity?> obtenerUbicacionBase(String idBase) async {
+    return _inicioDataSource.getUbicacionBase(idBase);
+  }
+
+  @override
+  Future<List<DocumentoPersonalEntity>> obtenerDocumentosPersonal(String idPersonal) async {
+    return _documentosDataSource.getByPersonal(idPersonal);
+  }
+
+  @override
+  Future<List<TPersonalEntity>> obtenerPersonalActivo() async {
+    return _personalDataSource.getActivos();
+  }
+
+  @override
+  Future<String> subirFotoKm({required Uint8List bytes, required String extension}) async {
+    debugPrint('📦 [TurnoActualRepository] Subiendo foto del cuentakilómetros');
+    return _inicioDataSource.subirFotoKm(bytes: bytes, extension: extension);
+  }
+
+  @override
+  Future<InicioTurnoEntity> registrarInicioTurno(InicioTurnoEntity inicio) async {
+    debugPrint('📦 [TurnoActualRepository] Registrando inicio de turno');
+    return _inicioDataSource.create(inicio);
   }
 }

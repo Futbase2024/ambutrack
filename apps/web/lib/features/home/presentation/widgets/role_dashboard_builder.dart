@@ -1,10 +1,12 @@
 import 'package:ambutrack_web/core/auth/enums/user_role.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_state.dart';
+import 'package:ambutrack_web/features/home/presentation/bloc/tecnicos_en_turno/tecnicos_en_turno_state.dart';
 import 'package:ambutrack_web/features/home/presentation/config/dashboard_card_config.dart';
 import 'package:ambutrack_web/features/home/presentation/config/dashboard_role_config.dart';
 import 'package:ambutrack_web/features/home/presentation/widgets/inicio/dashboard_kpi_tile.dart';
 import 'package:ambutrack_web/features/home/presentation/widgets/stat_card.dart';
+import 'package:ambutrack_web/features/home/presentation/widgets/tecnicos_en_turno/tecnicos_en_turno_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -17,6 +19,7 @@ class RoleDashboardBuilder extends StatelessWidget {
     required this.role,
     required this.homeState,
     required this.pendientesHoy,
+    this.tecnicosState = const TecnicosEnTurnoInitial(),
     super.key,
   });
 
@@ -28,6 +31,9 @@ class RoleDashboardBuilder extends StatelessWidget {
 
   /// Pendientes de agenda para hoy (viene del AgendaPendienteBloc).
   final int pendientesHoy;
+
+  /// Estado del indicador de técnicos en turno (viene del TecnicosEnTurnoBloc).
+  final TecnicosEnTurnoState tecnicosState;
 
   @override
   Widget build(BuildContext context) {
@@ -76,9 +82,17 @@ class RoleDashboardBuilder extends StatelessWidget {
       accentColor: config.accentColor,
       subtitle: config.subtitle,
       detalles: data.detalles,
-      onTap: config.route != null ? () => context.go(config.route!) : null,
+      onTap: _onTap(context, config),
       onAdd: config.addRoute != null ? () => context.go(config.addRoute!) : null,
     );
+  }
+
+  VoidCallback? _onTap(BuildContext context, DashboardCardConfig config) {
+    final TecnicosEnTurnoState tecnicos = tecnicosState;
+    if (config.cardType == DashboardCardType.tecnicosEnTurno) {
+      return tecnicos is TecnicosEnTurnoLoaded ? () => showTecnicosEnTurnoDialog(context, tecnicos) : null;
+    }
+    return config.route != null ? () => context.go(config.route!) : null;
   }
 
   CardData _resolveCardData(DashboardCardConfig config) {
@@ -117,6 +131,9 @@ class RoleDashboardBuilder extends StatelessWidget {
 
       case DashboardCardType.personal:
         return const CardData(value: '—');
+
+      case DashboardCardType.tecnicosEnTurno:
+        return _tecnicosCardData();
 
       case DashboardCardType.agendaPendientes:
         return CardData(value: pendientesHoy.toString());
@@ -168,6 +185,20 @@ class RoleDashboardBuilder extends StatelessWidget {
       case DashboardCardType.misAusencias:
         return CardData(value: s.misAusenciasActivas.toString());
     }
+  }
+
+  CardData _tecnicosCardData() {
+    final TecnicosEnTurnoState t = tecnicosState;
+    if (t is! TecnicosEnTurnoLoaded) {
+      return CardData(value: t is TecnicosEnTurnoError ? '—' : '…');
+    }
+    return CardData(
+      value: '${t.fichados.length} / ${t.enTurno}',
+      detalles: <StatCardDetalle>[
+        StatCardDetalle(label: 'Sin fichar', count: t.sinFichar.length, color: AppColors.error),
+        StatCardDetalle(label: 'Por llegar', count: t.porLlegar.length, color: AppColors.gray400),
+      ],
+    );
   }
 
   String _fmt(int number) {

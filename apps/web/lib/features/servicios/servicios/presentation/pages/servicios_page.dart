@@ -1,38 +1,37 @@
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
-import 'package:ambutrack_web/core/widgets/gestion_frame/gestion_frame.dart';
+import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/entities/servicio_entity.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/servicios_bloc.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/servicios_event.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/servicios_state.dart';
-import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/servicio_form_wizard_dialog.dart';
-import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/servicio_fechas_excepcion_panel.dart';
+import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/gestion/servicio_acciones.dart';
+import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/gestion/servicio_gestion_columns.dart';
+import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/gestion/servicio_grid_content.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/servicios_page_bars.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/servicios_side_panel.dart';
-import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/servicios_table.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 
-/// Página de gestión de servicios
+/// Página de gestión de servicios (layout tipo programa de gestión)
 class ServiciosPage extends StatelessWidget {
   const ServiciosPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<ServiciosBloc>(
-      create: (_) => getIt<ServiciosBloc>()
-        ..add(const ServiciosEvent.estadoFilterChanged(estado: 'ACTIVO')),
-      child: const SafeArea(
-        child: _ServiciosView(),
+    return SafeArea(
+      child: BlocProvider<ServiciosBloc>(
+        create: (_) => getIt<ServiciosBloc>()..add(const ServiciosEvent.estadoFilterChanged(estado: 'ACTIVO')),
+        child: const Scaffold(
+          backgroundColor: AppColors.backgroundLight,
+          body: _ServiciosView(),
+        ),
       ),
     );
   }
 }
 
-/// Vista principal de servicios
+/// Barra de herramientas + filtros + rejilla + ficha lateral + barra de estado
 class _ServiciosView extends StatefulWidget {
   const _ServiciosView();
 
@@ -41,30 +40,22 @@ class _ServiciosView extends StatefulWidget {
 }
 
 class _ServiciosViewState extends State<_ServiciosView> {
-  DateTime? _pageStartTime;
-  String? _selectedServicioId;
+  /// Ancho de la ficha: mayor que el estándar por las pestañas y la tabla de trayectos
+  static const double _detailWidth = 520;
 
-  // Filtros
   final TextEditingController _searchController = TextEditingController();
-  int? _yearSeleccionado;
-  String? _estadoSeleccionado;
+  int _year = DateTime.now().year;
+  String? _estado = 'ACTIVO';
 
-  @override
-  void initState() {
-    super.initState();
-    _pageStartTime = DateTime.now();
-    _yearSeleccionado = DateTime.now().year;
-    _estadoSeleccionado = 'ACTIVO'; // Estado por defecto
-    debugPrint('⏱️ ServiciosPage: Inicio de carga de página');
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
+  GestionSort _sort = const GestionSort(columnIndex: 0);
+  int _page = 0;
+  int _pageSize = 25;
+  String? _selectedId;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_pageStartTime != null) {
-        final Duration elapsed = DateTime.now().difference(_pageStartTime!);
-        debugPrint('⏱️ Tiempo total de carga de página: ${elapsed.inMilliseconds}ms');
-        _pageStartTime = null;
-      }
-    });
-  }
+  /// Últimos datos cargados (evita parpadeos durante recargas)
+  List<ServicioEntity>? _servicios;
+  String? _error;
 
   @override
   void dispose() {
@@ -72,100 +63,139 @@ class _ServiciosViewState extends State<_ServiciosView> {
     super.dispose();
   }
 
-  void _onServicioSelected(String? servicioId) {
-    setState(() {
-      _selectedServicioId = servicioId;
-    });
-  }
+  bool get _hasFilters => _searchController.text.isNotEmpty || _estado != null || !_colFilters.isEmpty;
 
+  List<ServicioEntity> get _base => _servicios ?? const <ServicioEntity>[];
+
+  List<ServicioEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, servicioGestionColumns), servicioGestionColumns);
+
+  /// Filtros de la barra superior: se resuelven en el BLoC (consulta a Supabase)
   void _applyFilters() {
-    debugPrint('🔍 Aplicando filtros: búsqueda=${_searchController.text}, año=$_yearSeleccionado, estado=$_estadoSeleccionado');
-
     final ServiciosBloc bloc = context.read<ServiciosBloc>();
-
-    // Aplicar búsqueda
+    debugPrint('🔍 Filtros: búsqueda=${_searchController.text}, año=$_year, estado=$_estado');
+    setState(() => _page = 0);
     if (_searchController.text.isNotEmpty) {
       bloc.add(ServiciosEvent.searchChanged(query: _searchController.text));
+    } else if (_estado != null) {
+      bloc.add(ServiciosEvent.estadoFilterChanged(estado: _estado));
+    } else {
+      bloc.add(ServiciosEvent.yearFilterChanged(year: _year));
+    }
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    setState(() {
+      _estado = null;
+      _colFilters = const GestionColumnFilters();
+    });
+    _applyFilters();
+  }
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => setState(() {
+        _colFilters = f;
+        _page = 0;
+      });
+
+  void _select(ServicioEntity s) {
+    final String? id = s.id;
+    if (id == null || id == _selectedId) {
       return;
     }
+    setState(() => _selectedId = id);
+    context.read<ServiciosBloc>().add(ServiciosEvent.loadServicioDetailsRequested(id: id));
+  }
 
-    // Aplicar filtro de año
-    if (_yearSeleccionado != null && _estadoSeleccionado == null) {
-      bloc.add(ServiciosEvent.yearFilterChanged(year: _yearSeleccionado));
-      return;
-    }
-
-    // Aplicar filtro de estado
-    if (_estadoSeleccionado != null) {
-      bloc.add(ServiciosEvent.estadoFilterChanged(estado: _estadoSeleccionado));
-      return;
-    }
-
-    // Sin filtros, cargar todos
-    bloc.add(const ServiciosEvent.loadRequested());
+  void _onStateChanged(BuildContext context, ServiciosState state) {
+    state.maybeWhen(
+      loaded: (
+        List<ServicioEntity> servicios,
+        String searchQuery,
+        int? yearFilter,
+        String? estadoFilter,
+        bool isRefreshing,
+        ServicioEntity? selectedServicio,
+        bool isLoadingDetails,
+      ) =>
+          setState(() {
+        _servicios = servicios;
+        _error = null;
+      }),
+      error: (String message, List<ServicioEntity>? previous) => setState(() {
+        _servicios = previous ?? _servicios;
+        _error = message;
+      }),
+      orElse: () {},
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ServiciosBloc, ServiciosState>(
+    return BlocConsumer<ServiciosBloc, ServiciosState>(
+      listener: _onStateChanged,
       builder: (BuildContext context, ServiciosState state) {
-        return Scaffold(
-          backgroundColor: AppColors.backgroundLight,
-          body: GestionFrame(
-            toolbar: ServiciosToolbar(
-              state: state,
-              onNuevo: _showNewServicioDialog,
-              onEditar: (ServicioEntity s) => _handleEditar(context, s),
-              onEliminar: (ServicioEntity s) => _handleEliminar(context, s),
-              onFinalizar: (ServicioEntity s) => _handleFinalizar(context, s),
-              onSuspender: (ServicioEntity s) => _handleSuspender(context, s),
-              onReanudar: (ServicioEntity s) => _handleReanudar(context, s),
-              onExcluir: (ServicioEntity s) => _handleExcluir(context, s),
-            ),
-            filterBar: ServiciosFilterBar(
-              searchController: _searchController,
-              onSearchChanged: (_) => _applyFilters(),
-              year: _yearSeleccionado,
-              onYearChanged: (int value) {
-                setState(() => _yearSeleccionado = value);
-                _applyFilters();
-              },
-              estado: _estadoSeleccionado,
-              onEstadoChanged: (String? value) {
-                setState(() => _estadoSeleccionado = value);
-                _applyFilters();
-              },
-            ),
-            statusBar: ServiciosStatusBar(state: state),
-            content: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                // Contenido principal: Tabla (50%) + Panel lateral (50%)
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      // Tabla de servicios (izquierda - 50%)
-                      Expanded(
-                        flex: 5,
-                        child: ServiciosTable(
-                          onServicioSelected: _onServicioSelected,
-                        ),
-                      ),
-
-                      const SizedBox(width: AppSizes.spacingSmall),
-
-                      // Panel lateral derecho con pestañas (50%)
-                      Expanded(
-                        flex: 5,
-                        child: ServiciosSidePanel(
-                          servicioId: _selectedServicioId,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+        final List<ServicioEntity> visibles = _visibles;
+        return GestionLayout(
+          detailWidth: _detailWidth,
+          toolbar: ServiciosToolbar(
+            state: state,
+            onNuevo: () => ServicioAcciones.abrirFormulario(context),
+            onEditar: (ServicioEntity s) => ServicioAcciones.abrirFormulario(context, s),
+            onEliminar: (ServicioEntity s) => ServicioAcciones.eliminar(context, s),
+            onFinalizar: (ServicioEntity s) => ServicioAcciones.finalizar(context, s),
+            onSuspender: (ServicioEntity s) => ServicioAcciones.suspender(context, s),
+            onReanudar: (ServicioEntity s) => ServicioAcciones.reanudar(context, s),
+            onExcluir: (ServicioEntity s) => ServicioAcciones.excluir(context, s),
+          ),
+          filterBar: ServiciosFilterBar(
+            searchController: _searchController,
+            onSearchChanged: (_) => _applyFilters(),
+            year: _year,
+            onYearChanged: (int value) {
+              _year = value;
+              _applyFilters();
+            },
+            estado: _estado,
+            onEstadoChanged: (String? value) {
+              _estado = value;
+              _applyFilters();
+            },
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
+            onClear: _hasFilters ? _clearFilters : null,
+          ),
+          content: ServicioGridContent(
+            servicios: _servicios,
+            isLoading: state.maybeWhen(loading: () => true, orElse: () => false),
+            errorMessage: _error,
+            rows: _pageOf(visibles),
+            firstRowNumber: _page * _pageSize + 1,
+            selectedId: _selectedId,
+            sort: _sort,
+            hasFilters: _hasFilters,
+            onSelect: _select,
+            onActivate: (ServicioEntity s) => ServicioAcciones.abrirFormulario(context, s),
+            onSort: (GestionSort s) => setState(() => _sort = s),
+            onRetry: _applyFilters,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
+          ),
+          detailPanel: ServiciosSidePanel(servicioId: _selectedId),
+          statusBar: ServiciosStatusBar(
+            state: state,
+            servicios: _servicios,
+            visibles: visibles.length,
+            pagination: GestionPagination(
+              page: _page,
+              pageSize: _pageSize,
+              totalItems: visibles.length,
+              onPageChanged: (int p) => setState(() => _page = p),
+              onPageSizeChanged: (int s) => setState(() {
+                _pageSize = s;
+                _page = 0;
+              }),
             ),
           ),
         );
@@ -173,175 +203,9 @@ class _ServiciosViewState extends State<_ServiciosView> {
     );
   }
 
-  Future<void> _showNewServicioDialog() async {
-    debugPrint('=== Botón Nuevo Servicio presionado ===');
-
-    // Abrir formulario wizard (4 pasos)
-    await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return BlocProvider<ServiciosBloc>.value(
-          value: context.read<ServiciosBloc>(),
-          child: const ServicioFormWizardDialog(),
-        );
-      },
-    );
-
-    // Recargar servicios si se creó uno nuevo
-    if (mounted) {
-      context.read<ServiciosBloc>().add(const ServiciosEvent.loadRequested());
-    }
-  }
-
-  /// Maneja la edición de un servicio
-  Future<void> _handleEditar(BuildContext context, ServicioEntity servicio) async {
-    debugPrint('🖊️ Editar servicio: ${servicio.codigo} (${servicio.id})');
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return ServicioFormWizardDialog(
-          servicio: servicio, // Pasar servicio para modo edición
-        );
-      },
-    );
-
-    // Refrescar lista después de editar
-    if (context.mounted) {
-      context.read<ServiciosBloc>().add(const ServiciosEvent.loadRequested());
-    }
-  }
-
-  /// Maneja la eliminación de un servicio
-  Future<void> _handleEliminar(BuildContext context, ServicioEntity servicio) async {
-    final bool? confirmed = await showConfirmationDialog(
-      context: context,
-      title: 'Confirmar Eliminación',
-      message:
-          '¿Estás seguro de que deseas eliminar este servicio? Esta acción eliminará todos los trayectos asociados.',
-      itemDetails: <String, String>{
-        if (servicio.codigo != null) 'Código': servicio.codigo!,
-        if (servicio.tipoRecurrencia != null)
-          'Tipo': servicio.tipoRecurrencia!,
-        if (servicio.fechaServicioInicio != null)
-          'Fecha Inicio':
-              DateFormat('dd/MM/yyyy').format(servicio.fechaServicioInicio!),
-        'Estado': servicio.estado.toUpperCase(),
-      },
-      warningMessage: '⚠️ Esta acción no se puede deshacer',
-    );
-
-    if (confirmed == true && context.mounted) {
-      context.read<ServiciosBloc>().add(
-            ServiciosEvent.deleteRequested(id: servicio.id!),
-          );
-    }
-  }
-
-  /// Maneja la finalización de un servicio
-  Future<void> _handleFinalizar(BuildContext context, ServicioEntity servicio) async {
-    final bool? confirmed = await showConfirmationDialog(
-      context: context,
-      title: 'Confirmar Finalización',
-      message:
-          '¿Deseas finalizar este servicio? El servicio se marcará como FINALIZADO y no se generarán más trayectos.',
-      itemDetails: <String, String>{
-        if (servicio.codigo != null) 'Código': servicio.codigo!,
-        if (servicio.tipoRecurrencia != null)
-          'Tipo': servicio.tipoRecurrencia!,
-        if (servicio.fechaServicioInicio != null)
-          'Fecha Inicio':
-              DateFormat('dd/MM/yyyy').format(servicio.fechaServicioInicio!),
-      },
-      confirmText: 'Finalizar',
-      confirmButtonColor: AppColors.info,
-      icon: Icons.done_all,
-      iconColor: AppColors.info,
-    );
-
-    if (confirmed == true && context.mounted) {
-      context.read<ServiciosBloc>().add(
-            ServiciosEvent.updateEstadoRequested(
-              id: servicio.id!,
-              estado: 'FINALIZADO',
-            ),
-          );
-    }
-  }
-
-  /// Maneja la suspensión de un servicio
-  Future<void> _handleSuspender(BuildContext context, ServicioEntity servicio) async {
-    final bool? confirmed = await showConfirmationDialog(
-      context: context,
-      title: 'Confirmar Suspensión',
-      message:
-          '¿Deseas suspender este servicio? Los trayectos ya generados no se cancelarán, pero no se crearán nuevos trayectos.',
-      itemDetails: <String, String>{
-        if (servicio.codigo != null) 'Código': servicio.codigo!,
-        if (servicio.tipoRecurrencia != null)
-          'Tipo': servicio.tipoRecurrencia!,
-        if (servicio.fechaServicioInicio != null)
-          'Fecha Inicio':
-              DateFormat('dd/MM/yyyy').format(servicio.fechaServicioInicio!),
-      },
-      confirmText: 'Suspender',
-      confirmButtonColor: AppColors.warning,
-      iconColor: AppColors.warning,
-    );
-
-    if (confirmed == true && context.mounted) {
-      context.read<ServiciosBloc>().add(
-            ServiciosEvent.updateEstadoRequested(
-              id: servicio.id!,
-              estado: 'SUSPENDIDO',
-            ),
-          );
-    }
-  }
-
-  /// Maneja la reanudación de un servicio suspendido
-  Future<void> _handleReanudar(BuildContext context, ServicioEntity servicio) async {
-    final bool? confirmed = await showConfirmationDialog(
-      context: context,
-      title: 'Confirmar Reanudación',
-      message:
-          '¿Deseas reanudar este servicio? Se regenerarán los trayectos desde hoy en adelante.',
-      itemDetails: <String, String>{
-        if (servicio.codigo != null) 'Código': servicio.codigo!,
-        if (servicio.tipoRecurrencia != null)
-          'Tipo': servicio.tipoRecurrencia!,
-        if (servicio.fechaServicioInicio != null)
-          'Fecha Inicio':
-              DateFormat('dd/MM/yyyy').format(servicio.fechaServicioInicio!),
-      },
-      confirmText: 'Reanudar',
-      confirmButtonColor: AppColors.success,
-      iconColor: AppColors.success,
-    );
-
-    if (confirmed == true && context.mounted) {
-      context.read<ServiciosBloc>().add(
-            ServiciosEvent.reanudarRequested(id: servicio.id!),
-          );
-    }
-  }
-
-  /// Abre el diálogo de fechas excluidas/incluidas del servicio.
-  /// Al cerrarlo se recargan los detalles para refrescar los trayectos.
-  Future<void> _handleExcluir(BuildContext context, ServicioEntity servicio) async {
-    final String? id = servicio.id;
-    if (id == null) {
-      return;
-    }
-    debugPrint('🚫 Excepciones de fechas: ${servicio.codigo}');
-    final ServiciosBloc bloc = context.read<ServiciosBloc>();
-    await showServicioFechasExcepcionDialog(
-      context: context,
-      servicioId: id,
-      codigo: servicio.codigo,
-    );
-    bloc.add(ServiciosEvent.loadServicioDetailsRequested(id: id));
+  List<ServicioEntity> _pageOf(List<ServicioEntity> rows) {
+    final int start = (_page * _pageSize).clamp(0, rows.length);
+    final int end = (start + _pageSize).clamp(0, rows.length);
+    return rows.sublist(start, end);
   }
 }

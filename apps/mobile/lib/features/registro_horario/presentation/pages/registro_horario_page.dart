@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/dialogs/professional_result_dialog.dart';
 import '../../../../core/widgets/menu/app_menu.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
@@ -17,6 +16,7 @@ import '../widgets/historial_fichajes_widget.dart';
 import '../widgets/finalizar_jornada/finalizar_jornada_dialog.dart';
 import '../widgets/inicio_turno/iniciar_turno_sheet.dart';
 import '../widgets/info_turno_grupo.dart';
+import '../widgets/registro_horario_feedback.dart';
 import '../widgets/turno_estado_card.dart';
 import '../widgets/ubicacion_fichaje_dialog.dart';
 
@@ -32,6 +32,9 @@ class RegistroHorarioPage extends StatefulWidget {
 }
 
 class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
+  /// Se está fichando la salida (para cerrar sesión en dispositivo compartido)
+  bool _salidaEnCurso = false;
+
   @override
   void initState() {
     super.initState();
@@ -62,23 +65,9 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
       body: SafeArea(
         child: BlocConsumer<RegistroHorarioBloc, RegistroHorarioState>(
           listener: (context, state) {
-            // Usar diálogos profesionales (NO SnackBar)
-            if (state is RegistroHorarioSuccess) {
-              showProfessionalResultDialog(
-                context,
-                title: 'Registro Exitoso',
-                message: state.mensaje,
-                icon: Icons.check_circle_outline,
-                iconColor: AppColors.success,
-              );
-            } else if (state is RegistroHorarioError) {
-              showProfessionalResultDialog(
-                context,
-                title: 'Error al Registrar',
-                message: state.mensaje,
-                icon: Icons.error_outline,
-                iconColor: AppColors.error,
-              );
+            if (state is RegistroHorarioSuccess || state is RegistroHorarioError) {
+              mostrarResultadoRegistro(context, state, eraSalida: _salidaEnCurso);
+              _salidaEnCurso = false;
             }
           },
           builder: (context, state) {
@@ -220,7 +209,12 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
     final RegistroHorarioBloc bloc = context.read<RegistroHorarioBloc>();
 
     if (estadoActual == EstadoFichaje.fuera) {
-      final InicioTurnoSeleccion? seleccion = await showIniciarTurnoSheet(context, idPersonal: idPersonal);
+      final InicioTurnoSeleccion? seleccion = await showIniciarTurnoSheet(
+        context,
+        idPersonal: idPersonal,
+        latitud: lat,
+        longitud: lon,
+      );
       if (seleccion == null) {
         return;
       }
@@ -248,6 +242,7 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
       if (!confirmado) {
         return;
       }
+      _salidaEnCurso = true;
       bloc.add(
         FicharSalida(
           latitud: lat,

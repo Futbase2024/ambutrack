@@ -144,8 +144,14 @@ import 'package:ambutrack_web/features/geolocalizacion/data/repositories/geoloca
     as _i138;
 import 'package:ambutrack_web/features/geolocalizacion/domain/repositories/geolocalizacion_repository.dart'
     as _i804;
+import 'package:ambutrack_web/features/home/data/repositories/tecnicos_en_turno_repository_impl.dart'
+    as _i397;
+import 'package:ambutrack_web/features/home/domain/repositories/tecnicos_en_turno_repository.dart'
+    as _i556;
 import 'package:ambutrack_web/features/home/presentation/bloc/home_bloc.dart'
     as _i848;
+import 'package:ambutrack_web/features/home/presentation/bloc/tecnicos_en_turno/tecnicos_en_turno_bloc.dart'
+    as _i948;
 import 'package:ambutrack_web/features/incidencias/data/repositories/incidencia_repository_impl.dart'
     as _i1010;
 import 'package:ambutrack_web/features/incidencias/domain/repositories/incidencia_repository.dart'
@@ -691,6 +697,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i410.AlertaCaducidadRepository>(
       () => _i910.AlertaCaducidadRepositoryImpl(),
     );
+    gh.lazySingleton<_i556.TecnicosEnTurnoRepository>(
+      () => _i397.TecnicosEnTurnoRepositoryImpl(),
+    );
     gh.lazySingleton<_i36.MotivoTrasladoRepository>(
       () => _i1073.MotivoTrasladoRepositoryImpl(),
     );
@@ -941,6 +950,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i796.EspecialidadBloc>(
       () => _i796.EspecialidadBloc(gh<_i1023.EspecialidadRepository>()),
+    );
+    gh.factory<_i948.TecnicosEnTurnoBloc>(
+      () => _i948.TecnicosEnTurnoBloc(gh<_i556.TecnicosEnTurnoRepository>()),
     );
     gh.lazySingleton<_i707.AuthRepository>(
       () => _i822.AuthRepositoryImpl(gh<_i496.AuthService>()),

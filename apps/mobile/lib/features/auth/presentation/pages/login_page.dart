@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injection.dart';
+import '../../../../core/services/preferencias_dispositivo_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/dialogs/dialogs.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../widgets/login_form_card.dart';
+import '../widgets/usuarios_recientes_selector.dart';
 
 /// Página de Login para AmbuTrack Mobile
 ///
-/// Integra con AuthBloc para autenticación real con Supabase.
+/// - Modo personal: DNI recordado y oferta de huella/Face ID tras el primer login
+/// - Modo compartido: lista de usuarios recientes del dispositivo
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -18,30 +24,84 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _dniController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _dniController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final FocusNode _passwordFocus = FocusNode();
+  final PreferenciasDispositivoService _prefs = getIt<PreferenciasDispositivoService>();
+  late bool _recordarDni = _prefs.recordarDni;
+  String? _dniEnviado;
+  bool _procesandoLogin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _dniController.text = _prefs.dniRecordado ?? '';
+  }
 
   @override
   void dispose() {
     _dniController.dispose();
     _passwordController.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
   void _onLoginPressed() {
     if (_formKey.currentState?.validate() ?? false) {
-      final dni = _dniController.text.trim().toUpperCase();
-
-      // Enviar evento de login con DNI
+      _dniEnviado = _dniController.text.trim().toUpperCase();
       context.read<AuthBloc>().add(
-            AuthSignInWithDniRequested(
-              dni: dni,
-              password: _passwordController.text,
-            ),
+            AuthSignInWithDniRequested(dni: _dniEnviado!, password: _passwordController.text),
           );
     }
+  }
+
+  void _seleccionarReciente(UsuarioReciente usuario) {
+    setState(() => _dniController.text = usuario.dni);
+    _passwordController.clear();
+    _passwordFocus.requestFocus();
+  }
+
+  Future<void> _onAutenticado(AuthAuthenticated state) async {
+    // El AuthBloc puede emitir "autenticado" dos veces (login + cambio de sesión)
+    if (_procesandoLogin) {
+      return;
+    }
+    _procesandoLogin = true;
+    final String? dni = _dniEnviado;
+    _dniEnviado = null;
+    _passwordController.clear();
+    if (dni != null) {
+      final String nombre = state.personal != null
+          ? '${state.personal!.nombre} ${state.personal!.apellidos}'.trim().toUpperCase()
+          : dni;
+      await _prefs.registrarLogin(dni: dni, nombre: nombre, recordar: _recordarDni);
+    }
+    if (mounted) {
+      context.go('/');
+    }
+  }
+
+  void _mostrarError(String mensaje) {
+    final bool credenciales = mensaje.contains('Invalid login') || mensaje.contains('invalid_credentials');
+    showProfessionalResultDialog(
+      context,
+      title: 'No se pudo iniciar sesión',
+      message: credenciales ? 'El DNI o la clave no son correctos.' : mensaje.replaceFirst('Exception: ', ''),
+      icon: Icons.error_outline,
+      iconColor: AppColors.error,
+    );
+  }
+
+  void _olvideClave() {
+    showProfessionalResultDialog(
+      context,
+      title: '¿Olvidaste tu clave?',
+      message: 'Por seguridad, la clave la restablece coordinación. '
+          'Contacta con tu coordinador para que te asigne una nueva clave de 6 dígitos.',
+      icon: Icons.info_outline,
+      iconColor: AppColors.info,
+    );
   }
 
   @override
@@ -50,168 +110,61 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: BlocConsumer<AuthBloc, AuthState>(
-          listener: (context, state) {
-            // Mostrar errores
+          listener: (BuildContext context, AuthState state) {
             if (state is AuthError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: AppColors.error,
-                ),
-              );
+              _mostrarError(state.message);
             }
-
-            // Navegar al home cuando se autentica
             if (state is AuthAuthenticated) {
-              context.go('/');
+              _onAutenticado(state);
             }
           },
-          builder: (context, state) {
-            final isLoading = state is AuthLoading;
+          builder: (BuildContext context, AuthState state) {
+            final bool isLoading = state is AuthLoading;
+            final List<UsuarioReciente> recientes = _prefs.esCompartido ? _prefs.usuariosRecientes : <UsuarioReciente>[];
 
             return Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      // Logo EmerTrack
-                      Image.asset(
-                        'lib/assets/images/logo_emertrack.png',
-                        width: 160,
-                        height: 160,
-                        fit: BoxFit.contain,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Image.asset('lib/assets/images/logo_emertrack.png', width: 140, height: 140, fit: BoxFit.contain),
+                    const SizedBox(height: 16),
+                    Text(
+                      _prefs.esCompartido ? 'Dispositivo de ambulancia' : 'Personal de Campo',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondaryLight,
                       ),
-                      const SizedBox(height: 24),
-
-                      const Text(
-                        'Personal de Campo',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondaryLight,
-                        ),
+                    ),
+                    const SizedBox(height: 32),
+                    if (recientes.isNotEmpty) ...<Widget>[
+                      UsuariosRecientesSelector(
+                        usuarios: recientes,
+                        dniSeleccionado: _dniController.text,
+                        onSeleccionar: _seleccionarReciente,
+                        onQuitar: (UsuarioReciente u) async {
+                          await _prefs.quitarUsuarioReciente(u.dni);
+                          setState(() {});
+                        },
                       ),
-                      const SizedBox(height: 48),
-
-                      // Card con formulario
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              // DNI
-                              TextFormField(
-                                controller: _dniController,
-                                enabled: !isLoading,
-                                keyboardType: TextInputType.text,
-                                textCapitalization: TextCapitalization.characters,
-                                textInputAction: TextInputAction.next,
-                                maxLength: 9,
-                                decoration: const InputDecoration(
-                                  labelText: 'DNI',
-                                  prefixIcon: Icon(Icons.badge_outlined),
-                                  hintText: '12345678Z',
-                                  counterText: '',
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Por favor ingresa tu DNI';
-                                  }
-                                  final dniUpper = value.toUpperCase();
-                                  if (dniUpper.length != 9) {
-                                    return 'El DNI debe tener 8 dígitos y 1 letra';
-                                  }
-                                  if (!RegExp(r'^\d{8}[A-Z]$').hasMatch(dniUpper)) {
-                                    return 'Formato inválido (ej: 12345678Z)';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Clave
-                              TextFormField(
-                                controller: _passwordController,
-                                enabled: !isLoading,
-                                obscureText: _obscurePassword,
-                                keyboardType: TextInputType.number,
-                                textInputAction: TextInputAction.done,
-                                maxLength: 6,
-                                onFieldSubmitted: (_) => _onLoginPressed(),
-                                style: const TextStyle(
-                                  letterSpacing: 4,
-                                ),
-                                decoration: InputDecoration(
-                                  labelText: 'Clave (6 dígitos)',
-                                  prefixIcon: const Icon(Icons.lock),
-                                  hintText: '••••••',
-                                  counterText: '',
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility
-                                          : Icons.visibility_off,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Por favor ingresa tu clave';
-                                  }
-                                  if (value.length != 6) {
-                                    return 'La clave debe tener exactamente 6 dígitos';
-                                  }
-                                  if (!RegExp(r'^\d+$').hasMatch(value)) {
-                                    return 'La clave solo puede contener números';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 24),
-
-                              // Botón Login
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: isLoading ? null : _onLoginPressed,
-                                  child: isLoading
-                                      ? const SizedBox(
-                                          height: 20,
-                                          width: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Text('Iniciar Sesión'),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Footer
-                      const Text(
-                        'v1.0.0 - DEV',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondaryLight,
-                        ),
-                      ),
+                      const SizedBox(height: 20),
                     ],
-                  ),
+                    LoginFormCard(
+                      formKey: _formKey,
+                      dniController: _dniController,
+                      passwordController: _passwordController,
+                      passwordFocus: _passwordFocus,
+                      isLoading: isLoading,
+                      onSubmit: _onLoginPressed,
+                      onOlvideClave: _olvideClave,
+                      recordarDni: _prefs.esCompartido ? null : _recordarDni,
+                      onRecordarDniChanged: (bool v) => setState(() => _recordarDni = v),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('v1.0.0 - DEV', style: TextStyle(fontSize: 12, color: AppColors.textSecondaryLight)),
+                  ],
                 ),
               ),
             );

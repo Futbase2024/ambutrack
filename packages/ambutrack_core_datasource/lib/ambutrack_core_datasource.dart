@@ -434,6 +434,12 @@ export 'src/datasources/agenda_pendientes/agenda_pendiente_factory.dart'
 export 'src/datasources/agenda_pendientes/implementations/supabase/supabase_agenda_pendiente_datasource.dart';
 export 'src/datasources/agenda_pendientes/models/agenda_pendiente_supabase_model.dart';
 
+// Técnicos en turno (dashboard: fichados vs turnos en curso)
+export 'src/datasources/tecnicos_en_turno/entities/tecnico_en_turno_entity.dart';
+export 'src/datasources/tecnicos_en_turno/tecnicos_en_turno_contract.dart';
+export 'src/datasources/tecnicos_en_turno/tecnicos_en_turno_factory.dart'
+    show TecnicosEnTurnoDataSourceFactory;
+
 // ✅ TALLER - Catálogo de Talleres
 export 'src/datasources/talleres/entities/taller_entity.dart';
 export 'src/datasources/talleres/talleres_contract.dart';
@@ -478,6 +484,11 @@ export 'src/datasources/evaluaciones_desempeno/entities/evaluacion_desempeno_ent
 export 'src/datasources/evaluaciones_desempeno/evaluaciones_desempeno_contract.dart';
 export 'src/datasources/evaluaciones_desempeno/evaluaciones_desempeno_factory.dart'
     show EvaluacionesDesempenoDataSourceFactory;
+
+// ✅ PERSONAL - Entrada en turno (tabla `inicios_turno`)
+export 'src/datasources/inicio_turno/entities/inicio_turno_entity.dart';
+export 'src/datasources/inicio_turno/inicio_turno_contract.dart';
+export 'src/datasources/inicio_turno/inicio_turno_factory.dart' show InicioTurnoDataSourceFactory;
 
 // Utils - Utilidades públicas
 export 'src/utils/exceptions/datasource_exception.dart';

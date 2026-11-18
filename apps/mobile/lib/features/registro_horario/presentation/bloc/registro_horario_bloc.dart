@@ -6,7 +6,10 @@ import 'package:uuid/uuid.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../domain/repositories/registro_horario_repository.dart';
+import '../../domain/models/datos_inicio_turno.dart';
 import '../../domain/repositories/turno_actual_repository.dart';
+import '../../domain/services/registrador_inicio_turno.dart';
+import '../../domain/services/turno_app_factory.dart';
 import 'registro_horario_event.dart';
 import 'registro_horario_state.dart';
 
@@ -69,7 +72,7 @@ class RegistroHorarioBloc
       debugPrint('🕐 [RegistroHorarioBloc] Turno resuelto: ${turno.id} '
           '(${turno.origen.name}) vehículo ${seleccion.vehiculo.matricula}');
 
-      await _registroRepository.crear(_nuevoRegistro(
+      final RegistroHorarioEntity entrada = await _registroRepository.crear(_nuevoRegistro(
         personalId: personal.id,
         tipo: 'entrada',
         latitud: event.latitud,
@@ -79,11 +82,23 @@ class RegistroHorarioBloc
         notas: event.observaciones,
       ));
 
+      final DatosInicioTurno? datos = seleccion.datos;
+      final String avisoInicio = datos == null
+          ? ''
+          : await RegistradorInicioTurno(_turnoRepository).registrar(
+              personal: personal,
+              turno: turno,
+              vehiculo: seleccion.vehiculo,
+              registroEntradaId: entrada.id,
+              datos: datos,
+              latitud: event.latitud,
+              longitud: event.longitud,
+            );
       final String aviso = turno.pendienteValidacion
           ? '\n\nTu turno se ha creado desde la app y queda pendiente de validar por coordinación.'
           : '';
       emit(RegistroHorarioSuccess(
-        'Turno iniciado con el vehículo ${seleccion.vehiculo.matricula}.$aviso',
+        'Turno iniciado con el vehículo ${seleccion.vehiculo.matricula}.$aviso$avisoInicio',
       ));
       add(const ObtenerContextoTurno());
     } catch (e) {
@@ -113,50 +128,8 @@ class RegistroHorarioBloc
       throw StateError('Selecciona el tipo de turno');
     }
     return _turnoRepository.crearTurno(
-      _nuevoTurnoApp(personal, plantilla, seleccion.vehiculo.id),
+      TurnoAppFactory.desdePlantilla(personal, plantilla, seleccion.vehiculo.id),
     );
-  }
-
-  /// Construye el turno creado desde la app a partir de una plantilla.
-  ///
-  /// Si el turno de hoy aún no ha empezado pero el de ayer sigue en curso
-  /// (ej: noche 23:00-07:00 fichando a las 00:30) se usa el de ayer.
-  TurnoEntity _nuevoTurnoApp(
-    TPersonalEntity personal,
-    PlantillaTurnoEntity plantilla,
-    String idVehiculo,
-  ) {
-    final DateTime ahora = DateTime.now();
-    final DateTime hoy = DateTime(ahora.year, ahora.month, ahora.day);
-    final String nombre = '${personal.nombre} ${personal.apellidos}'.trim().toUpperCase();
-
-    TurnoEntity turnoDel(DateTime dia) => TurnoEntity(
-          id: _uuid.v4(),
-          idPersonal: personal.id,
-          nombrePersonal: nombre,
-          tipoTurno: plantilla.tipoTurno,
-          fechaInicio: dia,
-          fechaFin: dia,
-          horaInicio: plantilla.horaInicio,
-          horaFin: plantilla.horaFin,
-          idContrato: personal.contratoId,
-          idBase: personal.baseId,
-          categoriaPersonal: personal.categoria,
-          idVehiculo: idVehiculo,
-          idDotacion: personal.dotacionId,
-          observaciones: 'Creado desde la app al iniciar turno (${plantilla.nombre})',
-          origen: OrigenTurno.app,
-          validado: false,
-        );
-
-    TurnoEntity turno = turnoDel(hoy);
-    final TurnoEntity deAyer = turnoDel(hoy.subtract(const Duration(days: 1)));
-    if (turno.inicioReal.subtract(const Duration(hours: 1)).isAfter(ahora) &&
-        deAyer.finReal.isAfter(ahora)) {
-      turno = deAyer;
-    }
-    // En UTC: un DateTime local sin offset se guardaría como UTC en BD
-    return turno.copyWith(fechaInicio: turno.inicioReal.toUtc(), fechaFin: turno.finReal.toUtc());
   }
 
   Future<void> _onFicharSalida(

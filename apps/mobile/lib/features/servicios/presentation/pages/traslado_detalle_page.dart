@@ -456,33 +456,39 @@ class _TrasladoGestionContent extends StatelessWidget {
           Row(
             children: [
               // Estado actual
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      estadoActual != null ? _getIconForEstado(estadoActual) : Icons.help_outline,
-                      size: 18,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      estadoActual?.label ?? traslado.estado ?? 'N/A',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        estadoActual != null ? _getIconForEstado(estadoActual) : Icons.help_outline,
+                        size: 18,
                         color: Colors.white,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          estadoActual?.label ?? traslado.estado ?? 'N/A',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 12),
 
               // Código del traslado
               Container(
@@ -1320,11 +1326,14 @@ class _TrasladoGestionContent extends StatelessWidget {
       case EstadoTraslado.pendiente:
       case EstadoTraslado.enviado:
         return [EstadoTraslado.recibido];
+      // fromValue('recibido_conductor') devuelve recibidoConductor (no el alias recibido)
       case EstadoTraslado.recibido:
+      case EstadoTraslado.recibidoConductor:
         return [EstadoTraslado.enOrigen];
       case EstadoTraslado.enOrigen:
         return [EstadoTraslado.saliendoOrigen];
       case EstadoTraslado.saliendoOrigen:
+      case EstadoTraslado.enTransito:
         return [EstadoTraslado.enDestino];
       case EstadoTraslado.enDestino:
         return [EstadoTraslado.finalizado];
@@ -1340,7 +1349,17 @@ class _TrasladoGestionContent extends StatelessWidget {
 
     // Mostrar diálogo de loading
     if (!context.mounted) return;
+
+    // ⚠️ Capturar Navigator y ScaffoldMessenger ANTES de operaciones async:
+    // al finalizar, el botón (y su context) se desmonta porque se sustituye por
+    // la tarjeta de "finalizado", y el diálogo de loading nunca se cerraría.
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final messenger = ScaffoldMessenger.of(context);
     _mostrarDialogoLoading(context, nuevoEstado);
+
+    void cerrarLoading() {
+      if (navigator.mounted && navigator.canPop()) navigator.pop();
+    }
 
     try {
       // Obtener ID de usuario desde AuthBloc (antes de operaciones async)
@@ -1381,23 +1400,15 @@ class _TrasladoGestionContent extends StatelessWidget {
 
       // Cerrar diálogo de loading después de un breve delay para que el usuario vea el proceso
       await Future.delayed(const Duration(milliseconds: 500));
-      if (context.mounted) {
-        Navigator.of(context).pop(); // Cerrar loading dialog
-      }
+      cerrarLoading();
     } catch (e) {
-      // Cerrar diálogo de loading
-      if (context.mounted) {
-        Navigator.of(context).pop();
-      }
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cambiar estado: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      cerrarLoading();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Error al cambiar estado: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
 
@@ -1597,6 +1608,7 @@ class _TrasladoGestionContent extends StatelessWidget {
       case EstadoTraslado.enviado:
         return Icons.send_outlined;
       case EstadoTraslado.recibido:
+      case EstadoTraslado.recibidoConductor:
         return Icons.check_circle_outline;
       case EstadoTraslado.enOrigen:
         return Icons.location_on;

@@ -14,6 +14,9 @@ import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart'
 import 'package:ambutrack_web/features/home/presentation/bloc/home_bloc.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_event.dart';
 import 'package:ambutrack_web/features/home/presentation/bloc/home_state.dart';
+import 'package:ambutrack_web/features/home/presentation/bloc/tecnicos_en_turno/tecnicos_en_turno_bloc.dart';
+import 'package:ambutrack_web/features/home/presentation/bloc/tecnicos_en_turno/tecnicos_en_turno_event.dart';
+import 'package:ambutrack_web/features/home/presentation/bloc/tecnicos_en_turno/tecnicos_en_turno_state.dart';
 import 'package:ambutrack_web/features/home/presentation/config/dashboard_card_config.dart';
 import 'package:ambutrack_web/features/home/presentation/config/dashboard_role_config.dart';
 import 'package:ambutrack_web/features/home/presentation/widgets/inicio/inicio_layout.dart';
@@ -102,11 +105,24 @@ class _RoleStatsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<AgendaPendienteBloc>(
-      create: (BuildContext context) => getIt<AgendaPendienteBloc>()
-        ..add(AgendaPendienteLoadHoyRequested(
-          empresaId: _getEmpresaId(context),
-        )),
+    final bool verTecnicos = DashboardRoleConfig.cardsForRole(role)
+        .any((DashboardCardConfig c) => c.cardType == DashboardCardType.tecnicosEnTurno);
+    return MultiBlocProvider(
+      providers: <BlocProvider<dynamic>>[
+        BlocProvider<AgendaPendienteBloc>(
+          create: (BuildContext context) => getIt<AgendaPendienteBloc>()
+            ..add(AgendaPendienteLoadHoyRequested(
+              empresaId: _getEmpresaId(context),
+            )),
+        ),
+        // Solo consulta turnos/fichajes si el rol tiene la card
+        BlocProvider<TecnicosEnTurnoBloc>(
+          create: (BuildContext context) {
+            final TecnicosEnTurnoBloc bloc = getIt<TecnicosEnTurnoBloc>();
+            return verTecnicos ? (bloc..add(const TecnicosEnTurnoStarted())) : bloc;
+          },
+        ),
+      ],
       child: _RoleStatsWithPopups(role: role),
     );
   }
@@ -153,27 +169,38 @@ class _RoleStatsWithPopupsState extends State<_RoleStatsWithPopups> {
 
   /// Contenido principal: lee ambos blocs y construye las cards.
   Widget _buildContent() {
-    return BlocBuilder<HomeBloc, HomeState>(
-      builder: (BuildContext context, HomeState state) {
-        return BlocBuilder<AgendaPendienteBloc, AgendaPendienteState>(
-          builder: (BuildContext context, AgendaPendienteState agendaState) {
-            int pendientesHoy = 0;
-            if (agendaState is AgendaPendienteLoaded) {
-              pendientesHoy = agendaState.pendientesHoy.length;
-            }
-
-            if (state is! HomeLoaded) {
-              return const SizedBox.shrink();
-            }
-
-            return RoleDashboardBuilder(
-              role: widget.role,
-              homeState: state,
-              pendientesHoy: pendientesHoy,
-            );
-          },
-        );
+    // "Actualizar" del dashboard (nuevo HomeLoaded) recarga también los técnicos
+    return BlocListener<HomeBloc, HomeState>(
+      listenWhen: (HomeState previous, HomeState current) => previous is HomeLoaded && current is HomeLoaded,
+      listener: (BuildContext context, HomeState _) {
+        if (context.read<TecnicosEnTurnoBloc>().state is! TecnicosEnTurnoInitial) {
+          context.read<TecnicosEnTurnoBloc>().add(const TecnicosEnTurnoRefreshed());
+        }
       },
+      child: BlocBuilder<HomeBloc, HomeState>(
+        builder: (BuildContext context, HomeState state) {
+          return BlocBuilder<AgendaPendienteBloc, AgendaPendienteState>(
+            builder: (BuildContext context, AgendaPendienteState agendaState) {
+              int pendientesHoy = 0;
+              if (agendaState is AgendaPendienteLoaded) {
+                pendientesHoy = agendaState.pendientesHoy.length;
+              }
+
+              if (state is! HomeLoaded) {
+                return const SizedBox.shrink();
+              }
+
+              final TecnicosEnTurnoState tecnicosState = context.watch<TecnicosEnTurnoBloc>().state;
+              return RoleDashboardBuilder(
+                role: widget.role,
+                homeState: state,
+                pendientesHoy: pendientesHoy,
+                tecnicosState: tecnicosState,
+              );
+            },
+          );
+        },
+      ),
     );
   }
 

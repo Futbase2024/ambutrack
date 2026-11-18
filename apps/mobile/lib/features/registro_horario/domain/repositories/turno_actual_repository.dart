@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Contrato para resolver el turno en curso del trabajador al fichar
@@ -31,4 +33,25 @@ abstract class TurnoActualRepository {
 
   /// Plantillas de turno activas (Mañana, Tarde, Noche, 12h, 24h...)
   Future<List<PlantillaTurnoEntity>> obtenerPlantillas();
+
+  /// Puntos del checklist corto de inicio de turno
+  Future<List<String>> obtenerPlantillaChecklist();
+
+  /// Personas con la jornada abierta en el vehículo
+  Future<List<OcupanteVehiculoEntity>> obtenerOcupacionVehiculo(String idVehiculo);
+
+  /// Coordenadas de la base (para la geocerca)
+  Future<UbicacionBaseEntity?> obtenerUbicacionBase(String idBase);
+
+  /// Documentación del trabajador (carnet, certificados...)
+  Future<List<DocumentoPersonalEntity>> obtenerDocumentosPersonal(String idPersonal);
+
+  /// Personal activo (para elegir compañero)
+  Future<List<TPersonalEntity>> obtenerPersonalActivo();
+
+  /// Sube la foto del cuentakilómetros y devuelve su ruta
+  Future<String> subirFotoKm({required Uint8List bytes, required String extension});
+
+  /// Registra los datos de la entrada en turno
+  Future<InicioTurnoEntity> registrarInicioTurno(InicioTurnoEntity inicio);
 }
