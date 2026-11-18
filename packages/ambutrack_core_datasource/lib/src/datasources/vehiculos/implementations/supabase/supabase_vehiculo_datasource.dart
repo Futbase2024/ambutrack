@@ -67,8 +67,9 @@ class SupabaseVehiculoDataSource implements VehiculoDataSource {
       // ignore: avoid_print
       print('📦 SupabaseVehiculoDataSource: 🔄 Cargando desde Supabase (caché ${_isCacheValid ? "válido pero con paginación" : "inválido o vacío"})...');
 
-      // SELECT optimizado: Solo campos necesarios para reducir payload de red
-      // Esto reduce el tamaño de respuesta de ~2.5MB a ~200KB (89 vehículos)
+      // SELECT con todos los campos que mapea VehiculoSupabaseModel (excluye fotos/documentos
+      // y demás columnas pesadas). Si se añade un campo al modelo, AÑADIRLO AQUÍ también,
+      // o el formulario de edición lo sobrescribirá con null al guardar.
       const String selectFields = '''
         id,
         created_at,
@@ -90,7 +91,21 @@ class SupabaseVehiculoDataSource implements VehiculoDataSource {
         alias,
         clasificacion,
         km_actual,
-        ubicacion_actual
+        ubicacion_actual,
+        requiere_cap,
+        tiene_silla_electrica,
+        numero_carros,
+        tiene_soporte_silla_electrica,
+        capacidad_pasajeros,
+        capacidad_camilla,
+        equipamiento,
+        fecha_adquisicion,
+        observaciones,
+        ultimo_mantenimiento,
+        proximo_mantenimiento,
+        km_proximo_mantenimiento,
+        created_by,
+        updated_by
       ''';
 
       dynamic query = _supabase.from(_tableName).select(selectFields);
@@ -311,6 +326,19 @@ class SupabaseVehiculoDataSource implements VehiculoDataSource {
       return updated;
     } catch (e) {
       throw Exception('Error al actualizar vehículos en lote: $e');
+    }
+  }
+
+  @override
+  Future<void> setSillaElectrica(List<String> vehiculoIds, {required bool tiene}) async {
+    try {
+      await _supabase.rpc<void>(
+        'fn_set_silla_electrica',
+        params: <String, dynamic>{'p_vehiculo_ids': vehiculoIds, 'p_tiene': tiene},
+      );
+      SupabaseVehiculoDataSource.clearCache();
+    } catch (e) {
+      throw Exception('Error al cambiar la silla eléctrica: $e');
     }
   }
 

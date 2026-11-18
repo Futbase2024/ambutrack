@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
+import 'package:ambutrack_web/core/widgets/gestion/export/gestion_report_grid.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/bloc/itv_revision_bloc.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/bloc/itv_revision_event.dart';
@@ -12,10 +13,14 @@ import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_blo
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_event.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_state.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/widgets/vehiculo_form_dialog.dart';
+import 'package:ambutrack_web/features/vehiculos/widgets/gestion/export/vehiculo_export_dialog.dart';
+import 'package:ambutrack_web/features/vehiculos/widgets/gestion/export/vehiculo_export_options.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/flota_gestion_common.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_detail_panel.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_gestion_bars.dart';
+import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_gestion_bulk_bar.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_gestion_columns.dart';
+import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_gestion_edicion.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -29,15 +34,19 @@ class VehiculoGestionView extends StatefulWidget {
   State<VehiculoGestionView> createState() => _VehiculoGestionViewState();
 }
 
-class _VehiculoGestionViewState extends State<VehiculoGestionView> {
+class _VehiculoGestionViewState extends State<VehiculoGestionView> with VehiculoEdicionMixin<VehiculoGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
 
   /// Registro abierto desde la búsqueda global (Ctrl+K): solo se muestra ese
   String? _soloId;
   String? _enlaceAplicado;
-  VehiculoEstado? _estado;
-  String? _tipo;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
+
+  /// Columnas con edición en línea (solo se activa en modo edición)
+  late final List<GestionColumn<VehiculoEntity>> _columns = buildVehiculoGestionColumns(onEdit: guardarCambio);
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -82,7 +91,7 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> {
   List<VehiculoEntity> _filtrarEnlace(List<VehiculoEntity> items) =>
       _soloId == null ? items : items.where((VehiculoEntity e) => e.id == _soloId).toList();
 
-  bool get _hasFilters => _soloId != null || _query.isNotEmpty || _estado != null || _tipo != null;
+  bool get _hasFilters => _soloId != null || _query.isNotEmpty || !_colFilters.isEmpty;
 
   VehiculoEntity? get _selected {
     for (final VehiculoEntity v in _vehiculos ?? const <VehiculoEntity>[]) {
@@ -93,10 +102,23 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> {
     return null;
   }
 
-  List<VehiculoEntity> get _visibles => _sort.apply(
-        filtrarVehiculos(_filtrarEnlace(_vehiculos ?? <VehiculoEntity>[]), query: _query, estado: _estado, tipo: _tipo),
-        vehiculoGestionColumns,
-      );
+  /// Vehículos con búsqueda aplicada (base de los valores de los filtros de columna)
+  List<VehiculoEntity> get _base => filtrarVehiculos(_filtrarEnlace(_vehiculos ?? <VehiculoEntity>[]), query: _query);
+
+  List<VehiculoEntity> get _visibles => _sort.apply(_colFilters.apply(_base, _columns), _columns);
+
+  @override
+  List<VehiculoEntity> get vehiculosVisibles => _visibles;
+
+  @override
+  void aplicarLocal(List<VehiculoEntity> actualizados) {
+    final Map<String, VehiculoEntity> porId = <String, VehiculoEntity>{
+      for (final VehiculoEntity v in actualizados) v.id: v,
+    };
+    setState(() {
+      _vehiculos = _vehiculos?.map((VehiculoEntity v) => porId[v.id] ?? v).toList();
+    });
+  }
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -107,8 +129,12 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> {
         _searchController.clear();
         _soloId = null;
         _query = '';
-        _estado = null;
-        _tipo = null;
+        _colFilters = const GestionColumnFilters();
+      });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() {
+        _soloId = null;
+        _colFilters = f;
       });
 
   void _refresh() {
@@ -134,6 +160,27 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> {
     context.goNamed(
       'flota_stock_vehiculo',
       pathParameters: <String, String>{'vehiculoId': vehiculo.id},
+    );
+  }
+
+  /// Descripción de los filtros activos para la cabecera de los informes
+  String get _filtrosTexto {
+    final List<String> partes = <String>[
+      if (_query.trim().isNotEmpty) 'Búsqueda "${_query.trim()}"',
+      ..._colFilters.describe(vehiculoGestionColumns),
+    ];
+    final String? orden = gestionSortDescription(_sort, vehiculoGestionColumns);
+    final String filtros = partes.isEmpty ? 'Todos los vehículos' : 'Filtros: ${partes.join(' · ')}';
+    return orden == null ? filtros : '$filtros · $orden';
+  }
+
+  Future<void> _openExport({VehiculoExportAlcance? alcance}) {
+    return showVehiculoExportDialog(
+      context,
+      vehiculos: _visibles,
+      seleccionado: _selected,
+      filtros: _filtrosTexto,
+      alcance: alcance,
     );
   }
 
@@ -177,6 +224,10 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> {
       }
     } else if (state is VehiculosError) {
       _deleting = null;
+      if (editando) {
+        // Un cambio en línea ha fallado: se recargan los datos reales
+        context.read<VehiculosBloc>().add(const VehiculosRefreshRequested());
+      }
       if (_vehiculos == null) {
         return;
       }
@@ -204,20 +255,36 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> {
             onEdit: () => _openForm(selected),
             onDelete: () => _confirmDelete(selected!),
             onRefresh: _refresh,
-            onPrint: visibles.isEmpty ? null : () => imprimirVehiculos(visibles),
+            onExport: visibles.isEmpty && selected == null ? null : _openExport,
             onStock: () => _openStock(selected!),
+            editing: editando,
+            onToggleEditing: toggleEdicion,
           ),
-          filterBar: VehiculoGestionFilters(
-            searchController: _searchController,
-            onSearchChanged: (String v) => _updateFilters(() {
-              _soloId = null;
-              _query = v;
-            }),
-            estado: _estado,
-            onEstadoChanged: (VehiculoEstado? v) => _updateFilters(() => _estado = v),
-            tipo: _tipo,
-            onTipoChanged: (String? v) => _updateFilters(() => _tipo = v),
-            onClear: _hasFilters ? _clearFilters : null,
+          filterBar: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              VehiculoGestionFilters(
+                searchController: _searchController,
+                onSearchChanged: (String v) => _updateFilters(() {
+                  _soloId = null;
+                  _query = v;
+                }),
+                columnFilters: _colFilters,
+                onColumnFiltersChanged: _onColumnFiltersChanged,
+                onClear: _hasFilters ? _clearFilters : null,
+              ),
+              if (editando)
+                VehiculoBulkEditBar(
+                  count: marcadosVisibles.length,
+                  onEstado: cambiarEstadoEnBloque,
+                  onCap: (bool v) => cambiarCapEnBloque(valor: v),
+                  onSilla: (bool v) => cambiarSillaEnBloque(valor: v),
+                  onCarros: cambiarCarrosEnBloque,
+                  onSoporte: (bool v) => cambiarSoporteEnBloque(valor: v),
+                  onClear: () => setState(() => marcados = <String>{}),
+                ),
+            ],
           ),
           content: FlotaGridArea(
             hasData: _vehiculos != null,
@@ -226,8 +293,14 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> {
             errorTitle: 'Error al cargar vehículos',
             onRetry: _refresh,
             child: GestionGrid<VehiculoEntity>(
-              columns: vehiculoGestionColumns,
+              columns: _columns,
               rows: flotaPageOf(visibles, _page, _pageSize),
+              filters: _colFilters,
+              onFiltersChanged: _onColumnFiltersChanged,
+              filterSource: _base,
+              editing: editando,
+              checkedIds: editando ? marcados : null,
+              onCheckedChanged: (Set<String> ids) => setState(() => marcados = ids),
               rowId: (VehiculoEntity v) => v.id,
               selectedId: _selectedId,
               onSelect: (VehiculoEntity v) => setState(() => _selectedId = v.id),
@@ -245,6 +318,7 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> {
             onEdit: () => _openForm(selected),
             onDelete: () => _confirmDelete(selected!),
             onStock: () => _openStock(selected!),
+            onExport: () => _openExport(alcance: VehiculoExportAlcance.ficha),
           ),
           statusBar: GestionStatusBar(
             items: resumenVehiculos(_vehiculos ?? <VehiculoEntity>[], visibles.length),

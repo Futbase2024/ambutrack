@@ -7,6 +7,9 @@ import 'package:flutter/material.dart';
 class VehiculoFormData {
   VehiculoFormData({VehiculoEntity? original})
       : estado = original?.estado ?? VehiculoEstado.activo,
+        requiereCap = original?.requiereCap ?? false,
+        numeroCarros = original?.numeroCarros,
+        tieneSoporteSilla = original?.tieneSoporteSillaElectrica ?? false,
         fechaAdquisicion = original?.fechaAdquisicion,
         fechaProximaItv = original?.proximaItv,
         fechaUltimoMantenimiento = original?.ultimoMantenimiento,
@@ -31,6 +34,9 @@ class VehiculoFormData {
         observaciones = TextEditingController(text: original?.observaciones ?? '');
 
   VehiculoEstado estado;
+  bool requiereCap;
+  int? numeroCarros;
+  bool tieneSoporteSilla;
   DateTime? fechaAdquisicion;
   DateTime? fechaProximaItv;
   DateTime? fechaUltimoMantenimiento;
@@ -87,5 +93,12 @@ class VehiculoFormOptions {
     GestionOption<VehiculoEstado>(VehiculoEstado.mantenimiento, 'Mantenimiento', color: AppColors.warning),
     GestionOption<VehiculoEstado>(VehiculoEstado.reparacion, 'Reparación', color: AppColors.error),
     GestionOption<VehiculoEstado>(VehiculoEstado.baja, 'Baja', color: AppColors.inactive),
+  ];
+
+  static const List<GestionOption<int>> carros = <GestionOption<int>>[
+    GestionOption<int>(1, '1 carro'),
+    GestionOption<int>(2, '2 carros'),
+    GestionOption<int>(3, '3 carros'),
+    GestionOption<int>(4, '4 carros'),
   ];
 }

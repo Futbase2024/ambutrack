@@ -73,6 +73,7 @@ final List<GestionColumn<StockVehiculoEntity>> equipamientoColumns = <GestionCol
     flex: 2,
     sortValue: (StockVehiculoEntity l) => '${(l.seccionOrden ?? 999).toString().padLeft(3, '0')}'
         '${(l.orden ?? 9999).toString().padLeft(4, '0')}',
+    filterValue: equipamientoSeccion,
     cell: (StockVehiculoEntity l) => FlotaCellText(equipamientoSeccion(l)),
   ),
   GestionColumn<StockVehiculoEntity>(
@@ -118,18 +119,21 @@ final List<GestionColumn<StockVehiculoEntity>> equipamientoColumns = <GestionCol
     width: 48,
     alignment: Alignment.center,
     sortValue: (StockVehiculoEntity l) => l.tieneAdjunto ? 1 : 0,
+    filterValue: (StockVehiculoEntity l) => flotaSiNo(value: l.tieneAdjunto),
     cell: (StockVehiculoEntity l) => EquipamientoAdjuntoIcon(linea: l),
   ),
   GestionColumn<StockVehiculoEntity>(
     label: 'Origen',
     width: 90,
     sortValue: (StockVehiculoEntity l) => l.origen,
+    filterValue: equipamientoOrigen,
     cell: (StockVehiculoEntity l) => EquipamientoOrigenBadge(linea: l),
   ),
   GestionColumn<StockVehiculoEntity>(
     label: 'Estado',
     width: 140,
     sortValue: (StockVehiculoEntity l) => EstadoDotacion.of(l).prioridad,
+    filterValue: (StockVehiculoEntity l) => EstadoDotacion.of(l).label,
     cell: (StockVehiculoEntity l) => EquipamientoEstadoDot(linea: l),
   ),
 ];

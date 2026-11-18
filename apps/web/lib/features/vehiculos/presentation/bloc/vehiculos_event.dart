@@ -64,6 +64,27 @@ class VehiculoUpdateRequested extends VehiculosEvent {
   List<Object?> get props => <Object?>[vehiculo];
 }
 
+/// Solicita actualizar varios vehículos a la vez (edición en bloque)
+class VehiculosBulkUpdateRequested extends VehiculosEvent {
+  const VehiculosBulkUpdateRequested({required this.vehiculos});
+
+  final List<VehiculoEntity> vehiculos;
+
+  @override
+  List<Object?> get props => <Object?>[vehiculos];
+}
+
+/// Solicita marcar o quitar la silla eléctrica (se guarda en el stock del vehículo)
+class VehiculosSillaElectricaRequested extends VehiculosEvent {
+  const VehiculosSillaElectricaRequested({required this.vehiculoIds, required this.tiene});
+
+  final List<String> vehiculoIds;
+  final bool tiene;
+
+  @override
+  List<Object?> get props => <Object?>[vehiculoIds, tiene];
+}
+
 /// Solicita eliminar un vehículo
 class VehiculoDeleteRequested extends VehiculosEvent {
   const VehiculoDeleteRequested({required this.vehiculoId});

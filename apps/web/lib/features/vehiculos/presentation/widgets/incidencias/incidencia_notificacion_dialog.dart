@@ -17,11 +17,15 @@ void showIncidenciaVehiculoDialog({
   required BuildContext context,
   required NotificacionEntity notificacion,
 }) {
+  // El diálogo se monta en el navegador raíz, fuera de MainLayout (donde vive
+  // el NotificacionBloc), así que hay que pasarle el bloc explícitamente.
+  final NotificacionBloc notificacionBloc = context.read<NotificacionBloc>();
   showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (BuildContext dialogContext) => _IncidenciaDialogContent(
-      notificacion: notificacion,
+    builder: (BuildContext dialogContext) => BlocProvider<NotificacionBloc>.value(
+      value: notificacionBloc,
+      child: _IncidenciaDialogContent(notificacion: notificacion),
     ),
   );
 }
@@ -142,23 +146,26 @@ class _IncidenciaDialogContent extends StatelessWidget {
     );
   }
 
-  void _marcarVistoYCerrar(BuildContext context) {
-    Navigator.of(context).pop();
+  /// Marca la notificación como leída. Se captura el bloc ANTES de cerrar el
+  /// diálogo: tras el pop, el context del diálogo ya no es válido.
+  void _marcarLeida(NotificacionBloc bloc) {
     if (!notificacion.leida) {
-      context.read<NotificacionBloc>().add(
-            NotificacionEvent.marcarComoLeida(notificacion.id),
-          );
+      bloc.add(NotificacionEvent.marcarComoLeida(notificacion.id));
     }
   }
 
-  void _verDetalle(BuildContext context) {
+  void _marcarVistoYCerrar(BuildContext context) {
+    final NotificacionBloc bloc = context.read<NotificacionBloc>();
     Navigator.of(context).pop();
-    if (!notificacion.leida) {
-      context.read<NotificacionBloc>().add(
-            NotificacionEvent.marcarComoLeida(notificacion.id),
-          );
-    }
-    context.pushNamed('historial_averias');
+    _marcarLeida(bloc);
+  }
+
+  void _verDetalle(BuildContext context) {
+    final NotificacionBloc bloc = context.read<NotificacionBloc>();
+    final GoRouter router = GoRouter.of(context);
+    Navigator.of(context).pop();
+    _marcarLeida(bloc);
+    router.pushNamed('historial_averias');
   }
 
   Color _getPrioridadColor(String prioridad) {

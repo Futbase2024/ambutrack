@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -14,6 +16,7 @@ class SupabaseEquipamientoVehiculoDataSource implements EquipamientoVehiculoData
   static const String _tabla = 'stock_vehiculo';
   static const String _vista = 'v_stock_vehiculo_estado';
   static const String _bucket = 'equipamiento-vehiculos';
+  static const Duration _debounceCambios = Duration(milliseconds: 400);
 
   @override
   Future<List<StockVehiculoEntity>> getDotacion(String vehiculoId) async {
@@ -193,6 +196,52 @@ class SupabaseEquipamientoVehiculoDataSource implements EquipamientoVehiculoData
     } catch (e) {
       debugPrint('🚑 EquipamientoVehiculo: ⚠️ No se pudo borrar el archivo anterior: $e');
     }
+  }
+
+  @override
+  Stream<void> watchCambios(String vehiculoId) {
+    RealtimeChannel? channel;
+    Timer? debounce;
+    late final StreamController<void> controller;
+
+    controller = StreamController<void>(
+      onListen: () {
+        debugPrint('🚑 EquipamientoVehiculo: 📡 escuchando cambios de $vehiculoId');
+        channel = _client
+            .channel('stock_vehiculo_$vehiculoId')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: _tabla,
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'vehiculo_id',
+                value: vehiculoId,
+              ),
+              callback: (PostgresChangePayload payload) {
+                debugPrint('🚑 EquipamientoVehiculo: 🔔 ${payload.eventType.name} en dotación');
+                debounce?.cancel();
+                debounce = Timer(_debounceCambios, () {
+                  if (!controller.isClosed) {
+                    controller.add(null);
+                  }
+                });
+              },
+            )
+            .subscribe();
+      },
+      onCancel: () async {
+        debugPrint('🚑 EquipamientoVehiculo: 📴 fin escucha de $vehiculoId');
+        debounce?.cancel();
+        final RealtimeChannel? canal = channel;
+        if (canal != null) {
+          await _client.removeChannel(canal);
+        }
+        await controller.close();
+      },
+    );
+
+    return controller.stream;
   }
 
   StockVehiculoEntity _toEntity(Map<String, dynamic> json) =>

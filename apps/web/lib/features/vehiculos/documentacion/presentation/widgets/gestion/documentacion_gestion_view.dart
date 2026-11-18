@@ -31,6 +31,9 @@ class _DocumentacionGestionViewState extends State<DocumentacionGestionView> {
   String? _tipo;
   String? _estado;
   DocVencimientoFiltro _vencimiento = DocVencimientoFiltro.todos;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 5);
   int _page = 0;
   int _pageSize = 25;
@@ -49,7 +52,11 @@ class _DocumentacionGestionViewState extends State<DocumentacionGestionView> {
   }
 
   bool get _hasFilters =>
-      _query.isNotEmpty || _tipo != null || _estado != null || _vencimiento != DocVencimientoFiltro.todos;
+      _query.isNotEmpty ||
+      _tipo != null ||
+      _estado != null ||
+      _vencimiento != DocVencimientoFiltro.todos ||
+      !_colFilters.isEmpty;
 
   DocumentacionVehiculoEntity? get _selected {
     for (final DocumentacionVehiculoEntity d in _docs ?? const <DocumentacionVehiculoEntity>[]) {
@@ -60,14 +67,17 @@ class _DocumentacionGestionViewState extends State<DocumentacionGestionView> {
     return null;
   }
 
+  /// Documentos con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<DocumentacionVehiculoEntity> get _base => filtrarDocumentos(
+        _docs ?? <DocumentacionVehiculoEntity>[],
+        query: _query,
+        tipo: _tipo,
+        estado: _estado,
+        vencimiento: _vencimiento,
+      );
+
   List<DocumentacionVehiculoEntity> get _visibles => _sort.apply(
-        filtrarDocumentos(
-          _docs ?? <DocumentacionVehiculoEntity>[],
-          query: _query,
-          tipo: _tipo,
-          estado: _estado,
-          vencimiento: _vencimiento,
-        ),
+        _colFilters.apply(_base, documentacionGestionColumns),
         documentacionGestionColumns,
       );
 
@@ -85,7 +95,10 @@ class _DocumentacionGestionViewState extends State<DocumentacionGestionView> {
         _tipo = null;
         _estado = null;
         _vencimiento = DocVencimientoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() =>
       context.read<DocumentacionVehiculosBloc>().add(const DocumentacionVehiculosLoadRequested());
@@ -194,6 +207,8 @@ class _DocumentacionGestionViewState extends State<DocumentacionGestionView> {
             onEstadoChanged: (String? v) => _updateFilters(() => _estado = v),
             vencimiento: _vencimiento,
             onVencimientoChanged: (DocVencimientoFiltro v) => _updateFilters(() => _vencimiento = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: FlotaGridArea(
@@ -206,6 +221,9 @@ class _DocumentacionGestionViewState extends State<DocumentacionGestionView> {
             child: GestionGrid<DocumentacionVehiculoEntity>(
               columns: documentacionGestionColumns,
               rows: flotaPageOf(visibles, _page, _pageSize),
+              filters: _colFilters,
+              onFiltersChanged: _onColumnFiltersChanged,
+              filterSource: _base,
               rowId: (DocumentacionVehiculoEntity d) => d.id,
               selectedId: _selectedId,
               onSelect: (DocumentacionVehiculoEntity d) => setState(() => _selectedId = d.id),

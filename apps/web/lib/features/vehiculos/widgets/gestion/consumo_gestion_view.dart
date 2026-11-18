@@ -28,6 +28,9 @@ class ConsumoGestionView extends StatefulWidget {
 class _ConsumoGestionViewState extends State<ConsumoGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0, ascending: false);
   int _page = 0;
   int _pageSize = 25;
@@ -47,7 +50,7 @@ class _ConsumoGestionViewState extends State<ConsumoGestionView> {
 
   ConsumoCombustibleBloc get _bloc => context.read<ConsumoCombustibleBloc>();
 
-  bool get _hasFilters => _query.isNotEmpty || (_data?.hasBlocFilters ?? false);
+  bool get _hasFilters => _query.isNotEmpty || !_colFilters.isEmpty || (_data?.hasBlocFilters ?? false);
 
   ConsumoCombustibleEntity? get _selected {
     for (final ConsumoCombustibleEntity c in _data?.registros ?? const <ConsumoCombustibleEntity>[]) {
@@ -62,10 +65,16 @@ class _ConsumoGestionViewState extends State<ConsumoGestionView> {
     setState(() {
       _searchController.clear();
       _query = '';
+      _colFilters = const GestionColumnFilters();
       _page = 0;
     });
     _bloc.add(const ConsumoCombustibleEvent.clearFilters());
   }
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => setState(() {
+        _colFilters = f;
+        _page = 0;
+      });
 
   /// Lanza un filtro del BLoC volviendo a la primera página
   void _filterBloc(ConsumoCombustibleEvent event) {
@@ -166,10 +175,10 @@ class _ConsumoGestionViewState extends State<ConsumoGestionView> {
         final ConsumoSnapshot? data = _data;
         final Map<String, VehiculoEntity> vehiculos = data?.vehiculosPorId ?? <String, VehiculoEntity>{};
         final List<GestionColumn<ConsumoCombustibleEntity>> columns = consumoGestionColumns(vehiculos);
-        final List<ConsumoCombustibleEntity> visibles = _sort.apply(
-          buscarConsumos(data?.registros ?? <ConsumoCombustibleEntity>[], vehiculos, _query),
-          columns,
-        );
+        // Base: búsqueda aplicada (valores posibles de los filtros de columna)
+        final List<ConsumoCombustibleEntity> base =
+            buscarConsumos(data?.registros ?? <ConsumoCombustibleEntity>[], vehiculos, _query);
+        final List<ConsumoCombustibleEntity> visibles = _sort.apply(_colFilters.apply(base, columns), columns);
         final ConsumoCombustibleEntity? selected = _selected;
         final int page = _page.clamp(0, visibles.isEmpty ? 0 : (visibles.length - 1) ~/ _pageSize);
         return GestionLayout(
@@ -196,6 +205,9 @@ class _ConsumoGestionViewState extends State<ConsumoGestionView> {
             fechaFin: data?.filtroFechaFin,
             onFechaFinChanged: (DateTime? f) =>
                 _filterBloc(ConsumoCombustibleEvent.filterByFecha(data?.filtroFechaInicio, f)),
+            columns: columns,
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: FlotaGridArea(
@@ -207,6 +219,9 @@ class _ConsumoGestionViewState extends State<ConsumoGestionView> {
             child: GestionGrid<ConsumoCombustibleEntity>(
               columns: columns,
               rows: flotaPageOf(visibles, page, _pageSize),
+              filters: _colFilters,
+              onFiltersChanged: _onColumnFiltersChanged,
+              filterSource: base,
               rowId: (ConsumoCombustibleEntity c) => c.id,
               selectedId: _selectedId,
               onSelect: (ConsumoCombustibleEntity c) => setState(() => _selectedId = c.id),

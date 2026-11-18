@@ -25,6 +25,9 @@ class _StockEquipamientoGestionViewState extends State<StockEquipamientoGestionV
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   EstadoStockGeneral? _estado;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -39,7 +42,7 @@ class _StockEquipamientoGestionViewState extends State<StockEquipamientoGestionV
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != null;
+  bool get _hasFilters => _query.isNotEmpty || _estado != null || !_colFilters.isEmpty;
 
   VehiculoStockResumenEntity? get _selected {
     for (final VehiculoStockResumenEntity v in _items ?? const <VehiculoStockResumenEntity>[]) {
@@ -50,8 +53,12 @@ class _StockEquipamientoGestionViewState extends State<StockEquipamientoGestionV
     return null;
   }
 
+  /// Vehículos con búsqueda y estado aplicados (base de los filtros de columna)
+  List<VehiculoStockResumenEntity> get _base =>
+      filtrarStockEquipamiento(_items ?? <VehiculoStockResumenEntity>[], query: _query, estado: _estado);
+
   List<VehiculoStockResumenEntity> get _visibles => _sort.apply(
-        filtrarStockEquipamiento(_items ?? <VehiculoStockResumenEntity>[], query: _query, estado: _estado),
+        _colFilters.apply(_base, stockEquipamientoGestionColumns),
         stockEquipamientoGestionColumns,
       );
 
@@ -64,7 +71,10 @@ class _StockEquipamientoGestionViewState extends State<StockEquipamientoGestionV
         _searchController.clear();
         _query = '';
         _estado = null;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() => context.read<StockEquipamientoBloc>().add(const StockEquipamientoRefreshRequested());
 
@@ -136,6 +146,8 @@ class _StockEquipamientoGestionViewState extends State<StockEquipamientoGestionV
             onSearchChanged: (String v) => _updateFilters(() => _query = v),
             estado: _estado,
             onEstadoChanged: (EstadoStockGeneral? v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: FlotaGridArea(
@@ -147,6 +159,9 @@ class _StockEquipamientoGestionViewState extends State<StockEquipamientoGestionV
             child: GestionGrid<VehiculoStockResumenEntity>(
               columns: stockEquipamientoGestionColumns,
               rows: flotaPageOf(visibles, _page, _pageSize),
+              filters: _colFilters,
+              onFiltersChanged: _onColumnFiltersChanged,
+              filterSource: _base,
               rowId: (VehiculoStockResumenEntity v) => v.vehiculoId,
               selectedId: _selectedId,
               onSelect: (VehiculoStockResumenEntity v) => setState(() => _selectedId = v.vehiculoId),

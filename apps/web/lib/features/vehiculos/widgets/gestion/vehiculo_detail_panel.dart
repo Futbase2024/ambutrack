@@ -14,6 +14,7 @@ class VehiculoDetailPanel extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onStock,
+    required this.onExport,
     super.key,
   });
 
@@ -21,6 +22,7 @@ class VehiculoDetailPanel extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onStock;
+  final VoidCallback onExport;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +50,7 @@ class VehiculoDetailPanel extends StatelessWidget {
       ],
       actions: <Widget>[
         FlotaPanelButton.edit(onPressed: onEdit),
+        FlotaPanelButton(icon: Icons.file_download_outlined, label: 'Exportar ficha', onPressed: onExport),
         FlotaPanelButton.delete(onPressed: onDelete),
       ],
     );

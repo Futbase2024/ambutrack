@@ -78,6 +78,7 @@ List<GestionColumn<IncidenciaVehiculoEntity>> averiaGestionColumns(
       label: 'Vehículo',
       width: 110,
       sortValue: (IncidenciaVehiculoEntity i) => averiaVehiculo(i, vehiculos).toLowerCase(),
+      filterValue: (IncidenciaVehiculoEntity i) => averiaVehiculo(i, vehiculos),
       cell: (IncidenciaVehiculoEntity i) => FlotaCellText(averiaVehiculo(i, vehiculos), bold: true),
     ),
     GestionColumn<IncidenciaVehiculoEntity>(
@@ -90,12 +91,14 @@ List<GestionColumn<IncidenciaVehiculoEntity>> averiaGestionColumns(
       label: 'Tipo',
       width: 130,
       sortValue: (IncidenciaVehiculoEntity i) => i.tipo.nombre,
+      filterValue: (IncidenciaVehiculoEntity i) => i.tipo.nombre,
       cell: (IncidenciaVehiculoEntity i) => GestionDotLabel(label: i.tipo.nombre, color: averiaTipoColor),
     ),
     GestionColumn<IncidenciaVehiculoEntity>(
       label: 'Prioridad',
       width: 100,
       sortValue: (IncidenciaVehiculoEntity i) => i.prioridad.index,
+      filterValue: (IncidenciaVehiculoEntity i) => i.prioridad.nombre,
       cell: (IncidenciaVehiculoEntity i) => GestionDotLabel(
         label: i.prioridad.nombre,
         color: averiaPrioridadColor(i.prioridad),
@@ -105,6 +108,7 @@ List<GestionColumn<IncidenciaVehiculoEntity>> averiaGestionColumns(
       label: 'Estado',
       width: 130,
       sortValue: (IncidenciaVehiculoEntity i) => i.estado.index,
+      filterValue: (IncidenciaVehiculoEntity i) => i.estado.nombre,
       cell: (IncidenciaVehiculoEntity i) =>
           GestionDotLabel(label: i.estado.nombre, color: averiaEstadoColor(i.estado)),
     ),
@@ -112,6 +116,7 @@ List<GestionColumn<IncidenciaVehiculoEntity>> averiaGestionColumns(
       label: 'Reportado por',
       flex: 2,
       sortValue: (IncidenciaVehiculoEntity i) => i.reportadoPorNombre.toLowerCase(),
+      filterValue: (IncidenciaVehiculoEntity i) => i.reportadoPorNombre,
       cell: (IncidenciaVehiculoEntity i) => FlotaCellText(GestionFormatters.texto(i.reportadoPorNombre)),
     ),
     GestionColumn<IncidenciaVehiculoEntity>(

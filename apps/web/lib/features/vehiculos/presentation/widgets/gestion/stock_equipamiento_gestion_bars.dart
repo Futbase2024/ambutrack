@@ -71,6 +71,8 @@ class StockEquipamientoGestionFilters extends StatelessWidget {
     required this.onSearchChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -79,6 +81,8 @@ class StockEquipamientoGestionFilters extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final EstadoStockGeneral? estado;
   final ValueChanged<EstadoStockGeneral?> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -98,6 +102,11 @@ class StockEquipamientoGestionFilters extends StatelessWidget {
             for (final EstadoStockGeneral e in EstadoStockGeneral.values) e: stockGeneralLabel(e),
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<VehiculoStockResumenEntity>(
+          filters: columnFilters,
+          columns: stockEquipamientoGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

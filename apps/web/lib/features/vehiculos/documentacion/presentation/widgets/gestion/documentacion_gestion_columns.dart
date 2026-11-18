@@ -111,6 +111,7 @@ final List<GestionColumn<DocumentacionVehiculoEntity>> documentacionGestionColum
     label: 'Vehículo',
     width: 110,
     sortValue: (DocumentacionVehiculoEntity d) => (d.vehiculoMatricula ?? '').toLowerCase(),
+    filterValue: (DocumentacionVehiculoEntity d) => d.vehiculoMatricula ?? '',
     cell: (DocumentacionVehiculoEntity d) =>
         FlotaCellText(GestionFormatters.texto(d.vehiculoMatricula), bold: true),
   ),
@@ -118,6 +119,7 @@ final List<GestionColumn<DocumentacionVehiculoEntity>> documentacionGestionColum
     label: 'Tipo',
     flex: 2,
     sortValue: (DocumentacionVehiculoEntity d) => docTipoLabel(d).toLowerCase(),
+    filterValue: docTipoLabel,
     cell: (DocumentacionVehiculoEntity d) => FlotaCellText(docTipoLabel(d)),
   ),
   GestionColumn<DocumentacionVehiculoEntity>(
@@ -130,6 +132,7 @@ final List<GestionColumn<DocumentacionVehiculoEntity>> documentacionGestionColum
     label: 'Compañía',
     flex: 2,
     sortValue: (DocumentacionVehiculoEntity d) => d.compania.toLowerCase(),
+    filterValue: (DocumentacionVehiculoEntity d) => d.compania,
     cell: (DocumentacionVehiculoEntity d) => FlotaCellText(GestionFormatters.texto(d.compania)),
   ),
   GestionColumn<DocumentacionVehiculoEntity>(
@@ -142,6 +145,7 @@ final List<GestionColumn<DocumentacionVehiculoEntity>> documentacionGestionColum
     label: 'Vencimiento',
     width: 110,
     sortValue: (DocumentacionVehiculoEntity d) => d.fechaVencimiento.millisecondsSinceEpoch,
+    filterValue: (DocumentacionVehiculoEntity d) => vehiculoItvSituacion(d.fechaVencimiento),
     cell: (DocumentacionVehiculoEntity d) => VehiculoFechaVencimiento(fecha: d.fechaVencimiento),
   ),
   GestionColumn<DocumentacionVehiculoEntity>(
@@ -162,6 +166,7 @@ final List<GestionColumn<DocumentacionVehiculoEntity>> documentacionGestionColum
     label: 'Estado',
     width: 140,
     sortValue: (DocumentacionVehiculoEntity d) => docEstadoLabel(d.estado),
+    filterValue: (DocumentacionVehiculoEntity d) => docEstadoLabel(d.estado),
     cell: (DocumentacionVehiculoEntity d) => DocEstadoDot(estado: d.estado),
   ),
 ];

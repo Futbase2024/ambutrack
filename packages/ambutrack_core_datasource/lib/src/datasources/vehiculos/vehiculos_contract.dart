@@ -18,4 +18,8 @@ abstract class VehiculoDataSource extends BaseDatasource<VehiculoEntity> {
   /// Devuelve lista de vehículos que coinciden con el estado
   Future<List<VehiculoEntity>> getByEstado(VehiculoEstado estado);
 
+  /// Marca o quita la silla eléctrica de [vehiculoIds] modificando su stock
+  /// (producto SILLA SUBE-ESCALERAS ELÉCTRICA). `tiene_silla_electrica` se
+  /// recalcula en BD por trigger.
+  Future<void> setSillaElectrica(List<String> vehiculoIds, {required bool tiene});
 }

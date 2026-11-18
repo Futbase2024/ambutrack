@@ -31,6 +31,9 @@ class AveriaGestionView extends StatefulWidget {
 class _AveriaGestionViewState extends State<AveriaGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0, ascending: false);
   int _page = 0;
   int _pageSize = 25;
@@ -50,7 +53,7 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
 
   IncidenciaVehiculoBloc get _bloc => context.read<IncidenciaVehiculoBloc>();
 
-  bool get _hasFilters => _query.isNotEmpty || (_data?.hasBlocFilters ?? false);
+  bool get _hasFilters => _query.isNotEmpty || !_colFilters.isEmpty || (_data?.hasBlocFilters ?? false);
 
   IncidenciaVehiculoEntity? get _selected {
     for (final IncidenciaVehiculoEntity i in _data?.incidencias ?? const <IncidenciaVehiculoEntity>[]) {
@@ -65,10 +68,16 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
     setState(() {
       _searchController.clear();
       _query = '';
+      _colFilters = const GestionColumnFilters();
       _page = 0;
     });
     _bloc.add(const IncidenciaVehiculoEvent.clearFilters());
   }
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => setState(() {
+        _colFilters = f;
+        _page = 0;
+      });
 
   /// Lanza un filtro del BLoC volviendo a la primera página
   void _filterBloc(IncidenciaVehiculoEvent event) {
@@ -176,10 +185,10 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
       listener: _onStateChanged,
       builder: (BuildContext context, IncidenciaVehiculoState state) {
         final AveriasSnapshot? data = _data;
-        final List<IncidenciaVehiculoEntity> visibles = _sort.apply(
-          buscarAverias(data?.incidencias ?? <IncidenciaVehiculoEntity>[], vehiculos, _query),
-          columns,
-        );
+        // Base: búsqueda aplicada (valores posibles de los filtros de columna)
+        final List<IncidenciaVehiculoEntity> base =
+            buscarAverias(data?.incidencias ?? <IncidenciaVehiculoEntity>[], vehiculos, _query);
+        final List<IncidenciaVehiculoEntity> visibles = _sort.apply(_colFilters.apply(base, columns), columns);
         final IncidenciaVehiculoEntity? selected = _selected;
         final int page = _page.clamp(0, visibles.isEmpty ? 0 : (visibles.length - 1) ~/ _pageSize);
         return GestionLayout(
@@ -203,6 +212,9 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
             onPrioridadChanged: (PrioridadIncidencia? v) => _filterBloc(IncidenciaVehiculoEvent.filterByPrioridad(v)),
             tipo: data?.filtroTipo,
             onTipoChanged: (TipoIncidencia? v) => _filterBloc(IncidenciaVehiculoEvent.filterByTipo(v)),
+            columns: columns,
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: FlotaGridArea(
@@ -214,6 +226,9 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
             child: GestionGrid<IncidenciaVehiculoEntity>(
               columns: columns,
               rows: flotaPageOf(visibles, page, _pageSize),
+              filters: _colFilters,
+              onFiltersChanged: _onColumnFiltersChanged,
+              filterSource: base,
               rowId: (IncidenciaVehiculoEntity i) => i.id,
               selectedId: _selectedId,
               onSelect: (IncidenciaVehiculoEntity i) => setState(() => _selectedId = i.id),

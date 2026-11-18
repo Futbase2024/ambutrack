@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/vehiculos/documentacion/presentation/widgets/gestion/documentacion_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -86,6 +87,8 @@ class DocumentacionGestionFilters extends StatelessWidget {
     required this.onEstadoChanged,
     required this.vencimiento,
     required this.onVencimientoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -101,6 +104,8 @@ class DocumentacionGestionFilters extends StatelessWidget {
   final ValueChanged<String?> onEstadoChanged;
   final DocVencimientoFiltro vencimiento;
   final ValueChanged<DocVencimientoFiltro> onVencimientoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -134,6 +139,11 @@ class DocumentacionGestionFilters extends StatelessWidget {
             DocVencimientoFiltro.vencidos: 'Vencidos',
           },
           onChanged: onVencimientoChanged,
+        ),
+        GestionColumnFilterChips<DocumentacionVehiculoEntity>(
+          filters: columnFilters,
+          columns: documentacionGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

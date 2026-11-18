@@ -146,8 +146,16 @@ class _VehiculoFormDialogState extends State<VehiculoFormDialog> {
         createdAt: widget.vehiculo?.createdAt ?? DateTime.now(),
 
         // CAMPOS OPCIONALES
+        // Campos que el formulario no edita: se conservan del original
+        numeroInterno: widget.vehiculo?.numeroInterno,
+        alias: widget.vehiculo?.alias,
+        clasificacion: widget.vehiculo?.clasificacion,
+        equipamiento: widget.vehiculo?.equipamiento,
         capacidadPasajeros: pasajeros,
         capacidadCamilla: camillas,
+        requiereCap: _data.requiereCap,
+        numeroCarros: _data.numeroCarros,
+        tieneSoporteSillaElectrica: _data.tieneSoporteSilla,
         kmActual: _data.kmActualValue,
         fechaAdquisicion: _data.fechaAdquisicion,
         ubicacionActual: _data.ubicacionValue,

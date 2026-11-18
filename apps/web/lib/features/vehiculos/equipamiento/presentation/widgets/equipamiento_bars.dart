@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/vehiculos/equipamiento/presentation/widgets/equipamiento_columns.dart';
 import 'package:ambutrack_web/features/vehiculos/equipamiento/presentation/widgets/equipamiento_estado.dart';
@@ -95,6 +96,8 @@ class EquipamientoFilters extends StatelessWidget {
     required this.onSeccionChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -108,6 +111,8 @@ class EquipamientoFilters extends StatelessWidget {
   final ValueChanged<String?> onSeccionChanged;
   final EstadoDotacion? estado;
   final ValueChanged<EstadoDotacion?> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -141,6 +146,11 @@ class EquipamientoFilters extends StatelessWidget {
             for (final EstadoDotacion e in EstadoDotacion.values) e: e.label,
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<StockVehiculoEntity>(
+          filters: columnFilters,
+          columns: equipamientoColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

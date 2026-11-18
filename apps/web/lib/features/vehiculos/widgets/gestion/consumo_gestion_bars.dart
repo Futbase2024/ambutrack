@@ -78,6 +78,9 @@ class ConsumoGestionFilters extends StatelessWidget {
     required this.onFechaInicioChanged,
     required this.fechaFin,
     required this.onFechaFinChanged,
+    required this.columns,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -91,6 +94,11 @@ class ConsumoGestionFilters extends StatelessWidget {
   final ValueChanged<DateTime?> onFechaInicioChanged;
   final DateTime? fechaFin;
   final ValueChanged<DateTime?> onFechaFinChanged;
+
+  /// Columnas de la rejilla (para las etiquetas de los filtros de columna)
+  final List<GestionColumn<ConsumoCombustibleEntity>> columns;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -117,6 +125,11 @@ class ConsumoGestionFilters extends StatelessWidget {
         ),
         FlotaDateFilter(label: 'Desde', value: fechaInicio, onChanged: onFechaInicioChanged),
         FlotaDateFilter(label: 'Hasta', value: fechaFin, onChanged: onFechaFinChanged),
+        GestionColumnFilterChips<ConsumoCombustibleEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
+        ),
         GestionClearFiltersButton(onPressed: onClear),
       ],
     );

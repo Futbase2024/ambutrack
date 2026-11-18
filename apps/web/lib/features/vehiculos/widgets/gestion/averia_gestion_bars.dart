@@ -76,6 +76,9 @@ class AveriaGestionFilters extends StatelessWidget {
     required this.onPrioridadChanged,
     required this.tipo,
     required this.onTipoChanged,
+    required this.columns,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -88,6 +91,11 @@ class AveriaGestionFilters extends StatelessWidget {
   final ValueChanged<PrioridadIncidencia?> onPrioridadChanged;
   final TipoIncidencia? tipo;
   final ValueChanged<TipoIncidencia?> onTipoChanged;
+
+  /// Columnas de la rejilla (para las etiquetas de los filtros de columna)
+  final List<GestionColumn<IncidenciaVehiculoEntity>> columns;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -126,6 +134,11 @@ class AveriaGestionFilters extends StatelessWidget {
             for (final TipoIncidencia t in TipoIncidencia.values) t: t.nombre,
           },
           onChanged: onTipoChanged,
+        ),
+        GestionColumnFilterChips<IncidenciaVehiculoEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

@@ -1,4 +1,5 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -11,17 +12,21 @@ class VehiculoGestionToolbar extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onRefresh,
-    required this.onPrint,
+    required this.onExport,
     required this.onStock,
+    required this.editing,
+    required this.onToggleEditing,
     super.key,
   });
 
   final bool hasSelection;
+  final bool editing;
+  final VoidCallback onToggleEditing;
   final VoidCallback onNew;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onRefresh;
-  final VoidCallback? onPrint;
+  final VoidCallback? onExport;
   final VoidCallback onStock;
 
   @override
@@ -46,12 +51,24 @@ class VehiculoGestionToolbar extends StatelessWidget {
           ),
         ],
         <GestionToolbarAction>[
+          GestionToolbarAction(
+            icon: editing ? Icons.edit_off_outlined : Icons.edit_note,
+            label: editing ? 'Salir de edición' : 'Modo edición',
+            tooltip: editing
+                ? 'Volver a la rejilla de solo lectura'
+                : 'Cambiar CAP, silla, soporte, carros, estado y km en la propia rejilla '
+                    'y marcar varios vehículos para cambiarlos a la vez',
+            active: editing,
+            onPressed: onToggleEditing,
+          ),
+        ],
+        <GestionToolbarAction>[
           GestionToolbarAction(icon: Icons.refresh, label: 'Actualizar', onPressed: onRefresh),
           GestionToolbarAction(
-            icon: Icons.print_outlined,
-            label: 'Imprimir',
-            tooltip: 'Imprimir o guardar como PDF el listado filtrado',
-            onPressed: onPrint,
+            icon: Icons.file_download_outlined,
+            label: 'Exportar',
+            tooltip: 'Imprimir o exportar a PDF / Excel el listado, la ficha o el informe completo',
+            onPressed: onExport,
           ),
         ],
         <GestionToolbarAction>[
@@ -67,25 +84,22 @@ class VehiculoGestionToolbar extends StatelessWidget {
   }
 }
 
-/// Barra de filtros de la pantalla de vehículos
+/// Barra de filtros de la pantalla de vehículos: búsqueda + filtros de columna activos.
+/// Los filtros por valor (estado, tipo, CAP...) se eligen en el embudo de cada cabecera.
 class VehiculoGestionFilters extends StatelessWidget {
   const VehiculoGestionFilters({
     required this.searchController,
     required this.onSearchChanged,
-    required this.estado,
-    required this.onEstadoChanged,
-    required this.tipo,
-    required this.onTipoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
 
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
-  final VehiculoEstado? estado;
-  final ValueChanged<VehiculoEstado?> onEstadoChanged;
-  final String? tipo;
-  final ValueChanged<String?> onTipoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -97,21 +111,17 @@ class VehiculoGestionFilters extends StatelessWidget {
           onChanged: onSearchChanged,
           hint: 'Buscar matrícula, marca, modelo, nº interno...',
         ),
-        GestionFilterDropdown<VehiculoEstado?>(
-          label: 'Estado',
-          value: estado,
-          options: <VehiculoEstado?, String>{
-            null: 'Todos',
-            for (final VehiculoEstado e in VehiculoEstado.values) e: vehiculoEstadoLabel(e),
-          },
-          onChanged: onEstadoChanged,
-        ),
-        GestionFilterDropdown<String?>(
-          label: 'Tipo',
-          value: tipo,
-          options: vehiculoTiposFiltro,
-          onChanged: onTipoChanged,
-        ),
+        if (columnFilters.isEmpty)
+          const Text(
+            'Filtra por varios valores con el embudo de cada columna',
+            style: TextStyle(fontSize: 12, color: AppColors.gray500),
+          )
+        else
+          GestionColumnFilterChips<VehiculoEntity>(
+            filters: columnFilters,
+            columns: vehiculoGestionColumns,
+            onChanged: onColumnFiltersChanged,
+          ),
         GestionClearFiltersButton(onPressed: onClear),
       ],
     );

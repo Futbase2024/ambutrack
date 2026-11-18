@@ -104,6 +104,29 @@ class VehiculoFormBody extends StatelessWidget {
             GestionFormRow(label: 'Asientos pac.', child: GestionIntField(controller: data.sentados)),
           ],
         ),
+        GestionFormRow(
+          label: 'Requiere CAP',
+          child: GestionSwitchField(
+            value: data.requiereCap,
+            onChanged: (bool v) => _set(() => data.requiereCap = v),
+          ),
+        ),
+        GestionFormRow(
+          label: 'Soporte silla eléc.',
+          child: GestionSwitchField(
+            value: data.tieneSoporteSilla,
+            onChanged: (bool v) => _set(() => data.tieneSoporteSilla = v),
+          ),
+        ),
+        GestionFormRow(
+          label: 'Carros',
+          child: GestionDropdownField<int>(
+            value: data.numeroCarros,
+            options: VehiculoFormOptions.carros,
+            hint: 'Sin indicar',
+            onChanged: (int? v) => _set(() => data.numeroCarros = v),
+          ),
+        ),
         const GestionFormSection(title: 'Kilometraje y mantenimiento'),
         GestionFormColumns(
           children: <Widget>[

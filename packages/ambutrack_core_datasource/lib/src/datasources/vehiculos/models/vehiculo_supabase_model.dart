@@ -23,6 +23,10 @@ class VehiculoSupabaseModel {
   final String? clasificacion;
   final int? capacidadPasajeros;
   final int? capacidadCamilla;
+  final bool requiereCap;
+  final bool tieneSillaElectrica;
+  final int? numeroCarros;
+  final bool tieneSoporteSillaElectrica;
   final Map<String, dynamic>? equipamiento;
   final DateTime? fechaAdquisicion;
   final double? kmActual;
@@ -58,6 +62,10 @@ class VehiculoSupabaseModel {
     this.clasificacion,
     this.capacidadPasajeros,
     this.capacidadCamilla,
+    this.requiereCap = false,
+    this.tieneSillaElectrica = false,
+    this.numeroCarros,
+    this.tieneSoporteSillaElectrica = false,
     this.equipamiento,
     this.fechaAdquisicion,
     this.kmActual,
@@ -97,6 +105,10 @@ class VehiculoSupabaseModel {
       clasificacion: json['clasificacion'] as String?,
       capacidadPasajeros: json['capacidad_pasajeros'] as int?,
       capacidadCamilla: json['capacidad_camilla'] as int?,
+      requiereCap: json['requiere_cap'] as bool? ?? false,
+      tieneSillaElectrica: json['tiene_silla_electrica'] as bool? ?? false,
+      numeroCarros: json['numero_carros'] as int?,
+      tieneSoporteSillaElectrica: json['tiene_soporte_silla_electrica'] as bool? ?? false,
       equipamiento: json['equipamiento'] as Map<String, dynamic>?,
       fechaAdquisicion: _parseDate(json['fecha_adquisicion']),
       kmActual: json['km_actual'] != null ? (json['km_actual'] as num).toDouble() : null,
@@ -133,6 +145,10 @@ class VehiculoSupabaseModel {
       'clasificacion': clasificacion,
       'capacidad_pasajeros': capacidadPasajeros,
       'capacidad_camilla': capacidadCamilla,
+      'requiere_cap': requiereCap,
+      'numero_carros': numeroCarros,
+      'tiene_soporte_silla_electrica': tieneSoporteSillaElectrica,
+      // tiene_silla_electrica NO se escribe: lo calcula un trigger desde stock_vehiculo
       'equipamiento': equipamiento,
       'fecha_adquisicion': fechaAdquisicion?.toIso8601String(),
       'km_actual': kmActual ?? 0,
@@ -177,6 +193,10 @@ class VehiculoSupabaseModel {
       clasificacion: clasificacion,
       capacidadPasajeros: capacidadPasajeros,
       capacidadCamilla: capacidadCamilla,
+      requiereCap: requiereCap,
+      tieneSillaElectrica: tieneSillaElectrica,
+      numeroCarros: numeroCarros,
+      tieneSoporteSillaElectrica: tieneSoporteSillaElectrica,
       equipamiento: equipamiento,
       fechaAdquisicion: fechaAdquisicion,
       kmActual: kmActual,
@@ -214,6 +234,10 @@ class VehiculoSupabaseModel {
       clasificacion: entity.clasificacion,
       capacidadPasajeros: entity.capacidadPasajeros,
       capacidadCamilla: entity.capacidadCamilla,
+      requiereCap: entity.requiereCap,
+      tieneSillaElectrica: entity.tieneSillaElectrica,
+      numeroCarros: entity.numeroCarros,
+      tieneSoporteSillaElectrica: entity.tieneSoporteSillaElectrica,
       equipamiento: entity.equipamiento,
       fechaAdquisicion: entity.fechaAdquisicion,
       kmActual: entity.kmActual,

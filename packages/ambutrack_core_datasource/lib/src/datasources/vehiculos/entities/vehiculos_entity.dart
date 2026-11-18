@@ -43,6 +43,10 @@ class VehiculoEntity extends BaseEntity {
     this.clasificacion,
     this.capacidadPasajeros,
     this.capacidadCamilla,
+    this.requiereCap = false,
+    this.tieneSillaElectrica = false,
+    this.numeroCarros,
+    this.tieneSoporteSillaElectrica = false,
     this.equipamiento,
     this.fechaAdquisicion,
     this.kmActual,
@@ -114,6 +118,19 @@ class VehiculoEntity extends BaseEntity {
   /// Capacidad de camillas
   final int? capacidadCamilla;
 
+  /// Indica si para conducir el vehículo es necesario el CAP
+  final bool requiereCap;
+
+  /// Indica si el vehículo lleva silla eléctrica (solo lectura: se calcula en BD
+  /// a partir del equipamiento del vehículo, producto SILLA SUBE-ESCALERAS ELÉCTRICA)
+  final bool tieneSillaElectrica;
+
+  /// Número de carros del vehículo (1 a 4; null = sin indicar)
+  final int? numeroCarros;
+
+  /// Indica si el vehículo tiene soporte para silla eléctrica (campo manual)
+  final bool tieneSoporteSillaElectrica;
+
   /// Equipamiento médico del vehículo (JSON)
   final Map<String, dynamic>? equipamiento;
 
@@ -166,6 +183,10 @@ class VehiculoEntity extends BaseEntity {
     String? clasificacion,
     int? capacidadPasajeros,
     int? capacidadCamilla,
+    bool? requiereCap,
+    bool? tieneSillaElectrica,
+    int? numeroCarros,
+    bool? tieneSoporteSillaElectrica,
     Map<String, dynamic>? equipamiento,
     DateTime? fechaAdquisicion,
     double? kmActual,
@@ -199,6 +220,10 @@ class VehiculoEntity extends BaseEntity {
       clasificacion: clasificacion ?? this.clasificacion,
       capacidadPasajeros: capacidadPasajeros ?? this.capacidadPasajeros,
       capacidadCamilla: capacidadCamilla ?? this.capacidadCamilla,
+      requiereCap: requiereCap ?? this.requiereCap,
+      tieneSillaElectrica: tieneSillaElectrica ?? this.tieneSillaElectrica,
+      numeroCarros: numeroCarros ?? this.numeroCarros,
+      tieneSoporteSillaElectrica: tieneSoporteSillaElectrica ?? this.tieneSoporteSillaElectrica,
       equipamiento: equipamiento ?? this.equipamiento,
       fechaAdquisicion: fechaAdquisicion ?? this.fechaAdquisicion,
       kmActual: kmActual ?? this.kmActual,
@@ -235,6 +260,10 @@ class VehiculoEntity extends BaseEntity {
         clasificacion,
         capacidadPasajeros,
         capacidadCamilla,
+        requiereCap,
+        tieneSillaElectrica,
+        numeroCarros,
+        tieneSoporteSillaElectrica,
         equipamiento,
         fechaAdquisicion,
         kmActual,
@@ -273,6 +302,9 @@ class VehiculoEntity extends BaseEntity {
       'clasificacion': clasificacion,
       'capacidad_pasajeros': capacidadPasajeros,
       'capacidad_camilla': capacidadCamilla,
+      'requiere_cap': requiereCap,
+      'numero_carros': numeroCarros,
+      'tiene_soporte_silla_electrica': tieneSoporteSillaElectrica,
       'equipamiento': equipamiento,
       'fecha_adquisicion': fechaAdquisicion?.toIso8601String(),
       'km_actual': kmActual,

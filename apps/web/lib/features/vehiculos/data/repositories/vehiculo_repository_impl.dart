@@ -57,6 +57,11 @@ class VehiculoRepositoryImpl implements VehiculoRepository {
   }
 
   @override
+  Future<void> setSillaElectrica(List<String> vehiculoIds, {required bool tiene}) async {
+    await _dataSource.setSillaElectrica(vehiculoIds, tiene: tiene);
+  }
+
+  @override
   Stream<List<VehiculoEntity>> watchAll() {
     return _dataSource.watchAll();
   }

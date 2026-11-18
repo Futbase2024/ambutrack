@@ -32,6 +32,9 @@ class _EquipamientoVehiculoViewState extends State<EquipamientoVehiculoView>
   EquipamientoVista _vista = EquipamientoVista.todos;
   String? _seccion;
   EstadoDotacion? _estado;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -44,7 +47,11 @@ class _EquipamientoVehiculoViewState extends State<EquipamientoVehiculoView>
   }
 
   bool get _hasFilters =>
-      _query.isNotEmpty || _vista != EquipamientoVista.todos || _seccion != null || _estado != null;
+      _query.isNotEmpty ||
+      _vista != EquipamientoVista.todos ||
+      _seccion != null ||
+      _estado != null ||
+      !_colFilters.isEmpty;
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -57,7 +64,10 @@ class _EquipamientoVehiculoViewState extends State<EquipamientoVehiculoView>
         _vista = EquipamientoVista.todos;
         _seccion = null;
         _estado = null;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() =>
       context.read<EquipamientoVehiculoBloc>().add(EquipamientoVehiculoLoadRequested(widget.vehiculoId));
@@ -90,10 +100,11 @@ class _EquipamientoVehiculoViewState extends State<EquipamientoVehiculoView>
       listenWhen: (EquipamientoVehiculoState a, EquipamientoVehiculoState b) => a.operacion != b.operacion,
       listener: onResultado,
       builder: (BuildContext context, EquipamientoVehiculoState state) {
-        final List<StockVehiculoEntity> visibles = _sort.apply(
-          filtrarEquipamiento(state.lineas, query: _query, seccion: _seccion, estado: _estado, vista: _vista),
-          equipamientoColumns,
-        );
+        // Base: búsqueda y desplegables aplicados (valores posibles de los filtros de columna)
+        final List<StockVehiculoEntity> base =
+            filtrarEquipamiento(state.lineas, query: _query, seccion: _seccion, estado: _estado, vista: _vista);
+        final List<StockVehiculoEntity> visibles =
+            _sort.apply(_colFilters.apply(base, equipamientoColumns), equipamientoColumns);
         final StockVehiculoEntity? selected = _selectedIn(state.lineas);
         final EquipamientoAcciones acciones = accionesPara(selected);
         final bool ocupado = state.status == EquipamientoStatus.loading || state.saving;
@@ -119,6 +130,8 @@ class _EquipamientoVehiculoViewState extends State<EquipamientoVehiculoView>
             onSeccionChanged: (String? v) => _updateFilters(() => _seccion = v),
             estado: _estado,
             onEstadoChanged: (EstadoDotacion? v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: FlotaGridArea(
@@ -130,6 +143,9 @@ class _EquipamientoVehiculoViewState extends State<EquipamientoVehiculoView>
             child: GestionGrid<StockVehiculoEntity>(
               columns: equipamientoColumns,
               rows: flotaPageOf(visibles, _page, _pageSize),
+              filters: _colFilters,
+              onFiltersChanged: _onColumnFiltersChanged,
+              filterSource: base,
               rowId: (StockVehiculoEntity l) => l.id,
               selectedId: _selectedId,
               onSelect: (StockVehiculoEntity l) => setState(() => _selectedId = l.id),

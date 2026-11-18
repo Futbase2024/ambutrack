@@ -32,4 +32,7 @@ abstract class VehiculoRepository {
 
   /// Buscar vehículos por matrícula
   Future<List<VehiculoEntity>> searchByMatricula(String matricula);
+
+  /// Marcar o quitar la silla eléctrica (modifica el stock del vehículo)
+  Future<void> setSillaElectrica(List<String> vehiculoIds, {required bool tiene});
 }

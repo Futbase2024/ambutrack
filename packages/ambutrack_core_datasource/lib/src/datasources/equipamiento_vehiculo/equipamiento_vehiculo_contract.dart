@@ -56,4 +56,9 @@ abstract class EquipamientoVehiculoDataSource {
 
   /// URL firmada temporal para ver/descargar el adjunto (bucket privado)
   Future<String> getUrlAdjunto(String documentoPath, {int expiresInSeconds = 3600});
+
+  /// Emite un aviso (agrupado) cada vez que cambia la dotación del vehículo
+  /// en Supabase (Realtime sobre `stock_vehiculo`). Al cancelar la
+  /// suscripción se cierra el canal.
+  Stream<void> watchCambios(String vehiculoId);
 }
