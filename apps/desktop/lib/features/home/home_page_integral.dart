@@ -9,7 +9,7 @@ class HomePageIntegral extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AmbuTrack Desktop'),
+        title: const Text('EmerTrack'),
         centerTitle: true,
       ),
       body: Center(
@@ -23,7 +23,7 @@ class HomePageIntegral extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              'Bienvenido a AmbuTrack Desktop',
+              'Bienvenido a EmerTrack',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 16),

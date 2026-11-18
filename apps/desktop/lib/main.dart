@@ -42,7 +42,7 @@ Future<void> _initializeDesktop() async {
     backgroundColor: Colors.transparent,
     skipTaskbar: false,
     titleBarStyle: TitleBarStyle.normal,
-    title: 'AmbuTrack Desktop',
+    title: 'EmerTrack',
   );
 
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
