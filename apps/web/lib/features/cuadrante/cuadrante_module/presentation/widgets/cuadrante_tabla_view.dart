@@ -5,6 +5,7 @@ import 'package:ambutrack_web/features/cuadrante/cuadrante_module/domain/entitie
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/bloc/cuadrante_bloc.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/bloc/cuadrante_event.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/bloc/cuadrante_state.dart';
+import 'package:ambutrack_web/features/cuadrante/cuadrante_module/presentation/widgets/turno_app_pendiente_badge.dart';
 import 'package:ambutrack_web/features/turnos/presentation/bloc/turnos_bloc.dart';
 import 'package:ambutrack_web/features/turnos/presentation/bloc/turnos_event.dart';
 import 'package:ambutrack_web/features/turnos/presentation/bloc/turnos_state.dart';
@@ -1199,6 +1200,8 @@ class _TurnoChipWithHoverState extends State<_TurnoChipWithHover> {
                     ),
                 ],
               ),
+              if (widget.turno.pendienteValidacion && !isDragging)
+                TurnoAppPendienteBadge(turno: widget.turno),
             ],
           ),
 

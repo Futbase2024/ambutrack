@@ -8,6 +8,8 @@ import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/registro_horario/data/repositories/registro_horario_repository_impl.dart';
 import '../../features/registro_horario/domain/repositories/registro_horario_repository.dart';
+import '../../features/registro_horario/data/repositories/turno_actual_repository_impl.dart';
+import '../../features/registro_horario/domain/repositories/turno_actual_repository.dart';
 import '../../features/registro_horario/presentation/bloc/registro_horario_bloc.dart';
 import '../../features/servicios/data/repositories/traslados_repository_impl.dart';
 import '../../features/servicios/domain/repositories/traslados_repository.dart';
@@ -87,10 +89,15 @@ Future<void> configureDependencies() async {
     () => RegistroHorarioRepositoryImpl(),
   );
 
+  getIt.registerLazySingleton<TurnoActualRepository>(
+    () => TurnoActualRepositoryImpl(),
+  );
+
   // BLoC (Singleton para mantener el estado del turno globalmente)
   getIt.registerLazySingleton<RegistroHorarioBloc>(
     () => RegistroHorarioBloc(
       registroHorarioRepository: getIt<RegistroHorarioRepository>(),
+      turnoActualRepository: getIt<TurnoActualRepository>(),
       authBloc: getIt<AuthBloc>(),
     ),
   );

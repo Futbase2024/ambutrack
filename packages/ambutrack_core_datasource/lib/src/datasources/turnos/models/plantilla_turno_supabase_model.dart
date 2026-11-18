@@ -5,7 +5,7 @@ import '../entities/turno_entity.dart';
 
 part 'plantilla_turno_supabase_model.g.dart';
 
-/// Modelo DTO para PlantillaTurno en Supabase (mapeo tabla `plantillas_turno`)
+/// Modelo DTO para PlantillaTurno en Supabase (mapeo tabla `plantillas_turnos`)
 @JsonSerializable()
 class PlantillaTurnoSupabaseModel {
   const PlantillaTurnoSupabaseModel({
@@ -33,25 +33,26 @@ class PlantillaTurnoSupabaseModel {
   final String? descripcion;
 
   /// Tipo de turno como string (enum.name)
-  @JsonKey(name: 'tipoTurno')
+  @JsonKey(name: 'tipo_turno')
   final String tipoTurno;
 
   /// Hora de inicio en formato HH:mm
-  @JsonKey(name: 'horaInicio')
+  @JsonKey(name: 'hora_inicio')
   final String horaInicio;
 
   /// Hora de fin en formato HH:mm
-  @JsonKey(name: 'horaFin')
+  @JsonKey(name: 'hora_fin')
   final String horaFin;
 
   /// Color hexadecimal personalizado (#RRGGBB)
   final String? color;
 
-  /// Duración en días
-  @JsonKey(name: 'duracionDias')
+  /// Duración en días (no existe columna en BD, solo en dominio)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   final int duracionDias;
 
-  /// Observaciones opcionales
+  /// Observaciones (no existe columna en BD, solo en dominio)
+  @JsonKey(includeFromJson: false, includeToJson: false)
   final String? observaciones;
 
   /// Estado activo
@@ -95,8 +96,8 @@ class PlantillaTurnoSupabaseModel {
       nombre: nombre,
       descripcion: descripcion,
       tipoTurno: _parseTipoTurno(tipoTurno),
-      horaInicio: horaInicio,
-      horaFin: horaFin,
+      horaInicio: _normalizarHora(horaInicio),
+      horaFin: _normalizarHora(horaFin),
       color: color,
       duracionDias: duracionDias,
       observaciones: observaciones,
@@ -114,10 +115,16 @@ class PlantillaTurnoSupabaseModel {
     return json;
   }
 
-  /// Parsea string a enum TipoTurno
+  /// Postgres devuelve TIME como HH:mm:ss → normalizar a HH:mm
+  static String _normalizarHora(String value) {
+    return value.length >= 5 ? value.substring(0, 5) : value;
+  }
+
+  /// Parsea string a enum TipoTurno (acepta 'mañana' de BD)
   static TipoTurno _parseTipoTurno(String value) {
+    final String normalizado = value.toLowerCase().replaceAll('ñ', 'n');
     return TipoTurno.values.firstWhere(
-      (e) => e.name == value,
+      (e) => e.name == normalizado,
       orElse: () => TipoTurno.personalizado,
     );
   }

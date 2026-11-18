@@ -467,4 +467,52 @@ class SupabaseTurnoDataSource implements TurnoDataSource {
       rethrow;
     }
   }
+
+  @override
+  Future<TurnoEntity?> getTurnoVigente(
+    String idPersonal, {
+    DateTime? ahora,
+    Duration margen = const Duration(hours: 1),
+  }) async {
+    final DateTime momento = ahora ?? DateTime.now();
+    final DateTime hoy = DateTime(momento.year, momento.month, momento.day);
+
+    // Turnos que empiezan ayer (pueden cruzar medianoche), hoy o mañana
+    final dynamic response = await _supabase
+        .from(tableName)
+        .select()
+        .eq('idPersonal', idPersonal)
+        .eq('activo', true)
+        .gte('fechaInicio', hoy.subtract(const Duration(days: 1)).toUtc().toIso8601String())
+        .lt('fechaInicio', hoy.add(const Duration(days: 2)).toUtc().toIso8601String());
+
+    final List<TurnoEntity> candidatos = (response as List)
+        .cast<Map<String, dynamic>>()
+        .map(TurnoSupabaseModel.fromJson)
+        .map((TurnoSupabaseModel m) => m.toEntity())
+        .where((TurnoEntity t) =>
+            !momento.isBefore(t.inicioReal.subtract(margen)) &&
+            !momento.isAfter(t.finReal.add(margen)))
+        .toList()
+      ..sort((TurnoEntity a, TurnoEntity b) => a.inicioReal
+          .difference(momento)
+          .abs()
+          .compareTo(b.inicioReal.difference(momento).abs()));
+
+    debugPrint('🕐 TurnoDataSource: turno vigente para $idPersonal → '
+        '${candidatos.isEmpty ? 'ninguno' : candidatos.first.id}');
+    return candidatos.isEmpty ? null : candidatos.first;
+  }
+
+  @override
+  Future<TurnoEntity> validar(String id) async {
+    final dynamic response = await _supabase
+        .from(tableName)
+        .update(<String, dynamic>{'validado': true})
+        .eq('id', id)
+        .select()
+        .single();
+
+    return TurnoSupabaseModel.fromJson(response as Map<String, dynamic>).toEntity();
+  }
 }

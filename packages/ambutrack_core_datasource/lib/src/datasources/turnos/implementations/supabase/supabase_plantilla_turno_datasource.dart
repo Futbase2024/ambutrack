@@ -9,7 +9,7 @@ class SupabasePlantillaTurnoDataSource implements PlantillaTurnoDataSource {
   SupabasePlantillaTurnoDataSource(this._supabase);
 
   final SupabaseClient _supabase;
-  static const String tableName = 'plantillas_turno';
+  static const String tableName = 'plantillas_turnos';
 
   @override
   Future<List<PlantillaTurnoEntity>> getAll({int? limit, int? offset}) async {

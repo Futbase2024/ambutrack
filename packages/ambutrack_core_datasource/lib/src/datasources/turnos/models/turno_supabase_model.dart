@@ -23,6 +23,8 @@ class TurnoSupabaseModel {
     this.idDotacion,
     this.observaciones,
     this.activo = true,
+    this.origen = 'cuadrante',
+    this.validado = true,
     this.createdAt,
     this.updatedAt,
   });
@@ -84,6 +86,12 @@ class TurnoSupabaseModel {
   /// Estado activo (soft delete)
   final bool activo;
 
+  /// Origen del turno ('cuadrante' | 'app')
+  final String origen;
+
+  /// false = creado desde la app pendiente de validar
+  final bool validado;
+
   /// Fecha de creación en BD
   @JsonKey(name: 'created_at')
   final DateTime? createdAt;
@@ -117,6 +125,8 @@ class TurnoSupabaseModel {
       idDotacion: entity.idDotacion,
       observaciones: entity.observaciones,
       activo: entity.activo,
+      origen: entity.origen.name,
+      validado: entity.validado,
     );
   }
 
@@ -138,6 +148,8 @@ class TurnoSupabaseModel {
       idDotacion: idDotacion,
       observaciones: observaciones,
       activo: activo,
+      origen: OrigenTurno.fromValue(origen),
+      validado: validado,
     );
   }
 

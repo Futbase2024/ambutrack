@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:equatable/equatable.dart';
 
 /// Eventos del RegistroHorarioBloc
@@ -13,22 +14,43 @@ class CargarRegistrosHorario extends RegistroHorarioEvent {
   const CargarRegistrosHorario();
 }
 
-/// Evento para fichar entrada
+/// Datos elegidos en la hoja "Iniciar turno"
+///
+/// - [turno] != null → turno del cuadrante (se actualiza el vehículo si cambia)
+/// - [turno] == null → se crea turno desde la app con [plantilla]
+class InicioTurnoSeleccion extends Equatable {
+  const InicioTurnoSeleccion({
+    required this.vehiculo,
+    this.turno,
+    this.plantilla,
+  });
+
+  final TurnoEntity? turno;
+  final VehiculoEntity vehiculo;
+  final PlantillaTurnoEntity? plantilla;
+
+  @override
+  List<Object?> get props => [turno, vehiculo, plantilla];
+}
+
+/// Evento para fichar entrada (inicio de turno)
 class FicharEntrada extends RegistroHorarioEvent {
   const FicharEntrada({
     required this.latitud,
     required this.longitud,
     required this.precisionGps,
+    required this.seleccion,
     this.observaciones,
   });
 
   final double latitud;
   final double longitud;
   final double precisionGps;
+  final InicioTurnoSeleccion seleccion;
   final String? observaciones;
 
   @override
-  List<Object?> get props => [latitud, longitud, precisionGps, observaciones];
+  List<Object?> get props => [latitud, longitud, precisionGps, seleccion, observaciones];
 }
 
 /// Evento para fichar salida

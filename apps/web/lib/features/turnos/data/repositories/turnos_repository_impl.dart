@@ -119,4 +119,10 @@ class TurnosRepositoryImpl implements TurnosRepository {
       rethrow;
     }
   }
+
+  @override
+  Future<TurnoEntity> validar(String id) async {
+    debugPrint('📦 TurnosRepository: Validando turno $id...');
+    return _dataSource.validar(id);
+  }
 }

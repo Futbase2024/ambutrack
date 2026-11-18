@@ -111,4 +111,25 @@ abstract class TurnoDataSource {
     required DateTime fechaInicioDestino,
     List<String>? idPersonal,
   });
+
+  /// Obtiene el turno vigente de un personal en el instante [ahora].
+  ///
+  /// Calcula el rango real de cada turno con día + horaInicio/horaFin,
+  /// por lo que soporta turnos que cruzan medianoche (noche, 12h, 24h).
+  /// Se acepta un [margen] antes del inicio y después del fin para quien
+  /// ficha antes o sale tarde.
+  ///
+  /// Returns: el turno que contiene [ahora] (el de inicio más cercano si
+  /// hay varios) o `null` si no tiene turno planificado.
+  Future<TurnoEntity?> getTurnoVigente(
+    String idPersonal, {
+    DateTime? ahora,
+    Duration margen = const Duration(hours: 1),
+  });
+
+  /// Marca como validado un turno creado desde la app
+  ///
+  /// Solo coordinación (admin, jefe_personal, jefe_trafico, coordinador)
+  /// tiene permiso a nivel de BD.
+  Future<TurnoEntity> validar(String id);
 }

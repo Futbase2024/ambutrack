@@ -6,12 +6,15 @@ import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/dialogs/professional_result_dialog.dart';
 import '../../../../core/widgets/menu/app_menu.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
 import '../bloc/registro_horario_bloc.dart';
 import '../bloc/registro_horario_event.dart';
 import '../bloc/registro_horario_state.dart';
 import '../widgets/boton_registro_circular_widget.dart';
 import '../widgets/cambiar_vehiculo_dialog.dart';
 import '../widgets/historial_fichajes_widget.dart';
+import '../widgets/inicio_turno/iniciar_turno_sheet.dart';
 import '../widgets/info_turno_grupo.dart';
 import '../widgets/turno_estado_card.dart';
 import '../widgets/ubicacion_fichaje_dialog.dart';
@@ -197,23 +200,37 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
   }
 
   /// Maneja el evento de fichar (entrada o salida)
-  void _onFichar(
+  ///
+  /// La entrada abre la hoja "Iniciar turno" para confirmar o elegir
+  /// turno y vehículo antes de fichar.
+  Future<void> _onFichar(
     BuildContext context,
     EstadoFichaje estadoActual,
     double lat,
     double lon,
     double precision,
     String? observaciones,
-  ) {
+  ) async {
     if (estadoActual == EstadoFichaje.fuera) {
-      context.read<RegistroHorarioBloc>().add(
-            FicharEntrada(
-              latitud: lat,
-              longitud: lon,
-              precisionGps: precision,
-              observaciones: observaciones,
-            ),
-          );
+      final AuthState authState = context.read<AuthBloc>().state;
+      final String? idPersonal = authState is AuthAuthenticated ? authState.personal?.id : null;
+      if (idPersonal == null) {
+        return;
+      }
+      final RegistroHorarioBloc bloc = context.read<RegistroHorarioBloc>();
+      final InicioTurnoSeleccion? seleccion = await showIniciarTurnoSheet(context, idPersonal: idPersonal);
+      if (seleccion == null) {
+        return;
+      }
+      bloc.add(
+        FicharEntrada(
+          latitud: lat,
+          longitud: lon,
+          precisionGps: precision,
+          seleccion: seleccion,
+          observaciones: observaciones,
+        ),
+      );
     } else {
       context.read<RegistroHorarioBloc>().add(
             FicharSalida(

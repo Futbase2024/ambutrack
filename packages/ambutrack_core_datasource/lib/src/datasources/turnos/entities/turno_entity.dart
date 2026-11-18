@@ -34,6 +34,20 @@ enum TipoTurno {
   final String colorHex;
 }
 
+/// Origen del turno: planificado en el cuadrante o creado desde la app móvil
+enum OrigenTurno {
+  /// Planificado por coordinación en el cuadrante web
+  cuadrante,
+
+  /// Creado por el propio trabajador al iniciar turno en la app
+  app;
+
+  /// Parsea el valor de BD (por defecto cuadrante)
+  static OrigenTurno fromValue(String? value) {
+    return value == 'app' ? OrigenTurno.app : OrigenTurno.cuadrante;
+  }
+}
+
 /// Entidad que representa un turno de trabajo del personal
 class TurnoEntity extends Equatable {
   const TurnoEntity({
@@ -52,6 +66,8 @@ class TurnoEntity extends Equatable {
     this.idDotacion,
     this.observaciones,
     this.activo = true,
+    this.origen = OrigenTurno.cuadrante,
+    this.validado = true,
   });
 
   /// ID único del turno
@@ -99,6 +115,37 @@ class TurnoEntity extends Equatable {
   /// Si el turno está activo (soft delete)
   final bool activo;
 
+  /// Origen del turno (cuadrante o app)
+  final OrigenTurno origen;
+
+  /// false = creado desde la app y pendiente de validar por coordinación
+  final bool validado;
+
+  /// Turno creado desde la app que coordinación aún no ha validado
+  bool get pendienteValidacion => origen == OrigenTurno.app && !validado;
+
+  /// Inicio real del turno: día de [fechaInicio] (hora local) + [horaInicio]
+  DateTime get inicioReal => _combinar(fechaInicio, horaInicio);
+
+  /// Fin real del turno. Si [horaFin] <= [horaInicio] el turno cruza
+  /// medianoche (noche, 12h nocturno, 24h) y termina al día siguiente.
+  DateTime get finReal {
+    final DateTime inicio = inicioReal;
+    DateTime fin = _combinar(fechaInicio, horaFin);
+    if (!fin.isAfter(inicio)) {
+      fin = fin.add(const Duration(days: 1));
+    }
+    return fin;
+  }
+
+  static DateTime _combinar(DateTime fecha, String hora) {
+    final DateTime local = fecha.toLocal();
+    final List<String> partes = hora.split(':');
+    final int h = partes.isNotEmpty ? int.tryParse(partes[0]) ?? 0 : 0;
+    final int m = partes.length > 1 ? int.tryParse(partes[1]) ?? 0 : 0;
+    return DateTime(local.year, local.month, local.day, h, m);
+  }
+
   @override
   List<Object?> get props => [
         id,
@@ -116,6 +163,8 @@ class TurnoEntity extends Equatable {
         idDotacion,
         observaciones,
         activo,
+        origen,
+        validado,
       ];
 
   /// Copia la entidad con modificaciones
@@ -135,6 +184,8 @@ class TurnoEntity extends Equatable {
     String? idDotacion,
     String? observaciones,
     bool? activo,
+    OrigenTurno? origen,
+    bool? validado,
   }) {
     return TurnoEntity(
       id: id ?? this.id,
@@ -152,6 +203,8 @@ class TurnoEntity extends Equatable {
       idDotacion: idDotacion ?? this.idDotacion,
       observaciones: observaciones ?? this.observaciones,
       activo: activo ?? this.activo,
+      origen: origen ?? this.origen,
+      validado: validado ?? this.validado,
     );
   }
 
@@ -173,6 +226,8 @@ class TurnoEntity extends Equatable {
       'idDotacion': idDotacion,
       'observaciones': observaciones,
       'activo': activo,
+      'origen': origen.name,
+      'validado': validado,
     };
   }
 
@@ -194,6 +249,8 @@ class TurnoEntity extends Equatable {
       idDotacion: json['idDotacion'] as String?,
       observaciones: json['observaciones'] as String?,
       activo: json['activo'] as bool? ?? true,
+      origen: OrigenTurno.fromValue(json['origen'] as String?),
+      validado: json['validado'] as bool? ?? true,
     );
   }
 

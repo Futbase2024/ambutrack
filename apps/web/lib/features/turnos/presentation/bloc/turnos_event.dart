@@ -58,6 +58,16 @@ class TurnoUpdateRequested extends TurnosEvent {
   List<Object?> get props => <Object?>[turno];
 }
 
+/// Solicita validar un turno creado desde la app
+class TurnoValidarRequested extends TurnosEvent {
+  const TurnoValidarRequested(this.id);
+
+  final String id;
+
+  @override
+  List<Object?> get props => <Object?>[id];
+}
+
 /// Solicita la eliminación de un turno
 class TurnoDeleteRequested extends TurnosEvent {
   const TurnoDeleteRequested(this.id);

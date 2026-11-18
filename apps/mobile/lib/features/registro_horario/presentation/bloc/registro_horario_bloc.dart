@@ -1,27 +1,29 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../domain/repositories/registro_horario_repository.dart';
+import '../../domain/repositories/turno_actual_repository.dart';
 import 'registro_horario_event.dart';
 import 'registro_horario_state.dart';
 
 /// BLoC que maneja el estado de registros horarios
 ///
-/// Gestiona los fichajes de entrada/salida con geolocalización.
+/// Gestiona los fichajes de entrada/salida con geolocalización y la
+/// resolución del turno en curso (cuadrante o creado desde la app).
 class RegistroHorarioBloc
     extends Bloc<RegistroHorarioEvent, RegistroHorarioState> {
   RegistroHorarioBloc({
     required RegistroHorarioRepository registroHorarioRepository,
+    required TurnoActualRepository turnoActualRepository,
     required AuthBloc authBloc,
-  })  : _registroHorarioRepository = registroHorarioRepository,
+  })  : _registroRepository = registroHorarioRepository,
+        _turnoRepository = turnoActualRepository,
         _authBloc = authBloc,
         super(const RegistroHorarioInitial()) {
-    // Registrar handlers de eventos
     on<CargarRegistrosHorario>(_onCargarRegistrosHorario);
     on<FicharEntrada>(_onFicharEntrada);
     on<FicharSalida>(_onFicharSalida);
@@ -30,196 +32,155 @@ class RegistroHorarioBloc
     on<CambiarVehiculo>(_onCambiarVehiculo);
   }
 
-  final RegistroHorarioRepository _registroHorarioRepository;
+  final RegistroHorarioRepository _registroRepository;
+  final TurnoActualRepository _turnoRepository;
   final AuthBloc _authBloc;
   final Uuid _uuid = const Uuid();
 
-  /// Obtiene el ID del personal autenticado
-  String? get _personalId {
-    final authState = _authBloc.state;
-    if (authState is AuthAuthenticated) {
-      return authState.personal?.id;
-    }
-    return null;
+  /// Personal autenticado
+  TPersonalEntity? get _personal {
+    final AuthState authState = _authBloc.state;
+    return authState is AuthAuthenticated ? authState.personal : null;
   }
 
-  /// Handler para cargar registros horarios
   Future<void> _onCargarRegistrosHorario(
     CargarRegistrosHorario event,
     Emitter<RegistroHorarioState> emit,
   ) async {
-    try {
-      debugPrint('🕐 [RegistroHorarioBloc] Cargando registros...');
-
-      final personalId = _personalId;
-      if (personalId == null) {
-        debugPrint('❌ [RegistroHorarioBloc] No hay personal autenticado');
-        emit(const RegistroHorarioError('No hay sesión activa'));
-        return;
-      }
-
-      // Obtener el último registro para determinar el estado actual
-      final ultimoRegistro =
-          await _registroHorarioRepository.obtenerUltimo(personalId);
-
-      // Determinar estado actual basado en el último fichaje
-      final estadoActual = _determinarEstadoActual(ultimoRegistro);
-
-      // Obtener historial (últimos 10 registros)
-      final historial = await _registroHorarioRepository.obtenerPorPersonal(
-        personalId,
-        limit: 10,
-      );
-
-      debugPrint('✅ [RegistroHorarioBloc] Registros cargados: ${historial.length}');
-      debugPrint('📍 [RegistroHorarioBloc] Estado actual: $estadoActual');
-
-      emit(RegistroHorarioLoaded(
-        ultimoRegistro: ultimoRegistro,
-        historial: historial,
-        estadoActual: estadoActual,
-      ));
-    } catch (e) {
-      debugPrint('❌ [RegistroHorarioBloc] Error al cargar registros: $e');
-      emit(RegistroHorarioError('Error al cargar registros: $e'));
-    }
+    // El contexto completo incluye registros + turno
+    add(const ObtenerContextoTurno());
   }
 
-  /// Handler para fichar entrada
+  /// Inicio de turno: resuelve el turno (cuadrante o app) y ficha entrada
   Future<void> _onFicharEntrada(
     FicharEntrada event,
     Emitter<RegistroHorarioState> emit,
   ) async {
+    final TPersonalEntity? personal = _personal;
+    if (personal == null) {
+      emit(const RegistroHorarioError('No hay sesión activa'));
+      return;
+    }
+
     try {
-      debugPrint('🕐 [RegistroHorarioBloc] Fichando entrada...');
       emit(const RegistroHorarioFichando());
+      final InicioTurnoSeleccion seleccion = event.seleccion;
+      final TurnoEntity turno = await _resolverTurno(personal, seleccion);
+      debugPrint('🕐 [RegistroHorarioBloc] Turno resuelto: ${turno.id} '
+          '(${turno.origen.name}) vehículo ${seleccion.vehiculo.matricula}');
 
-      final personalId = _personalId;
-      if (personalId == null) {
-        debugPrint('❌ [RegistroHorarioBloc] No hay personal autenticado');
-        emit(const RegistroHorarioError('No hay sesión activa'));
-        return;
-      }
-
-      debugPrint('🔑 [RegistroHorarioBloc] Usando personalId: $personalId');
-
-      // Obtener vehículo asignado (si existe)
-      VehiculoEntity? vehiculoAsignado;
-      try {
-        final asignacion = await _obtenerAsignacionHoy(personalId);
-        if (asignacion != null && asignacion['id_vehiculo'] != null) {
-          final vehiculoDs = VehiculoDataSourceFactory.createSupabase();
-          vehiculoAsignado = await vehiculoDs.getById(asignacion['id_vehiculo']);
-          debugPrint('🚗 [RegistroHorarioBloc] Vehículo asignado: ${vehiculoAsignado?.matricula}');
-        } else {
-          debugPrint('⚠️ [RegistroHorarioBloc] Sin vehículo asignado');
-        }
-      } catch (e) {
-        debugPrint('⚠️ [RegistroHorarioBloc] Error al obtener vehículo: $e');
-        // No es crítico, continuamos sin vehículo
-      }
-
-      // Crear registro de entrada
-      final registro = RegistroHorarioEntity(
-        id: _uuid.v4(),
-        personalId: personalId,
+      await _registroRepository.crear(_nuevoRegistro(
+        personalId: personal.id,
         tipo: 'entrada',
-        fechaHora: DateTime.now(),
         latitud: event.latitud,
         longitud: event.longitud,
         precisionGps: event.precisionGps,
-        vehiculoId: vehiculoAsignado?.id,
-        vehiculoMatricula: vehiculoAsignado?.matricula,
+        vehiculo: seleccion.vehiculo,
         notas: event.observaciones,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
+      ));
 
-      // Debug: Ver valores del Entity ANTES de enviar al Repository
-      debugPrint('📋 [RegistroHorarioBloc] Entity creado:');
-      debugPrint('   - vehiculoId: ${registro.vehiculoId}');
-      debugPrint('   - vehiculoMatricula: ${registro.vehiculoMatricula}');
-      debugPrint('   - precisionGps: ${registro.precisionGps}');
-      debugPrint('   - tipo: ${registro.tipo}');
-
-      await _registroHorarioRepository.crear(registro);
-
-      debugPrint('✅ [RegistroHorarioBloc] Entrada fichada exitosamente');
-
-      // Emitir success temporal
-      emit(const RegistroHorarioSuccess('Entrada fichada correctamente'));
-
-      // Recargar datos con contexto completo
+      final String aviso = turno.pendienteValidacion
+          ? '\n\nTu turno se ha creado desde la app y queda pendiente de validar por coordinación.'
+          : '';
+      emit(RegistroHorarioSuccess(
+        'Turno iniciado con el vehículo ${seleccion.vehiculo.matricula}.$aviso',
+      ));
       add(const ObtenerContextoTurno());
     } catch (e) {
-      debugPrint('❌ [RegistroHorarioBloc] Error al fichar entrada: $e');
-      emit(RegistroHorarioError('Error al fichar entrada: $e'));
+      debugPrint('❌ [RegistroHorarioBloc] Error al iniciar turno: $e');
+      emit(RegistroHorarioError('Error al iniciar turno: $e'));
     }
   }
 
-  /// Handler para fichar salida
+  /// Devuelve el turno del cuadrante (actualizando vehículo si cambia)
+  /// o crea uno nuevo desde la app pendiente de validar.
+  Future<TurnoEntity> _resolverTurno(
+    TPersonalEntity personal,
+    InicioTurnoSeleccion seleccion,
+  ) async {
+    final TurnoEntity? existente = seleccion.turno;
+    if (existente != null) {
+      if (existente.idVehiculo == seleccion.vehiculo.id) {
+        return existente;
+      }
+      return _turnoRepository.actualizarTurno(
+        existente.copyWith(idVehiculo: seleccion.vehiculo.id),
+      );
+    }
+
+    final PlantillaTurnoEntity? plantilla = seleccion.plantilla;
+    if (plantilla == null) {
+      throw StateError('Selecciona el tipo de turno');
+    }
+    return _turnoRepository.crearTurno(
+      _nuevoTurnoApp(personal, plantilla, seleccion.vehiculo.id),
+    );
+  }
+
+  /// Construye el turno creado desde la app a partir de una plantilla.
+  ///
+  /// Si el turno de hoy aún no ha empezado pero el de ayer sigue en curso
+  /// (ej: noche 23:00-07:00 fichando a las 00:30) se usa el de ayer.
+  TurnoEntity _nuevoTurnoApp(
+    TPersonalEntity personal,
+    PlantillaTurnoEntity plantilla,
+    String idVehiculo,
+  ) {
+    final DateTime ahora = DateTime.now();
+    final DateTime hoy = DateTime(ahora.year, ahora.month, ahora.day);
+    final String nombre = '${personal.nombre} ${personal.apellidos}'.trim().toUpperCase();
+
+    TurnoEntity turnoDel(DateTime dia) => TurnoEntity(
+          id: _uuid.v4(),
+          idPersonal: personal.id,
+          nombrePersonal: nombre,
+          tipoTurno: plantilla.tipoTurno,
+          fechaInicio: dia,
+          fechaFin: dia,
+          horaInicio: plantilla.horaInicio,
+          horaFin: plantilla.horaFin,
+          idContrato: personal.contratoId,
+          idBase: personal.baseId,
+          categoriaPersonal: personal.categoria,
+          idVehiculo: idVehiculo,
+          idDotacion: personal.dotacionId,
+          observaciones: 'Creado desde la app al iniciar turno (${plantilla.nombre})',
+          origen: OrigenTurno.app,
+          validado: false,
+        );
+
+    TurnoEntity turno = turnoDel(hoy);
+    final TurnoEntity deAyer = turnoDel(hoy.subtract(const Duration(days: 1)));
+    if (turno.inicioReal.subtract(const Duration(hours: 1)).isAfter(ahora) &&
+        deAyer.finReal.isAfter(ahora)) {
+      turno = deAyer;
+    }
+    return turno.copyWith(fechaInicio: turno.inicioReal, fechaFin: turno.finReal);
+  }
+
   Future<void> _onFicharSalida(
     FicharSalida event,
     Emitter<RegistroHorarioState> emit,
   ) async {
+    final TPersonalEntity? personal = _personal;
+    if (personal == null) {
+      emit(const RegistroHorarioError('No hay sesión activa'));
+      return;
+    }
+
     try {
-      debugPrint('🕐 [RegistroHorarioBloc] Fichando salida...');
       emit(const RegistroHorarioFichando());
-
-      final personalId = _personalId;
-      if (personalId == null) {
-        debugPrint('❌ [RegistroHorarioBloc] No hay personal autenticado');
-        emit(const RegistroHorarioError('No hay sesión activa'));
-        return;
-      }
-
-      // Obtener vehículo asignado (si existe)
-      VehiculoEntity? vehiculoAsignado;
-      try {
-        final asignacion = await _obtenerAsignacionHoy(personalId);
-        if (asignacion != null && asignacion['id_vehiculo'] != null) {
-          final vehiculoDs = VehiculoDataSourceFactory.createSupabase();
-          vehiculoAsignado = await vehiculoDs.getById(asignacion['id_vehiculo']);
-          debugPrint('🚗 [RegistroHorarioBloc] Vehículo asignado: ${vehiculoAsignado?.matricula}');
-        } else {
-          debugPrint('⚠️ [RegistroHorarioBloc] Sin vehículo asignado');
-        }
-      } catch (e) {
-        debugPrint('⚠️ [RegistroHorarioBloc] Error al obtener vehículo: $e');
-        // No es crítico, continuamos sin vehículo
-      }
-
-      // Crear registro de salida
-      final registro = RegistroHorarioEntity(
-        id: _uuid.v4(),
-        personalId: personalId,
+      final VehiculoEntity? vehiculo = await _vehiculoDelTurno(personal.id);
+      await _registroRepository.crear(_nuevoRegistro(
+        personalId: personal.id,
         tipo: 'salida',
-        fechaHora: DateTime.now(),
         latitud: event.latitud,
         longitud: event.longitud,
         precisionGps: event.precisionGps,
-        vehiculoId: vehiculoAsignado?.id,
-        vehiculoMatricula: vehiculoAsignado?.matricula,
+        vehiculo: vehiculo,
         notas: event.observaciones,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      // Debug: Ver valores del Entity ANTES de enviar al Repository
-      debugPrint('📋 [RegistroHorarioBloc] Entity creado:');
-      debugPrint('   - vehiculoId: ${registro.vehiculoId}');
-      debugPrint('   - vehiculoMatricula: ${registro.vehiculoMatricula}');
-      debugPrint('   - precisionGps: ${registro.precisionGps}');
-      debugPrint('   - tipo: ${registro.tipo}');
-
-      await _registroHorarioRepository.crear(registro);
-
-      debugPrint('✅ [RegistroHorarioBloc] Salida fichada exitosamente');
-
-      // Emitir success temporal
+      ));
       emit(const RegistroHorarioSuccess('Salida fichada correctamente'));
-
-      // Recargar datos con contexto completo
       add(const ObtenerContextoTurno());
     } catch (e) {
       debugPrint('❌ [RegistroHorarioBloc] Error al fichar salida: $e');
@@ -227,107 +188,61 @@ class RegistroHorarioBloc
     }
   }
 
-  /// Handler para refrescar historial
   Future<void> _onRefrescarHistorial(
     RefrescarHistorial event,
     Emitter<RegistroHorarioState> emit,
   ) async {
-    // Recarga los datos con contexto completo
     add(const ObtenerContextoTurno());
   }
 
-  /// Handler para cambiar de vehículo durante el turno
-  ///
-  /// Flujo:
-  /// 1. Registra salida con vehículo actual
-  /// 2. Actualiza asignación de vehículo en tabla turnos
-  /// 3. Registra entrada con nuevo vehículo
+  /// Cambio de vehículo en turno: salida con el actual, actualiza el
+  /// turno y entrada con el nuevo.
   Future<void> _onCambiarVehiculo(
     CambiarVehiculo event,
     Emitter<RegistroHorarioState> emit,
   ) async {
+    final TPersonalEntity? personal = _personal;
+    if (personal == null) {
+      emit(const RegistroHorarioError('No hay sesión activa'));
+      return;
+    }
+
     try {
-      debugPrint('🔄 [RegistroHorarioBloc] Iniciando cambio de vehículo...');
       emit(const RegistroHorarioFichando());
+      final TurnoEntity? turno = await _turnoRepository.obtenerTurnoVigente(personal.id);
+      final VehiculoEntity? actual = await _vehiculoPorId(turno?.idVehiculo);
+      final VehiculoEntity? nuevo = await _vehiculoPorId(event.nuevoVehiculoId);
+      final String notas = event.observaciones ?? 'Cambio de vehículo';
 
-      final personalId = _personalId;
-      if (personalId == null) {
-        debugPrint('❌ [RegistroHorarioBloc] No hay personal autenticado');
-        emit(const RegistroHorarioError('No hay sesión activa'));
-        return;
-      }
-
-      // 1. Obtener vehículo actual
-      VehiculoEntity? vehiculoActual;
-      try {
-        final asignacion = await _obtenerAsignacionHoy(personalId);
-        if (asignacion != null && asignacion['id_vehiculo'] != null) {
-          final vehiculoDs = VehiculoDataSourceFactory.createSupabase();
-          vehiculoActual = await vehiculoDs.getById(asignacion['id_vehiculo']);
-          debugPrint('🚗 [RegistroHorarioBloc] Vehículo actual: ${vehiculoActual?.matricula}');
-        }
-      } catch (e) {
-        debugPrint('⚠️ [RegistroHorarioBloc] Error al obtener vehículo actual: $e');
-      }
-
-      // 2. Registrar salida con vehículo actual
-      final registroSalida = RegistroHorarioEntity(
-        id: _uuid.v4(),
-        personalId: personalId,
+      await _registroRepository.crear(_nuevoRegistro(
+        personalId: personal.id,
         tipo: 'salida',
-        fechaHora: DateTime.now(),
         latitud: event.latitud,
         longitud: event.longitud,
         precisionGps: event.precisionGps,
-        vehiculoId: vehiculoActual?.id,
-        vehiculoMatricula: vehiculoActual?.matricula,
-        notas: event.observaciones ?? 'Cambio de vehículo',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      await _registroHorarioRepository.crear(registroSalida);
-      debugPrint('✅ [RegistroHorarioBloc] Salida registrada con vehículo actual');
-
-      // 3. Actualizar asignación en tabla turnos
-      await _actualizarAsignacionVehiculo(personalId, event.nuevoVehiculoId);
-      debugPrint('✅ [RegistroHorarioBloc] Asignación de vehículo actualizada');
-
-      // 4. Obtener datos del nuevo vehículo
-      VehiculoEntity? nuevoVehiculo;
-      try {
-        final vehiculoDs = VehiculoDataSourceFactory.createSupabase();
-        nuevoVehiculo = await vehiculoDs.getById(event.nuevoVehiculoId);
-        debugPrint('🚗 [RegistroHorarioBloc] Nuevo vehículo: ${nuevoVehiculo?.matricula}');
-      } catch (e) {
-        debugPrint('⚠️ [RegistroHorarioBloc] Error al obtener nuevo vehículo: $e');
-      }
-
-      // 5. Registrar entrada con nuevo vehículo
-      final registroEntrada = RegistroHorarioEntity(
-        id: _uuid.v4(),
-        personalId: personalId,
-        tipo: 'entrada',
-        fechaHora: DateTime.now(),
-        latitud: event.latitud,
-        longitud: event.longitud,
-        precisionGps: event.precisionGps,
-        vehiculoId: nuevoVehiculo?.id,
-        vehiculoMatricula: nuevoVehiculo?.matricula,
-        notas: event.observaciones ?? 'Cambio de vehículo',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      await _registroHorarioRepository.crear(registroEntrada);
-      debugPrint('✅ [RegistroHorarioBloc] Entrada registrada con nuevo vehículo');
-
-      // Emitir success
-      emit(RegistroHorarioSuccess(
-        'Vehículo cambiado: ${vehiculoActual?.matricula ?? 'N/A'} → ${nuevoVehiculo?.matricula ?? 'N/A'}',
+        vehiculo: actual,
+        notas: notas,
       ));
 
-      // Recargar datos con contexto completo
+      if (turno != null) {
+        await _turnoRepository.actualizarTurno(
+          turno.copyWith(idVehiculo: event.nuevoVehiculoId),
+        );
+      }
+
+      await _registroRepository.crear(_nuevoRegistro(
+        personalId: personal.id,
+        tipo: 'entrada',
+        latitud: event.latitud,
+        longitud: event.longitud,
+        precisionGps: event.precisionGps,
+        vehiculo: nuevo,
+        notas: notas,
+      ));
+
+      emit(RegistroHorarioSuccess(
+        'Vehículo cambiado: ${actual?.matricula ?? 'N/A'} → ${nuevo?.matricula ?? 'N/A'}',
+      ));
       add(const ObtenerContextoTurno());
     } catch (e) {
       debugPrint('❌ [RegistroHorarioBloc] Error al cambiar vehículo: $e');
@@ -335,257 +250,116 @@ class RegistroHorarioBloc
     }
   }
 
-  /// Determina el estado actual basado en el último fichaje
-  EstadoFichaje _determinarEstadoActual(RegistroHorarioEntity? ultimoRegistro) {
-    if (ultimoRegistro == null) {
-      return EstadoFichaje.fuera;
-    }
-
-    return ultimoRegistro.tipo.toLowerCase() == 'entrada'
-        ? EstadoFichaje.dentro
-        : EstadoFichaje.fuera;
-  }
-
-  /// Handler para obtener contexto completo del turno
+  /// Carga registros + vehículo, compañero y próximo turno
   Future<void> _onObtenerContextoTurno(
     ObtenerContextoTurno event,
     Emitter<RegistroHorarioState> emit,
   ) async {
+    final TPersonalEntity? personal = _personal;
+    if (personal == null) {
+      emit(const RegistroHorarioError('No hay sesión activa'));
+      return;
+    }
+
     try {
-      debugPrint('🕐 [RegistroHorarioBloc] Obteniendo contexto de turno...');
+      final RegistroHorarioEntity? ultimo = await _registroRepository.obtenerUltimo(personal.id);
+      final List<RegistroHorarioEntity> historial =
+          await _registroRepository.obtenerPorPersonal(personal.id, limit: 10);
+      final VehiculoEntity? vehiculo = await _vehiculoDelTurno(personal.id);
 
-      final personalId = _personalId;
-      if (personalId == null) {
-        debugPrint('❌ [RegistroHorarioBloc] No hay personal autenticado');
-        emit(const RegistroHorarioError('No hay sesión activa'));
-        return;
-      }
-
-      // 1. Obtener registros básicos
-      final ultimoRegistro =
-          await _registroHorarioRepository.obtenerUltimo(personalId);
-      final estadoActual = _determinarEstadoActual(ultimoRegistro);
-      final historial = await _registroHorarioRepository.obtenerPorPersonal(
-        personalId,
-        limit: 10,
-      );
-
-      // 2. Obtener vehículo asignado
-      VehiculoEntity? vehiculo;
-      try {
-        debugPrint('📍 [RegistroHorarioBloc] Buscando asignación para personalId: $personalId');
-        final asignacionHoy = await _obtenerAsignacionHoy(personalId);
-        debugPrint('📍 [RegistroHorarioBloc] Asignación encontrada: $asignacionHoy');
-
-        if (asignacionHoy != null && asignacionHoy['id_vehiculo'] != null) {
-          debugPrint('📍 [RegistroHorarioBloc] ID Vehículo: ${asignacionHoy['id_vehiculo']}');
-          final vehiculoDs = VehiculoDataSourceFactory.createSupabase();
-          vehiculo = await vehiculoDs.getById(asignacionHoy['id_vehiculo']);
-          debugPrint('✅ [RegistroHorarioBloc] Vehículo obtenido: ${vehiculo?.matricula}');
-        } else {
-          debugPrint('⚠️ [RegistroHorarioBloc] No hay asignación o id_vehiculo es null');
-        }
-      } catch (e, stackTrace) {
-        debugPrint('❌ [RegistroHorarioBloc] Error al obtener vehículo: $e');
-        debugPrint('Stack trace: $stackTrace');
-      }
-
-      // 3. Obtener compañero
-      PersonalContexto? companero;
-      try {
-        if (vehiculo != null) {
-          final companeros =
-              await _obtenerCompanerosPorVehiculo(vehiculo.id, personalId);
-          if (companeros.isNotEmpty) {
-            final comp = companeros.first;
-            companero = PersonalContexto(
-              id: comp['id_personal'] ?? '',
-              nombre: comp['nombre_personal'] ?? 'Compañero',
-              categoria: comp['categoria'],
-            );
-          }
-        }
-      } catch (e) {
-        debugPrint('⚠️ [RegistroHorarioBloc] No se pudo obtener compañero: $e');
-      }
-
-      // 4. Obtener próximo turno
-      TurnoContexto? proximoTurno;
-      try {
-        final proxTurno = await _obtenerProximoTurno(personalId);
-        if (proxTurno != null && proxTurno['fecha'] != null) {
-          proximoTurno = TurnoContexto(
-            fecha: DateTime.parse(proxTurno['fecha']),
-            turno: proxTurno['tipo_turno'],
-          );
-        }
-      } catch (e) {
-        debugPrint(
-            '⚠️ [RegistroHorarioBloc] No se pudo obtener próximo turno: $e');
-      }
-
-      // Emitir estado con contexto
       emit(RegistroHorarioLoadedWithContext(
-        ultimoRegistro: ultimoRegistro,
+        ultimoRegistro: ultimo,
         historial: historial,
-        estadoActual: estadoActual,
+        estadoActual: _estadoActual(ultimo),
         vehiculo: vehiculo,
-        companero: companero,
-        proximoTurno: proximoTurno,
+        companero: await _companero(vehiculo, personal.id),
+        proximoTurno: await _proximoTurno(personal.id),
       ));
-
-      debugPrint('✅ [RegistroHorarioBloc] Contexto de turno obtenido');
     } catch (e) {
       debugPrint('❌ [RegistroHorarioBloc] Error al obtener contexto: $e');
       emit(RegistroHorarioError('Error al obtener contexto: $e'));
     }
   }
 
-  /// Obtiene la asignación de turno para hoy
-  Future<Map<String, dynamic>?> _obtenerAsignacionHoy(
-      String personalId) async {
-    final supabase = Supabase.instance.client;
-    final hoy = DateTime.now();
-    final fechaHoy = DateTime(hoy.year, hoy.month, hoy.day);
+  EstadoFichaje _estadoActual(RegistroHorarioEntity? ultimo) {
+    return ultimo?.tipo.toLowerCase() == 'entrada'
+        ? EstadoFichaje.dentro
+        : EstadoFichaje.fuera;
+  }
 
+  /// Vehículo del turno vigente (null si no hay turno o vehículo)
+  Future<VehiculoEntity?> _vehiculoDelTurno(String personalId) async {
     try {
-      debugPrint('🔍 [RegistroHorarioBloc] Consultando tabla turnos');
-      debugPrint('   - personalId: $personalId');
-      debugPrint('   - fechaHoy: ${fechaHoy.toIso8601String()}');
-
-      // Buscar en tabla turnos (igual que ChecklistVehiculoDataSource)
-      final response = await supabase
-          .from('turnos')
-          .select('idVehiculo')
-          .eq('idPersonal', personalId)
-          .gte('fechaInicio', fechaHoy.toIso8601String())
-          .lte('fechaFin', fechaHoy.add(const Duration(days: 1)).toIso8601String())
-          .eq('activo', true)
-          .maybeSingle();
-
-      debugPrint('🔍 [RegistroHorarioBloc] Response: $response');
-
-      if (response != null && response['idVehiculo'] != null) {
-        // Convertir camelCase a snake_case para consistencia
-        return {'id_vehiculo': response['idVehiculo']};
-      }
-
-      return null;
+      final TurnoEntity? turno = await _turnoRepository.obtenerTurnoVigente(personalId);
+      return await _vehiculoPorId(turno?.idVehiculo);
     } catch (e) {
-      debugPrint(
-          '❌ [RegistroHorarioBloc] Error al obtener asignación hoy: $e');
+      debugPrint('⚠️ [RegistroHorarioBloc] Sin vehículo de turno: $e');
       return null;
     }
   }
 
-  /// Obtiene los compañeros del mismo vehículo
-  Future<List<Map<String, dynamic>>> _obtenerCompanerosPorVehiculo(
-    String vehiculoId,
-    String personalIdActual,
-  ) async {
-    final supabase = Supabase.instance.client;
-    final hoy = DateTime.now();
-    final fechaHoy = DateTime(hoy.year, hoy.month, hoy.day);
-
-    try {
-      final response = await supabase
-          .from('turnos')
-          .select('idPersonal, nombrePersonal, categoriaPersonal')
-          .eq('idVehiculo', vehiculoId)
-          .gte('fechaInicio', fechaHoy.toIso8601String())
-          .lte('fechaFin', fechaHoy.add(const Duration(days: 1)).toIso8601String())
-          .eq('activo', true)
-          .neq('idPersonal', personalIdActual);
-
-      // Convertir camelCase a snake_case para consistencia
-      final companeros = (response as List).map((item) => {
-        'id_personal': item['idPersonal'],
-        'nombre_personal': item['nombrePersonal'],
-        'categoria': item['categoriaPersonal'],
-      }).toList();
-
-      return companeros;
-    } catch (e) {
-      debugPrint(
-          '⚠️ [RegistroHorarioBloc] Error al obtener compañeros: $e');
-      return [];
+  Future<VehiculoEntity?> _vehiculoPorId(String? id) async {
+    if (id == null || id.isEmpty) {
+      return null;
     }
+    return _turnoRepository.obtenerVehiculo(id);
   }
 
-  /// Obtiene el próximo turno del personal
-  Future<Map<String, dynamic>?> _obtenerProximoTurno(String personalId) async {
-    final supabase = Supabase.instance.client;
-    final manana = DateTime.now().add(const Duration(days: 1));
-    final fechaManana = DateTime(manana.year, manana.month, manana.day);
-
-    try {
-      final response = await supabase
-          .from('turnos')
-          .select('fechaInicio, fechaFin, tipoTurno')
-          .eq('idPersonal', personalId)
-          .gte('fechaInicio', fechaManana.toIso8601String())
-          .eq('activo', true)
-          .order('fechaInicio', ascending: true)
-          .limit(1)
-          .maybeSingle();
-
-      if (response != null) {
-        // Convertir camelCase a snake_case para consistencia
-        return {
-          'fecha': response['fechaInicio'],
-          'tipo_turno': response['tipoTurno'],
-        };
-      }
-
+  Future<PersonalContexto?> _companero(VehiculoEntity? vehiculo, String personalId) async {
+    if (vehiculo == null) {
       return null;
+    }
+    try {
+      final List<TurnoEntity> companeros = await _turnoRepository.obtenerCompaneros(
+        idVehiculo: vehiculo.id,
+        idPersonalExcluido: personalId,
+      );
+      if (companeros.isEmpty) {
+        return null;
+      }
+      final TurnoEntity c = companeros.first;
+      return PersonalContexto(id: c.idPersonal, nombre: c.nombrePersonal, categoria: c.categoriaPersonal);
     } catch (e) {
-      debugPrint(
-          '⚠️ [RegistroHorarioBloc] Error al obtener próximo turno: $e');
+      debugPrint('⚠️ [RegistroHorarioBloc] No se pudo obtener compañero: $e');
       return null;
     }
   }
 
-  /// Actualiza la asignación de vehículo en la tabla turnos
-  ///
-  /// Cambia el vehículo asignado en el turno actual del personal
-  Future<void> _actualizarAsignacionVehiculo(
-    String personalId,
-    String nuevoVehiculoId,
-  ) async {
-    final supabase = Supabase.instance.client;
-    final hoy = DateTime.now();
-    final fechaHoy = DateTime(hoy.year, hoy.month, hoy.day);
-
+  Future<TurnoContexto?> _proximoTurno(String personalId) async {
     try {
-      debugPrint('🔄 [RegistroHorarioBloc] Actualizando asignación de vehículo');
-      debugPrint('   - personalId: $personalId');
-      debugPrint('   - nuevoVehiculoId: $nuevoVehiculoId');
-
-      // Buscar turno activo de hoy
-      final turnoActual = await supabase
-          .from('turnos')
-          .select('id')
-          .eq('idPersonal', personalId)
-          .gte('fechaInicio', fechaHoy.toIso8601String())
-          .lte('fechaFin', fechaHoy.add(const Duration(days: 1)).toIso8601String())
-          .eq('activo', true)
-          .maybeSingle();
-
-      if (turnoActual == null) {
-        debugPrint('⚠️ [RegistroHorarioBloc] No se encontró turno activo para hoy');
-        return;
-      }
-
-      // Actualizar vehículo en el turno
-      await supabase
-          .from('turnos')
-          .update({'idVehiculo': nuevoVehiculoId})
-          .eq('id', turnoActual['id']);
-
-      debugPrint('✅ [RegistroHorarioBloc] Vehículo actualizado en turno');
+      final TurnoEntity? turno = await _turnoRepository.obtenerProximoTurno(personalId);
+      return turno == null
+          ? null
+          : TurnoContexto(fecha: turno.inicioReal, turno: turno.tipoTurno.nombre);
     } catch (e) {
-      debugPrint('❌ [RegistroHorarioBloc] Error al actualizar asignación: $e');
-      rethrow;
+      debugPrint('⚠️ [RegistroHorarioBloc] No se pudo obtener próximo turno: $e');
+      return null;
     }
+  }
+
+  RegistroHorarioEntity _nuevoRegistro({
+    required String personalId,
+    required String tipo,
+    required double latitud,
+    required double longitud,
+    required double precisionGps,
+    VehiculoEntity? vehiculo,
+    String? notas,
+  }) {
+    final DateTime ahora = DateTime.now();
+    return RegistroHorarioEntity(
+      id: _uuid.v4(),
+      personalId: personalId,
+      tipo: tipo,
+      fechaHora: ahora,
+      latitud: latitud,
+      longitud: longitud,
+      precisionGps: precisionGps,
+      vehiculoId: vehiculo?.id,
+      vehiculoMatricula: vehiculo?.matricula,
+      notas: notas,
+      createdAt: ahora,
+      updatedAt: ahora,
+    );
   }
 }
