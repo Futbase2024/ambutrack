@@ -216,6 +216,9 @@ class GestionGridContent<T> extends StatelessWidget {
     required this.emptyMessage,
     required this.errorTitle,
     this.errorMessage,
+    this.filters = const GestionColumnFilters(),
+    this.onFiltersChanged,
+    this.filterSource,
     super.key,
   });
 
@@ -237,6 +240,13 @@ class GestionGridContent<T> extends StatelessWidget {
   final VoidCallback onRetry;
   final String emptyMessage;
 
+  /// Filtros por columna estilo Excel (opcionales)
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters>? onFiltersChanged;
+
+  /// Filas base (sin filtros de columna ni paginación) para los valores posibles
+  final List<T>? filterSource;
+
   @override
   Widget build(BuildContext context) {
     if (!hasData && errorMessage != null) {
@@ -250,6 +260,9 @@ class GestionGridContent<T> extends StatelessWidget {
         GestionGrid<T>(
           columns: columns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: rowId,
           selectedId: selectedId,
           onSelect: onSelect,
@@ -338,3 +351,10 @@ class GestionStandardToolbar extends StatelessWidget {
 /// Resumen "N registros" / "X de N registros"
 String gestionResumenRegistros(int total, int filtrados) =>
     filtrados == total ? '$total registros' : '$filtrados de $total registros';
+
+/// Valor para el filtro de columna: vacío o marcador de vacío → '' ("(Vacío)")
+String gestionFiltroTexto(String? value) {
+  final String v = value?.trim() ?? '';
+  return v == GestionFormatters.vacio ? '' : v;
+}
+

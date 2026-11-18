@@ -44,6 +44,9 @@ class TrasladosGestionFilters extends StatelessWidget {
     required this.onSearchChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columns,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -53,6 +56,9 @@ class TrasladosGestionFilters extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final String? estado;
   final ValueChanged<String?> onEstadoChanged;
+  final List<GestionColumn<TrasladoEntity>> columns;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -70,6 +76,11 @@ class TrasladosGestionFilters extends StatelessWidget {
           value: estado,
           options: TrasladoGestion.opcionesEstado(config.estados),
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<TrasladoEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],
@@ -96,6 +107,9 @@ class TrasladosGridContent extends StatelessWidget {
     required this.onSelect,
     required this.onSort,
     required this.onRetry,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     super.key,
   });
 
@@ -110,6 +124,11 @@ class TrasladosGridContent extends StatelessWidget {
   final ValueChanged<TrasladoEntity> onSelect;
   final ValueChanged<GestionSort> onSort;
   final VoidCallback onRetry;
+
+  /// Filtros por columna (estilo Excel) y filas base para sus valores
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<TrasladoEntity> filterSource;
 
   @override
   Widget build(BuildContext context) {
@@ -129,6 +148,9 @@ class TrasladosGridContent extends StatelessWidget {
       child: GestionGrid<TrasladoEntity>(
         columns: columns,
         rows: rows,
+        filters: filters,
+        onFiltersChanged: onFiltersChanged,
+        filterSource: filterSource,
         rowId: (TrasladoEntity t) => t.id,
         selectedId: selectedId,
         onSelect: onSelect,

@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/servicios/pacientes/presentation/widgets/gestion/paciente_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -82,6 +83,8 @@ class PacienteGestionFilters extends StatelessWidget {
     required this.onSearchChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -90,6 +93,8 @@ class PacienteGestionFilters extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final PacienteEstadoFiltro estado;
   final ValueChanged<PacienteEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -111,6 +116,11 @@ class PacienteGestionFilters extends StatelessWidget {
             PacienteEstadoFiltro.inactivos: 'Inactivos',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<PacienteEntity>(
+          filters: columnFilters,
+          columns: pacienteGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

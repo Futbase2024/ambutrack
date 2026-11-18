@@ -24,6 +24,9 @@ class CategoriaVehiculoGestionView extends StatefulWidget {
 class _CategoriaVehiculoGestionViewState extends State<CategoriaVehiculoGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   CategoriaVehiculoEstadoFiltro _estado = CategoriaVehiculoEstadoFiltro.todos;
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
@@ -45,7 +48,8 @@ class _CategoriaVehiculoGestionViewState extends State<CategoriaVehiculoGestionV
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != CategoriaVehiculoEstadoFiltro.todos;
+  bool get _hasFilters =>
+      !_colFilters.isEmpty || _query.isNotEmpty || _estado != CategoriaVehiculoEstadoFiltro.todos;
 
   CategoriaVehiculoEntity? get _selected {
     for (final CategoriaVehiculoEntity c in _categorias ?? const <CategoriaVehiculoEntity>[]) {
@@ -56,23 +60,27 @@ class _CategoriaVehiculoGestionViewState extends State<CategoriaVehiculoGestionV
     return null;
   }
 
-  List<CategoriaVehiculoEntity> get _visibles => _sort.apply(
-        filtrarCategoriasVehiculo(
+  /// Filas con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<CategoriaVehiculoEntity> get _base => filtrarCategoriasVehiculo(
           _categorias ?? <CategoriaVehiculoEntity>[],
           query: _query,
           estado: _estado,
-        ),
-        categoriaVehiculoGestionColumns,
-      );
+        );
+
+  List<CategoriaVehiculoEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, categoriaVehiculoGestionColumns), categoriaVehiculoGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
+
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
         _query = '';
+        _colFilters = const GestionColumnFilters();
         _estado = CategoriaVehiculoEstadoFiltro.todos;
       });
 
@@ -158,6 +166,8 @@ class _CategoriaVehiculoGestionViewState extends State<CategoriaVehiculoGestionV
             onSearchChanged: (String v) => _updateFilters(() => _query = v),
             estado: _estado,
             onEstadoChanged: (CategoriaVehiculoEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _CategoriaVehiculoGridContent(
@@ -168,6 +178,9 @@ class _CategoriaVehiculoGestionViewState extends State<CategoriaVehiculoGestionV
             selectedId: _selectedId,
             sort: _sort,
             hasFilters: _hasFilters,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             onSelect: (CategoriaVehiculoEntity c) => setState(() => _selectedId = c.id),
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
@@ -210,6 +223,9 @@ class _CategoriaVehiculoGridContent extends StatelessWidget {
     required this.selectedId,
     required this.sort,
     required this.hasFilters,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.onSelect,
     required this.onActivate,
     required this.onSort,
@@ -223,6 +239,9 @@ class _CategoriaVehiculoGridContent extends StatelessWidget {
   final String? selectedId;
   final GestionSort sort;
   final bool hasFilters;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<CategoriaVehiculoEntity> filterSource;
   final ValueChanged<CategoriaVehiculoEntity> onSelect;
   final ValueChanged<CategoriaVehiculoEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
@@ -242,6 +261,9 @@ class _CategoriaVehiculoGridContent extends StatelessWidget {
         GestionGrid<CategoriaVehiculoEntity>(
           columns: categoriaVehiculoGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (CategoriaVehiculoEntity c) => c.id,
           selectedId: selectedId,
           onSelect: onSelect,

@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/tablas/especialidades_medicas/presentation/widgets/gestion/especialidad_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -74,6 +75,8 @@ class EspecialidadGestionFilters extends StatelessWidget {
     required this.onTipoChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -84,6 +87,8 @@ class EspecialidadGestionFilters extends StatelessWidget {
   final ValueChanged<String?> onTipoChanged;
   final EspecialidadEstadoFiltro estado;
   final ValueChanged<EspecialidadEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -113,6 +118,11 @@ class EspecialidadGestionFilters extends StatelessWidget {
             EspecialidadEstadoFiltro.inactivas: 'Inactivas',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<EspecialidadEntity>(
+          filters: columnFilters,
+          columns: especialidadGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

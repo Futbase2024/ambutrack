@@ -1,4 +1,5 @@
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/alerta_mantenimiento.dart';
 import 'package:ambutrack_web/features/taller/presentation/widgets/alertas/alertas_columns.dart';
 import 'package:ambutrack_web/features/taller/presentation/widgets/consulta/taller_consulta_common.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,8 @@ class AlertasFilters extends StatelessWidget {
     required this.searchController,
     required this.filtro,
     required this.onChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -16,6 +19,8 @@ class AlertasFilters extends StatelessWidget {
   final TextEditingController searchController;
   final AlertasFiltro filtro;
   final ValueChanged<AlertasFiltro> onChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -39,6 +44,11 @@ class AlertasFilters extends StatelessWidget {
           value: filtro.severidad,
           options: alertaSeveridadOptions,
           onChanged: (String v) => onChanged(filtro.copyWith(severidad: v)),
+        ),
+        GestionColumnFilterChips<AlertaMantenimiento>(
+          filters: columnFilters,
+          columns: alertasColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

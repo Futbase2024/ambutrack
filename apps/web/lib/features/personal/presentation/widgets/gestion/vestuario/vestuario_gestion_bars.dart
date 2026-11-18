@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/personal/presentation/widgets/gestion/vestuario/vestuario_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -77,6 +78,9 @@ class VestuarioGestionFilters extends StatelessWidget {
     required this.prenda,
     required this.prendas,
     required this.onPrendaChanged,
+    required this.columnFilters,
+    required this.columns,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -89,6 +93,11 @@ class VestuarioGestionFilters extends StatelessWidget {
   final List<String> prendas;
   final ValueChanged<String?> onPrendaChanged;
   final VoidCallback? onClear;
+
+  /// Filtros por columna (embudo de la cabecera) activos
+  final GestionColumnFilters columnFilters;
+  final List<GestionColumn<VestuarioEntity>> columns;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -117,6 +126,11 @@ class VestuarioGestionFilters extends StatelessWidget {
             VestuarioEstadoFiltro.devueltos: 'Devueltos',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<VestuarioEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

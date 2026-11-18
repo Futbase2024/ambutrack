@@ -11,6 +11,11 @@ class GestionColumn<T> {
     this.sortValue,
     this.alignment = Alignment.centerLeft,
     this.exportValue,
+    this.filterValue,
+    this.editCell,
+    this.onCellDoubleTap,
+    this.headerIcon,
+    this.headerIconOnly = false,
   });
 
   /// Ancho mínimo por defecto de una columna flexible
@@ -43,7 +48,30 @@ class GestionColumn<T> {
   /// Si es null, la columna no se exporta.
   final Object? Function(T item)? exportValue;
 
+  /// Texto por el que se filtra la columna (filtro estilo Excel en la
+  /// cabecera). Si es null, la columna no tiene filtro.
+  final String Function(T item)? filterValue;
+
+  /// Celda editable que se muestra en "modo edición" (si es null, la
+  /// columna se pinta igual que siempre)
+  final Widget Function(T item)? editCell;
+
+  /// Acción al hacer doble clic en esta celda (fuera del modo edición).
+  /// Si existe, sustituye a la acción de doble clic de la fila.
+  final void Function(T item)? onCellDoubleTap;
+
+  /// Icono de la cabecera (se muestra delante del título)
+  final IconData? headerIcon;
+
+  /// Muestra solo el icono en la cabecera (columnas estrechas); el título
+  /// completo aparece al pasar el ratón
+  final bool headerIconOnly;
+
   bool get sortable => sortValue != null;
+
+  bool get filterable => filterValue != null;
+
+  bool get editable => editCell != null;
 }
 
 /// Estado de ordenación de la rejilla

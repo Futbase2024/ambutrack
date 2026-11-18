@@ -31,6 +31,9 @@ class _PacienteGestionViewState extends State<PacienteGestionView> {
   String? _soloId;
   String? _enlaceAplicado;
   PacienteEstadoFiltro _estado = PacienteEstadoFiltro.todos;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 1);
   int _page = 0;
   int _pageSize = 25;
@@ -80,7 +83,8 @@ class _PacienteGestionViewState extends State<PacienteGestionView> {
   List<PacienteEntity> _filtrarEnlace(List<PacienteEntity> items) =>
       _soloId == null ? items : items.where((PacienteEntity e) => e.id == _soloId).toList();
 
-  bool get _hasFilters => _soloId != null || _query.isNotEmpty || _estado != PacienteEstadoFiltro.todos;
+  bool get _hasFilters =>
+      _soloId != null || _query.isNotEmpty || _estado != PacienteEstadoFiltro.todos || !_colFilters.isEmpty;
 
   PacienteEntity? get _selected {
     for (final PacienteEntity p in _pacientes ?? const <PacienteEntity>[]) {
@@ -91,10 +95,12 @@ class _PacienteGestionViewState extends State<PacienteGestionView> {
     return null;
   }
 
-  List<PacienteEntity> get _visibles => _sort.apply(
-        filtrarPacientes(_filtrarEnlace(_pacientes ?? <PacienteEntity>[]), query: _query, estado: _estado),
-        pacienteGestionColumns,
-      );
+  /// Pacientes con búsqueda y estado aplicados (base de los valores de los filtros de columna)
+  List<PacienteEntity> get _base =>
+      filtrarPacientes(_filtrarEnlace(_pacientes ?? <PacienteEntity>[]), query: _query, estado: _estado);
+
+  List<PacienteEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, pacienteGestionColumns), pacienteGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -106,6 +112,12 @@ class _PacienteGestionViewState extends State<PacienteGestionView> {
         _soloId = null;
         _query = '';
         _estado = PacienteEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
+      });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() {
+        _soloId = null;
+        _colFilters = f;
       });
 
   void _refresh() => context.read<PacientesBloc>().add(const PacientesLoadRequested());
@@ -201,6 +213,8 @@ class _PacienteGestionViewState extends State<PacienteGestionView> {
             }),
             estado: _estado,
             onEstadoChanged: (PacienteEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: PacienteGridContent(
@@ -215,6 +229,9 @@ class _PacienteGestionViewState extends State<PacienteGestionView> {
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
           ),
           detailPanel: PacienteDetailPanel(
             paciente: selected,

@@ -90,6 +90,9 @@ class AusenciaGestionFilters extends StatelessWidget {
     required this.onTipoChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.columns,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -102,6 +105,11 @@ class AusenciaGestionFilters extends StatelessWidget {
   final EstadoAusencia? estado;
   final ValueChanged<EstadoAusencia?> onEstadoChanged;
   final VoidCallback? onClear;
+
+  /// Filtros por columna (embudo de la cabecera) activos
+  final GestionColumnFilters columnFilters;
+  final List<GestionColumn<AusenciaEntity>> columns;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -130,6 +138,11 @@ class AusenciaGestionFilters extends StatelessWidget {
             for (final EstadoAusencia e in EstadoAusencia.values) e: ausenciaEstadoLabel(e),
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<AusenciaEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

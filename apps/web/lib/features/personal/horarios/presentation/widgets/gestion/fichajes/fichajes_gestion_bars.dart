@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/personal/horarios/presentation/widgets/gestion/fichajes/fichajes_date_filter.dart';
 import 'package:ambutrack_web/features/personal/horarios/presentation/widgets/gestion/fichajes/fichajes_gestion_columns.dart';
@@ -61,6 +62,9 @@ class FichajesGestionFilters extends StatelessWidget {
     required this.onDesdeChanged,
     required this.hasta,
     required this.onHastaChanged,
+    required this.columnFilters,
+    required this.columns,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -74,6 +78,11 @@ class FichajesGestionFilters extends StatelessWidget {
   final DateTime? hasta;
   final ValueChanged<DateTime?> onHastaChanged;
   final VoidCallback? onClear;
+
+  /// Filtros por columna (embudo de la cabecera) activos
+  final GestionColumnFilters columnFilters;
+  final List<GestionColumn<RegistroHorarioEntity>> columns;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -101,6 +110,11 @@ class FichajesGestionFilters extends StatelessWidget {
           value: hasta,
           firstDate: desde,
           onChanged: onHastaChanged,
+        ),
+        GestionColumnFilterChips<RegistroHorarioEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

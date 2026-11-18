@@ -5,6 +5,9 @@ import 'package:ambutrack_web/features/servicios/operativa/presentation/widgets/
 
 int _dia(DateTime? d) => d == null ? 0 : d.millisecondsSinceEpoch ~/ Duration.millisecondsPerDay;
 
+/// Valor de filtro de columna: el marcador de vacío se trata como vacío
+String _filtro(String v) => v == GestionFormatters.vacio ? '' : v;
+
 /// Columnas de la rejilla de servicios recurrentes
 List<GestionColumn<ServicioRecurrenteEntity>> recurrenteGestionColumns(
   Map<String, String> pacientes,
@@ -28,6 +31,7 @@ List<GestionColumn<ServicioRecurrenteEntity>> recurrenteGestionColumns(
       flex: 3,
       sortValue: (ServicioRecurrenteEntity s) => s.tipoRecurrencia,
       cell: (ServicioRecurrenteEntity s) => TrasladoCellText(RecurrenteGestion.patron(s)),
+      filterValue: RecurrenteGestion.patron,
     ),
     GestionColumn<ServicioRecurrenteEntity>(
       label: 'Ida / Vuelta',
@@ -47,6 +51,7 @@ List<GestionColumn<ServicioRecurrenteEntity>> recurrenteGestionColumns(
       flex: 3,
       sortValue: RecurrenteGestion.destino,
       cell: (ServicioRecurrenteEntity s) => TrasladoCellText(RecurrenteGestion.destino(s)),
+      filterValue: (ServicioRecurrenteEntity s) => _filtro(RecurrenteGestion.destino(s)),
     ),
     GestionColumn<ServicioRecurrenteEntity>(
       label: 'Generados hasta',
@@ -63,6 +68,7 @@ List<GestionColumn<ServicioRecurrenteEntity>> recurrenteGestionColumns(
         final RecurrenteVigencia v = RecurrenteGestion.vigencia(s);
         return GestionDotLabel(label: v.label, color: v.color);
       },
+      filterValue: (ServicioRecurrenteEntity s) => RecurrenteGestion.vigencia(s).label,
     ),
   ];
 }

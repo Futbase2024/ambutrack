@@ -28,6 +28,9 @@ class _StockVestuarioGestionViewState extends State<StockVestuarioGestionView> {
   String _query = '';
   NivelStock? _nivel;
   StockEstadoFiltro _estado = StockEstadoFiltro.todos;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -44,7 +47,7 @@ class _StockVestuarioGestionViewState extends State<StockVestuarioGestionView> {
   }
 
   bool get _hasFilters =>
-      _query.isNotEmpty || _nivel != null || _estado != StockEstadoFiltro.todos;
+      _query.isNotEmpty || _nivel != null || _estado != StockEstadoFiltro.todos || !_colFilters.isEmpty;
 
   StockVestuarioEntity? get _selected {
     for (final StockVestuarioEntity s in _items ?? const <StockVestuarioEntity>[]) {
@@ -55,15 +58,16 @@ class _StockVestuarioGestionViewState extends State<StockVestuarioGestionView> {
     return null;
   }
 
-  List<StockVestuarioEntity> get _visibles => _sort.apply(
-        filtrarStockVestuario(
-          _items ?? <StockVestuarioEntity>[],
-          query: _query,
-          nivel: _nivel,
-          estado: _estado,
-        ),
-        stockVestuarioColumns,
+  /// Artículos con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<StockVestuarioEntity> get _base => filtrarStockVestuario(
+        _items ?? <StockVestuarioEntity>[],
+        query: _query,
+        nivel: _nivel,
+        estado: _estado,
       );
+
+  List<StockVestuarioEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, stockVestuarioColumns), stockVestuarioColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -75,7 +79,10 @@ class _StockVestuarioGestionViewState extends State<StockVestuarioGestionView> {
         _query = '';
         _nivel = null;
         _estado = StockEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() {
     context.read<StockVestuarioBloc>().add(const StockVestuarioLoadRequested());
@@ -164,6 +171,8 @@ class _StockVestuarioGestionViewState extends State<StockVestuarioGestionView> {
             onNivelChanged: (NivelStock? v) => _updateFilters(() => _nivel = v),
             estado: _estado,
             onEstadoChanged: (StockEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _StockGridContent(
@@ -178,6 +187,9 @@ class _StockVestuarioGestionViewState extends State<StockVestuarioGestionView> {
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
           ),
           detailPanel: StockVestuarioDetailPanel(
             item: selected,
@@ -220,6 +232,9 @@ class _StockGridContent extends StatelessWidget {
     required this.onActivate,
     required this.onSort,
     required this.onRetry,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
   });
 
   final StockVestuarioState state;
@@ -233,6 +248,9 @@ class _StockGridContent extends StatelessWidget {
   final ValueChanged<StockVestuarioEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
   final VoidCallback onRetry;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<StockVestuarioEntity> filterSource;
 
   @override
   Widget build(BuildContext context) {
@@ -258,6 +276,9 @@ class _StockGridContent extends StatelessWidget {
           emptyMessage: hasFilters
               ? 'Ningún artículo coincide con los filtros'
               : 'No hay artículos de stock registrados. Pulsa "Nuevo" para crear uno.',
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
         ),
         if (s is StockVestuarioLoading)
           const Positioned(

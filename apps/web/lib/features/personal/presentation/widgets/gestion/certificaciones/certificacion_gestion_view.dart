@@ -24,6 +24,10 @@ class CertificacionGestionView extends StatefulWidget {
 class _CertificacionGestionViewState extends State<CertificacionGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
+
   CertificacionEstadoFiltro _estado = CertificacionEstadoFiltro.todos;
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
@@ -43,7 +47,9 @@ class _CertificacionGestionViewState extends State<CertificacionGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != CertificacionEstadoFiltro.todos;
+  bool get _hasFilters =>
+      _query.isNotEmpty || _estado != CertificacionEstadoFiltro.todos ||
+      !_colFilters.isEmpty;
 
   CertificacionEntity? get _selected {
     for (final CertificacionEntity c in _items ?? const <CertificacionEntity>[]) {
@@ -54,10 +60,12 @@ class _CertificacionGestionViewState extends State<CertificacionGestionView> {
     return null;
   }
 
-  List<CertificacionEntity> get _visibles => _sort.apply(
-        filtrarCertificaciones(_items ?? <CertificacionEntity>[], query: _query, estado: _estado),
-        certificacionGestionColumns,
-      );
+  /// Registros con búsqueda y filtros de la barra (base de los filtros de columna)
+  List<CertificacionEntity> get _base =>
+      filtrarCertificaciones(_items ?? <CertificacionEntity>[], query: _query, estado: _estado);
+
+  List<CertificacionEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, certificacionGestionColumns), certificacionGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -68,7 +76,10 @@ class _CertificacionGestionViewState extends State<CertificacionGestionView> {
         _searchController.clear();
         _query = '';
         _estado = CertificacionEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() =>
       context.read<CertificacionCatalogoBloc>().add(const CertificacionCatalogoLoadRequested());
@@ -159,6 +170,9 @@ class _CertificacionGestionViewState extends State<CertificacionGestionView> {
             onSearchChanged: (String v) => _updateFilters(() => _query = v),
             estado: _estado,
             onEstadoChanged: (CertificacionEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            columns: certificacionGestionColumns,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: GestionGridContent<CertificacionEntity>(
@@ -168,6 +182,9 @@ class _CertificacionGestionViewState extends State<CertificacionGestionView> {
             errorTitle: 'Error al cargar certificaciones',
             columns: certificacionGestionColumns,
             rows: gestionPageOf(visibles, _page, _pageSize),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             rowId: (CertificacionEntity c) => c.id,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,

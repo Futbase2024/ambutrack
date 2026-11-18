@@ -97,24 +97,28 @@ final List<GestionColumn<StockVestuarioEntity>> stockVestuarioColumns =
     label: 'Prenda',
     flex: 3,
     sortValue: (StockVestuarioEntity s) => s.prenda.toLowerCase(),
+    filterValue: (StockVestuarioEntity s) => s.prenda,
     cell: (StockVestuarioEntity s) => StockCellText(s.prenda, bold: true),
   ),
   GestionColumn<StockVestuarioEntity>(
     label: 'Talla',
     width: 80,
     sortValue: (StockVestuarioEntity s) => s.talla.toLowerCase(),
+    filterValue: (StockVestuarioEntity s) => s.talla,
     cell: (StockVestuarioEntity s) => StockCellText(GestionFormatters.texto(s.talla)),
   ),
   GestionColumn<StockVestuarioEntity>(
     label: 'Marca',
     flex: 2,
     sortValue: (StockVestuarioEntity s) => (s.marca ?? '').toLowerCase(),
+    filterValue: (StockVestuarioEntity s) => s.marca ?? '',
     cell: (StockVestuarioEntity s) => StockCellText(GestionFormatters.texto(s.marca)),
   ),
   GestionColumn<StockVestuarioEntity>(
     label: 'Color',
     flex: 2,
     sortValue: (StockVestuarioEntity s) => (s.color ?? '').toLowerCase(),
+    filterValue: (StockVestuarioEntity s) => s.color ?? '',
     cell: (StockVestuarioEntity s) => StockCellText(GestionFormatters.texto(s.color)),
   ),
   GestionColumn<StockVestuarioEntity>(
@@ -141,6 +145,7 @@ final List<GestionColumn<StockVestuarioEntity>> stockVestuarioColumns =
     label: 'Estado',
     width: 100,
     sortValue: (StockVestuarioEntity s) => s.activo ? 0 : 1,
+    filterValue: (StockVestuarioEntity s) => s.activo ? 'Activo' : 'Inactivo',
     cell: (StockVestuarioEntity s) => StockEstadoDot(activo: s.activo),
   ),
 ];

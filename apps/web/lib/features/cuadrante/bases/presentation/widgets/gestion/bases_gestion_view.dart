@@ -23,6 +23,9 @@ class _BasesGestionViewState extends State<BasesGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   BaseEstadoFiltro _estado = BaseEstadoFiltro.todos;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -49,7 +52,7 @@ class _BasesGestionViewState extends State<BasesGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != BaseEstadoFiltro.todos;
+  bool get _hasFilters => _query.isNotEmpty || _estado != BaseEstadoFiltro.todos || !_colFilters.isEmpty;
 
   BaseCentroEntity? get _selected {
     for (final BaseCentroEntity b in _bases ?? const <BaseCentroEntity>[]) {
@@ -60,10 +63,12 @@ class _BasesGestionViewState extends State<BasesGestionView> {
     return null;
   }
 
-  List<BaseCentroEntity> get _visibles => _sort.apply(
-        filtrarBases(_bases ?? <BaseCentroEntity>[], query: _query, estado: _estado),
-        basesGestionColumns,
-      );
+  /// Bases con búsqueda y estado aplicados (base de los valores de los filtros de columna)
+  List<BaseCentroEntity> get _base =>
+      filtrarBases(_bases ?? <BaseCentroEntity>[], query: _query, estado: _estado);
+
+  List<BaseCentroEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, basesGestionColumns), basesGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -74,7 +79,10 @@ class _BasesGestionViewState extends State<BasesGestionView> {
         _searchController.clear();
         _query = '';
         _estado = BaseEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() => context.read<BasesBloc>().add(const BasesLoadRequested());
 
@@ -154,12 +162,17 @@ class _BasesGestionViewState extends State<BasesGestionView> {
             onSearchChanged: (String v) => _updateFilters(() => _query = v),
             estado: _estado,
             onEstadoChanged: (BaseEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _BasesGridContent(
             state: state,
             hasData: _bases != null,
             rows: _pageOf(visibles),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,
             sort: _sort,
@@ -202,6 +215,9 @@ class _BasesGridContent extends StatelessWidget {
     required this.state,
     required this.hasData,
     required this.rows,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.firstRowNumber,
     required this.selectedId,
     required this.sort,
@@ -215,6 +231,9 @@ class _BasesGridContent extends StatelessWidget {
   final BasesState state;
   final bool hasData;
   final List<BaseCentroEntity> rows;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<BaseCentroEntity> filterSource;
   final int firstRowNumber;
   final String? selectedId;
   final GestionSort sort;
@@ -238,6 +257,9 @@ class _BasesGridContent extends StatelessWidget {
         GestionGrid<BaseCentroEntity>(
           columns: basesGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (BaseCentroEntity b) => b.id,
           selectedId: selectedId,
           onSelect: onSelect,

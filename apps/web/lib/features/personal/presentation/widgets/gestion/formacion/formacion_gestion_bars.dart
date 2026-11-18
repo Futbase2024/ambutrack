@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/personal/presentation/widgets/gestion/formacion/formacion_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,9 @@ class FormacionGestionFilters extends StatelessWidget {
     required this.onSearchChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.columns,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -18,6 +22,11 @@ class FormacionGestionFilters extends StatelessWidget {
   final String estado;
   final ValueChanged<String> onEstadoChanged;
   final VoidCallback? onClear;
+
+  /// Filtros por columna (embudo de la cabecera) activos
+  final GestionColumnFilters columnFilters;
+  final List<GestionColumn<FormacionPersonalEntity>> columns;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +42,11 @@ class FormacionGestionFilters extends StatelessWidget {
           value: estado,
           options: formacionEstadoOpciones,
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<FormacionPersonalEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

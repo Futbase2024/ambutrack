@@ -110,6 +110,7 @@ final List<GestionColumn<PacienteEntity>> pacienteGestionColumns =
     width: 100,
     sortValue: (PacienteEntity p) => p.activo ? 0 : 1,
     cell: (PacienteEntity p) => PacienteEstadoDot(activo: p.activo),
+    filterValue: (PacienteEntity p) => p.activo ? 'Activo' : 'Inactivo',
   ),
 ];
 

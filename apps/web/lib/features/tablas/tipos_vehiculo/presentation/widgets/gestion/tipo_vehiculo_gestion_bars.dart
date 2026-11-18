@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/tablas/tipos_vehiculo/presentation/widgets/gestion/tipo_vehiculo_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -72,6 +73,8 @@ class TipoVehiculoGestionFilters extends StatelessWidget {
     required this.onSearchChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -80,6 +83,8 @@ class TipoVehiculoGestionFilters extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final TipoVehiculoEstadoFiltro estado;
   final ValueChanged<TipoVehiculoEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -100,6 +105,11 @@ class TipoVehiculoGestionFilters extends StatelessWidget {
             TipoVehiculoEstadoFiltro.inactivos: 'Inactivos',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<TipoVehiculoEntity>(
+          filters: columnFilters,
+          columns: tipoVehiculoGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

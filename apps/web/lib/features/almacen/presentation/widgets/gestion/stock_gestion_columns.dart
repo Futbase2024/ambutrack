@@ -56,12 +56,14 @@ List<GestionColumn<StockEntity>> stockGestionColumns(Map<String, ProductoEntity>
       flex: 3,
       minWidth: 180,
       sortValue: (StockEntity s) => stockProducto(s, productos).toLowerCase(),
+      filterValue: (StockEntity s) => stockProducto(s, productos),
       cell: (StockEntity s) => AlmacenCellText(stockProducto(s, productos), bold: true),
     ),
     GestionColumn<StockEntity>(
       label: 'Categoría',
       width: 150,
       sortValue: (StockEntity s) => stockCategoria(s, productos),
+      filterValue: (StockEntity s) => productos[s.idProducto]?.categoria?.label ?? '',
       cell: (StockEntity s) => AlmacenCellText(stockCategoria(s, productos)),
     ),
     GestionColumn<StockEntity>(
@@ -81,6 +83,7 @@ List<GestionColumn<StockEntity>> stockGestionColumns(Map<String, ProductoEntity>
       label: 'Ubicación',
       flex: 2,
       sortValue: (StockEntity s) => (s.ubicacionFisica ?? '').toLowerCase(),
+      filterValue: (StockEntity s) => s.ubicacionFisica ?? '',
       cell: (StockEntity s) => AlmacenCellText(GestionFormatters.texto(s.ubicacionFisica)),
     ),
     GestionColumn<StockEntity>(
@@ -99,6 +102,7 @@ List<GestionColumn<StockEntity>> stockGestionColumns(Map<String, ProductoEntity>
       label: 'Estado',
       width: 140,
       sortValue: (StockEntity s) => StockSituacion.de(s).index,
+      filterValue: (StockEntity s) => StockSituacion.de(s).label,
       cell: (StockEntity s) {
         final StockSituacion e = StockSituacion.de(s);
         return GestionDotLabel(label: e.label, color: e.color);

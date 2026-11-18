@@ -19,6 +19,9 @@ class AgendaGridContent extends StatelessWidget {
     required this.onActivate,
     required this.onSort,
     required this.onRetry,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     super.key,
   });
 
@@ -33,6 +36,11 @@ class AgendaGridContent extends StatelessWidget {
   final ValueChanged<AgendaPendienteEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
   final VoidCallback onRetry;
+
+  /// Filtros por columna (estilo Excel) y filas base para sus valores
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<AgendaPendienteEntity> filterSource;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +57,9 @@ class AgendaGridContent extends StatelessWidget {
         GestionGrid<AgendaPendienteEntity>(
           columns: agendaGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (AgendaPendienteEntity p) => p.id,
           selectedId: selectedId,
           onSelect: onSelect,

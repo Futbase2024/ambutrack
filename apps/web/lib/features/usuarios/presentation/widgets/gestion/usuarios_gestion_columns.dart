@@ -134,18 +134,21 @@ final List<GestionColumn<UserEntity>> usuariosGestionColumns = <GestionColumn<Us
   ),
   GestionColumn<UserEntity>(
     label: 'Rol',
+    filterValue: (UserEntity u) => u.rol == null ? '' : usuarioRolNombre(u.rol!),
     width: 170,
     sortValue: (UserEntity u) => u.rol == null ? '' : usuarioRolNombre(u.rol!),
     cell: (UserEntity u) => UsuarioRolDot(rol: u.rol),
   ),
   GestionColumn<UserEntity>(
     label: 'Empresa',
+    filterValue: (UserEntity u) => u.empresaNombre ?? '',
     flex: 2,
     sortValue: (UserEntity u) => (u.empresaNombre ?? '').toLowerCase(),
     cell: (UserEntity u) => UsuarioCellText(GestionFormatters.texto(u.empresaNombre)),
   ),
   GestionColumn<UserEntity>(
     label: 'Estado',
+    filterValue: (UserEntity u) => usuarioActivo(u) ? 'Activo' : 'Inactivo',
     width: 100,
     sortValue: (UserEntity u) => usuarioActivo(u) ? 0 : 1,
     cell: (UserEntity u) => UsuarioEstadoDot(activo: usuarioActivo(u)),

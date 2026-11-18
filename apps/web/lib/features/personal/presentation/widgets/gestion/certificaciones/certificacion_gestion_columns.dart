@@ -39,6 +39,7 @@ final List<GestionColumn<CertificacionEntity>> certificacionGestionColumns =
   ),
   GestionColumn<CertificacionEntity>(
     label: 'Vigencia',
+    filterValue: certificacionVigencia,
     width: 110,
     alignment: Alignment.centerRight,
     sortValue: (CertificacionEntity c) => c.vigenciaMeses,
@@ -58,6 +59,7 @@ final List<GestionColumn<CertificacionEntity>> certificacionGestionColumns =
   ),
   GestionColumn<CertificacionEntity>(
     label: 'Estado',
+    filterValue: (CertificacionEntity c) => c.activa ? 'Activa' : 'Inactiva',
     width: 100,
     sortValue: (CertificacionEntity c) => c.activa ? 0 : 1,
     cell: (CertificacionEntity c) => CertificacionEstadoDot(activa: c.activa),

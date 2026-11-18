@@ -73,6 +73,7 @@ final List<GestionColumn<EmpresaRow>> multicentroColumns = <GestionColumn<Empres
     width: 100,
     sortValue: (EmpresaRow r) => r.empresa.activo ? 0 : 1,
     cell: (EmpresaRow r) => EmpresaEstadoDot(activa: r.empresa.activo),
+    filterValue: (EmpresaRow r) => r.empresa.activo ? 'Activa' : 'Inactiva',
   ),
 ];
 
@@ -106,6 +107,8 @@ class MulticentroFilters extends StatelessWidget {
     required this.onSearchChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -114,6 +117,8 @@ class MulticentroFilters extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final EmpresaEstadoFiltro estado;
   final ValueChanged<EmpresaEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -134,6 +139,11 @@ class MulticentroFilters extends StatelessWidget {
             EmpresaEstadoFiltro.inactivas: 'Inactivas',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<EmpresaRow>(
+          filters: columnFilters,
+          columns: multicentroColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

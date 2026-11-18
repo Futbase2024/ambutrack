@@ -63,12 +63,14 @@ final List<GestionColumn<ProductoEntity>> productoGestionColumns = <GestionColum
     label: 'Categoría',
     flex: 3,
     sortValue: (ProductoEntity p) => p.categoria?.label ?? '',
+    filterValue: (ProductoEntity p) => p.categoria?.label ?? 'Sin categoría',
     cell: (ProductoEntity p) => ProductoCategoriaDot(categoria: p.categoria),
   ),
   GestionColumn<ProductoEntity>(
     label: 'Unidad',
     flex: 2,
     sortValue: (ProductoEntity p) => p.unidadMedida.toLowerCase(),
+    filterValue: (ProductoEntity p) => p.unidadMedida,
     cell: (ProductoEntity p) => AlmacenCellText(GestionFormatters.texto(p.unidadMedida)),
   ),
   GestionColumn<ProductoEntity>(
@@ -84,6 +86,7 @@ final List<GestionColumn<ProductoEntity>> productoGestionColumns = <GestionColum
     label: 'Estado',
     width: 100,
     sortValue: (ProductoEntity p) => p.activo ? 0 : 1,
+    filterValue: (ProductoEntity p) => p.activo ? 'Activo' : 'Inactivo',
     cell: (ProductoEntity p) => AlmacenEstadoDot(activo: p.activo),
   ),
 ];

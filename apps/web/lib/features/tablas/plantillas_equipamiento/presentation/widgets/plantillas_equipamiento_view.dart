@@ -23,6 +23,9 @@ class _PlantillasEquipamientoViewState extends State<PlantillasEquipamientoView>
     with PlantillasViewActions<PlantillasEquipamientoView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   String? _seccion;
   TipoItemEquipamiento? _tipo;
   ItemEstadoFiltro _estado = ItemEstadoFiltro.activos;
@@ -38,6 +41,7 @@ class _PlantillasEquipamientoViewState extends State<PlantillasEquipamientoView>
   }
 
   bool get _hasFilters =>
+      !_colFilters.isEmpty ||
       _query.isNotEmpty || _seccion != null || _tipo != null || _estado != ItemEstadoFiltro.activos;
 
   void _updateFilters(VoidCallback change) => setState(() {
@@ -45,9 +49,12 @@ class _PlantillasEquipamientoViewState extends State<PlantillasEquipamientoView>
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
+
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
         _query = '';
+        _colFilters = const GestionColumnFilters();
         _seccion = null;
         _tipo = null;
         _estado = ItemEstadoFiltro.activos;
@@ -60,6 +67,7 @@ class _PlantillasEquipamientoViewState extends State<PlantillasEquipamientoView>
     _updateFilters(() {
       _selectedId = null;
       _seccion = null;
+      _colFilters = const GestionColumnFilters();
     });
     context.read<PlantillasEquipamientoBloc>().add(PlantillaSelected(id));
   }
@@ -80,10 +88,10 @@ class _PlantillasEquipamientoViewState extends State<PlantillasEquipamientoView>
       listener: onResultado,
       builder: (BuildContext context, PlantillasEquipamientoState state) {
         final PlantillaEquipamientoEntity? plantilla = state.plantilla;
-        final List<PlantillaEquipamientoItemEntity> visibles = _sort.apply(
-          filtrarItems(state.items, query: _query, seccion: _seccion, tipo: _tipo, estado: _estado),
-          plantillaItemsColumns,
-        );
+        final List<PlantillaEquipamientoItemEntity> base =
+            filtrarItems(state.items, query: _query, seccion: _seccion, tipo: _tipo, estado: _estado);
+        final List<PlantillaEquipamientoItemEntity> visibles =
+            _sort.apply(_colFilters.apply(base, plantillaItemsColumns), plantillaItemsColumns);
         final PlantillaEquipamientoItemEntity? item = _selectedIn(state.items);
         final bool ocupado = state.status == PlantillasStatus.loading || state.saving || state.cargandoItems;
         return GestionLayout(
@@ -114,6 +122,8 @@ class _PlantillasEquipamientoViewState extends State<PlantillasEquipamientoView>
             onTipoChanged: (TipoItemEquipamiento? v) => _updateFilters(() => _tipo = v),
             estado: _estado,
             onEstadoChanged: (ItemEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: FlotaGridArea(
@@ -125,6 +135,9 @@ class _PlantillasEquipamientoViewState extends State<PlantillasEquipamientoView>
             child: GestionGrid<PlantillaEquipamientoItemEntity>(
               columns: plantillaItemsColumns,
               rows: flotaPageOf(visibles, _page, _pageSize),
+              filters: _colFilters,
+              onFiltersChanged: _onColumnFiltersChanged,
+              filterSource: base,
               rowId: (PlantillaEquipamientoItemEntity i) => i.id,
               selectedId: _selectedId,
               onSelect: (PlantillaEquipamientoItemEntity i) => setState(() => _selectedId = i.id),

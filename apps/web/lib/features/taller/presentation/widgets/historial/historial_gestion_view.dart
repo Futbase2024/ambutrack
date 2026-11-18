@@ -26,6 +26,9 @@ class HistorialGestionView extends StatefulWidget {
 class _HistorialGestionViewState extends State<HistorialGestionView> {
   final TextEditingController _searchController = TextEditingController();
   HistorialFiltro _filtro = const HistorialFiltro();
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 6, ascending: false);
   int _page = 0;
   int _pageSize = 25;
@@ -42,8 +45,11 @@ class _HistorialGestionViewState extends State<HistorialGestionView> {
 
   List<OrdenReparacionEntity> get _todas => _ordenes ?? <OrdenReparacionEntity>[];
 
+  /// Órdenes con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<OrdenReparacionEntity> get _base => _todas.where(_filtro.matches).toList();
+
   List<OrdenReparacionEntity> get _visibles =>
-      _sort.apply(_todas.where(_filtro.matches).toList(), historialColumns);
+      _sort.apply(_colFilters.apply(_base, historialColumns), historialColumns);
 
   OrdenReparacionEntity? get _selected {
     for (final OrdenReparacionEntity o in _todas) {
@@ -59,8 +65,16 @@ class _HistorialGestionViewState extends State<HistorialGestionView> {
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => setState(() {
+        _colFilters = f;
+        _page = 0;
+      });
+
+  bool get _hasFilters => _filtro.activo || !_colFilters.isEmpty;
+
   void _clearFilters() {
     _searchController.clear();
+    _colFilters = const GestionColumnFilters();
     _setFiltro(const HistorialFiltro());
   }
 
@@ -109,7 +123,9 @@ class _HistorialGestionViewState extends State<HistorialGestionView> {
             vehiculos: tallerOpcionesDe(_todas.map((OrdenReparacionEntity o) => o.vehiculoMatricula)),
             talleres: tallerOpcionesDe(_todas.map((OrdenReparacionEntity o) => o.tallerNombre)),
             onChanged: _setFiltro,
-            onClear: _filtro.activo ? _clearFilters : null,
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
+            onClear: _hasFilters ? _clearFilters : null,
           ),
           content: TallerGestionGridContent<OrdenReparacionEntity>(
             hasData: _ordenes != null,
@@ -122,13 +138,16 @@ class _HistorialGestionViewState extends State<HistorialGestionView> {
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,
             sort: _sort,
-            emptyMessage: _filtro.activo
+            emptyMessage: _hasFilters
                 ? 'Ninguna orden coincide con los filtros'
                 : 'Todavía no hay reparaciones terminadas',
             onSelect: (OrdenReparacionEntity o) => setState(() => _selectedId = o.id),
             onActivate: (OrdenReparacionEntity o) => setState(() => _selectedId = o.id),
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
           ),
           detailPanel: HistorialDetailPanel(
             orden: _selected,

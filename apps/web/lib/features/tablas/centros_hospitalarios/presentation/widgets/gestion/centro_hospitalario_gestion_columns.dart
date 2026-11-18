@@ -86,18 +86,21 @@ final List<GestionColumn<CentroHospitalarioEntity>> centroHospitalarioGestionCol
     label: 'Tipo',
     flex: 2,
     sortValue: (CentroHospitalarioEntity c) => (c.tipoCentro ?? '').toLowerCase(),
+    filterValue: (CentroHospitalarioEntity c) => c.tipoCentro ?? '',
     cell: (CentroHospitalarioEntity c) => CentroTipoDot(tipo: c.tipoCentro),
   ),
   GestionColumn<CentroHospitalarioEntity>(
     label: 'Localidad',
     flex: 2,
     sortValue: (CentroHospitalarioEntity c) => (c.localidadNombre ?? '').toLowerCase(),
+    filterValue: (CentroHospitalarioEntity c) => c.localidadNombre ?? '',
     cell: (CentroHospitalarioEntity c) => CentroCellText(GestionFormatters.texto(c.localidadNombre)),
   ),
   GestionColumn<CentroHospitalarioEntity>(
     label: 'Provincia',
     flex: 2,
     sortValue: (CentroHospitalarioEntity c) => (c.provinciaNombre ?? '').toLowerCase(),
+    filterValue: (CentroHospitalarioEntity c) => c.provinciaNombre ?? '',
     cell: (CentroHospitalarioEntity c) => CentroCellText(GestionFormatters.texto(c.provinciaNombre)),
   ),
   GestionColumn<CentroHospitalarioEntity>(
@@ -110,6 +113,7 @@ final List<GestionColumn<CentroHospitalarioEntity>> centroHospitalarioGestionCol
     label: 'Estado',
     width: 100,
     sortValue: (CentroHospitalarioEntity c) => c.activo ? 0 : 1,
+    filterValue: (CentroHospitalarioEntity c) => c.activo ? 'Activo' : 'Inactivo',
     cell: (CentroHospitalarioEntity c) => CentroEstadoDot(activo: c.activo),
   ),
 ];

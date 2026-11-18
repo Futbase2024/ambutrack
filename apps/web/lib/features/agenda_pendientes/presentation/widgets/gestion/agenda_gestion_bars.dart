@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/agenda_pendientes/presentation/widgets/gestion/agenda_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -78,6 +79,8 @@ class AgendaGestionFilters extends StatelessWidget {
     required this.onEstadoChanged,
     required this.fecha,
     required this.onFechaChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -88,6 +91,8 @@ class AgendaGestionFilters extends StatelessWidget {
   final ValueChanged<AgendaEstadoFiltro> onEstadoChanged;
   final AgendaFechaFiltro fecha;
   final ValueChanged<AgendaFechaFiltro> onFechaChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -119,6 +124,11 @@ class AgendaGestionFilters extends StatelessWidget {
             AgendaFechaFiltro.anteriores: 'Anteriores',
           },
           onChanged: onFechaChanged,
+        ),
+        GestionColumnFilterChips<AgendaPendienteEntity>(
+          filters: columnFilters,
+          columns: agendaGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

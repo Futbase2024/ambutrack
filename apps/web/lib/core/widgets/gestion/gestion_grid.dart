@@ -1,8 +1,11 @@
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/widgets/gestion/gestion_column_filter_menu.dart';
+import 'package:ambutrack_web/core/widgets/gestion/gestion_column_filters.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_grid_column.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+export 'gestion_column_filters.dart';
 export 'gestion_grid_column.dart';
 
 part 'gestion_grid_parts.dart';
@@ -10,6 +13,7 @@ part 'gestion_grid_parts.dart';
 const double _kRowHeight = 32;
 const double _kHeaderHeight = 34;
 const double _kNumberWidth = 44;
+const double _kCheckWidth = 36;
 
 /// Rejilla densa estilo programa de gestión.
 ///
@@ -17,6 +21,9 @@ const double _kNumberWidth = 44;
 /// - Selección de fila (clic), activación (doble clic / Intro)
 /// - Navegación con flechas ↑ ↓
 /// - Cabeceras ordenables
+/// - Filtro estilo Excel por columna ([filters] + [onFiltersChanged])
+/// - Marcado de varias filas con casillas ([checkedIds] + [onCheckedChanged])
+/// - Modo edición: las columnas con `editCell` se editan en la propia celda
 class GestionGrid<T> extends StatefulWidget {
   const GestionGrid({
     required this.columns,
@@ -29,6 +36,12 @@ class GestionGrid<T> extends StatefulWidget {
     this.onSort,
     this.firstRowNumber = 1,
     this.emptyMessage = 'No hay registros',
+    this.filters = const GestionColumnFilters(),
+    this.onFiltersChanged,
+    this.filterSource,
+    this.checkedIds,
+    this.onCheckedChanged,
+    this.editing = false,
     super.key,
   });
 
@@ -44,6 +57,55 @@ class GestionGrid<T> extends StatefulWidget {
   /// Número de la primera fila (para paginación)
   final int firstRowNumber;
   final String emptyMessage;
+
+  /// Filtros por columna activos (se aplican fuera; aquí solo se pintan)
+  final GestionColumnFilters filters;
+
+  /// Si no es null, las columnas con `filterValue` muestran el embudo
+  final ValueChanged<GestionColumnFilters>? onFiltersChanged;
+
+  /// Filas de las que salen los valores del filtro (por defecto, [rows]).
+  /// Conviene pasar todas las filas sin paginar ni filtrar por columnas.
+  final List<T>? filterSource;
+
+  /// Filas marcadas. Si no es null, se muestra la columna de casillas.
+  final Set<String>? checkedIds;
+  final ValueChanged<Set<String>>? onCheckedChanged;
+
+  /// Modo edición: las columnas con `editCell` muestran su editor
+  final bool editing;
+
+  bool get showChecks => checkedIds != null;
+
+  /// Marca o desmarca una fila
+  void toggleChecked(String id) {
+    final Set<String> next = Set<String>.of(checkedIds ?? const <String>{});
+    if (!next.remove(id)) {
+      next.add(id);
+    }
+    onCheckedChanged?.call(next);
+  }
+
+  /// Marca o desmarca todas las filas visibles
+  void toggleAllChecked() {
+    final Set<String> visibles = <String>{for (final T r in rows) rowId(r)};
+    final Set<String> next = Set<String>.of(checkedIds ?? const <String>{});
+    if (visibles.every(next.contains)) {
+      next.removeAll(visibles);
+    } else {
+      next.addAll(visibles);
+    }
+    onCheckedChanged?.call(next);
+  }
+
+  /// Estado de la casilla de cabecera (null = parcial)
+  bool? get allCheckedState {
+    final int marcadas = rows.where((T r) => checkedIds?.contains(rowId(r)) ?? false).length;
+    if (marcadas == 0) {
+      return false;
+    }
+    return marcadas == rows.length ? true : null;
+  }
 
   @override
   State<GestionGrid<T>> createState() => _GestionGridState<T>();
@@ -102,7 +164,7 @@ class _GestionGridState<T> extends State<GestionGrid<T>> {
 
   /// Ancho mínimo de la rejilla: nº de fila + mínimo de cada columna
   double get _minGridWidth => widget.columns.fold<double>(
-        _kNumberWidth,
+        _kNumberWidth + (widget.showChecks ? _kCheckWidth : 0),
         (double sum, GestionColumn<T> c) => sum + c.requiredWidth,
       );
 
@@ -171,7 +233,7 @@ class _GridBody<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _GridHeader<T>(columns: grid.columns, sort: grid.sort, onSort: grid.onSort),
+        _GridHeader<T>(grid: grid),
         Expanded(
           child: grid.rows.isEmpty
               ? _GridEmpty(message: grid.emptyMessage)
@@ -181,12 +243,16 @@ class _GridBody<T> extends StatelessWidget {
                   itemCount: grid.rows.length,
                   itemBuilder: (BuildContext context, int i) {
                     final T item = grid.rows[i];
+                    final String id = grid.rowId(item);
                     return _GridRow<T>(
                       item: item,
                       number: grid.firstRowNumber + i,
                       columns: grid.columns,
                       striped: i.isOdd,
-                      selected: grid.rowId(item) == grid.selectedId,
+                      selected: id == grid.selectedId,
+                      editing: grid.editing,
+                      checked: grid.checkedIds?.contains(id),
+                      onCheck: () => grid.toggleChecked(id),
                       onTap: () {
                         focusNode.requestFocus();
                         grid.onSelect(item);

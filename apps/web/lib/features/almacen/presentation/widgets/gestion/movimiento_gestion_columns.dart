@@ -95,6 +95,7 @@ List<GestionColumn<MovimientoStockEntity>> movimientoGestionColumns(
       label: 'Tipo',
       flex: 3,
       sortValue: (MovimientoStockEntity m) => m.tipo.label,
+      filterValue: (MovimientoStockEntity m) => m.tipo.label,
       cell: (MovimientoStockEntity m) => GestionDotLabel(
         label: m.tipo.label,
         color: movimientoTipoColor(m.tipo),
@@ -104,6 +105,7 @@ List<GestionColumn<MovimientoStockEntity>> movimientoGestionColumns(
       label: 'Producto',
       flex: 4,
       sortValue: (MovimientoStockEntity m) => movimientoProductoNombre(m, productos).toLowerCase(),
+      filterValue: (MovimientoStockEntity m) => productos[m.idProducto]?.nombre ?? '',
       cell: (MovimientoStockEntity m) => AlmacenCellText(movimientoProductoNombre(m, productos), bold: true),
     ),
     GestionColumn<MovimientoStockEntity>(

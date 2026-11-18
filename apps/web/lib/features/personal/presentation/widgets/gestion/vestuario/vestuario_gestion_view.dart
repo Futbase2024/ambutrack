@@ -33,6 +33,9 @@ class _VestuarioGestionViewState extends State<VestuarioGestionView> {
   String _query = '';
   VestuarioEstadoFiltro _estado = VestuarioEstadoFiltro.todos;
   String? _prenda;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -74,7 +77,7 @@ class _VestuarioGestionViewState extends State<VestuarioGestionView> {
   String _nombre(String personalId) => _nombres[personalId] ?? 'Desconocido';
 
   bool get _hasFilters =>
-      _query.isNotEmpty || _prenda != null || _estado != VestuarioEstadoFiltro.todos;
+      _query.isNotEmpty || _prenda != null || _estado != VestuarioEstadoFiltro.todos || !_colFilters.isEmpty;
 
   VestuarioEntity? get _selected {
     for (final VestuarioEntity v in _items ?? const <VestuarioEntity>[]) {
@@ -95,7 +98,10 @@ class _VestuarioGestionViewState extends State<VestuarioGestionView> {
         _query = '';
         _prenda = null;
         _estado = VestuarioEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() {
     context.read<VestuarioBloc>().add(const VestuarioLoadRequested());
@@ -201,16 +207,14 @@ class _VestuarioGestionViewState extends State<VestuarioGestionView> {
           final List<VestuarioEntity> todos = _items ?? <VestuarioEntity>[];
           final List<String> prendas = prendasVestuario(todos);
           final List<GestionColumn<VestuarioEntity>> columns = vestuarioColumns(_nombre);
-          final List<VestuarioEntity> visibles = _sort.apply(
-            filtrarVestuario(
-              todos,
-              query: _query,
-              estado: _estado,
-              prenda: prendas.contains(_prenda) ? _prenda : null,
-              nombre: _nombre,
-            ),
-            columns,
+          final List<VestuarioEntity> base = filtrarVestuario(
+            todos,
+            query: _query,
+            estado: _estado,
+            prenda: prendas.contains(_prenda) ? _prenda : null,
+            nombre: _nombre,
           );
+          final List<VestuarioEntity> visibles = _sort.apply(_colFilters.apply(base, columns), columns);
           final VestuarioEntity? selected = _selected;
           return GestionLayout(
             toolbar: VestuarioGestionToolbar(
@@ -229,6 +233,9 @@ class _VestuarioGestionViewState extends State<VestuarioGestionView> {
               prenda: _prenda,
               prendas: prendas,
               onPrendaChanged: (String? v) => _updateFilters(() => _prenda = v),
+              columnFilters: _colFilters,
+              columns: columns,
+              onColumnFiltersChanged: _onColumnFiltersChanged,
               onClear: _hasFilters ? _clearFilters : null,
             ),
             content: VestuarioGridContent(
@@ -236,6 +243,9 @@ class _VestuarioGestionViewState extends State<VestuarioGestionView> {
               hasData: _items != null,
               columns: columns,
               rows: _pageOf(visibles),
+              filters: _colFilters,
+              onFiltersChanged: _onColumnFiltersChanged,
+              filterSource: base,
               firstRowNumber: _page * _pageSize + 1,
               selectedId: _selectedId,
               sort: _sort,

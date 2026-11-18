@@ -81,6 +81,9 @@ class MantenimientoGestionFilters extends StatelessWidget {
     required this.onTipoChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columns,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -91,6 +94,11 @@ class MantenimientoGestionFilters extends StatelessWidget {
   final ValueChanged<TipoMantenimiento?> onTipoChanged;
   final EstadoMantenimiento? estado;
   final ValueChanged<EstadoMantenimiento?> onEstadoChanged;
+
+  /// Columnas de la rejilla (para las etiquetas de los filtros de columna)
+  final List<GestionColumn<MantenimientoEntity>> columns;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -120,6 +128,11 @@ class MantenimientoGestionFilters extends StatelessWidget {
             for (final EstadoMantenimiento e in EstadoMantenimiento.values) e: e.displayName,
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<MantenimientoEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

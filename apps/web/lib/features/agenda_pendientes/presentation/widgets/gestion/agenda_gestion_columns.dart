@@ -78,6 +78,7 @@ final List<GestionColumn<AgendaPendienteEntity>> agendaGestionColumns =
     flex: 2,
     sortValue: (AgendaPendienteEntity p) => (p.localidad ?? '').toLowerCase(),
     cell: (AgendaPendienteEntity p) => AgendaCellText(GestionFormatters.texto(p.localidad)),
+    filterValue: (AgendaPendienteEntity p) => p.localidad ?? '',
   ),
   GestionColumn<AgendaPendienteEntity>(
     label: 'Descripción',
@@ -93,6 +94,7 @@ final List<GestionColumn<AgendaPendienteEntity>> agendaGestionColumns =
     width: 120,
     sortValue: (AgendaPendienteEntity p) => p.completado ? 1 : 0,
     cell: (AgendaPendienteEntity p) => AgendaEstadoDot(completado: p.completado),
+    filterValue: (AgendaPendienteEntity p) => p.completado ? 'Completado' : 'Pendiente',
   ),
 ];
 

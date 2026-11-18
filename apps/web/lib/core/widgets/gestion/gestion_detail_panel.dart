@@ -86,7 +86,8 @@ class _PanelHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+      // Margen derecho para el botón "Ocultar ficha" del layout
+      padding: const EdgeInsets.fromLTRB(14, 12, 44, 10),
       color: AppColors.gray50,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

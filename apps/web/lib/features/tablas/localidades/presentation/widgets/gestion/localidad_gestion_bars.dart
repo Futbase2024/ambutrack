@@ -1,4 +1,6 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/tablas/localidades/presentation/widgets/gestion/localidad_gestion_columns.dart';
 import 'package:flutter/material.dart';
 
 /// Barra de herramientas de la pantalla de localidades
@@ -72,6 +74,8 @@ class LocalidadGestionFilters extends StatelessWidget {
     required this.provincias,
     required this.provinciaId,
     required this.onProvinciaChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -81,6 +85,8 @@ class LocalidadGestionFilters extends StatelessWidget {
   final Map<String, String> provincias;
   final String? provinciaId;
   final ValueChanged<String?> onProvinciaChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -100,6 +106,11 @@ class LocalidadGestionFilters extends StatelessWidget {
             ...provincias,
           },
           onChanged: onProvinciaChanged,
+        ),
+        GestionColumnFilterChips<LocalidadEntity>(
+          filters: columnFilters,
+          columns: localidadGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

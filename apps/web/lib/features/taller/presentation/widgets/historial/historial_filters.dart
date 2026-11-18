@@ -12,6 +12,8 @@ class HistorialFilters extends StatelessWidget {
     required this.vehiculos,
     required this.talleres,
     required this.onChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -23,6 +25,8 @@ class HistorialFilters extends StatelessWidget {
   final Map<String, String> vehiculos;
   final Map<String, String> talleres;
   final ValueChanged<HistorialFiltro> onChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   HistorialFiltro _with({
@@ -88,6 +92,11 @@ class HistorialFilters extends StatelessWidget {
           label: 'Salida',
           rango: filtro.rango,
           onChanged: (DateTimeRange? r) => onChanged(_with(rango: r, clearRango: r == null)),
+        ),
+        GestionColumnFilterChips<OrdenReparacionEntity>(
+          filters: columnFilters,
+          columns: historialColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

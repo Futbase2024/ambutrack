@@ -73,6 +73,7 @@ List<GestionColumn<FormacionPersonalEntity>> formacionGestionColumns(FormacionCa
     ),
     GestionColumn<FormacionPersonalEntity>(
       label: 'Certificación / Curso',
+      filterValue: (FormacionPersonalEntity f) => gestionFiltroTexto(cat.formacion(f)),
       flex: 4,
       sortValue: (FormacionPersonalEntity f) => cat.formacion(f).toLowerCase(),
       cell: (FormacionPersonalEntity f) => GestionCellText(cat.formacion(f)),
@@ -104,6 +105,7 @@ List<GestionColumn<FormacionPersonalEntity>> formacionGestionColumns(FormacionCa
     ),
     GestionColumn<FormacionPersonalEntity>(
       label: 'Estado',
+      filterValue: (FormacionPersonalEntity f) => formacionEstadoLabel(f.estado),
       width: 140,
       sortValue: (FormacionPersonalEntity f) => f.estado,
       cell: (FormacionPersonalEntity f) => FormacionEstadoDot(estado: f.estado),

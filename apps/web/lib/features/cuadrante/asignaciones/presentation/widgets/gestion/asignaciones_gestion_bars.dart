@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/widgets/gestion/asignaciones_gestion_columns.dart';
@@ -68,6 +69,9 @@ class AsignacionesGestionFilters extends StatelessWidget {
     required this.onSearchChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columns,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -80,6 +84,9 @@ class AsignacionesGestionFilters extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final String? estado;
   final ValueChanged<String?> onEstadoChanged;
+  final List<GestionColumn<AsignacionVehiculoTurnoEntity>> columns;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -97,6 +104,11 @@ class AsignacionesGestionFilters extends StatelessWidget {
           value: estado,
           options: const <String?, String>{null: 'Todos', ...asignacionEstados},
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<AsignacionVehiculoTurnoEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

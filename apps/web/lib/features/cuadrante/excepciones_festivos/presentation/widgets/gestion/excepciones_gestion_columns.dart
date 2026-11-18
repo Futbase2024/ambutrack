@@ -120,24 +120,28 @@ final List<GestionColumn<ExcepcionFestivoEntity>> excepcionesGestionColumns =
     width: 120,
     sortValue: (ExcepcionFestivoEntity e) => e.tipo,
     cell: (ExcepcionFestivoEntity e) => ExcepcionTipoDot(tipo: e.tipo),
+    filterValue: (ExcepcionFestivoEntity e) => excepcionTipoLabel(e.tipo),
   ),
   GestionColumn<ExcepcionFestivoEntity>(
     label: 'Anual',
     width: 80,
     sortValue: (ExcepcionFestivoEntity e) => e.repetirAnualmente ? 0 : 1,
     cell: (ExcepcionFestivoEntity e) => ExcepcionSiNo(value: e.repetirAnualmente),
+    filterValue: (ExcepcionFestivoEntity e) => e.repetirAnualmente ? 'Sí' : 'No',
   ),
   GestionColumn<ExcepcionFestivoEntity>(
     label: 'Afecta dotaciones',
     width: 140,
     sortValue: (ExcepcionFestivoEntity e) => e.afectaDotaciones ? 0 : 1,
     cell: (ExcepcionFestivoEntity e) => ExcepcionSiNo(value: e.afectaDotaciones),
+    filterValue: (ExcepcionFestivoEntity e) => e.afectaDotaciones ? 'Sí' : 'No',
   ),
   GestionColumn<ExcepcionFestivoEntity>(
     label: 'Estado',
     width: 100,
     sortValue: (ExcepcionFestivoEntity e) => e.activo ? 0 : 1,
     cell: (ExcepcionFestivoEntity e) => ExcepcionEstadoDot(activo: e.activo),
+    filterValue: (ExcepcionFestivoEntity e) => e.activo ? 'Activo' : 'Inactivo',
   ),
 ];
 

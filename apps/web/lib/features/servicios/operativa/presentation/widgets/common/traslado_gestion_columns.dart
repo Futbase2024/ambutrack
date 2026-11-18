@@ -5,6 +5,9 @@ import 'package:ambutrack_web/features/servicios/operativa/presentation/widgets/
 /// Días desde epoch (clave de orden segura en web)
 int _dia(DateTime? d) => d == null ? 0 : d.millisecondsSinceEpoch ~/ Duration.millisecondsPerDay;
 
+/// Valor de filtro de columna: el marcador de vacío se trata como vacío
+String _filtro(String v) => v == GestionFormatters.vacio ? '' : v;
+
 int _minutos(DateTime? d) => d == null ? 99999 : d.toLocal().hour * 60 + d.toLocal().minute;
 
 /// Columnas de la rejilla de traslados.
@@ -48,36 +51,42 @@ List<GestionColumn<TrasladoEntity>> trasladoGestionColumns({
       width: 70,
       sortValue: TrasladoGestion.tipo,
       cell: (TrasladoEntity t) => TrasladoCellText(TrasladoGestion.tipo(t)),
+      filterValue: (TrasladoEntity t) => _filtro(TrasladoGestion.tipo(t)),
     ),
     GestionColumn<TrasladoEntity>(
       label: 'Origen',
       flex: 3,
       sortValue: TrasladoGestion.origen,
       cell: (TrasladoEntity t) => TrasladoCellText(TrasladoGestion.origen(t)),
+      filterValue: (TrasladoEntity t) => _filtro(TrasladoGestion.origen(t)),
     ),
     GestionColumn<TrasladoEntity>(
       label: 'Destino',
       flex: 3,
       sortValue: TrasladoGestion.destino,
       cell: (TrasladoEntity t) => TrasladoCellText(TrasladoGestion.destino(t)),
+      filterValue: (TrasladoEntity t) => _filtro(TrasladoGestion.destino(t)),
     ),
     GestionColumn<TrasladoEntity>(
       label: 'Prioridad',
       width: 104,
       sortValue: (TrasladoEntity t) => t.prioridad,
       cell: (TrasladoEntity t) => TrasladoPrioridadDot(prioridad: t.prioridad),
+      filterValue: (TrasladoEntity t) => TrasladoGestion.prioridadLabel(t.prioridad),
     ),
     GestionColumn<TrasladoEntity>(
       label: 'Conductor',
       flex: 2,
       sortValue: (TrasladoEntity t) => TrasladoGestion.conductor(t, nombres),
       cell: (TrasladoEntity t) => TrasladoCellText(TrasladoGestion.conductor(t, nombres)),
+      filterValue: (TrasladoEntity t) => _filtro(TrasladoGestion.conductor(t, nombres)),
     ),
     GestionColumn<TrasladoEntity>(
       label: 'Vehículo',
       width: 90,
       sortValue: (TrasladoEntity t) => t.matriculaVehiculo ?? '',
       cell: (TrasladoEntity t) => TrasladoCellText(TrasladoGestion.vehiculo(t)),
+      filterValue: (TrasladoEntity t) => _filtro(TrasladoGestion.vehiculo(t)),
     ),
     GestionColumn<TrasladoEntity>(
       label: 'Estado',
@@ -85,6 +94,7 @@ List<GestionColumn<TrasladoEntity>> trasladoGestionColumns({
       sortValue: (TrasladoEntity t) =>
           TrasladoGestion.todosLosEstados.indexOf(t.estado ?? ''),
       cell: (TrasladoEntity t) => TrasladoEstadoDot(estado: t.estado),
+      filterValue: (TrasladoEntity t) => _filtro(TrasladoGestion.estadoLabel(t.estado)),
     ),
   ];
 }

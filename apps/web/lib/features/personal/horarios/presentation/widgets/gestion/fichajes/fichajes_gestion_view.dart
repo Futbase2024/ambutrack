@@ -32,6 +32,10 @@ class FichajesGestionView extends StatefulWidget {
 class _FichajesGestionViewState extends State<FichajesGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
+
   FichajeTipoFiltro _tipo = FichajeTipoFiltro.todos;
   DateTime? _desde;
   DateTime? _hasta;
@@ -50,7 +54,8 @@ class _FichajesGestionViewState extends State<FichajesGestionView> {
   }
 
   bool get _hasFilters =>
-      _query.isNotEmpty || _tipo != FichajeTipoFiltro.todos || _desde != null || _hasta != null;
+      _query.isNotEmpty || _tipo != FichajeTipoFiltro.todos || _desde != null || _hasta != null ||
+      !_colFilters.isEmpty;
 
   RegistroHorarioEntity? get _selected {
     for (final RegistroHorarioEntity r in _registros ?? const <RegistroHorarioEntity>[]) {
@@ -61,16 +66,16 @@ class _FichajesGestionViewState extends State<FichajesGestionView> {
     return null;
   }
 
-  List<RegistroHorarioEntity> get _visibles => _sort.apply(
-        filtrarFichajes(
-          _registros ?? <RegistroHorarioEntity>[],
-          query: _query,
-          tipo: _tipo,
-          desde: _desde,
-          hasta: _hasta,
-        ),
-        fichajesColumns,
-      );
+  /// Registros con búsqueda y filtros de la barra (base de los filtros de columna)
+  List<RegistroHorarioEntity> get _base => filtrarFichajes(
+      _registros ?? <RegistroHorarioEntity>[],
+      query: _query,
+      tipo: _tipo,
+      desde: _desde,
+      hasta: _hasta,
+    );
+
+  List<RegistroHorarioEntity> get _visibles => _sort.apply(_colFilters.apply(_base, fichajesColumns), fichajesColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -83,7 +88,10 @@ class _FichajesGestionViewState extends State<FichajesGestionView> {
         _tipo = FichajeTipoFiltro.todos;
         _desde = null;
         _hasta = null;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() => context.read<RegistroHorarioBloc>().add(fichajesUltimos30Dias());
 
@@ -130,12 +138,18 @@ class _FichajesGestionViewState extends State<FichajesGestionView> {
             onDesdeChanged: (DateTime? v) => _updateFilters(() => _desde = v),
             hasta: _hasta,
             onHastaChanged: (DateTime? v) => _updateFilters(() => _hasta = v),
+            columnFilters: _colFilters,
+            columns: fichajesColumns,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _FichajesGridContent(
             state: state,
             hasData: _registros != null,
             rows: _pageOf(visibles),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,
             sort: _sort,
@@ -185,6 +199,9 @@ class _FichajesGridContent extends StatelessWidget {
     required this.onActivate,
     required this.onSort,
     required this.onRetry,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
   });
 
   final RegistroHorarioState state;
@@ -198,6 +215,11 @@ class _FichajesGridContent extends StatelessWidget {
   final ValueChanged<RegistroHorarioEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
   final VoidCallback onRetry;
+
+  /// Filtros por columna estilo Excel
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<RegistroHorarioEntity> filterSource;
 
   @override
   Widget build(BuildContext context) {
@@ -213,6 +235,9 @@ class _FichajesGridContent extends StatelessWidget {
         GestionGrid<RegistroHorarioEntity>(
           columns: fichajesColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (RegistroHorarioEntity r) => r.id,
           selectedId: selectedId,
           onSelect: onSelect,

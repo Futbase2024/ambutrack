@@ -87,6 +87,9 @@ class UsuariosGestionFilters extends StatelessWidget {
     required this.onRolChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.columns,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -99,6 +102,11 @@ class UsuariosGestionFilters extends StatelessWidget {
   final UsuarioEstadoFiltro estado;
   final ValueChanged<UsuarioEstadoFiltro> onEstadoChanged;
   final VoidCallback? onClear;
+
+  /// Filtros por columna (embudo de la cabecera) activos
+  final GestionColumnFilters columnFilters;
+  final List<GestionColumn<UserEntity>> columns;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +135,11 @@ class UsuariosGestionFilters extends StatelessWidget {
             UsuarioEstadoFiltro.inactivos: 'Inactivos',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<UserEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

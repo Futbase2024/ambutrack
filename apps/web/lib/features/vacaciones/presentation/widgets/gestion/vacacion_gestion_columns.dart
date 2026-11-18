@@ -113,6 +113,7 @@ List<GestionColumn<VacacionesEntity>> vacacionGestionColumns(Map<String, Persona
     ),
     GestionColumn<VacacionesEntity>(
       label: 'Estado',
+      filterValue: (VacacionesEntity v) => v.estado.isEmpty ? '' : vacacionEstadoLabel(v.estado),
       width: 120,
       sortValue: (VacacionesEntity v) => v.estado,
       cell: (VacacionesEntity v) => VacacionEstadoDot(estado: v.estado),

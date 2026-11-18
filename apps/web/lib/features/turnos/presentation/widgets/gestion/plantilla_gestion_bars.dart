@@ -76,6 +76,8 @@ class PlantillaGestionFilters extends StatelessWidget {
     required this.onTipoChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -86,6 +88,8 @@ class PlantillaGestionFilters extends StatelessWidget {
   final ValueChanged<TipoTurno?> onTipoChanged;
   final PlantillaEstadoFiltro estado;
   final ValueChanged<PlantillaEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -115,6 +119,11 @@ class PlantillaGestionFilters extends StatelessWidget {
             PlantillaEstadoFiltro.inactivas: 'Inactivas',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<PlantillaTurnoEntity>(
+          filters: columnFilters,
+          columns: plantillaGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

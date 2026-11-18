@@ -27,6 +27,9 @@ class _AsignacionesGestionViewState extends State<AsignacionesGestionView> {
   DateTime _fecha = DateTime.now();
   String _query = '';
   String? _estado;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 1);
   int _page = 0;
   int _pageSize = 25;
@@ -66,7 +69,7 @@ class _AsignacionesGestionViewState extends State<AsignacionesGestionView> {
     }
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != null;
+  bool get _hasFilters => _query.isNotEmpty || _estado != null || !_colFilters.isEmpty;
 
   AsignacionVehiculoTurnoEntity? get _selected {
     for (final AsignacionVehiculoTurnoEntity a in _asignaciones ?? const <AsignacionVehiculoTurnoEntity>[]) {
@@ -77,16 +80,19 @@ class _AsignacionesGestionViewState extends State<AsignacionesGestionView> {
     return null;
   }
 
-  List<AsignacionVehiculoTurnoEntity> _visibles(List<GestionColumn<AsignacionVehiculoTurnoEntity>> columns) =>
-      _sort.apply(
-        filtrarAsignaciones(
-          _asignaciones ?? <AsignacionVehiculoTurnoEntity>[],
-          _catalogos,
-          query: _query,
-          estado: _estado,
-        ),
-        columns,
+  /// Asignaciones del día con búsqueda y estado aplicados (base de los valores de los filtros de columna)
+  List<AsignacionVehiculoTurnoEntity> get _base => filtrarAsignaciones(
+        _asignaciones ?? <AsignacionVehiculoTurnoEntity>[],
+        _catalogos,
+        query: _query,
+        estado: _estado,
       );
+
+  List<AsignacionVehiculoTurnoEntity> _visibles(
+    List<AsignacionVehiculoTurnoEntity> base,
+    List<GestionColumn<AsignacionVehiculoTurnoEntity>> columns,
+  ) =>
+      _sort.apply(_colFilters.apply(base, columns), columns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -97,7 +103,10 @@ class _AsignacionesGestionViewState extends State<AsignacionesGestionView> {
         _searchController.clear();
         _query = '';
         _estado = null;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _loadFecha(DateTime fecha) {
     _updateFilters(() {
@@ -200,7 +209,8 @@ class _AsignacionesGestionViewState extends State<AsignacionesGestionView> {
       listener: _onStateChanged,
       builder: (BuildContext context, AsignacionesState state) {
         final List<GestionColumn<AsignacionVehiculoTurnoEntity>> columns = asignacionesGestionColumns(_catalogos);
-        final List<AsignacionVehiculoTurnoEntity> visibles = _visibles(columns);
+        final List<AsignacionVehiculoTurnoEntity> base = _base;
+        final List<AsignacionVehiculoTurnoEntity> visibles = _visibles(base, columns);
         final AsignacionVehiculoTurnoEntity? selected = _selected;
         return GestionLayout(
           toolbar: AsignacionesGestionToolbar(
@@ -220,6 +230,9 @@ class _AsignacionesGestionViewState extends State<AsignacionesGestionView> {
             onSearchChanged: (String v) => _updateFilters(() => _query = v),
             estado: _estado,
             onEstadoChanged: (String? v) => _updateFilters(() => _estado = v),
+            columns: columns,
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: AsignacionesGridContent(
@@ -227,6 +240,9 @@ class _AsignacionesGestionViewState extends State<AsignacionesGestionView> {
             hasData: _asignaciones != null,
             columns: columns,
             rows: _pageOf(visibles),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: base,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,
             sort: _sort,

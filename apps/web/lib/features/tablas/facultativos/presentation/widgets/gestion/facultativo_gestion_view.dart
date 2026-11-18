@@ -24,6 +24,9 @@ class FacultativoGestionView extends StatefulWidget {
 class _FacultativoGestionViewState extends State<FacultativoGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   String? _especialidadId;
   FacultativoEstadoFiltro _estado = FacultativoEstadoFiltro.todos;
   GestionSort _sort = const GestionSort(columnIndex: 0);
@@ -47,6 +50,7 @@ class _FacultativoGestionViewState extends State<FacultativoGestionView> {
   }
 
   bool get _hasFilters =>
+      !_colFilters.isEmpty ||
       _query.isNotEmpty || _especialidadId != null || _estado != FacultativoEstadoFiltro.todos;
 
   FacultativoEntity? get _selected {
@@ -58,24 +62,28 @@ class _FacultativoGestionViewState extends State<FacultativoGestionView> {
     return null;
   }
 
-  List<FacultativoEntity> get _visibles => _sort.apply(
-        filtrarFacultativos(
+  /// Filas con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<FacultativoEntity> get _base => filtrarFacultativos(
           _facultativos ?? <FacultativoEntity>[],
           query: _query,
           especialidadId: _especialidadId,
           estado: _estado,
-        ),
-        facultativoGestionColumns,
-      );
+        );
+
+  List<FacultativoEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, facultativoGestionColumns), facultativoGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
+
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
         _query = '';
+        _colFilters = const GestionColumnFilters();
         _especialidadId = null;
         _estado = FacultativoEstadoFiltro.todos;
       });
@@ -167,6 +175,8 @@ class _FacultativoGestionViewState extends State<FacultativoGestionView> {
             onEspecialidadChanged: (String? v) => _updateFilters(() => _especialidadId = v),
             estado: _estado,
             onEstadoChanged: (FacultativoEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _FacultativoGridContent(
@@ -177,6 +187,9 @@ class _FacultativoGestionViewState extends State<FacultativoGestionView> {
             selectedId: _selectedId,
             sort: _sort,
             hasFilters: _hasFilters,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             onSelect: (FacultativoEntity c) => setState(() => _selectedId = c.id),
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
@@ -219,6 +232,9 @@ class _FacultativoGridContent extends StatelessWidget {
     required this.selectedId,
     required this.sort,
     required this.hasFilters,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.onSelect,
     required this.onActivate,
     required this.onSort,
@@ -232,6 +248,9 @@ class _FacultativoGridContent extends StatelessWidget {
   final String? selectedId;
   final GestionSort sort;
   final bool hasFilters;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<FacultativoEntity> filterSource;
   final ValueChanged<FacultativoEntity> onSelect;
   final ValueChanged<FacultativoEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
@@ -251,6 +270,9 @@ class _FacultativoGridContent extends StatelessWidget {
         GestionGrid<FacultativoEntity>(
           columns: facultativoGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (FacultativoEntity c) => c.id,
           selectedId: selectedId,
           onSelect: onSelect,

@@ -44,6 +44,7 @@ final List<GestionColumn<ProvinciaEntity>> provinciaGestionColumns =
     label: 'Comunidad Autónoma',
     flex: 3,
     sortValue: (ProvinciaEntity p) => (p.comunidadAutonoma ?? '').toLowerCase(),
+    filterValue: (ProvinciaEntity p) => p.comunidadAutonoma ?? '',
     cell: (ProvinciaEntity p) => ProvinciaCellText(GestionFormatters.texto(p.comunidadAutonoma)),
   ),
 ];

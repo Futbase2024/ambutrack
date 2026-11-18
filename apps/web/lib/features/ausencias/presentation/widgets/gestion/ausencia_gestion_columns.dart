@@ -110,6 +110,7 @@ List<GestionColumn<AusenciaEntity>> ausenciaGestionColumns(AusenciaLookup lookup
     ),
     GestionColumn<AusenciaEntity>(
       label: 'Tipo',
+      filterValue: (AusenciaEntity a) => lookup.tipos[a.idTipoAusencia]?.nombre ?? '',
       flex: 3,
       sortValue: (AusenciaEntity a) => lookup.tipoNombre(a.idTipoAusencia).toLowerCase(),
       cell: (AusenciaEntity a) => GestionDotLabel(
@@ -138,6 +139,7 @@ List<GestionColumn<AusenciaEntity>> ausenciaGestionColumns(AusenciaLookup lookup
     ),
     GestionColumn<AusenciaEntity>(
       label: 'Estado',
+      filterValue: (AusenciaEntity a) => ausenciaEstadoLabel(a.estado),
       width: 120,
       sortValue: (AusenciaEntity a) => a.estado.index,
       cell: (AusenciaEntity a) => AusenciaEstadoDot(estado: a.estado),

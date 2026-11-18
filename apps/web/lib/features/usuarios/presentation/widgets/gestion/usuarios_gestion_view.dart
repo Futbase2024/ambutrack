@@ -29,6 +29,10 @@ class UsuariosGestionView extends StatefulWidget {
 class _UsuariosGestionViewState extends State<UsuariosGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
+
   String? _rol;
   UsuarioEstadoFiltro _estado = UsuarioEstadoFiltro.todos;
   GestionSort _sort = const GestionSort(columnIndex: 1);
@@ -46,7 +50,9 @@ class _UsuariosGestionViewState extends State<UsuariosGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _rol != null || _estado != UsuarioEstadoFiltro.todos;
+  bool get _hasFilters =>
+      _query.isNotEmpty || _rol != null || _estado != UsuarioEstadoFiltro.todos ||
+      !_colFilters.isEmpty;
 
   UserEntity? get _selected {
     for (final UserEntity u in _usuarios ?? const <UserEntity>[]) {
@@ -57,10 +63,11 @@ class _UsuariosGestionViewState extends State<UsuariosGestionView> {
     return null;
   }
 
-  List<UserEntity> get _visibles => _sort.apply(
-        filtrarUsuarios(_usuarios ?? <UserEntity>[], query: _query, rol: _rol, estado: _estado),
-        usuariosGestionColumns,
-      );
+  /// Registros con búsqueda y filtros de la barra (base de los filtros de columna)
+  List<UserEntity> get _base => filtrarUsuarios(_usuarios ?? <UserEntity>[], query: _query, rol: _rol, estado: _estado);
+
+  List<UserEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, usuariosGestionColumns), usuariosGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -72,7 +79,10 @@ class _UsuariosGestionViewState extends State<UsuariosGestionView> {
         _query = '';
         _rol = null;
         _estado = UsuarioEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() => context.read<UsuariosBloc>().add(const UsuariosLoadAllRequested());
 
@@ -183,12 +193,18 @@ class _UsuariosGestionViewState extends State<UsuariosGestionView> {
             onRolChanged: (String? v) => _updateFilters(() => _rol = v),
             estado: _estado,
             onEstadoChanged: (UsuarioEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            columns: usuariosGestionColumns,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: UsuariosGridContent(
             state: state,
             hasData: _usuarios != null,
             rows: _pageOf(visibles),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,
             sort: _sort,

@@ -27,6 +27,10 @@ class FormacionGestionView extends StatefulWidget {
 class _FormacionGestionViewState extends State<FormacionGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
+
   String _estado = 'todos';
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
@@ -61,7 +65,9 @@ class _FormacionGestionViewState extends State<FormacionGestionView> {
     }
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != 'todos';
+  bool get _hasFilters =>
+      _query.isNotEmpty || _estado != 'todos' ||
+      !_colFilters.isEmpty;
 
   FormacionPersonalEntity? get _selected {
     for (final FormacionPersonalEntity f in _items ?? const <FormacionPersonalEntity>[]) {
@@ -72,15 +78,15 @@ class _FormacionGestionViewState extends State<FormacionGestionView> {
     return null;
   }
 
-  List<FormacionPersonalEntity> get _visibles => _sort.apply(
-        filtrarFormacion(
-          _items ?? <FormacionPersonalEntity>[],
-          catalogos: _catalogos,
-          query: _query,
-          estado: _estado,
-        ),
-        _columns,
-      );
+  /// Registros con búsqueda y filtros de la barra (base de los filtros de columna)
+  List<FormacionPersonalEntity> get _base => filtrarFormacion(
+      _items ?? <FormacionPersonalEntity>[],
+      catalogos: _catalogos,
+      query: _query,
+      estado: _estado,
+    );
+
+  List<FormacionPersonalEntity> get _visibles => _sort.apply(_colFilters.apply(_base, _columns), _columns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -91,7 +97,10 @@ class _FormacionGestionViewState extends State<FormacionGestionView> {
         _searchController.clear();
         _query = '';
         _estado = 'todos';
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() => context.read<FormacionBloc>().add(const FormacionLoadRequested());
 
@@ -213,6 +222,9 @@ class _FormacionGestionViewState extends State<FormacionGestionView> {
             onSearchChanged: (String v) => _updateFilters(() => _query = v),
             estado: _estado,
             onEstadoChanged: (String v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            columns: _columns,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: GestionGridContent<FormacionPersonalEntity>(
@@ -222,6 +234,9 @@ class _FormacionGestionViewState extends State<FormacionGestionView> {
             errorTitle: 'Error al cargar la formación',
             columns: _columns,
             rows: gestionPageOf(visibles, _page, _pageSize),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             rowId: (FormacionPersonalEntity f) => f.id,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,

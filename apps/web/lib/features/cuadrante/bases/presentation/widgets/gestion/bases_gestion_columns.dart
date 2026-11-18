@@ -91,18 +91,21 @@ final List<GestionColumn<BaseCentroEntity>> basesGestionColumns =
     flex: 2,
     sortValue: (BaseCentroEntity b) => (b.poblacionNombre ?? '').toLowerCase(),
     cell: (BaseCentroEntity b) => BaseCellText(GestionFormatters.texto(b.poblacionNombre)),
+    filterValue: (BaseCentroEntity b) => b.poblacionNombre ?? '',
   ),
   GestionColumn<BaseCentroEntity>(
     label: 'Tipo',
     width: 130,
     sortValue: (BaseCentroEntity b) => (b.tipo ?? '').toLowerCase(),
     cell: (BaseCentroEntity b) => BaseTipoDot(tipo: b.tipo),
+    filterValue: (BaseCentroEntity b) => b.tipo ?? '',
   ),
   GestionColumn<BaseCentroEntity>(
     label: 'Estado',
     width: 100,
     sortValue: (BaseCentroEntity b) => b.activo ? 0 : 1,
     cell: (BaseCentroEntity b) => BaseEstadoDot(activo: b.activo),
+    filterValue: (BaseCentroEntity b) => b.activo ? 'Activa' : 'Inactiva',
   ),
 ];
 

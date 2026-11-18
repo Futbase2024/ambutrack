@@ -58,6 +58,7 @@ List<GestionColumn<MantenimientoEntity>> mantGestionColumns(Map<String, Vehiculo
       label: 'Vehículo',
       width: 110,
       sortValue: (MantenimientoEntity m) => mantMatricula(m, vehiculos).toLowerCase(),
+      filterValue: (MantenimientoEntity m) => vehiculos[m.vehiculoId]?.matricula ?? '',
       cell: (MantenimientoEntity m) => FlotaCellText(mantMatricula(m, vehiculos), bold: true),
     ),
     GestionColumn<MantenimientoEntity>(
@@ -70,6 +71,7 @@ List<GestionColumn<MantenimientoEntity>> mantGestionColumns(Map<String, Vehiculo
       label: 'Tipo',
       width: 120,
       sortValue: (MantenimientoEntity m) => m.tipoMantenimiento.index,
+      filterValue: (MantenimientoEntity m) => m.tipoMantenimiento.displayName,
       cell: (MantenimientoEntity m) => GestionDotLabel(
         label: m.tipoMantenimiento.displayName,
         color: mantTipoColor(m.tipoMantenimiento),
@@ -99,12 +101,14 @@ List<GestionColumn<MantenimientoEntity>> mantGestionColumns(Map<String, Vehiculo
       label: 'Taller',
       flex: 2,
       sortValue: (MantenimientoEntity m) => (m.taller ?? '').toLowerCase(),
+      filterValue: (MantenimientoEntity m) => m.taller ?? '',
       cell: (MantenimientoEntity m) => FlotaCellText(GestionFormatters.texto(m.taller)),
     ),
     GestionColumn<MantenimientoEntity>(
       label: 'Estado',
       width: 120,
       sortValue: (MantenimientoEntity m) => m.estado.index,
+      filterValue: mantEstadoLabel,
       cell: (MantenimientoEntity m) => GestionDotLabel(label: mantEstadoLabel(m), color: mantEstadoColorDe(m)),
     ),
   ];

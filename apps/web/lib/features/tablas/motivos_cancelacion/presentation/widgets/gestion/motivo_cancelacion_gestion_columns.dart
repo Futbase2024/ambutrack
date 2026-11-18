@@ -59,6 +59,7 @@ final List<GestionColumn<MotivoCancelacionEntity>> motivoCancelacionGestionColum
     label: 'Estado',
     width: 100,
     sortValue: (MotivoCancelacionEntity e) => e.activo ? 0 : 1,
+    filterValue: (MotivoCancelacionEntity e) => e.activo ? 'Activo' : 'Inactivo',
     cell: (MotivoCancelacionEntity e) => MotivoCancelacionEstadoDot(activo: e.activo),
   ),
 ];

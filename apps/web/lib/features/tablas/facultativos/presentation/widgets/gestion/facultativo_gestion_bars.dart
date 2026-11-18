@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/tablas/facultativos/presentation/widgets/gestion/facultativo_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -75,6 +76,8 @@ class FacultativoGestionFilters extends StatelessWidget {
     required this.onEspecialidadChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -86,6 +89,8 @@ class FacultativoGestionFilters extends StatelessWidget {
   final ValueChanged<String?> onEspecialidadChanged;
   final FacultativoEstadoFiltro estado;
   final ValueChanged<FacultativoEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -115,6 +120,11 @@ class FacultativoGestionFilters extends StatelessWidget {
             FacultativoEstadoFiltro.inactivos: 'Inactivos',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<FacultativoEntity>(
+          filters: columnFilters,
+          columns: facultativoGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

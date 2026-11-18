@@ -68,6 +68,7 @@ dependencies:
   # easy_localization: ^3.0.8
 
   nested: any
+  excel: ^4.0.6
   sentry_flutter: ^10.3.0
 
 dev_dependencies:

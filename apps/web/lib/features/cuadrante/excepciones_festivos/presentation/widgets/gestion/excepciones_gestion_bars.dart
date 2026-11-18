@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/cuadrante/excepciones_festivos/presentation/widgets/gestion/excepciones_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -65,6 +66,8 @@ class ExcepcionesGestionFilters extends StatelessWidget {
     required this.onTipoChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -75,6 +78,8 @@ class ExcepcionesGestionFilters extends StatelessWidget {
   final ValueChanged<String?> onTipoChanged;
   final ExcepcionEstadoFiltro estado;
   final ValueChanged<ExcepcionEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -101,6 +106,11 @@ class ExcepcionesGestionFilters extends StatelessWidget {
             ExcepcionEstadoFiltro.inactivos: 'Inactivos',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<ExcepcionFestivoEntity>(
+          filters: columnFilters,
+          columns: excepcionesGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

@@ -66,6 +66,7 @@ final List<GestionColumn<TallerEntity>> tallerGestionColumns =
     label: 'Tipo',
     flex: 2,
     sortValue: (TallerEntity t) => t.tipo.displayName,
+    filterValue: (TallerEntity t) => t.tipo.displayName,
     cell: (TallerEntity t) => GestionDotLabel(
       label: t.tipo.displayName,
       color: tallerTipoColor(t.tipo),
@@ -75,6 +76,7 @@ final List<GestionColumn<TallerEntity>> tallerGestionColumns =
     label: 'Ciudad',
     flex: 2,
     sortValue: (TallerEntity t) => (t.ciudad ?? '').toLowerCase(),
+    filterValue: (TallerEntity t) => t.ciudad ?? '',
     cell: (TallerEntity t) => TallerCellText(GestionFormatters.texto(t.ciudad)),
   ),
   GestionColumn<TallerEntity>(
@@ -92,12 +94,14 @@ final List<GestionColumn<TallerEntity>> tallerGestionColumns =
     label: 'Especialidad',
     flex: 2,
     sortValue: (TallerEntity t) => (t.especialidad ?? '').toLowerCase(),
+    filterValue: (TallerEntity t) => t.especialidad ?? '',
     cell: (TallerEntity t) => TallerCellText(GestionFormatters.texto(t.especialidad)),
   ),
   GestionColumn<TallerEntity>(
     label: 'Estado',
     width: 100,
     sortValue: (TallerEntity t) => t.activo ? 0 : 1,
+    filterValue: (TallerEntity t) => t.activo ? 'Activo' : 'Inactivo',
     cell: (TallerEntity t) => TallerEstadoDot(activo: t.activo),
   ),
 ];

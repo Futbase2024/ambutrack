@@ -29,6 +29,9 @@ class _HistorialMedicoGestionViewState extends State<HistorialMedicoGestionView>
   String _query = '';
   String? _aptitud;
   VigenciaReconocimiento? _vigencia;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -70,7 +73,7 @@ class _HistorialMedicoGestionViewState extends State<HistorialMedicoGestionView>
 
   String _nombre(String personalId) => _nombres[personalId] ?? 'Desconocido';
 
-  bool get _hasFilters => _query.isNotEmpty || _aptitud != null || _vigencia != null;
+  bool get _hasFilters => _query.isNotEmpty || _aptitud != null || _vigencia != null || !_colFilters.isEmpty;
 
   HistorialMedicoEntity? get _selected {
     for (final HistorialMedicoEntity h in _items ?? const <HistorialMedicoEntity>[]) {
@@ -81,18 +84,17 @@ class _HistorialMedicoGestionViewState extends State<HistorialMedicoGestionView>
     return null;
   }
 
-  List<HistorialMedicoEntity> _visibles(List<GestionColumn<HistorialMedicoEntity>> columns) {
-    return _sort.apply(
-      filtrarHistorialMedico(
+  /// Registros con búsqueda y filtros de la barra (base de los filtros de columna)
+  List<HistorialMedicoEntity> get _base => filtrarHistorialMedico(
         _items ?? <HistorialMedicoEntity>[],
         query: _query,
         aptitud: _aptitud,
         vigencia: _vigencia,
         nombre: _nombre,
-      ),
-      columns,
-    );
-  }
+      );
+
+  List<HistorialMedicoEntity> _visibles(List<GestionColumn<HistorialMedicoEntity>> columns) =>
+      _sort.apply(_colFilters.apply(_base, columns), columns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -104,7 +106,10 @@ class _HistorialMedicoGestionViewState extends State<HistorialMedicoGestionView>
         _query = '';
         _aptitud = null;
         _vigencia = null;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() {
     context.read<HistorialMedicoBloc>().add(const HistorialMedicoLoadRequested());
@@ -191,6 +196,9 @@ class _HistorialMedicoGestionViewState extends State<HistorialMedicoGestionView>
             onAptitudChanged: (String? v) => _updateFilters(() => _aptitud = v),
             vigencia: _vigencia,
             onVigenciaChanged: (VigenciaReconocimiento? v) => _updateFilters(() => _vigencia = v),
+            columnFilters: _colFilters,
+            columns: columns,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _HistorialGridContent(
@@ -198,6 +206,9 @@ class _HistorialMedicoGestionViewState extends State<HistorialMedicoGestionView>
             hasData: _items != null,
             columns: columns,
             rows: _pageOf(visibles),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,
             sort: _sort,
@@ -251,6 +262,9 @@ class _HistorialGridContent extends StatelessWidget {
     required this.onActivate,
     required this.onSort,
     required this.onRetry,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
   });
 
   final HistorialMedicoState state;
@@ -265,6 +279,9 @@ class _HistorialGridContent extends StatelessWidget {
   final ValueChanged<HistorialMedicoEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
   final VoidCallback onRetry;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<HistorialMedicoEntity> filterSource;
 
   @override
   Widget build(BuildContext context) {
@@ -280,6 +297,9 @@ class _HistorialGridContent extends StatelessWidget {
         GestionGrid<HistorialMedicoEntity>(
           columns: columns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (HistorialMedicoEntity h) => h.id,
           selectedId: selectedId,
           onSelect: onSelect,

@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/vacaciones/presentation/widgets/gestion/vacacion_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -88,6 +89,9 @@ class VacacionGestionFilters extends StatelessWidget {
     required this.onYearChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.columns,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -99,6 +103,11 @@ class VacacionGestionFilters extends StatelessWidget {
   final String? estado;
   final ValueChanged<String?> onEstadoChanged;
   final VoidCallback? onClear;
+
+  /// Filtros por columna (embudo de la cabecera) activos
+  final GestionColumnFilters columnFilters;
+  final List<GestionColumn<VacacionesEntity>> columns;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -129,6 +138,11 @@ class VacacionGestionFilters extends StatelessWidget {
             for (final String e in vacacionEstados) e: vacacionEstadoLabel(e),
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<VacacionesEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

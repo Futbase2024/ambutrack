@@ -1,4 +1,5 @@
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
 import 'package:ambutrack_web/features/personal/presentation/widgets/gestion/personal/personal_gestion_columns.dart';
 import 'package:flutter/material.dart';
 
@@ -12,6 +13,9 @@ class PersonalGestionFilters extends StatelessWidget {
     required this.onCategoriaChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.columns,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -26,6 +30,11 @@ class PersonalGestionFilters extends StatelessWidget {
   final PersonalEstadoFiltro estado;
   final ValueChanged<PersonalEstadoFiltro> onEstadoChanged;
   final VoidCallback? onClear;
+
+  /// Filtros por columna (embudo de la cabecera) activos
+  final GestionColumnFilters columnFilters;
+  final List<GestionColumn<PersonalEntity>> columns;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +61,11 @@ class PersonalGestionFilters extends StatelessWidget {
             PersonalEstadoFiltro.inactivos: 'Inactivos',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<PersonalEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

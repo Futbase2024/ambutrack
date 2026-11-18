@@ -32,6 +32,9 @@ class _MantenimientoGestionViewState extends State<MantenimientoGestionView> {
   String _query = '';
   TipoMantenimiento? _tipo;
   EstadoMantenimiento? _estado;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 1, ascending: false);
   int _page = 0;
   int _pageSize = 25;
@@ -49,7 +52,7 @@ class _MantenimientoGestionViewState extends State<MantenimientoGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _tipo != null || _estado != null;
+  bool get _hasFilters => _query.isNotEmpty || _tipo != null || _estado != null || !_colFilters.isEmpty;
 
   MantenimientoEntity? get _selected {
     for (final MantenimientoEntity m in _items ?? const <MantenimientoEntity>[]) {
@@ -70,7 +73,10 @@ class _MantenimientoGestionViewState extends State<MantenimientoGestionView> {
         _query = '';
         _tipo = null;
         _estado = null;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() {
     context.read<MantenimientoBloc>().add(const MantenimientoLoadRequested());
@@ -158,10 +164,10 @@ class _MantenimientoGestionViewState extends State<MantenimientoGestionView> {
       listener: _onStateChanged,
       builder: (BuildContext context, MantenimientoState state) {
         final List<MantenimientoEntity> todos = _items ?? <MantenimientoEntity>[];
-        final List<MantenimientoEntity> visibles = _sort.apply(
-          filtrarMantenimientos(todos, vehiculos: vehiculos, query: _query, tipo: _tipo, estado: _estado),
-          columns,
-        );
+        // Base con búsqueda y desplegables (valores posibles de los filtros de columna)
+        final List<MantenimientoEntity> base =
+            filtrarMantenimientos(todos, vehiculos: vehiculos, query: _query, tipo: _tipo, estado: _estado);
+        final List<MantenimientoEntity> visibles = _sort.apply(_colFilters.apply(base, columns), columns);
         final MantenimientoEntity? selected = _selected;
         return GestionLayout(
           toolbar: MantenimientoGestionToolbar(
@@ -180,6 +186,9 @@ class _MantenimientoGestionViewState extends State<MantenimientoGestionView> {
             onTipoChanged: (TipoMantenimiento? v) => _updateFilters(() => _tipo = v),
             estado: _estado,
             onEstadoChanged: (EstadoMantenimiento? v) => _updateFilters(() => _estado = v),
+            columns: columns,
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: FlotaGridArea(
@@ -201,6 +210,9 @@ class _MantenimientoGestionViewState extends State<MantenimientoGestionView> {
               emptyMessage: _hasFilters
                   ? 'Ningún mantenimiento coincide con los filtros'
                   : 'No hay mantenimientos registrados. Pulsa "Nuevo" para programar uno.',
+              filters: _colFilters,
+              onFiltersChanged: _onColumnFiltersChanged,
+              filterSource: base,
             ),
           ),
           detailPanel: MantenimientoDetailPanel(

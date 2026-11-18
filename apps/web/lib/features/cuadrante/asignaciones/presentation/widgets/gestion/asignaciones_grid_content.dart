@@ -11,6 +11,9 @@ class AsignacionesGridContent extends StatelessWidget {
     required this.hasData,
     required this.columns,
     required this.rows,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.firstRowNumber,
     required this.selectedId,
     required this.sort,
@@ -26,6 +29,9 @@ class AsignacionesGridContent extends StatelessWidget {
   final bool hasData;
   final List<GestionColumn<AsignacionVehiculoTurnoEntity>> columns;
   final List<AsignacionVehiculoTurnoEntity> rows;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<AsignacionVehiculoTurnoEntity> filterSource;
   final int firstRowNumber;
   final String? selectedId;
   final GestionSort sort;
@@ -49,6 +55,9 @@ class AsignacionesGridContent extends StatelessWidget {
         GestionGrid<AsignacionVehiculoTurnoEntity>(
           columns: columns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (AsignacionVehiculoTurnoEntity a) => a.id,
           selectedId: selectedId,
           onSelect: onSelect,

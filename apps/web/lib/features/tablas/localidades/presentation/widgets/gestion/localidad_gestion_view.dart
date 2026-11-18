@@ -24,6 +24,9 @@ class LocalidadGestionView extends StatefulWidget {
 class _LocalidadGestionViewState extends State<LocalidadGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   String? _provinciaId;
   GestionSort _sort = const GestionSort(columnIndex: 1);
   int _page = 0;
@@ -45,7 +48,8 @@ class _LocalidadGestionViewState extends State<LocalidadGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _provinciaId != null;
+  bool get _hasFilters =>
+      !_colFilters.isEmpty || _query.isNotEmpty || _provinciaId != null;
 
   LocalidadEntity? get _selected {
     for (final LocalidadEntity c in _localidades ?? const <LocalidadEntity>[]) {
@@ -56,23 +60,27 @@ class _LocalidadGestionViewState extends State<LocalidadGestionView> {
     return null;
   }
 
-  List<LocalidadEntity> get _visibles => _sort.apply(
-        filtrarLocalidades(
+  /// Filas con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<LocalidadEntity> get _base => filtrarLocalidades(
           _localidades ?? <LocalidadEntity>[],
           query: _query,
           provinciaId: _provinciaId,
-        ),
-        localidadGestionColumns,
-      );
+        );
+
+  List<LocalidadEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, localidadGestionColumns), localidadGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
+
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
         _query = '';
+        _colFilters = const GestionColumnFilters();
         _provinciaId = null;
       });
 
@@ -160,6 +168,8 @@ class _LocalidadGestionViewState extends State<LocalidadGestionView> {
             provincias: provinciasDeLocalidades(_localidades ?? <LocalidadEntity>[]),
             provinciaId: _provinciaId,
             onProvinciaChanged: (String? v) => _updateFilters(() => _provinciaId = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _LocalidadGridContent(
@@ -170,6 +180,9 @@ class _LocalidadGestionViewState extends State<LocalidadGestionView> {
             selectedId: _selectedId,
             sort: _sort,
             hasFilters: _hasFilters,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             onSelect: (LocalidadEntity c) => setState(() => _selectedId = c.id),
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
@@ -212,6 +225,9 @@ class _LocalidadGridContent extends StatelessWidget {
     required this.selectedId,
     required this.sort,
     required this.hasFilters,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.onSelect,
     required this.onActivate,
     required this.onSort,
@@ -225,6 +241,9 @@ class _LocalidadGridContent extends StatelessWidget {
   final String? selectedId;
   final GestionSort sort;
   final bool hasFilters;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<LocalidadEntity> filterSource;
   final ValueChanged<LocalidadEntity> onSelect;
   final ValueChanged<LocalidadEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
@@ -244,6 +263,9 @@ class _LocalidadGridContent extends StatelessWidget {
         GestionGrid<LocalidadEntity>(
           columns: localidadGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (LocalidadEntity c) => c.id,
           selectedId: selectedId,
           onSelect: onSelect,

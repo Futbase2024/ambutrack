@@ -107,24 +107,28 @@ final List<GestionColumn<OrdenReparacionEntity>> historialColumns = <GestionColu
     label: 'Vehículo',
     flex: 2,
     sortValue: (OrdenReparacionEntity o) => (o.vehiculoMatricula ?? '').toLowerCase(),
+    filterValue: (OrdenReparacionEntity o) => o.vehiculoMatricula ?? '',
     cell: (OrdenReparacionEntity o) => TallerCellText(GestionFormatters.texto(o.vehiculoMatricula)),
   ),
   GestionColumn<OrdenReparacionEntity>(
     label: 'Taller',
     flex: 3,
     sortValue: (OrdenReparacionEntity o) => (o.tallerNombre ?? '').toLowerCase(),
+    filterValue: (OrdenReparacionEntity o) => o.tallerNombre ?? '',
     cell: (OrdenReparacionEntity o) => TallerCellText(GestionFormatters.texto(o.tallerNombre)),
   ),
   GestionColumn<OrdenReparacionEntity>(
     label: 'Origen',
     flex: 2,
     sortValue: (OrdenReparacionEntity o) => o.origen.displayName,
+    filterValue: (OrdenReparacionEntity o) => o.origen.displayName,
     cell: (OrdenReparacionEntity o) => TallerCellText(o.origen.displayName),
   ),
   GestionColumn<OrdenReparacionEntity>(
     label: 'Estado',
     flex: 2,
     sortValue: (OrdenReparacionEntity o) => o.estado.index,
+    filterValue: (OrdenReparacionEntity o) => o.estado.displayName,
     cell: (OrdenReparacionEntity o) =>
         GestionDotLabel(label: o.estado.displayName, color: estadoOrdenColor(o.estado)),
   ),

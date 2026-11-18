@@ -25,6 +25,9 @@ class MotivoTrasladoGestionView extends StatefulWidget {
 class _MotivoTrasladoGestionViewState extends State<MotivoTrasladoGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   bool? _activo;
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
@@ -41,7 +44,8 @@ class _MotivoTrasladoGestionViewState extends State<MotivoTrasladoGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _activo != null;
+  bool get _hasFilters =>
+      !_colFilters.isEmpty || _query.isNotEmpty || _activo != null;
 
   MotivoTrasladoEntity? get _selected {
     for (final MotivoTrasladoEntity e in _items ?? const <MotivoTrasladoEntity>[]) {
@@ -52,19 +56,24 @@ class _MotivoTrasladoGestionViewState extends State<MotivoTrasladoGestionView> {
     return null;
   }
 
-  List<MotivoTrasladoEntity> get _visibles => _sort.apply(
-        filtrarMotivosTraslado(_items ?? <MotivoTrasladoEntity>[], query: _query, activo: _activo),
-        motivoTrasladoGestionColumns,
-      );
+  /// Filas con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<MotivoTrasladoEntity> get _base =>
+      filtrarMotivosTraslado(_items ?? <MotivoTrasladoEntity>[], query: _query, activo: _activo);
+
+  List<MotivoTrasladoEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, motivoTrasladoGestionColumns), motivoTrasladoGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
+
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
         _query = '';
+        _colFilters = const GestionColumnFilters();
         _activo = null;
       });
 
@@ -144,6 +153,8 @@ class _MotivoTrasladoGestionViewState extends State<MotivoTrasladoGestionView> {
             onSearchChanged: (String v) => _updateFilters(() => _query = v),
             activo: _activo,
             onActivoChanged: (bool? v) => _updateFilters(() => _activo = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _MotivoTrasladoGridContent(
@@ -154,6 +165,9 @@ class _MotivoTrasladoGestionViewState extends State<MotivoTrasladoGestionView> {
             selectedId: _selectedId,
             sort: _sort,
             hasFilters: _hasFilters,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             onSelect: (MotivoTrasladoEntity e) => setState(() => _selectedId = e.id),
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
@@ -196,6 +210,9 @@ class _MotivoTrasladoGridContent extends StatelessWidget {
     required this.selectedId,
     required this.sort,
     required this.hasFilters,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.onSelect,
     required this.onActivate,
     required this.onSort,
@@ -209,6 +226,9 @@ class _MotivoTrasladoGridContent extends StatelessWidget {
   final String? selectedId;
   final GestionSort sort;
   final bool hasFilters;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<MotivoTrasladoEntity> filterSource;
   final ValueChanged<MotivoTrasladoEntity> onSelect;
   final ValueChanged<MotivoTrasladoEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
@@ -228,6 +248,9 @@ class _MotivoTrasladoGridContent extends StatelessWidget {
         GestionGrid<MotivoTrasladoEntity>(
           columns: motivoTrasladoGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (MotivoTrasladoEntity e) => e.id,
           selectedId: selectedId,
           onSelect: onSelect,

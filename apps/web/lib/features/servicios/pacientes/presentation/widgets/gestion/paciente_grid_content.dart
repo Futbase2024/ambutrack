@@ -19,6 +19,9 @@ class PacienteGridContent extends StatelessWidget {
     required this.onActivate,
     required this.onSort,
     required this.onRetry,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     super.key,
   });
 
@@ -34,6 +37,11 @@ class PacienteGridContent extends StatelessWidget {
   final ValueChanged<GestionSort> onSort;
   final VoidCallback onRetry;
 
+  /// Filtros por columna (estilo Excel) y filas base para sus valores
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<PacienteEntity> filterSource;
+
   @override
   Widget build(BuildContext context) {
     final PacientesState s = state;
@@ -48,6 +56,9 @@ class PacienteGridContent extends StatelessWidget {
         GestionGrid<PacienteEntity>(
           columns: pacienteGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (PacienteEntity p) => p.id,
           selectedId: selectedId,
           onSelect: onSelect,

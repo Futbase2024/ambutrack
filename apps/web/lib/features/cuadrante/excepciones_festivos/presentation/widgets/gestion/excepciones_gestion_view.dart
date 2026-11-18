@@ -24,6 +24,9 @@ class _ExcepcionesGestionViewState extends State<ExcepcionesGestionView> {
   String _query = '';
   String? _tipo;
   ExcepcionEstadoFiltro _estado = ExcepcionEstadoFiltro.todos;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -54,7 +57,8 @@ class _ExcepcionesGestionViewState extends State<ExcepcionesGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _tipo != null || _estado != ExcepcionEstadoFiltro.todos;
+  bool get _hasFilters =>
+      _query.isNotEmpty || _tipo != null || _estado != ExcepcionEstadoFiltro.todos || !_colFilters.isEmpty;
 
   ExcepcionFestivoEntity? get _selected {
     for (final ExcepcionFestivoEntity e in _items ?? const <ExcepcionFestivoEntity>[]) {
@@ -65,10 +69,12 @@ class _ExcepcionesGestionViewState extends State<ExcepcionesGestionView> {
     return null;
   }
 
-  List<ExcepcionFestivoEntity> get _visibles => _sort.apply(
-        filtrarExcepciones(_items ?? <ExcepcionFestivoEntity>[], query: _query, tipo: _tipo, estado: _estado),
-        excepcionesGestionColumns,
-      );
+  /// Registros con búsqueda y desplegables aplicados (base de los valores de los filtros de columna)
+  List<ExcepcionFestivoEntity> get _base =>
+      filtrarExcepciones(_items ?? <ExcepcionFestivoEntity>[], query: _query, tipo: _tipo, estado: _estado);
+
+  List<ExcepcionFestivoEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, excepcionesGestionColumns), excepcionesGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -80,7 +86,10 @@ class _ExcepcionesGestionViewState extends State<ExcepcionesGestionView> {
         _query = '';
         _tipo = null;
         _estado = ExcepcionEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() => context.read<ExcepcionesFestivosBloc>().add(const ExcepcionesFestivosLoadRequested());
 
@@ -172,12 +181,17 @@ class _ExcepcionesGestionViewState extends State<ExcepcionesGestionView> {
             onTipoChanged: (String? v) => _updateFilters(() => _tipo = v),
             estado: _estado,
             onEstadoChanged: (ExcepcionEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _ExcepcionesGridContent(
             state: state,
             hasData: _items != null,
             rows: _pageOf(visibles),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,
             sort: _sort,
@@ -220,6 +234,9 @@ class _ExcepcionesGridContent extends StatelessWidget {
     required this.state,
     required this.hasData,
     required this.rows,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.firstRowNumber,
     required this.selectedId,
     required this.sort,
@@ -233,6 +250,9 @@ class _ExcepcionesGridContent extends StatelessWidget {
   final ExcepcionesFestivosState state;
   final bool hasData;
   final List<ExcepcionFestivoEntity> rows;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<ExcepcionFestivoEntity> filterSource;
   final int firstRowNumber;
   final String? selectedId;
   final GestionSort sort;
@@ -256,6 +276,9 @@ class _ExcepcionesGridContent extends StatelessWidget {
         GestionGrid<ExcepcionFestivoEntity>(
           columns: excepcionesGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (ExcepcionFestivoEntity e) => e.id,
           selectedId: selectedId,
           onSelect: onSelect,

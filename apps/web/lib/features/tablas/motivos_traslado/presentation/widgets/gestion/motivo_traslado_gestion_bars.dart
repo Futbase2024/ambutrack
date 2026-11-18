@@ -1,4 +1,6 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/tablas/motivos_traslado/presentation/widgets/gestion/motivo_traslado_gestion_columns.dart';
 import 'package:flutter/material.dart';
 
 /// Barra de herramientas de la pantalla de motivos de traslado
@@ -71,6 +73,8 @@ class MotivoTrasladoGestionFilters extends StatelessWidget {
     required this.onSearchChanged,
     required this.activo,
     required this.onActivoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -81,6 +85,8 @@ class MotivoTrasladoGestionFilters extends StatelessWidget {
   /// Filtro de estado: null = todos
   final bool? activo;
   final ValueChanged<bool?> onActivoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -101,6 +107,11 @@ class MotivoTrasladoGestionFilters extends StatelessWidget {
             false: 'Inactivos',
           },
           onChanged: onActivoChanged,
+        ),
+        GestionColumnFilterChips<MotivoTrasladoEntity>(
+          filters: columnFilters,
+          columns: motivoTrasladoGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

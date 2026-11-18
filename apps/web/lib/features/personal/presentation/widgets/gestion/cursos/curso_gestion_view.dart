@@ -26,6 +26,10 @@ class CursoGestionView extends StatefulWidget {
 class _CursoGestionViewState extends State<CursoGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
+
   String? _tipo;
   CursoEstadoFiltro _estado = CursoEstadoFiltro.todos;
   GestionSort _sort = const GestionSort(columnIndex: 0);
@@ -70,7 +74,9 @@ class _CursoGestionViewState extends State<CursoGestionView> {
     }
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _tipo != null || _estado != CursoEstadoFiltro.todos;
+  bool get _hasFilters =>
+      _query.isNotEmpty || _tipo != null || _estado != CursoEstadoFiltro.todos ||
+      !_colFilters.isEmpty;
 
   CursoEntity? get _selected {
     for (final CursoEntity c in _cursos ?? const <CursoEntity>[]) {
@@ -81,10 +87,10 @@ class _CursoGestionViewState extends State<CursoGestionView> {
     return null;
   }
 
-  List<CursoEntity> get _visibles => _sort.apply(
-        filtrarCursos(_cursos ?? <CursoEntity>[], query: _query, tipo: _tipo, estado: _estado),
-        cursoGestionColumns,
-      );
+  /// Registros con búsqueda y filtros de la barra (base de los filtros de columna)
+  List<CursoEntity> get _base => filtrarCursos(_cursos ?? <CursoEntity>[], query: _query, tipo: _tipo, estado: _estado);
+
+  List<CursoEntity> get _visibles => _sort.apply(_colFilters.apply(_base, cursoGestionColumns), cursoGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -96,7 +102,10 @@ class _CursoGestionViewState extends State<CursoGestionView> {
         _query = '';
         _tipo = null;
         _estado = CursoEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() => context.read<CursoCatalogoBloc>().add(const CursoCatalogoLoadRequested());
 
@@ -187,6 +196,9 @@ class _CursoGestionViewState extends State<CursoGestionView> {
             onTipoChanged: (String? v) => _updateFilters(() => _tipo = v),
             estado: _estado,
             onEstadoChanged: (CursoEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            columns: cursoGestionColumns,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: GestionGridContent<CursoEntity>(
@@ -196,6 +208,9 @@ class _CursoGestionViewState extends State<CursoGestionView> {
             errorTitle: 'Error al cargar cursos',
             columns: cursoGestionColumns,
             rows: gestionPageOf(visibles, _page, _pageSize),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             rowId: (CursoEntity c) => c.id,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,

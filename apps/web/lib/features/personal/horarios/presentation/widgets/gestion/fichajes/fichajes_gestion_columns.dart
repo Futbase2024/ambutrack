@@ -89,6 +89,7 @@ final List<GestionColumn<RegistroHorarioEntity>> fichajesColumns =
   ),
   GestionColumn<RegistroHorarioEntity>(
     label: 'Tipo',
+    filterValue: (RegistroHorarioEntity r) => esEntrada(r) ? 'Entrada' : 'Salida',
     width: 100,
     sortValue: (RegistroHorarioEntity r) => r.tipo.toLowerCase(),
     cell: (RegistroHorarioEntity r) => FichajeTipoDot(registro: r),
@@ -107,6 +108,7 @@ final List<GestionColumn<RegistroHorarioEntity>> fichajesColumns =
   ),
   GestionColumn<RegistroHorarioEntity>(
     label: 'Vehículo',
+    filterValue: (RegistroHorarioEntity r) => r.vehiculoMatricula ?? '',
     width: 110,
     sortValue: (RegistroHorarioEntity r) => (r.vehiculoMatricula ?? '').toLowerCase(),
     cell: (RegistroHorarioEntity r) =>

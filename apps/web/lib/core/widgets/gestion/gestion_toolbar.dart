@@ -10,6 +10,7 @@ class GestionToolbarAction {
     this.primary = false,
     this.destructive = false,
     this.tooltip,
+    this.active = false,
   });
 
   final IconData icon;
@@ -24,6 +25,9 @@ class GestionToolbarAction {
   /// Acción destructiva (icono en rojo)
   final bool destructive;
   final String? tooltip;
+
+  /// Botón de tipo interruptor encendido (p. ej. "Modo edición")
+  final bool active;
 }
 
 /// Barra de herramientas compacta estilo programa de gestión.
@@ -137,9 +141,14 @@ class _ToolbarButton extends StatelessWidget {
             ? Colors.white
             : action.destructive
                 ? AppColors.error
-                : AppColors.gray700;
-    final Color bg =
-        action.primary && enabled ? AppColors.primary : Colors.transparent;
+                : action.active
+                    ? AppColors.primary
+                    : AppColors.gray700;
+    final Color bg = action.primary && enabled
+        ? AppColors.primary
+        : action.active
+            ? AppColors.primarySurface
+            : Colors.transparent;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),

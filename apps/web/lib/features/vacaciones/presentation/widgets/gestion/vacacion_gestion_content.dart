@@ -19,6 +19,9 @@ class VacacionGridContent extends StatelessWidget {
     required this.onActivate,
     required this.onSort,
     required this.onRetry,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     super.key,
   });
 
@@ -35,6 +38,11 @@ class VacacionGridContent extends StatelessWidget {
   final ValueChanged<GestionSort> onSort;
   final VoidCallback onRetry;
 
+  /// Filtros por columna estilo Excel
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<VacacionesEntity> filterSource;
+
   @override
   Widget build(BuildContext context) {
     final VacacionesState s = state;
@@ -49,6 +57,9 @@ class VacacionGridContent extends StatelessWidget {
         GestionGrid<VacacionesEntity>(
           columns: columns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (VacacionesEntity v) => v.id,
           selectedId: selectedId,
           onSelect: onSelect,

@@ -69,6 +69,8 @@ class BasesGestionFilters extends StatelessWidget {
     required this.onSearchChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -77,6 +79,8 @@ class BasesGestionFilters extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final BaseEstadoFiltro estado;
   final ValueChanged<BaseEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -97,6 +101,11 @@ class BasesGestionFilters extends StatelessWidget {
             BaseEstadoFiltro.inactivas: 'Inactivas',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<BaseCentroEntity>(
+          filters: columnFilters,
+          columns: basesGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

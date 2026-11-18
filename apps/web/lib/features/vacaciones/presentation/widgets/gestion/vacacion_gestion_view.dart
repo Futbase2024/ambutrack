@@ -30,6 +30,10 @@ class VacacionGestionView extends StatefulWidget {
 class _VacacionGestionViewState extends State<VacacionGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
+
   String? _estado;
   int _year = DateTime.now().year;
   GestionSort _sort = const GestionSort(columnIndex: 1);
@@ -81,7 +85,7 @@ class _VacacionGestionViewState extends State<VacacionGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != null;
+  bool get _hasFilters => _query.isNotEmpty || _estado != null || !_colFilters.isEmpty;
 
   VacacionesEntity? get _selected {
     for (final VacacionesEntity v in _vacaciones ?? const <VacacionesEntity>[]) {
@@ -101,7 +105,10 @@ class _VacacionGestionViewState extends State<VacacionGestionView> {
         _searchController.clear();
         _query = '';
         _estado = null;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _loadYear(int year) {
     _operacionPropia = true;
@@ -203,10 +210,9 @@ class _VacacionGestionViewState extends State<VacacionGestionView> {
       builder: (BuildContext context, VacacionesState state) {
         final List<GestionColumn<VacacionesEntity>> columns = vacacionGestionColumns(_personal);
         final List<VacacionesEntity> todas = _vacaciones ?? <VacacionesEntity>[];
-        final List<VacacionesEntity> visibles = _sort.apply(
-          filtrarVacaciones(todas, personal: _personal, query: _query, estado: _estado),
-          columns,
-        );
+        final List<VacacionesEntity> base =
+            filtrarVacaciones(todas, personal: _personal, query: _query, estado: _estado);
+        final List<VacacionesEntity> visibles = _sort.apply(_colFilters.apply(base, columns), columns);
         final VacacionesEntity? selected = _selected;
         return GestionLayout(
           toolbar: VacacionGestionToolbar(
@@ -229,6 +235,9 @@ class _VacacionGestionViewState extends State<VacacionGestionView> {
                   onYearChanged: _loadYear,
                   estado: _estado,
                   onEstadoChanged: (String? v) => _updateFilters(() => _estado = v),
+                  columnFilters: _colFilters,
+                  columns: columns,
+                  onColumnFiltersChanged: _onColumnFiltersChanged,
                   onClear: _hasFilters ? _clearFilters : null,
                 ),
           content: _calendario
@@ -238,6 +247,9 @@ class _VacacionGestionViewState extends State<VacacionGestionView> {
                   hasData: _vacaciones != null,
                   columns: columns,
                   rows: _pageOf(visibles),
+                  filters: _colFilters,
+                  onFiltersChanged: _onColumnFiltersChanged,
+                  filterSource: base,
                   firstRowNumber: _page * _pageSize + 1,
                   selectedId: _selectedId,
                   sort: _sort,

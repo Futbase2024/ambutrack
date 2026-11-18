@@ -57,6 +57,7 @@ final List<GestionColumn<CursoEntity>> cursoGestionColumns = <GestionColumn<Curs
   ),
   GestionColumn<CursoEntity>(
     label: 'Tipo',
+    filterValue: (CursoEntity c) => cursoTipoLabel(c.tipo),
     flex: 2,
     sortValue: (CursoEntity c) => cursoTipoLabel(c.tipo),
     cell: (CursoEntity c) => CursoTipoDot(tipo: c.tipo),
@@ -84,6 +85,7 @@ final List<GestionColumn<CursoEntity>> cursoGestionColumns = <GestionColumn<Curs
   ),
   GestionColumn<CursoEntity>(
     label: 'Estado',
+    filterValue: (CursoEntity c) => c.activo ? 'Activo' : 'Inactivo',
     width: 100,
     sortValue: (CursoEntity c) => c.activo ? 0 : 1,
     cell: (CursoEntity c) => CatalogoEstadoDot(activo: c.activo),

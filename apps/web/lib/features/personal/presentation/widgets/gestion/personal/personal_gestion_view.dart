@@ -27,6 +27,9 @@ class _PersonalGestionViewState extends State<PersonalGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
 
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
+
   /// Registro abierto desde la búsqueda global (Ctrl+K): solo se muestra ese
   String? _soloId;
   String? _enlaceAplicado;
@@ -84,7 +87,8 @@ class _PersonalGestionViewState extends State<PersonalGestionView> {
       _soloId == null ? items : items.where((PersonalEntity e) => e.id == _soloId).toList();
 
   bool get _hasFilters =>
-      _soloId != null || _query.isNotEmpty || _categoriaId != null || _estado != PersonalEstadoFiltro.todos;
+      _soloId != null || _query.isNotEmpty || _categoriaId != null || _estado != PersonalEstadoFiltro.todos ||
+      !_colFilters.isEmpty;
 
   PersonalEntity? get _selected {
     for (final PersonalEntity p in _personal ?? const <PersonalEntity>[]) {
@@ -95,15 +99,16 @@ class _PersonalGestionViewState extends State<PersonalGestionView> {
     return null;
   }
 
-  List<PersonalEntity> get _visibles => _sort.apply(
-        filtrarPersonal(
-          _filtrarEnlace(_personal ?? <PersonalEntity>[]),
-          query: _query,
-          categoriaId: _categoriaId,
-          estado: _estado,
-        ),
-        personalGestionColumns,
-      );
+  /// Registros con búsqueda y filtros de la barra (base de los filtros de columna)
+  List<PersonalEntity> get _base => filtrarPersonal(
+      _filtrarEnlace(_personal ?? <PersonalEntity>[]),
+      query: _query,
+      categoriaId: _categoriaId,
+      estado: _estado,
+    );
+
+  List<PersonalEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, personalGestionColumns), personalGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -116,6 +121,12 @@ class _PersonalGestionViewState extends State<PersonalGestionView> {
         _query = '';
         _categoriaId = null;
         _estado = PersonalEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
+      });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() {
+        _soloId = null;
+        _colFilters = f;
       });
 
   void _refresh() => context.read<PersonalBloc>().add(const PersonalLoadRequested());
@@ -210,6 +221,9 @@ class _PersonalGestionViewState extends State<PersonalGestionView> {
             onCategoriaChanged: (String? v) => _updateFilters(() => _categoriaId = v),
             estado: _estado,
             onEstadoChanged: (PersonalEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            columns: personalGestionColumns,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: GestionGridContent<PersonalEntity>(
@@ -219,6 +233,9 @@ class _PersonalGestionViewState extends State<PersonalGestionView> {
             errorTitle: 'Error al cargar personal',
             columns: personalGestionColumns,
             rows: gestionPageOf(visibles, _page, _pageSize),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             rowId: (PersonalEntity p) => p.id,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,

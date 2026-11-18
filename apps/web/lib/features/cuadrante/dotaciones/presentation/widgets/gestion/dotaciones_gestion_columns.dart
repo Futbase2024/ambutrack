@@ -105,12 +105,15 @@ List<GestionColumn<DotacionEntity>> dotacionesGestionColumns(DotacionesCatalogos
         label: cat.destinoNombre(d) == null ? d.tipoDestino : '${d.tipoDestino} · ${cat.destinoNombre(d)}',
         color: dotacionDestinoColor(d.tipoDestino),
       ),
+      filterValue: (DotacionEntity d) =>
+          cat.destinoNombre(d) == null ? d.tipoDestino : '${d.tipoDestino} · ${cat.destinoNombre(d)}',
     ),
     GestionColumn<DotacionEntity>(
       label: 'Tipo vehículo',
       flex: 2,
       sortValue: (DotacionEntity d) => (cat.tipoVehiculoNombre(d) ?? '').toLowerCase(),
       cell: (DotacionEntity d) => DotacionCellText(GestionFormatters.texto(cat.tipoVehiculoNombre(d))),
+      filterValue: (DotacionEntity d) => cat.tipoVehiculoNombre(d) ?? '',
     ),
     GestionColumn<DotacionEntity>(
       label: 'Unidades',
@@ -118,12 +121,14 @@ List<GestionColumn<DotacionEntity>> dotacionesGestionColumns(DotacionesCatalogos
       alignment: Alignment.centerRight,
       sortValue: (DotacionEntity d) => d.cantidadUnidades,
       cell: (DotacionEntity d) => DotacionCellText('${d.cantidadUnidades}', bold: true),
+      filterValue: (DotacionEntity d) => '${d.cantidadUnidades}',
     ),
     GestionColumn<DotacionEntity>(
       label: 'Prioridad',
       width: 110,
       sortValue: (DotacionEntity d) => d.prioridad,
       cell: (DotacionEntity d) => DotacionPrioridadDot(prioridad: d.prioridad),
+      filterValue: (DotacionEntity d) => '${d.prioridad} · ${dotacionPrioridadLabel(d.prioridad)}',
     ),
     GestionColumn<DotacionEntity>(
       label: 'Vigencia',
@@ -133,12 +138,14 @@ List<GestionColumn<DotacionEntity>> dotacionesGestionColumns(DotacionesCatalogos
         dotacionVigencia(d),
         color: d.esVigenteEn(DateTime.now()) ? null : AppColors.error,
       ),
+      filterValue: (DotacionEntity d) => d.esVigenteEn(DateTime.now()) ? 'Vigente' : 'No vigente',
     ),
     GestionColumn<DotacionEntity>(
       label: 'Estado',
       width: 100,
       sortValue: (DotacionEntity d) => d.activo ? 0 : 1,
       cell: (DotacionEntity d) => DotacionEstadoDot(activo: d.activo),
+      filterValue: (DotacionEntity d) => d.activo ? 'Activa' : 'Inactiva',
     ),
   ];
 }

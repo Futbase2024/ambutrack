@@ -93,18 +93,21 @@ List<GestionColumn<AsignacionVehiculoTurnoEntity>> asignacionesGestionColumns(As
       flex: 2,
       sortValue: (AsignacionVehiculoTurnoEntity a) => cat.vehiculo(a).toLowerCase(),
       cell: (AsignacionVehiculoTurnoEntity a) => AsignacionCellText(cat.vehiculo(a), bold: true),
+      filterValue: (AsignacionVehiculoTurnoEntity a) => cat.vehiculo(a),
     ),
     GestionColumn<AsignacionVehiculoTurnoEntity>(
       label: 'Dotación',
       flex: 3,
       sortValue: (AsignacionVehiculoTurnoEntity a) => cat.dotacion(a).toLowerCase(),
       cell: (AsignacionVehiculoTurnoEntity a) => AsignacionCellText(cat.dotacion(a)),
+      filterValue: (AsignacionVehiculoTurnoEntity a) => cat.dotacion(a),
     ),
     GestionColumn<AsignacionVehiculoTurnoEntity>(
       label: 'Turno',
       flex: 2,
       sortValue: (AsignacionVehiculoTurnoEntity a) => (cat.turno(a) ?? '').toLowerCase(),
       cell: (AsignacionVehiculoTurnoEntity a) => AsignacionCellText(GestionFormatters.texto(cat.turno(a))),
+      filterValue: (AsignacionVehiculoTurnoEntity a) => cat.turno(a) ?? '',
     ),
     GestionColumn<AsignacionVehiculoTurnoEntity>(
       label: 'Destino',
@@ -113,12 +116,15 @@ List<GestionColumn<AsignacionVehiculoTurnoEntity>> asignacionesGestionColumns(As
       cell: (AsignacionVehiculoTurnoEntity a) => AsignacionCellText(
         cat.destino(a) == null ? GestionFormatters.vacio : '${a.tipoDestino} · ${cat.destino(a)}',
       ),
+      filterValue: (AsignacionVehiculoTurnoEntity a) =>
+          cat.destino(a) == null ? '' : '${a.tipoDestino} · ${cat.destino(a)}',
     ),
     GestionColumn<AsignacionVehiculoTurnoEntity>(
       label: 'Estado',
       width: 120,
       sortValue: (AsignacionVehiculoTurnoEntity a) => asignacionEstadoLabel(a.estado),
       cell: (AsignacionVehiculoTurnoEntity a) => AsignacionEstadoDot(estado: a.estado),
+      filterValue: (AsignacionVehiculoTurnoEntity a) => asignacionEstadoLabel(a.estado),
     ),
     GestionColumn<AsignacionVehiculoTurnoEntity>(
       label: 'Km',

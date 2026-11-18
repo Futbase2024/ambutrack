@@ -53,6 +53,7 @@ final List<GestionColumn<PlantillaEquipamientoItemEntity>> plantillaItemsColumns
     label: 'Sección',
     flex: 2,
     sortValue: _ordenKey,
+    filterValue: (PlantillaEquipamientoItemEntity i) => i.seccion,
     cell: (PlantillaEquipamientoItemEntity i) => FlotaCellText(i.seccion),
   ),
   GestionColumn<PlantillaEquipamientoItemEntity>(
@@ -69,6 +70,7 @@ final List<GestionColumn<PlantillaEquipamientoItemEntity>> plantillaItemsColumns
     label: 'Tipo',
     width: 96,
     sortValue: itemTipoLabel,
+    filterValue: itemTipoLabel,
     cell: (PlantillaEquipamientoItemEntity i) => FlotaCellText(itemTipoLabel(i)),
   ),
   GestionColumn<PlantillaEquipamientoItemEntity>(
@@ -82,6 +84,7 @@ final List<GestionColumn<PlantillaEquipamientoItemEntity>> plantillaItemsColumns
     label: 'Requisito',
     width: 96,
     sortValue: (PlantillaEquipamientoItemEntity i) => i.obligatorio ? 0 : 1,
+    filterValue: _requisito,
     cell: (PlantillaEquipamientoItemEntity i) => FlotaCellText(
       i.obligatorio ? 'Obligatorio' : 'Opcional',
       color: i.obligatorio ? null : AppColors.gray500,
@@ -92,6 +95,7 @@ final List<GestionColumn<PlantillaEquipamientoItemEntity>> plantillaItemsColumns
     width: 52,
     alignment: Alignment.center,
     sortValue: (PlantillaEquipamientoItemEntity i) => i.requiereCaducidad ? 0 : 1,
+    filterValue: (PlantillaEquipamientoItemEntity i) => flotaSiNo(value: i.requiereCaducidad),
     cell: (PlantillaEquipamientoItemEntity i) => _Check(value: i.requiereCaducidad, icon: Icons.event),
   ),
   GestionColumn<PlantillaEquipamientoItemEntity>(
@@ -99,12 +103,14 @@ final List<GestionColumn<PlantillaEquipamientoItemEntity>> plantillaItemsColumns
     width: 52,
     alignment: Alignment.center,
     sortValue: (PlantillaEquipamientoItemEntity i) => i.requiereAdjunto ? 0 : 1,
+    filterValue: (PlantillaEquipamientoItemEntity i) => flotaSiNo(value: i.requiereAdjunto),
     cell: (PlantillaEquipamientoItemEntity i) => _Check(value: i.requiereAdjunto, icon: Icons.attach_file),
   ),
   GestionColumn<PlantillaEquipamientoItemEntity>(
     label: 'Estado',
     width: 100,
     sortValue: (PlantillaEquipamientoItemEntity i) => i.activo ? 0 : 1,
+    filterValue: (PlantillaEquipamientoItemEntity i) => i.activo ? 'Activo' : 'Inactivo',
     cell: (PlantillaEquipamientoItemEntity i) => ItemEstadoDot(item: i),
   ),
 ];

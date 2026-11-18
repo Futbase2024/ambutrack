@@ -30,6 +30,9 @@ class _StockGestionViewState extends State<StockGestionView> {
   String _query = '';
   CategoriaProducto? _categoria;
   StockSituacion? _situacion;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -44,7 +47,7 @@ class _StockGestionViewState extends State<StockGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _categoria != null || _situacion != null;
+  bool get _hasFilters => _query.isNotEmpty || _categoria != null || _situacion != null || !_colFilters.isEmpty;
 
   StockEntity? get _selected {
     for (final StockEntity s in _items ?? const <StockEntity>[]) {
@@ -65,7 +68,10 @@ class _StockGestionViewState extends State<StockGestionView> {
         _query = '';
         _categoria = null;
         _situacion = null;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() {
     context.read<StockBloc>().add(const StockLoadAllRequested());
@@ -143,10 +149,10 @@ class _StockGestionViewState extends State<StockGestionView> {
       listener: _onStockChanged,
       builder: (BuildContext context, StockState state) {
         final List<StockEntity> todos = _items ?? <StockEntity>[];
-        final List<StockEntity> visibles = _sort.apply(
-          filtrarStock(todos, productos: productos, query: _query, categoria: _categoria, situacion: _situacion),
-          columns,
-        );
+        // Base con búsqueda y desplegables (valores posibles de los filtros de columna)
+        final List<StockEntity> base =
+            filtrarStock(todos, productos: productos, query: _query, categoria: _categoria, situacion: _situacion);
+        final List<StockEntity> visibles = _sort.apply(_colFilters.apply(base, columns), columns);
         final StockEntity? selected = _selected;
         return GestionLayout(
           toolbar: StockGestionToolbar(
@@ -165,6 +171,9 @@ class _StockGestionViewState extends State<StockGestionView> {
             onCategoriaChanged: (CategoriaProducto? v) => _updateFilters(() => _categoria = v),
             situacion: _situacion,
             onSituacionChanged: (StockSituacion? v) => _updateFilters(() => _situacion = v),
+            columns: columns,
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: AlmacenGestionGridContent<StockEntity>(
@@ -185,6 +194,9 @@ class _StockGestionViewState extends State<StockGestionView> {
             onActivate: _openEdit,
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: base,
           ),
           detailPanel: StockDetailPanel(
             item: selected,

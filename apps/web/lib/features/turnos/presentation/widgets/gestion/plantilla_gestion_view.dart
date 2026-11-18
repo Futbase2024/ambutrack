@@ -26,6 +26,9 @@ class _PlantillaGestionViewState extends State<PlantillaGestionView> {
   String _query = '';
   TipoTurno? _tipo;
   PlantillaEstadoFiltro _estado = PlantillaEstadoFiltro.todos;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -43,7 +46,8 @@ class _PlantillaGestionViewState extends State<PlantillaGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _tipo != null || _estado != PlantillaEstadoFiltro.todos;
+  bool get _hasFilters =>
+      _query.isNotEmpty || _tipo != null || _estado != PlantillaEstadoFiltro.todos || !_colFilters.isEmpty;
 
   PlantillaTurnoEntity? get _selected {
     for (final PlantillaTurnoEntity p in _plantillas ?? const <PlantillaTurnoEntity>[]) {
@@ -54,10 +58,12 @@ class _PlantillaGestionViewState extends State<PlantillaGestionView> {
     return null;
   }
 
-  List<PlantillaTurnoEntity> get _visibles => _sort.apply(
-        filtrarPlantillas(_plantillas ?? <PlantillaTurnoEntity>[], query: _query, tipo: _tipo, estado: _estado),
-        plantillaGestionColumns,
-      );
+  /// Plantillas con búsqueda y desplegables aplicados (base de los valores de los filtros de columna)
+  List<PlantillaTurnoEntity> get _base =>
+      filtrarPlantillas(_plantillas ?? <PlantillaTurnoEntity>[], query: _query, tipo: _tipo, estado: _estado);
+
+  List<PlantillaTurnoEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, plantillaGestionColumns), plantillaGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -69,7 +75,10 @@ class _PlantillaGestionViewState extends State<PlantillaGestionView> {
         _query = '';
         _tipo = null;
         _estado = PlantillaEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() => context.read<PlantillasTurnosBloc>().add(const PlantillasTurnosRefreshRequested());
 
@@ -162,6 +171,8 @@ class _PlantillaGestionViewState extends State<PlantillaGestionView> {
             onTipoChanged: (TipoTurno? v) => _updateFilters(() => _tipo = v),
             estado: _estado,
             onEstadoChanged: (PlantillaEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _PlantillaGridContent(
@@ -176,6 +187,9 @@ class _PlantillaGestionViewState extends State<PlantillaGestionView> {
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
           ),
           detailPanel: PlantillaDetailPanel(
             plantilla: selected,
@@ -218,6 +232,9 @@ class _PlantillaGridContent extends StatelessWidget {
     required this.onActivate,
     required this.onSort,
     required this.onRetry,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
   });
 
   final PlantillasTurnosState state;
@@ -231,6 +248,9 @@ class _PlantillaGridContent extends StatelessWidget {
   final ValueChanged<PlantillaTurnoEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
   final VoidCallback onRetry;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<PlantillaTurnoEntity> filterSource;
 
   @override
   Widget build(BuildContext context) {
@@ -246,6 +266,9 @@ class _PlantillaGridContent extends StatelessWidget {
         GestionGrid<PlantillaTurnoEntity>(
           columns: plantillaGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (PlantillaTurnoEntity p) => p.id,
           selectedId: selectedId,
           onSelect: onSelect,

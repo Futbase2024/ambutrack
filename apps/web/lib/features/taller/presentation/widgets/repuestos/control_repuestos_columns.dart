@@ -107,12 +107,14 @@ final List<GestionColumn<RepuestoControlItem>> controlRepuestosColumns = <Gestio
     label: 'Vehículo',
     flex: 2,
     sortValue: (RepuestoControlItem i) => (i.vehiculoMatricula ?? '').toLowerCase(),
+    filterValue: (RepuestoControlItem i) => i.vehiculoMatricula ?? '',
     cell: (RepuestoControlItem i) => _txt(i.vehiculoMatricula),
   ),
   GestionColumn<RepuestoControlItem>(
     label: 'Proveedor',
     flex: 3,
     sortValue: (RepuestoControlItem i) => (i.repuesto.proveedorNombre ?? '').toLowerCase(),
+    filterValue: (RepuestoControlItem i) => i.repuesto.proveedorNombre ?? '',
     cell: (RepuestoControlItem i) => _txt(i.repuesto.proveedorNombre),
   ),
   GestionColumn<RepuestoControlItem>(
@@ -140,6 +142,7 @@ final List<GestionColumn<RepuestoControlItem>> controlRepuestosColumns = <Gestio
     label: 'Estado',
     flex: 2,
     sortValue: (RepuestoControlItem i) => i.repuesto.estado.index,
+    filterValue: (RepuestoControlItem i) => i.repuesto.estado.displayName,
     cell: (RepuestoControlItem i) => GestionDotLabel(
       label: i.repuesto.estado.displayName,
       color: estadoRepuestoColor(i.repuesto.estado),

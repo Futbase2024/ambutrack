@@ -21,6 +21,9 @@ class _MulticentroGestionViewState extends State<MulticentroGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   EmpresaEstadoFiltro _estado = EmpresaEstadoFiltro.todas;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -32,7 +35,7 @@ class _MulticentroGestionViewState extends State<MulticentroGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != EmpresaEstadoFiltro.todas;
+  bool get _hasFilters => _query.isNotEmpty || _estado != EmpresaEstadoFiltro.todas || !_colFilters.isEmpty;
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -43,7 +46,10 @@ class _MulticentroGestionViewState extends State<MulticentroGestionView> {
         _searchController.clear();
         _query = '';
         _estado = EmpresaEstadoFiltro.todas;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() => context.read<MulticentroBloc>().add(const MulticentroLoadRequested());
 
@@ -57,8 +63,9 @@ class _MulticentroGestionViewState extends State<MulticentroGestionView> {
             : data.empresas
                 .map((EmpresaTenantEntity e) => EmpresaRow(empresa: e, usuarios: data.usuariosDe(e.id).length))
                 .toList();
+        final List<EmpresaRow> base = filtrarEmpresas(todas, query: _query, estado: _estado);
         final List<EmpresaRow> visibles =
-            _sort.apply(filtrarEmpresas(todas, query: _query, estado: _estado), multicentroColumns);
+            _sort.apply(_colFilters.apply(base, multicentroColumns), multicentroColumns);
         final EmpresaTenantEntity? selected = _findSelected(data);
 
         return GestionLayout(
@@ -79,11 +86,16 @@ class _MulticentroGestionViewState extends State<MulticentroGestionView> {
             onSearchChanged: (String v) => _updateFilters(() => _query = v),
             estado: _estado,
             onEstadoChanged: (EmpresaEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _MulticentroContent(
             state: state,
             rows: _pageOf(visibles),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: base,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,
             sort: _sort,
@@ -145,6 +157,9 @@ class _MulticentroContent extends StatelessWidget {
   const _MulticentroContent({
     required this.state,
     required this.rows,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.firstRowNumber,
     required this.selectedId,
     required this.sort,
@@ -156,6 +171,9 @@ class _MulticentroContent extends StatelessWidget {
 
   final MulticentroState state;
   final List<EmpresaRow> rows;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<EmpresaRow> filterSource;
   final int firstRowNumber;
   final String? selectedId;
   final GestionSort sort;
@@ -176,6 +194,9 @@ class _MulticentroContent extends StatelessWidget {
     return GestionGrid<EmpresaRow>(
       columns: multicentroColumns,
       rows: rows,
+      filters: filters,
+      onFiltersChanged: onFiltersChanged,
+      filterSource: filterSource,
       rowId: (EmpresaRow r) => r.empresa.id,
       selectedId: selectedId,
       onSelect: onSelect,

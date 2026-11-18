@@ -33,6 +33,7 @@ final List<GestionColumn<ProveedorTallerEntity>> proveedorTallerGestionColumns =
     label: 'Tipo',
     flex: 2,
     sortValue: (ProveedorTallerEntity p) => p.tipo.displayName,
+    filterValue: (ProveedorTallerEntity p) => p.tipo.displayName,
     cell: (ProveedorTallerEntity p) => GestionDotLabel(
       label: p.tipo.displayName,
       color: proveedorTallerTipoColor(p.tipo),
@@ -42,6 +43,7 @@ final List<GestionColumn<ProveedorTallerEntity>> proveedorTallerGestionColumns =
     label: 'Ciudad',
     flex: 2,
     sortValue: (ProveedorTallerEntity p) => (p.ciudad ?? '').toLowerCase(),
+    filterValue: (ProveedorTallerEntity p) => p.ciudad ?? '',
     cell: (ProveedorTallerEntity p) => TallerCellText(GestionFormatters.texto(p.ciudad)),
   ),
   GestionColumn<ProveedorTallerEntity>(
@@ -59,12 +61,14 @@ final List<GestionColumn<ProveedorTallerEntity>> proveedorTallerGestionColumns =
     label: 'Forma pago',
     flex: 2,
     sortValue: (ProveedorTallerEntity p) => (p.formaPago ?? '').toLowerCase(),
+    filterValue: (ProveedorTallerEntity p) => p.formaPago ?? '',
     cell: (ProveedorTallerEntity p) => TallerCellText(GestionFormatters.texto(p.formaPago)),
   ),
   GestionColumn<ProveedorTallerEntity>(
     label: 'Estado',
     width: 100,
     sortValue: (ProveedorTallerEntity p) => p.activo ? 0 : 1,
+    filterValue: (ProveedorTallerEntity p) => p.activo ? 'Activo' : 'Inactivo',
     cell: (ProveedorTallerEntity p) => TallerEstadoDot(activo: p.activo),
   ),
 ];

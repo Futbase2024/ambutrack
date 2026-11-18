@@ -92,6 +92,9 @@ class StockGestionFilters extends StatelessWidget {
     required this.onCategoriaChanged,
     required this.situacion,
     required this.onSituacionChanged,
+    required this.columns,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -102,6 +105,11 @@ class StockGestionFilters extends StatelessWidget {
   final ValueChanged<CategoriaProducto?> onCategoriaChanged;
   final StockSituacion? situacion;
   final ValueChanged<StockSituacion?> onSituacionChanged;
+
+  /// Columnas de la rejilla (para las etiquetas de los filtros de columna)
+  final List<GestionColumn<StockEntity>> columns;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -131,6 +139,11 @@ class StockGestionFilters extends StatelessWidget {
             for (final StockSituacion e in StockSituacion.values) e: e.label,
           },
           onChanged: onSituacionChanged,
+        ),
+        GestionColumnFilterChips<StockEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

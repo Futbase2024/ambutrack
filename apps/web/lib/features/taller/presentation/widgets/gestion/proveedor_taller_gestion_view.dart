@@ -26,6 +26,9 @@ class _ProveedorTallerGestionViewState extends State<ProveedorTallerGestionView>
   String _query = '';
   TipoProveedor? _tipo;
   TallerEstadoFiltro _estado = TallerEstadoFiltro.todos;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -44,7 +47,7 @@ class _ProveedorTallerGestionViewState extends State<ProveedorTallerGestionView>
   }
 
   bool get _hasFilters =>
-      _query.isNotEmpty || _tipo != null || _estado != TallerEstadoFiltro.todos;
+      _query.isNotEmpty || _tipo != null || _estado != TallerEstadoFiltro.todos || !_colFilters.isEmpty;
 
   ProveedorTallerEntity? get _selected {
     for (final ProveedorTallerEntity p in _proveedores ?? const <ProveedorTallerEntity>[]) {
@@ -55,13 +58,16 @@ class _ProveedorTallerGestionViewState extends State<ProveedorTallerGestionView>
     return null;
   }
 
+  /// Proveedores con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<ProveedorTallerEntity> get _base => filtrarProveedoresTaller(
+        _proveedores ?? <ProveedorTallerEntity>[],
+        query: _query,
+        tipo: _tipo,
+        estado: _estado,
+      );
+
   List<ProveedorTallerEntity> get _visibles => _sort.apply(
-        filtrarProveedoresTaller(
-          _proveedores ?? <ProveedorTallerEntity>[],
-          query: _query,
-          tipo: _tipo,
-          estado: _estado,
-        ),
+        _colFilters.apply(_base, proveedorTallerGestionColumns),
         proveedorTallerGestionColumns,
       );
 
@@ -75,7 +81,10 @@ class _ProveedorTallerGestionViewState extends State<ProveedorTallerGestionView>
         _query = '';
         _tipo = null;
         _estado = TallerEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() => context.read<ProveedorTallerBloc>().add(const ProveedorTallerLoadRequested());
 
@@ -161,6 +170,8 @@ class _ProveedorTallerGestionViewState extends State<ProveedorTallerGestionView>
             onTipoChanged: (TipoProveedor? v) => _updateFilters(() => _tipo = v),
             estado: _estado,
             onEstadoChanged: (TallerEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: TallerGestionGridContent<ProveedorTallerEntity>(
@@ -181,6 +192,9 @@ class _ProveedorTallerGestionViewState extends State<ProveedorTallerGestionView>
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
           ),
           detailPanel: ProveedorTallerDetailPanel(
             proveedor: selected,
@@ -212,6 +226,8 @@ class _ProveedorTallerFilters extends StatelessWidget {
     required this.onTipoChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
   });
 
@@ -221,6 +237,8 @@ class _ProveedorTallerFilters extends StatelessWidget {
   final ValueChanged<TipoProveedor?> onTipoChanged;
   final TallerEstadoFiltro estado;
   final ValueChanged<TallerEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -250,6 +268,11 @@ class _ProveedorTallerFilters extends StatelessWidget {
             TallerEstadoFiltro.inactivos: 'Inactivos',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<ProveedorTallerEntity>(
+          filters: columnFilters,
+          columns: proveedorTallerGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

@@ -90,12 +90,14 @@ List<GestionColumn<EquipamientoPersonalEntity>> equipamientoGestionColumns(
   return <GestionColumn<EquipamientoPersonalEntity>>[
     GestionColumn<EquipamientoPersonalEntity>(
       label: 'Tipo',
+      filterValue: (EquipamientoPersonalEntity e) => equipamientoTipoLabel(e.tipoEquipamiento),
       flex: 2,
       sortValue: (EquipamientoPersonalEntity e) => equipamientoTipoLabel(e.tipoEquipamiento),
       cell: (EquipamientoPersonalEntity e) => EquipamientoTipoDot(tipo: e.tipoEquipamiento),
     ),
     GestionColumn<EquipamientoPersonalEntity>(
       label: 'Nombre',
+      filterValue: (EquipamientoPersonalEntity e) => e.nombreEquipamiento,
       flex: 4,
       sortValue: (EquipamientoPersonalEntity e) => e.nombreEquipamiento.toLowerCase(),
       cell: (EquipamientoPersonalEntity e) => GestionCellText(e.nombreEquipamiento, bold: true),
@@ -114,6 +116,7 @@ List<GestionColumn<EquipamientoPersonalEntity>> equipamientoGestionColumns(
     ),
     GestionColumn<EquipamientoPersonalEntity>(
       label: 'Talla',
+      filterValue: (EquipamientoPersonalEntity e) => gestionFiltroTexto(e.talla),
       width: 80,
       sortValue: (EquipamientoPersonalEntity e) => (e.talla ?? '').toLowerCase(),
       cell: (EquipamientoPersonalEntity e) => GestionCellText(GestionFormatters.texto(e.talla)),
@@ -126,6 +129,7 @@ List<GestionColumn<EquipamientoPersonalEntity>> equipamientoGestionColumns(
     ),
     GestionColumn<EquipamientoPersonalEntity>(
       label: 'Estado',
+      filterValue: (EquipamientoPersonalEntity e) => e.estaAsignado ? 'Asignado' : 'Devuelto',
       width: 110,
       sortValue: (EquipamientoPersonalEntity e) => e.estaAsignado ? 0 : 1,
       cell: (EquipamientoPersonalEntity e) => EquipamientoEstadoDot(asignado: e.estaAsignado),

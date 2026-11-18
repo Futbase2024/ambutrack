@@ -25,6 +25,9 @@ class TipoTrasladoGestionView extends StatefulWidget {
 class _TipoTrasladoGestionViewState extends State<TipoTrasladoGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   bool? _activo;
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
@@ -43,7 +46,8 @@ class _TipoTrasladoGestionViewState extends State<TipoTrasladoGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _activo != null;
+  bool get _hasFilters =>
+      !_colFilters.isEmpty || _query.isNotEmpty || _activo != null;
 
   TipoTrasladoEntity? get _selected {
     for (final TipoTrasladoEntity e in _items ?? const <TipoTrasladoEntity>[]) {
@@ -54,19 +58,24 @@ class _TipoTrasladoGestionViewState extends State<TipoTrasladoGestionView> {
     return null;
   }
 
-  List<TipoTrasladoEntity> get _visibles => _sort.apply(
-        filtrarTiposTraslado(_items ?? <TipoTrasladoEntity>[], query: _query, activo: _activo),
-        tipoTrasladoGestionColumns,
-      );
+  /// Filas con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<TipoTrasladoEntity> get _base =>
+      filtrarTiposTraslado(_items ?? <TipoTrasladoEntity>[], query: _query, activo: _activo);
+
+  List<TipoTrasladoEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, tipoTrasladoGestionColumns), tipoTrasladoGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
+
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
         _query = '';
+        _colFilters = const GestionColumnFilters();
         _activo = null;
       });
 
@@ -147,6 +156,8 @@ class _TipoTrasladoGestionViewState extends State<TipoTrasladoGestionView> {
             onSearchChanged: (String v) => _updateFilters(() => _query = v),
             activo: _activo,
             onActivoChanged: (bool? v) => _updateFilters(() => _activo = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _TipoTrasladoGridContent(
@@ -157,6 +168,9 @@ class _TipoTrasladoGestionViewState extends State<TipoTrasladoGestionView> {
             selectedId: _selectedId,
             sort: _sort,
             hasFilters: _hasFilters,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             onSelect: (TipoTrasladoEntity e) => setState(() => _selectedId = e.id),
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
@@ -199,6 +213,9 @@ class _TipoTrasladoGridContent extends StatelessWidget {
     required this.selectedId,
     required this.sort,
     required this.hasFilters,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.onSelect,
     required this.onActivate,
     required this.onSort,
@@ -212,6 +229,9 @@ class _TipoTrasladoGridContent extends StatelessWidget {
   final String? selectedId;
   final GestionSort sort;
   final bool hasFilters;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<TipoTrasladoEntity> filterSource;
   final ValueChanged<TipoTrasladoEntity> onSelect;
   final ValueChanged<TipoTrasladoEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
@@ -231,6 +251,9 @@ class _TipoTrasladoGridContent extends StatelessWidget {
         GestionGrid<TipoTrasladoEntity>(
           columns: tipoTrasladoGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (TipoTrasladoEntity e) => e.id,
           selectedId: selectedId,
           onSelect: onSelect,

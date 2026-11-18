@@ -38,12 +38,14 @@ final List<GestionColumn<ProveedorEntity>> proveedorGestionColumns = <GestionCol
     label: 'Ciudad',
     flex: 2,
     sortValue: (ProveedorEntity p) => (p.ciudad ?? '').toLowerCase(),
+    filterValue: (ProveedorEntity p) => p.ciudad ?? '',
     cell: (ProveedorEntity p) => AlmacenCellText(GestionFormatters.texto(p.ciudad)),
   ),
   GestionColumn<ProveedorEntity>(
     label: 'Estado',
     width: 100,
     sortValue: (ProveedorEntity p) => p.activo ? 0 : 1,
+    filterValue: (ProveedorEntity p) => p.activo ? 'Activo' : 'Inactivo',
     cell: (ProveedorEntity p) => AlmacenEstadoDot(activo: p.activo),
   ),
 ];

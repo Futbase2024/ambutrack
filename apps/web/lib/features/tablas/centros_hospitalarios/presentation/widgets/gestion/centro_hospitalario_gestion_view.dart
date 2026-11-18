@@ -24,6 +24,9 @@ class CentroHospitalarioGestionView extends StatefulWidget {
 class _CentroHospitalarioGestionViewState extends State<CentroHospitalarioGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   String? _tipo;
   CentroHospitalarioEstadoFiltro _estado = CentroHospitalarioEstadoFiltro.todos;
   GestionSort _sort = const GestionSort(columnIndex: 0);
@@ -47,6 +50,7 @@ class _CentroHospitalarioGestionViewState extends State<CentroHospitalarioGestio
   }
 
   bool get _hasFilters =>
+      !_colFilters.isEmpty ||
       _query.isNotEmpty || _tipo != null || _estado != CentroHospitalarioEstadoFiltro.todos;
 
   CentroHospitalarioEntity? get _selected {
@@ -58,24 +62,28 @@ class _CentroHospitalarioGestionViewState extends State<CentroHospitalarioGestio
     return null;
   }
 
-  List<CentroHospitalarioEntity> get _visibles => _sort.apply(
-        filtrarCentros(
+  /// Filas con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<CentroHospitalarioEntity> get _base => filtrarCentros(
           _centros ?? <CentroHospitalarioEntity>[],
           query: _query,
           tipo: _tipo,
           estado: _estado,
-        ),
-        centroHospitalarioGestionColumns,
-      );
+        );
+
+  List<CentroHospitalarioEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, centroHospitalarioGestionColumns), centroHospitalarioGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
+
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
         _query = '';
+        _colFilters = const GestionColumnFilters();
         _tipo = null;
         _estado = CentroHospitalarioEstadoFiltro.todos;
       });
@@ -166,6 +174,8 @@ class _CentroHospitalarioGestionViewState extends State<CentroHospitalarioGestio
             onTipoChanged: (String? v) => _updateFilters(() => _tipo = v),
             estado: _estado,
             onEstadoChanged: (CentroHospitalarioEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _CentroHospitalarioGridContent(
@@ -176,6 +186,9 @@ class _CentroHospitalarioGestionViewState extends State<CentroHospitalarioGestio
             selectedId: _selectedId,
             sort: _sort,
             hasFilters: _hasFilters,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             onSelect: (CentroHospitalarioEntity c) => setState(() => _selectedId = c.id),
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
@@ -218,6 +231,9 @@ class _CentroHospitalarioGridContent extends StatelessWidget {
     required this.selectedId,
     required this.sort,
     required this.hasFilters,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.onSelect,
     required this.onActivate,
     required this.onSort,
@@ -231,6 +247,9 @@ class _CentroHospitalarioGridContent extends StatelessWidget {
   final String? selectedId;
   final GestionSort sort;
   final bool hasFilters;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<CentroHospitalarioEntity> filterSource;
   final ValueChanged<CentroHospitalarioEntity> onSelect;
   final ValueChanged<CentroHospitalarioEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
@@ -250,6 +269,9 @@ class _CentroHospitalarioGridContent extends StatelessWidget {
         GestionGrid<CentroHospitalarioEntity>(
           columns: centroHospitalarioGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (CentroHospitalarioEntity c) => c.id,
           selectedId: selectedId,
           onSelect: onSelect,

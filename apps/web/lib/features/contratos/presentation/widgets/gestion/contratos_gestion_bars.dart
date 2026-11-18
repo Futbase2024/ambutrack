@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/contratos/presentation/widgets/gestion/contratos_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -65,6 +66,9 @@ class ContratosGestionFilters extends StatelessWidget {
     required this.onEstadoChanged,
     required this.tipo,
     required this.onTipoChanged,
+    required this.columnFilters,
+    required this.columns,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -76,6 +80,11 @@ class ContratosGestionFilters extends StatelessWidget {
   final String? tipo;
   final ValueChanged<String?> onTipoChanged;
   final VoidCallback? onClear;
+
+  /// Filtros por columna (embudo de la cabecera) activos
+  final GestionColumnFilters columnFilters;
+  final List<GestionColumn<ContratoEntity>> columns;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -101,6 +110,11 @@ class ContratosGestionFilters extends StatelessWidget {
           value: tipo,
           options: const <String?, String>{null: 'Todos', ...contratoTipos},
           onChanged: onTipoChanged,
+        ),
+        GestionColumnFilterChips<ContratoEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

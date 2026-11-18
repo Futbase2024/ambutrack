@@ -22,6 +22,9 @@ class ContratosGestionView extends StatefulWidget {
 class _ContratosGestionViewState extends State<ContratosGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   ContratoEstadoFiltro _estado = ContratoEstadoFiltro.todos;
   String? _tipo;
   GestionSort _sort = const GestionSort(columnIndex: 0);
@@ -69,7 +72,9 @@ class _ContratosGestionViewState extends State<ContratosGestionView> {
     return false;
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _tipo != null || _estado != ContratoEstadoFiltro.todos;
+  bool get _hasFilters =>
+      _query.isNotEmpty || _tipo != null || _estado != ContratoEstadoFiltro.todos ||
+      !_colFilters.isEmpty;
 
   ContratoEntity? get _selected {
     for (final ContratoEntity c in _contratos ?? const <ContratoEntity>[]) {
@@ -80,16 +85,17 @@ class _ContratosGestionViewState extends State<ContratosGestionView> {
     return null;
   }
 
-  List<ContratoEntity> _visibles(List<GestionColumn<ContratoEntity>> columns) => _sort.apply(
-        filtrarContratos(
-          _contratos ?? <ContratoEntity>[],
-          _hospitales,
-          query: _query,
-          estado: _estado,
-          tipo: _tipo,
-        ),
-        columns,
-      );
+  /// Registros con búsqueda y filtros de la barra (base de los filtros de columna)
+  List<ContratoEntity> get _base => filtrarContratos(
+      _contratos ?? <ContratoEntity>[],
+      _hospitales,
+      query: _query,
+      estado: _estado,
+      tipo: _tipo,
+    );
+
+  List<ContratoEntity> _visibles(List<GestionColumn<ContratoEntity>> columns) =>
+      _sort.apply(_colFilters.apply(_base, columns), columns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -101,7 +107,10 @@ class _ContratosGestionViewState extends State<ContratosGestionView> {
         _query = '';
         _tipo = null;
         _estado = ContratoEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() => context.read<ContratoBloc>().add(const ContratoLoadRequested());
 
@@ -187,6 +196,9 @@ class _ContratosGestionViewState extends State<ContratosGestionView> {
             onEstadoChanged: (ContratoEstadoFiltro v) => _updateFilters(() => _estado = v),
             tipo: _tipo,
             onTipoChanged: (String? v) => _updateFilters(() => _tipo = v),
+            columnFilters: _colFilters,
+            columns: columns,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: ContratosGridContent(
@@ -194,6 +206,9 @@ class _ContratosGestionViewState extends State<ContratosGestionView> {
             hasData: _contratos != null,
             columns: columns,
             rows: _pageOf(visibles),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,
             sort: _sort,

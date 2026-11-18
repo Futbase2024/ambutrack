@@ -32,6 +32,9 @@ class _ItvGestionViewState extends State<ItvGestionView> {
   TipoItvRevision? _tipo;
   ResultadoItvRevision? _resultado;
   EstadoItvRevision? _estado;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 2, ascending: false);
   int _page = 0;
   int _pageSize = 25;
@@ -49,7 +52,8 @@ class _ItvGestionViewState extends State<ItvGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _tipo != null || _resultado != null || _estado != null;
+  bool get _hasFilters =>
+      _query.isNotEmpty || _tipo != null || _resultado != null || _estado != null || !_colFilters.isEmpty;
 
   ItvRevisionEntity? get _selected {
     for (final ItvRevisionEntity i in _items ?? const <ItvRevisionEntity>[]) {
@@ -71,7 +75,10 @@ class _ItvGestionViewState extends State<ItvGestionView> {
         _tipo = null;
         _resultado = null;
         _estado = null;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() {
     context.read<ItvRevisionBloc>().add(const ItvRevisionLoadRequested());
@@ -187,10 +194,10 @@ class _ItvGestionViewState extends State<ItvGestionView> {
       listener: _onStateChanged,
       builder: (BuildContext context, ItvRevisionState state) {
         final List<ItvRevisionEntity> todos = _items ?? <ItvRevisionEntity>[];
-        final List<ItvRevisionEntity> visibles = _sort.apply(
-          filtrarItv(todos, vehiculos: vehiculos, query: _query, tipo: _tipo, resultado: _resultado, estado: _estado),
-          columns,
-        );
+        // Base con búsqueda y desplegables (valores posibles de los filtros de columna)
+        final List<ItvRevisionEntity> base =
+            filtrarItv(todos, vehiculos: vehiculos, query: _query, tipo: _tipo, resultado: _resultado, estado: _estado);
+        final List<ItvRevisionEntity> visibles = _sort.apply(_colFilters.apply(base, columns), columns);
         final ItvRevisionEntity? selected = _selected;
         return GestionLayout(
           toolbar: ItvGestionToolbar(
@@ -211,6 +218,9 @@ class _ItvGestionViewState extends State<ItvGestionView> {
             onResultadoChanged: (ResultadoItvRevision? v) => _updateFilters(() => _resultado = v),
             estado: _estado,
             onEstadoChanged: (EstadoItvRevision? v) => _updateFilters(() => _estado = v),
+            columns: columns,
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: FlotaGridArea(
@@ -232,6 +242,9 @@ class _ItvGestionViewState extends State<ItvGestionView> {
               emptyMessage: _hasFilters
                   ? 'Ninguna ITV/Revisión coincide con los filtros'
                   : 'No hay ITV/Revisiones registradas. Pulsa "Nuevo" para programar una.',
+              filters: _colFilters,
+              onFiltersChanged: _onColumnFiltersChanged,
+              filterSource: base,
             ),
           ),
           detailPanel: ItvDetailPanel(

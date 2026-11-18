@@ -12,6 +12,8 @@ class OrdenGestionFilters extends StatelessWidget {
     required this.onEstadoChanged,
     required this.prioridad,
     required this.onPrioridadChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -22,6 +24,8 @@ class OrdenGestionFilters extends StatelessWidget {
   final ValueChanged<String> onEstadoChanged;
   final PrioridadOrdenReparacion? prioridad;
   final ValueChanged<PrioridadOrdenReparacion?> onPrioridadChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -47,6 +51,11 @@ class OrdenGestionFilters extends StatelessWidget {
             for (final PrioridadOrdenReparacion p in PrioridadOrdenReparacion.values) p: p.displayName,
           },
           onChanged: onPrioridadChanged,
+        ),
+        GestionColumnFilterChips<OrdenReparacionEntity>(
+          filters: columnFilters,
+          columns: ordenGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

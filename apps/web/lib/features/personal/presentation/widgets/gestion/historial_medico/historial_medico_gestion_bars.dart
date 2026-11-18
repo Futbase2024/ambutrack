@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/personal/presentation/widgets/gestion/historial_medico/historial_medico_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -75,6 +76,9 @@ class HistorialMedicoGestionFilters extends StatelessWidget {
     required this.onAptitudChanged,
     required this.vigencia,
     required this.onVigenciaChanged,
+    required this.columnFilters,
+    required this.columns,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -86,6 +90,11 @@ class HistorialMedicoGestionFilters extends StatelessWidget {
   final VigenciaReconocimiento? vigencia;
   final ValueChanged<VigenciaReconocimiento?> onVigenciaChanged;
   final VoidCallback? onClear;
+
+  /// Filtros por columna (embudo de la cabecera) activos
+  final GestionColumnFilters columnFilters;
+  final List<GestionColumn<HistorialMedicoEntity>> columns;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +122,11 @@ class HistorialMedicoGestionFilters extends StatelessWidget {
             for (final VigenciaReconocimiento v in VigenciaReconocimiento.values) v: v.label,
           },
           onChanged: onVigenciaChanged,
+        ),
+        GestionColumnFilterChips<HistorialMedicoEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

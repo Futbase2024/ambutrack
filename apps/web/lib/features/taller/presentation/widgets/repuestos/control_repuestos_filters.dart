@@ -1,4 +1,5 @@
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
+import 'package:ambutrack_web/features/taller/presentation/bloc/control_repuestos_state.dart';
 import 'package:ambutrack_web/features/taller/presentation/widgets/consulta/taller_consulta_common.dart';
 import 'package:ambutrack_web/features/taller/presentation/widgets/repuestos/control_repuestos_columns.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,8 @@ class ControlRepuestosFilters extends StatelessWidget {
     required this.proveedores,
     required this.vehiculos,
     required this.onChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -20,6 +23,8 @@ class ControlRepuestosFilters extends StatelessWidget {
   final Map<String, String> proveedores;
   final Map<String, String> vehiculos;
   final ValueChanged<ControlRepuestosFiltro> onChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -54,6 +59,11 @@ class ControlRepuestosFilters extends StatelessWidget {
           label: 'Pedido',
           rango: filtro.rango,
           onChanged: (DateTimeRange? r) => onChanged(filtro.copyWith(rango: r, clearRango: r == null)),
+        ),
+        GestionColumnFilterChips<RepuestoControlItem>(
+          filters: columnFilters,
+          columns: controlRepuestosColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

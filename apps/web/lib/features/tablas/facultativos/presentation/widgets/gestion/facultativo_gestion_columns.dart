@@ -67,12 +67,14 @@ final List<GestionColumn<FacultativoEntity>> facultativoGestionColumns =
     label: 'Especialidad',
     flex: 3,
     sortValue: (FacultativoEntity f) => (f.especialidadNombre ?? '').toLowerCase(),
+    filterValue: (FacultativoEntity f) => f.especialidadNombre ?? '',
     cell: (FacultativoEntity f) => FacultativoCellText(GestionFormatters.texto(f.especialidadNombre)),
   ),
   GestionColumn<FacultativoEntity>(
     label: 'Estado',
     width: 100,
     sortValue: (FacultativoEntity f) => f.activo ? 0 : 1,
+    filterValue: (FacultativoEntity f) => f.activo ? 'Activo' : 'Inactivo',
     cell: (FacultativoEntity f) => FacultativoEstadoDot(activo: f.activo),
   ),
 ];

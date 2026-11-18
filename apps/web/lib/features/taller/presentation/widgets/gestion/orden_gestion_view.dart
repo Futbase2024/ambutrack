@@ -31,6 +31,9 @@ class _OrdenGestionViewState extends State<OrdenGestionView> {
   String? _enlaceAplicado;
   String _estado = ordenFiltroTodas;
   PrioridadOrdenReparacion? _prioridad;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 6, ascending: false);
   int _page = 0;
   int _pageSize = 25;
@@ -69,7 +72,12 @@ class _OrdenGestionViewState extends State<OrdenGestionView> {
   List<OrdenReparacionEntity> _filtrarEnlace(List<OrdenReparacionEntity> items) =>
       _soloId == null ? items : items.where((OrdenReparacionEntity e) => e.id == _soloId).toList();
 
-  bool get _hasFilters => _soloId != null || _query.isNotEmpty || _estado != ordenFiltroTodas || _prioridad != null;
+  bool get _hasFilters =>
+      _soloId != null ||
+      _query.isNotEmpty ||
+      _estado != ordenFiltroTodas ||
+      _prioridad != null ||
+      !_colFilters.isEmpty;
 
   OrdenReparacionEntity? get _selected {
     for (final OrdenReparacionEntity o in _ordenes ?? const <OrdenReparacionEntity>[]) {
@@ -80,15 +88,16 @@ class _OrdenGestionViewState extends State<OrdenGestionView> {
     return null;
   }
 
-  List<OrdenReparacionEntity> get _visibles => _sort.apply(
-        filtrarOrdenes(
-          _filtrarEnlace(_ordenes ?? <OrdenReparacionEntity>[]),
-          query: _query,
-          estado: _estado,
-          prioridad: _prioridad,
-        ),
-        ordenGestionColumns,
+  /// Órdenes con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<OrdenReparacionEntity> get _base => filtrarOrdenes(
+        _filtrarEnlace(_ordenes ?? <OrdenReparacionEntity>[]),
+        query: _query,
+        estado: _estado,
+        prioridad: _prioridad,
       );
+
+  List<OrdenReparacionEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, ordenGestionColumns), ordenGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -101,6 +110,12 @@ class _OrdenGestionViewState extends State<OrdenGestionView> {
         _query = '';
         _estado = ordenFiltroTodas;
         _prioridad = null;
+        _colFilters = const GestionColumnFilters();
+      });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() {
+        _soloId = null;
+        _colFilters = f;
       });
 
   void _refresh() => context.read<OrdenReparacionBloc>().add(const OrdenReparacionLoadRequested());
@@ -232,6 +247,8 @@ class _OrdenGestionViewState extends State<OrdenGestionView> {
             onEstadoChanged: (String v) => _updateFilters(() => _estado = v),
             prioridad: _prioridad,
             onPrioridadChanged: (PrioridadOrdenReparacion? v) => _updateFilters(() => _prioridad = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: TallerGestionGridContent<OrdenReparacionEntity>(
@@ -252,6 +269,9 @@ class _OrdenGestionViewState extends State<OrdenGestionView> {
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
           ),
           detailPanel: OrdenDetailPanel(
             orden: selected,

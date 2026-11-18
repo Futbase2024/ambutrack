@@ -25,6 +25,9 @@ class _DotacionesGestionViewState extends State<DotacionesGestionView> {
   String _query = '';
   String? _tipoDestino;
   DotacionEstadoFiltro _estado = DotacionEstadoFiltro.todos;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -65,7 +68,7 @@ class _DotacionesGestionViewState extends State<DotacionesGestionView> {
   }
 
   bool get _hasFilters =>
-      _query.isNotEmpty || _tipoDestino != null || _estado != DotacionEstadoFiltro.todos;
+      _query.isNotEmpty || _tipoDestino != null || _estado != DotacionEstadoFiltro.todos || !_colFilters.isEmpty;
 
   List<GestionColumn<DotacionEntity>> get _columns => dotacionesGestionColumns(_catalogos);
 
@@ -78,15 +81,16 @@ class _DotacionesGestionViewState extends State<DotacionesGestionView> {
     return null;
   }
 
-  List<DotacionEntity> _visibles(List<GestionColumn<DotacionEntity>> columns) => _sort.apply(
-        filtrarDotaciones(
-          _dotaciones ?? <DotacionEntity>[],
-          query: _query,
-          tipoDestino: _tipoDestino,
-          estado: _estado,
-        ),
-        columns,
+  /// Dotaciones con búsqueda y desplegables aplicados (base de los valores de los filtros de columna)
+  List<DotacionEntity> get _base => filtrarDotaciones(
+        _dotaciones ?? <DotacionEntity>[],
+        query: _query,
+        tipoDestino: _tipoDestino,
+        estado: _estado,
       );
+
+  List<DotacionEntity> _visibles(List<DotacionEntity> base, List<GestionColumn<DotacionEntity>> columns) =>
+      _sort.apply(_colFilters.apply(base, columns), columns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -98,7 +102,10 @@ class _DotacionesGestionViewState extends State<DotacionesGestionView> {
         _query = '';
         _tipoDestino = null;
         _estado = DotacionEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() {
     context.read<DotacionesBloc>().add(const DotacionesLoadRequested());
@@ -176,7 +183,8 @@ class _DotacionesGestionViewState extends State<DotacionesGestionView> {
       listener: _onStateChanged,
       builder: (BuildContext context, DotacionesState state) {
         final List<GestionColumn<DotacionEntity>> columns = _columns;
-        final List<DotacionEntity> visibles = _visibles(columns);
+        final List<DotacionEntity> base = _base;
+        final List<DotacionEntity> visibles = _visibles(base, columns);
         final DotacionEntity? selected = _selected;
         return GestionLayout(
           toolbar: DotacionesGestionToolbar(
@@ -194,6 +202,9 @@ class _DotacionesGestionViewState extends State<DotacionesGestionView> {
             onTipoDestinoChanged: (String? v) => _updateFilters(() => _tipoDestino = v),
             estado: _estado,
             onEstadoChanged: (DotacionEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columns: columns,
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _DotacionesGridContent(
@@ -201,6 +212,9 @@ class _DotacionesGestionViewState extends State<DotacionesGestionView> {
             hasData: _dotaciones != null,
             columns: columns,
             rows: _pageOf(visibles),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: base,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,
             sort: _sort,
@@ -245,6 +259,9 @@ class _DotacionesGridContent extends StatelessWidget {
     required this.hasData,
     required this.columns,
     required this.rows,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.firstRowNumber,
     required this.selectedId,
     required this.sort,
@@ -259,6 +276,9 @@ class _DotacionesGridContent extends StatelessWidget {
   final bool hasData;
   final List<GestionColumn<DotacionEntity>> columns;
   final List<DotacionEntity> rows;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<DotacionEntity> filterSource;
   final int firstRowNumber;
   final String? selectedId;
   final GestionSort sort;
@@ -282,6 +302,9 @@ class _DotacionesGridContent extends StatelessWidget {
         GestionGrid<DotacionEntity>(
           columns: columns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (DotacionEntity d) => d.id,
           selectedId: selectedId,
           onSelect: onSelect,

@@ -24,6 +24,9 @@ class EspecialidadGestionView extends StatefulWidget {
 class _EspecialidadGestionViewState extends State<EspecialidadGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   String? _tipo;
   EspecialidadEstadoFiltro _estado = EspecialidadEstadoFiltro.todos;
   GestionSort _sort = const GestionSort(columnIndex: 0);
@@ -46,7 +49,8 @@ class _EspecialidadGestionViewState extends State<EspecialidadGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _tipo != null || _estado != EspecialidadEstadoFiltro.todos;
+  bool get _hasFilters =>
+      !_colFilters.isEmpty || _query.isNotEmpty || _tipo != null || _estado != EspecialidadEstadoFiltro.todos;
 
   EspecialidadEntity? get _selected {
     for (final EspecialidadEntity c in _especialidades ?? const <EspecialidadEntity>[]) {
@@ -57,24 +61,28 @@ class _EspecialidadGestionViewState extends State<EspecialidadGestionView> {
     return null;
   }
 
-  List<EspecialidadEntity> get _visibles => _sort.apply(
-        filtrarEspecialidades(
+  /// Filas con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<EspecialidadEntity> get _base => filtrarEspecialidades(
           _especialidades ?? <EspecialidadEntity>[],
           query: _query,
           tipo: _tipo,
           estado: _estado,
-        ),
-        especialidadGestionColumns,
-      );
+        );
+
+  List<EspecialidadEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, especialidadGestionColumns), especialidadGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
+
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
         _query = '';
+        _colFilters = const GestionColumnFilters();
         _tipo = null;
         _estado = EspecialidadEstadoFiltro.todos;
       });
@@ -164,6 +172,8 @@ class _EspecialidadGestionViewState extends State<EspecialidadGestionView> {
             onTipoChanged: (String? v) => _updateFilters(() => _tipo = v),
             estado: _estado,
             onEstadoChanged: (EspecialidadEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _EspecialidadGridContent(
@@ -174,6 +184,9 @@ class _EspecialidadGestionViewState extends State<EspecialidadGestionView> {
             selectedId: _selectedId,
             sort: _sort,
             hasFilters: _hasFilters,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             onSelect: (EspecialidadEntity c) => setState(() => _selectedId = c.id),
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
@@ -216,6 +229,9 @@ class _EspecialidadGridContent extends StatelessWidget {
     required this.selectedId,
     required this.sort,
     required this.hasFilters,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.onSelect,
     required this.onActivate,
     required this.onSort,
@@ -229,6 +245,9 @@ class _EspecialidadGridContent extends StatelessWidget {
   final String? selectedId;
   final GestionSort sort;
   final bool hasFilters;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<EspecialidadEntity> filterSource;
   final ValueChanged<EspecialidadEntity> onSelect;
   final ValueChanged<EspecialidadEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
@@ -248,6 +267,9 @@ class _EspecialidadGridContent extends StatelessWidget {
         GestionGrid<EspecialidadEntity>(
           columns: especialidadGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (EspecialidadEntity c) => c.id,
           selectedId: selectedId,
           onSelect: onSelect,

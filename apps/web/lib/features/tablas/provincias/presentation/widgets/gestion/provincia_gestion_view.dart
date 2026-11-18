@@ -25,6 +25,9 @@ class ProvinciaGestionView extends StatefulWidget {
 class _ProvinciaGestionViewState extends State<ProvinciaGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   String? _comunidadId;
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
@@ -43,7 +46,8 @@ class _ProvinciaGestionViewState extends State<ProvinciaGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _comunidadId != null;
+  bool get _hasFilters =>
+      !_colFilters.isEmpty || _query.isNotEmpty || _comunidadId != null;
 
   ProvinciaEntity? get _selected {
     for (final ProvinciaEntity e in _items ?? const <ProvinciaEntity>[]) {
@@ -54,19 +58,24 @@ class _ProvinciaGestionViewState extends State<ProvinciaGestionView> {
     return null;
   }
 
-  List<ProvinciaEntity> get _visibles => _sort.apply(
-        filtrarProvincias(_items ?? <ProvinciaEntity>[], query: _query, comunidadId: _comunidadId),
-        provinciaGestionColumns,
-      );
+  /// Filas con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<ProvinciaEntity> get _base =>
+      filtrarProvincias(_items ?? <ProvinciaEntity>[], query: _query, comunidadId: _comunidadId);
+
+  List<ProvinciaEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, provinciaGestionColumns), provinciaGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
+
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
         _query = '';
+        _colFilters = const GestionColumnFilters();
         _comunidadId = null;
       });
 
@@ -147,6 +156,8 @@ class _ProvinciaGestionViewState extends State<ProvinciaGestionView> {
             comunidadId: _comunidadId,
             comunidades: comunidadesDeProvincias(_items ?? <ProvinciaEntity>[]),
             onComunidadChanged: (String? v) => _updateFilters(() => _comunidadId = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _ProvinciaGridContent(
@@ -157,6 +168,9 @@ class _ProvinciaGestionViewState extends State<ProvinciaGestionView> {
             selectedId: _selectedId,
             sort: _sort,
             hasFilters: _hasFilters,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             onSelect: (ProvinciaEntity e) => setState(() => _selectedId = e.id),
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
@@ -199,6 +213,9 @@ class _ProvinciaGridContent extends StatelessWidget {
     required this.selectedId,
     required this.sort,
     required this.hasFilters,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.onSelect,
     required this.onActivate,
     required this.onSort,
@@ -212,6 +229,9 @@ class _ProvinciaGridContent extends StatelessWidget {
   final String? selectedId;
   final GestionSort sort;
   final bool hasFilters;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<ProvinciaEntity> filterSource;
   final ValueChanged<ProvinciaEntity> onSelect;
   final ValueChanged<ProvinciaEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
@@ -231,6 +251,9 @@ class _ProvinciaGridContent extends StatelessWidget {
         GestionGrid<ProvinciaEntity>(
           columns: provinciaGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (ProvinciaEntity e) => e.id,
           selectedId: selectedId,
           onSelect: onSelect,

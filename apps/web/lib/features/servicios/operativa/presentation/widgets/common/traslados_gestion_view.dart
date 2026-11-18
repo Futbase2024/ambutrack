@@ -34,6 +34,9 @@ class _TrasladosGestionViewState extends State<TrasladosGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   String? _estado;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 50;
@@ -56,7 +59,7 @@ class _TrasladosGestionViewState extends State<TrasladosGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != null;
+  bool get _hasFilters => _query.isNotEmpty || _estado != null || !_colFilters.isEmpty;
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -67,7 +70,10 @@ class _TrasladosGestionViewState extends State<TrasladosGestionView> {
         _searchController.clear();
         _query = '';
         _estado = null;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _onStateChanged(BuildContext context, TrasladosConsultaState state) {
     if (state is TrasladosConsultaLoaded) {
@@ -108,10 +114,10 @@ class _TrasladosGestionViewState extends State<TrasladosGestionView> {
         final List<TrasladoEntity> base = _base();
         final List<GestionColumn<TrasladoEntity>> columns =
             trasladoGestionColumns(nombres: nombres, conFecha: config.conFecha);
-        final List<TrasladoEntity> visibles = _sort.apply(
-          TrasladoGestion.filtrar(base, query: _query, estado: _estado, nombres: nombres),
-          columns,
-        );
+        // Base de los valores de los filtros de columna (búsqueda + estado)
+        final List<TrasladoEntity> filtrados =
+            TrasladoGestion.filtrar(base, query: _query, estado: _estado, nombres: nombres);
+        final List<TrasladoEntity> visibles = _sort.apply(_colFilters.apply(filtrados, columns), columns);
         final int start = (_page * _pageSize).clamp(0, visibles.length);
         final int end = (start + _pageSize).clamp(0, visibles.length);
         return GestionLayout(
@@ -133,6 +139,9 @@ class _TrasladosGestionViewState extends State<TrasladosGestionView> {
             onSearchChanged: (String v) => _updateFilters(() => _query = v),
             estado: _estado,
             onEstadoChanged: (String? v) => _updateFilters(() => _estado = v),
+            columns: columns,
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: TrasladosGridContent(
@@ -149,6 +158,9 @@ class _TrasladosGestionViewState extends State<TrasladosGestionView> {
             onSelect: (TrasladoEntity t) => setState(() => _selectedId = t.id),
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: widget.onRefresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: filtrados,
           ),
           detailPanel: TrasladoDetailPanel(traslado: _find(visibles), nombres: nombres),
           statusBar: GestionStatusBar(

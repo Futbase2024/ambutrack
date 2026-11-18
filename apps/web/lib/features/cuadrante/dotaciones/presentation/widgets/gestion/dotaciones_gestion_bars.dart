@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/cuadrante/dotaciones/presentation/widgets/gestion/dotaciones_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -65,6 +66,9 @@ class DotacionesGestionFilters extends StatelessWidget {
     required this.onTipoDestinoChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columns,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -75,6 +79,9 @@ class DotacionesGestionFilters extends StatelessWidget {
   final ValueChanged<String?> onTipoDestinoChanged;
   final DotacionEstadoFiltro estado;
   final ValueChanged<DotacionEstadoFiltro> onEstadoChanged;
+  final List<GestionColumn<DotacionEntity>> columns;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -104,6 +111,11 @@ class DotacionesGestionFilters extends StatelessWidget {
             DotacionEstadoFiltro.inactivas: 'Inactivas',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<DotacionEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

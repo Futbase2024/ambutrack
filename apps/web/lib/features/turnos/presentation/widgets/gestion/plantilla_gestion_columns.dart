@@ -107,6 +107,7 @@ final List<GestionColumn<PlantillaTurnoEntity>> plantillaGestionColumns =
       label: p.tipoTurno.nombre,
       color: plantillaHexColor(p.tipoTurno.colorHex),
     ),
+    filterValue: (PlantillaTurnoEntity p) => p.tipoTurno.nombre,
   ),
   GestionColumn<PlantillaTurnoEntity>(
     label: 'Horario',
@@ -119,6 +120,7 @@ final List<GestionColumn<PlantillaTurnoEntity>> plantillaGestionColumns =
     width: 90,
     sortValue: (PlantillaTurnoEntity p) => p.duracionDias,
     cell: (PlantillaTurnoEntity p) => PlantillaCellText(plantillaDuracion(p)),
+    filterValue: plantillaDuracion,
   ),
   GestionColumn<PlantillaTurnoEntity>(
     label: 'Color',
@@ -130,6 +132,7 @@ final List<GestionColumn<PlantillaTurnoEntity>> plantillaGestionColumns =
     width: 100,
     sortValue: (PlantillaTurnoEntity p) => p.activo ? 0 : 1,
     cell: (PlantillaTurnoEntity p) => PlantillaEstadoDot(activo: p.activo),
+    filterValue: (PlantillaTurnoEntity p) => p.activo ? 'Activa' : 'Inactiva',
   ),
 ];
 

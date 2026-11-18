@@ -29,6 +29,9 @@ class _AgendaGestionViewState extends State<AgendaGestionView> {
   String _query = '';
   AgendaEstadoFiltro _estado = AgendaEstadoFiltro.todos;
   AgendaFechaFiltro _fecha = AgendaFechaFiltro.todas;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0, ascending: false);
   int _page = 0;
   int _pageSize = 25;
@@ -48,7 +51,10 @@ class _AgendaGestionViewState extends State<AgendaGestionView> {
   }
 
   bool get _hasFilters =>
-      _query.isNotEmpty || _estado != AgendaEstadoFiltro.todos || _fecha != AgendaFechaFiltro.todas;
+      _query.isNotEmpty ||
+      _estado != AgendaEstadoFiltro.todos ||
+      _fecha != AgendaFechaFiltro.todas ||
+      !_colFilters.isEmpty;
 
   AgendaPendienteEntity? get _selected {
     for (final AgendaPendienteEntity p in _pendientes ?? const <AgendaPendienteEntity>[]) {
@@ -59,10 +65,12 @@ class _AgendaGestionViewState extends State<AgendaGestionView> {
     return null;
   }
 
-  List<AgendaPendienteEntity> get _visibles => _sort.apply(
-        filtrarAgenda(_pendientes ?? <AgendaPendienteEntity>[], query: _query, estado: _estado, fecha: _fecha),
-        agendaGestionColumns,
-      );
+  /// Pendientes con búsqueda y desplegables aplicados (base de los valores de los filtros de columna)
+  List<AgendaPendienteEntity> get _base =>
+      filtrarAgenda(_pendientes ?? <AgendaPendienteEntity>[], query: _query, estado: _estado, fecha: _fecha);
+
+  List<AgendaPendienteEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, agendaGestionColumns), agendaGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -74,7 +82,10 @@ class _AgendaGestionViewState extends State<AgendaGestionView> {
         _query = '';
         _estado = AgendaEstadoFiltro.todos;
         _fecha = AgendaFechaFiltro.todas;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() =>
       context.read<AgendaPendienteBloc>().add(AgendaPendienteLoadRequested(empresaId: widget.empresaId));
@@ -175,6 +186,8 @@ class _AgendaGestionViewState extends State<AgendaGestionView> {
             onEstadoChanged: (AgendaEstadoFiltro v) => _updateFilters(() => _estado = v),
             fecha: _fecha,
             onFechaChanged: (AgendaFechaFiltro v) => _updateFilters(() => _fecha = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: AgendaGridContent(
@@ -189,6 +202,9 @@ class _AgendaGestionViewState extends State<AgendaGestionView> {
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
           ),
           detailPanel: AgendaDetailPanel(
             pendiente: selected,

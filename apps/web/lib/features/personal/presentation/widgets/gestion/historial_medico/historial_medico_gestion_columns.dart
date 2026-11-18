@@ -132,12 +132,14 @@ List<GestionColumn<HistorialMedicoEntity>> historialMedicoColumns(
     ),
     GestionColumn<HistorialMedicoEntity>(
       label: 'Aptitud',
+      filterValue: (HistorialMedicoEntity h) => aptitudLabel(h.aptitud),
       flex: 2,
       sortValue: (HistorialMedicoEntity h) => aptitudLabel(h.aptitud),
       cell: (HistorialMedicoEntity h) => AptitudDot(aptitud: h.aptitud),
     ),
     GestionColumn<HistorialMedicoEntity>(
       label: 'Centro médico',
+      filterValue: (HistorialMedicoEntity h) => h.centroMedico ?? '',
       flex: 2,
       sortValue: (HistorialMedicoEntity h) => (h.centroMedico ?? '').toLowerCase(),
       cell: (HistorialMedicoEntity h) => HistorialCellText(GestionFormatters.texto(h.centroMedico)),
@@ -150,6 +152,7 @@ List<GestionColumn<HistorialMedicoEntity>> historialMedicoColumns(
     ),
     GestionColumn<HistorialMedicoEntity>(
       label: 'Estado',
+      filterValue: (HistorialMedicoEntity h) => VigenciaReconocimiento.of(h).label,
       width: 150,
       sortValue: (HistorialMedicoEntity h) => VigenciaReconocimiento.of(h).index,
       cell: (HistorialMedicoEntity h) => VigenciaDot(item: h),

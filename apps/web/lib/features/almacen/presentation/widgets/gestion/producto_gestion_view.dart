@@ -28,6 +28,9 @@ class _ProductoGestionViewState extends State<ProductoGestionView> {
   String _query = '';
   CategoriaProducto? _categoria;
   AlmacenEstadoFiltro _estado = AlmacenEstadoFiltro.todos;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 1);
   int _page = 0;
   int _pageSize = 25;
@@ -56,7 +59,8 @@ class _ProductoGestionViewState extends State<ProductoGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _categoria != null || _estado != AlmacenEstadoFiltro.todos;
+  bool get _hasFilters =>
+      _query.isNotEmpty || _categoria != null || _estado != AlmacenEstadoFiltro.todos || !_colFilters.isEmpty;
 
   ProductoEntity? get _selected {
     for (final ProductoEntity p in _productos ?? const <ProductoEntity>[]) {
@@ -67,15 +71,16 @@ class _ProductoGestionViewState extends State<ProductoGestionView> {
     return null;
   }
 
-  List<ProductoEntity> get _visibles => _sort.apply(
-        filtrarProductos(
-          _productos ?? <ProductoEntity>[],
-          query: _query,
-          categoria: _categoria,
-          estado: _estado,
-        ),
-        productoGestionColumns,
+  /// Productos con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<ProductoEntity> get _base => filtrarProductos(
+        _productos ?? <ProductoEntity>[],
+        query: _query,
+        categoria: _categoria,
+        estado: _estado,
       );
+
+  List<ProductoEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, productoGestionColumns), productoGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -87,7 +92,10 @@ class _ProductoGestionViewState extends State<ProductoGestionView> {
         _query = '';
         _categoria = null;
         _estado = AlmacenEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() {
     context.read<ProductoBloc>().add(const ProductoLoadAllRequested());
@@ -185,6 +193,8 @@ class _ProductoGestionViewState extends State<ProductoGestionView> {
               onCategoriaChanged: (CategoriaProducto? v) => _updateFilters(() => _categoria = v),
               estado: _estado,
               onEstadoChanged: (AlmacenEstadoFiltro v) => _updateFilters(() => _estado = v),
+              columnFilters: _colFilters,
+              onColumnFiltersChanged: _onColumnFiltersChanged,
               onClear: _hasFilters ? _clearFilters : null,
             ),
             content: AlmacenGestionGridContent<ProductoEntity>(
@@ -205,6 +215,9 @@ class _ProductoGestionViewState extends State<ProductoGestionView> {
               onActivate: _openForm,
               onSort: (GestionSort s) => setState(() => _sort = s),
               onRetry: _refresh,
+              filters: _colFilters,
+              onFiltersChanged: _onColumnFiltersChanged,
+              filterSource: _base,
             ),
             detailPanel: ProductoDetailPanel(
               producto: selected,
@@ -238,6 +251,8 @@ class _ProductoFilters extends StatelessWidget {
     required this.onCategoriaChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
   });
 
@@ -247,6 +262,8 @@ class _ProductoFilters extends StatelessWidget {
   final ValueChanged<CategoriaProducto?> onCategoriaChanged;
   final AlmacenEstadoFiltro estado;
   final ValueChanged<AlmacenEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -272,6 +289,11 @@ class _ProductoFilters extends StatelessWidget {
           value: estado,
           options: almacenEstadoFiltroOptions,
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<ProductoEntity>(
+          filters: columnFilters,
+          columns: productoGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

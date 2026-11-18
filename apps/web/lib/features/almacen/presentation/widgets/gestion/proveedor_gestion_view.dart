@@ -26,6 +26,9 @@ class _ProveedorGestionViewState extends State<ProveedorGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   AlmacenEstadoFiltro _estado = AlmacenEstadoFiltro.todos;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 1);
   int _page = 0;
   int _pageSize = 25;
@@ -51,7 +54,7 @@ class _ProveedorGestionViewState extends State<ProveedorGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != AlmacenEstadoFiltro.todos;
+  bool get _hasFilters => _query.isNotEmpty || _estado != AlmacenEstadoFiltro.todos || !_colFilters.isEmpty;
 
   ProveedorEntity? get _selected {
     for (final ProveedorEntity p in _proveedores ?? const <ProveedorEntity>[]) {
@@ -62,10 +65,12 @@ class _ProveedorGestionViewState extends State<ProveedorGestionView> {
     return null;
   }
 
-  List<ProveedorEntity> get _visibles => _sort.apply(
-        filtrarProveedores(_proveedores ?? <ProveedorEntity>[], query: _query, estado: _estado),
-        proveedorGestionColumns,
-      );
+  /// Proveedores con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<ProveedorEntity> get _base =>
+      filtrarProveedores(_proveedores ?? <ProveedorEntity>[], query: _query, estado: _estado);
+
+  List<ProveedorEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, proveedorGestionColumns), proveedorGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -76,7 +81,10 @@ class _ProveedorGestionViewState extends State<ProveedorGestionView> {
         _searchController.clear();
         _query = '';
         _estado = AlmacenEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() {
     context.read<ProveedoresBloc>().add(const ProveedoresLoadRequested());
@@ -168,6 +176,11 @@ class _ProveedorGestionViewState extends State<ProveedorGestionView> {
                 options: almacenEstadoFiltroOptions,
                 onChanged: (AlmacenEstadoFiltro v) => _updateFilters(() => _estado = v),
               ),
+              GestionColumnFilterChips<ProveedorEntity>(
+                filters: _colFilters,
+                columns: proveedorGestionColumns,
+                onChanged: _onColumnFiltersChanged,
+              ),
               GestionClearFiltersButton(onPressed: _hasFilters ? _clearFilters : null),
             ],
           ),
@@ -189,6 +202,9 @@ class _ProveedorGestionViewState extends State<ProveedorGestionView> {
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
           ),
           detailPanel: ProveedorDetailPanel(
             proveedor: selected,

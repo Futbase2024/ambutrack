@@ -98,6 +98,9 @@ class AlmacenGestionGridContent<T> extends StatelessWidget {
     required this.onSort,
     required this.onRetry,
     this.errorMessage,
+    this.filters = const GestionColumnFilters(),
+    this.onFiltersChanged,
+    this.filterSource,
     super.key,
   });
 
@@ -118,6 +121,13 @@ class AlmacenGestionGridContent<T> extends StatelessWidget {
   final ValueChanged<T> onActivate;
   final ValueChanged<GestionSort> onSort;
   final VoidCallback onRetry;
+
+  /// Filtros por columna estilo Excel (embudo en la cabecera)
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters>? onFiltersChanged;
+
+  /// Filas base (sin filtros de columna ni paginación) para los valores posibles
+  final List<T>? filterSource;
 
   @override
   Widget build(BuildContext context) {
@@ -141,6 +151,9 @@ class AlmacenGestionGridContent<T> extends StatelessWidget {
           onSort: onSort,
           firstRowNumber: firstRowNumber,
           emptyMessage: emptyMessage,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
         ),
         if (isLoading)
           const Positioned(

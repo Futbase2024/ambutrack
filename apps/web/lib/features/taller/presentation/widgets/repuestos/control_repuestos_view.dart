@@ -26,6 +26,9 @@ class ControlRepuestosView extends StatefulWidget {
 class _ControlRepuestosViewState extends State<ControlRepuestosView> {
   final TextEditingController _searchController = TextEditingController();
   ControlRepuestosFiltro _filtro = const ControlRepuestosFiltro();
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 9, ascending: false);
   int _page = 0;
   int _pageSize = 25;
@@ -42,8 +45,11 @@ class _ControlRepuestosViewState extends State<ControlRepuestosView> {
 
   List<RepuestoControlItem> get _todos => _items ?? <RepuestoControlItem>[];
 
+  /// Repuestos con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<RepuestoControlItem> get _base => _todos.where(_filtro.matches).toList();
+
   List<RepuestoControlItem> get _visibles =>
-      _sort.apply(_todos.where(_filtro.matches).toList(), controlRepuestosColumns);
+      _sort.apply(_colFilters.apply(_base, controlRepuestosColumns), controlRepuestosColumns);
 
   RepuestoControlItem? get _selected {
     for (final RepuestoControlItem i in _todos) {
@@ -59,8 +65,16 @@ class _ControlRepuestosViewState extends State<ControlRepuestosView> {
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => setState(() {
+        _colFilters = f;
+        _page = 0;
+      });
+
+  bool get _hasFilters => _filtro.activo || !_colFilters.isEmpty;
+
   void _clearFilters() {
     _searchController.clear();
+    _colFilters = const GestionColumnFilters();
     _setFiltro(const ControlRepuestosFiltro());
   }
 
@@ -115,7 +129,9 @@ class _ControlRepuestosViewState extends State<ControlRepuestosView> {
             proveedores: tallerOpcionesDe(_todos.map((RepuestoControlItem i) => i.repuesto.proveedorNombre)),
             vehiculos: tallerOpcionesDe(_todos.map((RepuestoControlItem i) => i.vehiculoMatricula)),
             onChanged: _setFiltro,
-            onClear: _filtro.activo ? _clearFilters : null,
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
+            onClear: _hasFilters ? _clearFilters : null,
           ),
           content: TallerGestionGridContent<RepuestoControlItem>(
             hasData: _items != null,
@@ -128,13 +144,16 @@ class _ControlRepuestosViewState extends State<ControlRepuestosView> {
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,
             sort: _sort,
-            emptyMessage: _filtro.activo
+            emptyMessage: _hasFilters
                 ? 'Ningún repuesto coincide con los filtros'
                 : 'No hay repuestos registrados en las órdenes de reparación',
             onSelect: (RepuestoControlItem i) => setState(() => _selectedId = i.id),
             onActivate: (RepuestoControlItem i) => setState(() => _selectedId = i.id),
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
           ),
           detailPanel: ControlRepuestosDetailPanel(
             item: _selected,

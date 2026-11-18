@@ -133,12 +133,14 @@ List<GestionColumn<ContratoEntity>> contratosGestionColumns(Map<String, String> 
     ),
     GestionColumn<ContratoEntity>(
       label: 'Centro hospitalario',
+      filterValue: (ContratoEntity c) => hospitales[c.hospitalId] ?? '',
       flex: 3,
       sortValue: (ContratoEntity c) => hospital(c).toLowerCase(),
       cell: (ContratoEntity c) => ContratoCellText(hospital(c)),
     ),
     GestionColumn<ContratoEntity>(
       label: 'Tipo',
+      filterValue: (ContratoEntity c) => contratoTipoLabel(c.tipoContrato ?? ''),
       width: 130,
       sortValue: (ContratoEntity c) => c.tipoContrato ?? '',
       cell: (ContratoEntity c) => ContratoTipoDot(tipo: c.tipoContrato),
@@ -151,6 +153,7 @@ List<GestionColumn<ContratoEntity>> contratosGestionColumns(Map<String, String> 
     ),
     GestionColumn<ContratoEntity>(
       label: 'Vigencia',
+      filterValue: (ContratoEntity c) => contratoVigencia(c).$1,
       width: 110,
       sortValue: (ContratoEntity c) => contratoVigencia(c).$1,
       cell: (ContratoEntity c) => ContratoVigenciaDot(contrato: c),
@@ -164,6 +167,7 @@ List<GestionColumn<ContratoEntity>> contratosGestionColumns(Map<String, String> 
     ),
     GestionColumn<ContratoEntity>(
       label: 'Estado',
+      filterValue: (ContratoEntity c) => c.activo ? 'Activo' : 'Inactivo',
       width: 100,
       sortValue: (ContratoEntity c) => c.activo ? 0 : 1,
       cell: (ContratoEntity c) => ContratoEstadoDot(activo: c.activo),

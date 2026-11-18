@@ -59,6 +59,7 @@ final List<GestionColumn<TipoTrasladoEntity>> tipoTrasladoGestionColumns =
     label: 'Estado',
     width: 100,
     sortValue: (TipoTrasladoEntity e) => e.activo ? 0 : 1,
+    filterValue: (TipoTrasladoEntity e) => e.activo ? 'Activo' : 'Inactivo',
     cell: (TipoTrasladoEntity e) => TipoTrasladoEstadoDot(activo: e.activo),
   ),
 ];

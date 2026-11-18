@@ -75,6 +75,8 @@ class TallerGestionFilters extends StatelessWidget {
     required this.onTipoChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -85,6 +87,8 @@ class TallerGestionFilters extends StatelessWidget {
   final ValueChanged<TipoTaller?> onTipoChanged;
   final TallerEstadoFiltro estado;
   final ValueChanged<TallerEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -114,6 +118,11 @@ class TallerGestionFilters extends StatelessWidget {
             TallerEstadoFiltro.inactivos: 'Inactivos',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<TallerEntity>(
+          filters: columnFilters,
+          columns: tallerGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

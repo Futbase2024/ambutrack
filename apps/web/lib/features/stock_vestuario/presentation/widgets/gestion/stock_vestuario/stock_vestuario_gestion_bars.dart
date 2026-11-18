@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/stock_vestuario/presentation/widgets/gestion/stock_vestuario/stock_vestuario_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -75,6 +76,8 @@ class StockVestuarioGestionFilters extends StatelessWidget {
     required this.onNivelChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -85,6 +88,8 @@ class StockVestuarioGestionFilters extends StatelessWidget {
   final ValueChanged<NivelStock?> onNivelChanged;
   final StockEstadoFiltro estado;
   final ValueChanged<StockEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -114,6 +119,11 @@ class StockVestuarioGestionFilters extends StatelessWidget {
             StockEstadoFiltro.inactivos: 'Inactivos',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<StockVestuarioEntity>(
+          filters: columnFilters,
+          columns: stockVestuarioColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

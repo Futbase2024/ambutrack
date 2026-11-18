@@ -23,6 +23,9 @@ class _RecurrenteGestionViewState extends State<RecurrenteGestionView> {
   String _query = '';
   String? _tipo;
   RecurrenteVigencia? _vigencia = RecurrenteVigencia.vigente;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 1);
   int _page = 0;
   int _pageSize = 50;
@@ -35,7 +38,7 @@ class _RecurrenteGestionViewState extends State<RecurrenteGestionView> {
   }
 
   bool get _hasFilters =>
-      _query.isNotEmpty || _tipo != null || _vigencia != RecurrenteVigencia.vigente;
+      _query.isNotEmpty || _tipo != null || _vigencia != RecurrenteVigencia.vigente || !_colFilters.isEmpty;
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -47,7 +50,10 @@ class _RecurrenteGestionViewState extends State<RecurrenteGestionView> {
         _query = '';
         _tipo = null;
         _vigencia = RecurrenteVigencia.vigente;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() =>
       context.read<ProgramacionRecurrenteBloc>().add(const ProgramacionLoadRequested());
@@ -79,16 +85,15 @@ class _RecurrenteGestionViewState extends State<RecurrenteGestionView> {
       builder: (BuildContext context, ProgramacionRecurrenteState state) {
         final List<GestionColumn<ServicioRecurrenteEntity>> columns =
             recurrenteGestionColumns(state.pacientes);
-        final List<ServicioRecurrenteEntity> visibles = _sort.apply(
-          RecurrenteGestion.filtrar(
-            state.servicios,
-            query: _query,
-            tipo: _tipo,
-            vigencia: _vigencia,
-            pacientes: state.pacientes,
-          ),
-          columns,
+        // Base de los valores de los filtros de columna (búsqueda + desplegables)
+        final List<ServicioRecurrenteEntity> base = RecurrenteGestion.filtrar(
+          state.servicios,
+          query: _query,
+          tipo: _tipo,
+          vigencia: _vigencia,
+          pacientes: state.pacientes,
         );
+        final List<ServicioRecurrenteEntity> visibles = _sort.apply(_colFilters.apply(base, columns), columns);
         final int start = (_page * _pageSize).clamp(0, visibles.length);
         final int end = (start + _pageSize).clamp(0, visibles.length);
         return GestionLayout(
@@ -130,6 +135,11 @@ class _RecurrenteGestionViewState extends State<RecurrenteGestionView> {
                 },
                 onChanged: (RecurrenteVigencia? v) => _updateFilters(() => _vigencia = v),
               ),
+              GestionColumnFilterChips<ServicioRecurrenteEntity>(
+                filters: _colFilters,
+                columns: columns,
+                onChanged: _onColumnFiltersChanged,
+              ),
               GestionClearFiltersButton(onPressed: _hasFilters ? _clearFilters : null),
             ],
           ),
@@ -144,6 +154,9 @@ class _RecurrenteGestionViewState extends State<RecurrenteGestionView> {
             onSelect: _select,
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: base,
           ),
           detailPanel: RecurrenteDetailPanel(
             servicio: _find(visibles),
@@ -179,6 +192,9 @@ class _RecurrenteGridContent extends StatelessWidget {
     required this.onSelect,
     required this.onSort,
     required this.onRetry,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
   });
 
   final ProgramacionRecurrenteState state;
@@ -191,6 +207,9 @@ class _RecurrenteGridContent extends StatelessWidget {
   final ValueChanged<ServicioRecurrenteEntity> onSelect;
   final ValueChanged<GestionSort> onSort;
   final VoidCallback onRetry;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<ServicioRecurrenteEntity> filterSource;
 
   @override
   Widget build(BuildContext context) {
@@ -209,6 +228,9 @@ class _RecurrenteGridContent extends StatelessWidget {
       child: GestionGrid<ServicioRecurrenteEntity>(
         columns: columns,
         rows: rows,
+        filters: filters,
+        onFiltersChanged: onFiltersChanged,
+        filterSource: filterSource,
         rowId: (ServicioRecurrenteEntity s) => s.id,
         selectedId: selectedId,
         onSelect: onSelect,

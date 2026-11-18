@@ -101,6 +101,8 @@ final List<GestionColumn<EspecialidadEntity>> especialidadGestionColumns =
     label: 'Tipo',
     flex: 2,
     sortValue: (EspecialidadEntity e) => especialidadTipoLabel(e.tipoEspecialidad),
+    filterValue: (EspecialidadEntity e) =>
+        e.tipoEspecialidad.trim().isEmpty ? '' : especialidadTipoLabel(e.tipoEspecialidad),
     cell: (EspecialidadEntity e) => EspecialidadTipoDot(tipo: e.tipoEspecialidad),
   ),
   GestionColumn<EspecialidadEntity>(
@@ -113,12 +115,14 @@ final List<GestionColumn<EspecialidadEntity>> especialidadGestionColumns =
     label: 'Certificación',
     width: 110,
     sortValue: (EspecialidadEntity e) => e.requiereCertificacion ? 0 : 1,
+    filterValue: (EspecialidadEntity e) => e.requiereCertificacion ? 'Requerida' : 'No',
     cell: (EspecialidadEntity e) => EspecialidadCellText(e.requiereCertificacion ? 'Requerida' : 'No'),
   ),
   GestionColumn<EspecialidadEntity>(
     label: 'Estado',
     width: 100,
     sortValue: (EspecialidadEntity e) => e.activo ? 0 : 1,
+    filterValue: (EspecialidadEntity e) => e.activo ? 'Activa' : 'Inactiva',
     cell: (EspecialidadEntity e) => EspecialidadEstadoDot(activo: e.activo),
   ),
 ];

@@ -43,6 +43,7 @@ final List<GestionColumn<LocalidadEntity>> localidadGestionColumns = <GestionCol
     label: 'Provincia',
     flex: 3,
     sortValue: (LocalidadEntity l) => (l.provinciaNombre ?? '').toLowerCase(),
+    filterValue: (LocalidadEntity l) => l.provinciaNombre ?? '',
     cell: (LocalidadEntity l) => LocalidadCellText(GestionFormatters.texto(l.provinciaNombre)),
   ),
 ];

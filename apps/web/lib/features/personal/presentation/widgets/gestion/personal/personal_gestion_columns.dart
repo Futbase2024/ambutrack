@@ -96,12 +96,14 @@ final List<GestionColumn<PersonalEntity>> personalGestionColumns = <GestionColum
   ),
   GestionColumn<PersonalEntity>(
     label: 'Categoría',
+    filterValue: (PersonalEntity p) => gestionFiltroTexto(p.categoria),
     flex: 2,
     sortValue: (PersonalEntity p) => (p.categoria ?? '').toLowerCase(),
     cell: (PersonalEntity p) => PersonalCategoriaDot(categoria: p.categoria),
   ),
   GestionColumn<PersonalEntity>(
     label: 'Servicio',
+    filterValue: (PersonalEntity p) => p.categoriaServicio.nombre,
     width: 120,
     sortValue: (PersonalEntity p) => p.categoriaServicio.nombre,
     cell: (PersonalEntity p) => PersonalServicioDot(servicio: p.categoriaServicio),
@@ -125,6 +127,7 @@ final List<GestionColumn<PersonalEntity>> personalGestionColumns = <GestionColum
   ),
   GestionColumn<PersonalEntity>(
     label: 'Estado',
+    filterValue: (PersonalEntity p) => p.activo ? 'Activo' : 'Inactivo',
     width: 100,
     sortValue: (PersonalEntity p) => p.activo ? 0 : 1,
     cell: (PersonalEntity p) => PersonalEstadoDot(activo: p.activo),

@@ -19,6 +19,9 @@ class ContratosGridContent extends StatelessWidget {
     required this.onActivate,
     required this.onSort,
     required this.onRetry,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     super.key,
   });
 
@@ -35,6 +38,11 @@ class ContratosGridContent extends StatelessWidget {
   final ValueChanged<GestionSort> onSort;
   final VoidCallback onRetry;
 
+  /// Filtros por columna estilo Excel
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<ContratoEntity> filterSource;
+
   @override
   Widget build(BuildContext context) {
     final ContratoState s = state;
@@ -49,6 +57,9 @@ class ContratosGridContent extends StatelessWidget {
         GestionGrid<ContratoEntity>(
           columns: columns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (ContratoEntity c) => c.id,
           selectedId: selectedId,
           onSelect: onSelect,

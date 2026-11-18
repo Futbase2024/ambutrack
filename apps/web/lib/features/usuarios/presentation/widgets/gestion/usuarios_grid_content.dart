@@ -19,6 +19,9 @@ class UsuariosGridContent extends StatelessWidget {
     required this.onActivate,
     required this.onSort,
     required this.onRetry,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     super.key,
   });
 
@@ -33,6 +36,11 @@ class UsuariosGridContent extends StatelessWidget {
   final ValueChanged<UserEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
   final VoidCallback onRetry;
+
+  /// Filtros por columna estilo Excel
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<UserEntity> filterSource;
 
   bool get _busy =>
       state is UsuariosLoading ||
@@ -55,6 +63,9 @@ class UsuariosGridContent extends StatelessWidget {
         GestionGrid<UserEntity>(
           columns: usuariosGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (UserEntity u) => u.id,
           selectedId: selectedId,
           onSelect: onSelect,

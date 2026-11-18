@@ -31,6 +31,9 @@ class _MovimientoGestionViewState extends State<MovimientoGestionView> {
   String _query = '';
   TipoMovimientoStock? _tipo;
   MovimientoSentidoFiltro _sentido = MovimientoSentidoFiltro.todos;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0, ascending: false);
   int _page = 0;
   int _pageSize = 25;
@@ -47,7 +50,7 @@ class _MovimientoGestionViewState extends State<MovimientoGestionView> {
   }
 
   bool get _hasFilters =>
-      _query.isNotEmpty || _tipo != null || _sentido != MovimientoSentidoFiltro.todos;
+      _query.isNotEmpty || _tipo != null || _sentido != MovimientoSentidoFiltro.todos || !_colFilters.isEmpty;
 
   MovimientoStockEntity? get _selected {
     for (final MovimientoStockEntity m in _movimientos ?? const <MovimientoStockEntity>[]) {
@@ -68,7 +71,10 @@ class _MovimientoGestionViewState extends State<MovimientoGestionView> {
         _query = '';
         _tipo = null;
         _sentido = MovimientoSentidoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() {
     context.read<MovimientoStockBloc>().add(const MovimientoStockLoadAllRequested(limit: movimientosLimite));
@@ -107,16 +113,15 @@ class _MovimientoGestionViewState extends State<MovimientoGestionView> {
         listener: _onStateChanged,
         builder: (BuildContext context, MovimientoStockState state) {
           final List<GestionColumn<MovimientoStockEntity>> columns = movimientoGestionColumns(_productos);
-          final List<MovimientoStockEntity> visibles = _sort.apply(
-            filtrarMovimientos(
-              _movimientos ?? <MovimientoStockEntity>[],
-              _productos,
-              query: _query,
-              tipo: _tipo,
-              sentido: _sentido,
-            ),
-            columns,
+          // Base con búsqueda y desplegables (valores posibles de los filtros de columna)
+          final List<MovimientoStockEntity> base = filtrarMovimientos(
+            _movimientos ?? <MovimientoStockEntity>[],
+            _productos,
+            query: _query,
+            tipo: _tipo,
+            sentido: _sentido,
           );
+          final List<MovimientoStockEntity> visibles = _sort.apply(_colFilters.apply(base, columns), columns);
           final MovimientoStockEntity? selected = _selected;
           return GestionLayout(
             toolbar: GestionToolbar(
@@ -141,6 +146,9 @@ class _MovimientoGestionViewState extends State<MovimientoGestionView> {
               onTipoChanged: (TipoMovimientoStock? v) => _updateFilters(() => _tipo = v),
               sentido: _sentido,
               onSentidoChanged: (MovimientoSentidoFiltro v) => _updateFilters(() => _sentido = v),
+              columns: columns,
+              columnFilters: _colFilters,
+              onColumnFiltersChanged: _onColumnFiltersChanged,
               onClear: _hasFilters ? _clearFilters : null,
             ),
             content: AlmacenGestionGridContent<MovimientoStockEntity>(
@@ -161,6 +169,9 @@ class _MovimientoGestionViewState extends State<MovimientoGestionView> {
               onActivate: (MovimientoStockEntity m) => setState(() => _selectedId = m.id),
               onSort: (GestionSort s) => setState(() => _sort = s),
               onRetry: _refresh,
+              filters: _colFilters,
+              onFiltersChanged: _onColumnFiltersChanged,
+              filterSource: base,
             ),
             detailPanel: MovimientoDetailPanel(
               movimiento: selected,
@@ -196,6 +207,9 @@ class _MovimientoFilters extends StatelessWidget {
     required this.onTipoChanged,
     required this.sentido,
     required this.onSentidoChanged,
+    required this.columns,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
   });
 
@@ -205,6 +219,9 @@ class _MovimientoFilters extends StatelessWidget {
   final ValueChanged<TipoMovimientoStock?> onTipoChanged;
   final MovimientoSentidoFiltro sentido;
   final ValueChanged<MovimientoSentidoFiltro> onSentidoChanged;
+  final List<GestionColumn<MovimientoStockEntity>> columns;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -230,6 +247,11 @@ class _MovimientoFilters extends StatelessWidget {
           value: sentido,
           options: movimientoSentidoOptions,
           onChanged: onSentidoChanged,
+        ),
+        GestionColumnFilterChips<MovimientoStockEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

@@ -30,6 +30,10 @@ class AusenciaGestionView extends StatefulWidget {
 class _AusenciaGestionViewState extends State<AusenciaGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
+
   String? _tipoId;
   EstadoAusencia? _estado;
   GestionSort _sort = const GestionSort(columnIndex: 2, ascending: false);
@@ -88,7 +92,7 @@ class _AusenciaGestionViewState extends State<AusenciaGestionView> {
         tipos: <String, TipoAusenciaEntity>{for (final TipoAusenciaEntity t in _tipos) t.id: t},
       );
 
-  bool get _hasFilters => _query.isNotEmpty || _tipoId != null || _estado != null;
+  bool get _hasFilters => _query.isNotEmpty || _tipoId != null || _estado != null || !_colFilters.isEmpty;
 
   AusenciaEntity? get _selected {
     for (final AusenciaEntity a in _ausencias ?? const <AusenciaEntity>[]) {
@@ -109,7 +113,10 @@ class _AusenciaGestionViewState extends State<AusenciaGestionView> {
         _query = '';
         _tipoId = null;
         _estado = null;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() {
     _operacionPropia = true;
@@ -201,10 +208,9 @@ class _AusenciaGestionViewState extends State<AusenciaGestionView> {
         final AusenciaLookup lookup = _lookup;
         final List<GestionColumn<AusenciaEntity>> columns = ausenciaGestionColumns(lookup);
         final List<AusenciaEntity> todas = _ausencias ?? <AusenciaEntity>[];
-        final List<AusenciaEntity> visibles = _sort.apply(
-          filtrarAusencias(todas, lookup: lookup, query: _query, tipoId: _tipoId, estado: _estado),
-          columns,
-        );
+        final List<AusenciaEntity> base =
+            filtrarAusencias(todas, lookup: lookup, query: _query, tipoId: _tipoId, estado: _estado);
+        final List<AusenciaEntity> visibles = _sort.apply(_colFilters.apply(base, columns), columns);
         final AusenciaEntity? selected = _selected;
         return GestionLayout(
           toolbar: AusenciaGestionToolbar(
@@ -228,6 +234,9 @@ class _AusenciaGestionViewState extends State<AusenciaGestionView> {
                   onTipoChanged: (String? v) => _updateFilters(() => _tipoId = v),
                   estado: _estado,
                   onEstadoChanged: (EstadoAusencia? v) => _updateFilters(() => _estado = v),
+                  columnFilters: _colFilters,
+                  columns: columns,
+                  onColumnFiltersChanged: _onColumnFiltersChanged,
                   onClear: _hasFilters ? _clearFilters : null,
                 ),
           content: _calendario
@@ -237,6 +246,9 @@ class _AusenciaGestionViewState extends State<AusenciaGestionView> {
                   hasData: _ausencias != null,
                   columns: columns,
                   rows: _pageOf(visibles),
+                  filters: _colFilters,
+                  onFiltersChanged: _onColumnFiltersChanged,
+                  filterSource: base,
                   firstRowNumber: _page * _pageSize + 1,
                   selectedId: _selectedId,
                   sort: _sort,

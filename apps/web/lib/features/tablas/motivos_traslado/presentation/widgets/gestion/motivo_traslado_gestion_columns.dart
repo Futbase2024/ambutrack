@@ -63,18 +63,21 @@ final List<GestionColumn<MotivoTrasladoEntity>> motivoTrasladoGestionColumns =
     width: 100,
     alignment: Alignment.centerRight,
     sortValue: (MotivoTrasladoEntity e) => e.tiempo,
+    filterValue: (MotivoTrasladoEntity e) => motivoTrasladoTiempo(e.tiempo),
     cell: (MotivoTrasladoEntity e) => MotivoTrasladoCellText(motivoTrasladoTiempo(e.tiempo)),
   ),
   GestionColumn<MotivoTrasladoEntity>(
     label: 'Vuelta',
     width: 80,
     sortValue: (MotivoTrasladoEntity e) => e.vuelta ? 0 : 1,
+    filterValue: (MotivoTrasladoEntity e) => e.vuelta ? 'Sí' : 'No',
     cell: (MotivoTrasladoEntity e) => MotivoTrasladoCellText(e.vuelta ? 'Sí' : 'No'),
   ),
   GestionColumn<MotivoTrasladoEntity>(
     label: 'Estado',
     width: 100,
     sortValue: (MotivoTrasladoEntity e) => e.activo ? 0 : 1,
+    filterValue: (MotivoTrasladoEntity e) => e.activo ? 'Activo' : 'Inactivo',
     cell: (MotivoTrasladoEntity e) => MotivoTrasladoEstadoDot(activo: e.activo),
   ),
 ];

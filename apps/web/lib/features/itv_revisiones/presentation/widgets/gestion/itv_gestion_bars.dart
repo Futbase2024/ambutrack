@@ -83,6 +83,9 @@ class ItvGestionFilters extends StatelessWidget {
     required this.onResultadoChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columns,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -95,6 +98,11 @@ class ItvGestionFilters extends StatelessWidget {
   final ValueChanged<ResultadoItvRevision?> onResultadoChanged;
   final EstadoItvRevision? estado;
   final ValueChanged<EstadoItvRevision?> onEstadoChanged;
+
+  /// Columnas de la rejilla (para las etiquetas de los filtros de columna)
+  final List<GestionColumn<ItvRevisionEntity>> columns;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -133,6 +141,11 @@ class ItvGestionFilters extends StatelessWidget {
             for (final EstadoItvRevision e in EstadoItvRevision.values) e: e.displayName,
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<ItvRevisionEntity>(
+          filters: columnFilters,
+          columns: columns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

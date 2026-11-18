@@ -57,12 +57,14 @@ List<GestionColumn<ItvRevisionEntity>> itvGestionColumns(Map<String, VehiculoEnt
       label: 'Vehículo',
       width: 110,
       sortValue: (ItvRevisionEntity i) => itvMatricula(i, vehiculos).toLowerCase(),
+      filterValue: (ItvRevisionEntity i) => vehiculos[i.vehiculoId]?.matricula ?? '',
       cell: (ItvRevisionEntity i) => FlotaCellText(itvMatricula(i, vehiculos), bold: true),
     ),
     GestionColumn<ItvRevisionEntity>(
       label: 'Tipo',
       flex: 2,
       sortValue: (ItvRevisionEntity i) => i.tipo.index,
+      filterValue: (ItvRevisionEntity i) => i.tipo.displayName,
       cell: (ItvRevisionEntity i) =>
           GestionDotLabel(label: i.tipo.displayName, color: itvTipoColor(i.tipo)),
     ),
@@ -82,6 +84,7 @@ List<GestionColumn<ItvRevisionEntity>> itvGestionColumns(Map<String, VehiculoEnt
       label: 'Resultado',
       width: 130,
       sortValue: (ItvRevisionEntity i) => i.resultado.index,
+      filterValue: (ItvRevisionEntity i) => i.resultado.displayName,
       cell: (ItvRevisionEntity i) => GestionDotLabel(
         label: i.resultado.displayName,
         color: itvResultadoColor(i.resultado),
@@ -105,12 +108,14 @@ List<GestionColumn<ItvRevisionEntity>> itvGestionColumns(Map<String, VehiculoEnt
       label: 'Taller',
       flex: 2,
       sortValue: (ItvRevisionEntity i) => (i.taller ?? '').toLowerCase(),
+      filterValue: (ItvRevisionEntity i) => i.taller ?? '',
       cell: (ItvRevisionEntity i) => FlotaCellText(GestionFormatters.texto(i.taller)),
     ),
     GestionColumn<ItvRevisionEntity>(
       label: 'Estado',
       width: 110,
       sortValue: (ItvRevisionEntity i) => i.estado.index,
+      filterValue: (ItvRevisionEntity i) => i.estado.displayName,
       cell: (ItvRevisionEntity i) =>
           GestionDotLabel(label: i.estado.displayName, color: itvEstadoColor(i.estado)),
     ),

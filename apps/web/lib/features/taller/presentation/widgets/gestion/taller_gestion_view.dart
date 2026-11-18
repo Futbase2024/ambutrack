@@ -29,6 +29,9 @@ class _TallerGestionViewState extends State<TallerGestionView> {
   String _query = '';
   TipoTaller? _tipo;
   TallerEstadoFiltro _estado = TallerEstadoFiltro.todos;
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
   int _pageSize = 25;
@@ -47,7 +50,7 @@ class _TallerGestionViewState extends State<TallerGestionView> {
   }
 
   bool get _hasFilters =>
-      _query.isNotEmpty || _tipo != null || _estado != TallerEstadoFiltro.todos;
+      _query.isNotEmpty || _tipo != null || _estado != TallerEstadoFiltro.todos || !_colFilters.isEmpty;
 
   TallerEntity? get _selected {
     for (final TallerEntity t in _talleres ?? const <TallerEntity>[]) {
@@ -58,10 +61,12 @@ class _TallerGestionViewState extends State<TallerGestionView> {
     return null;
   }
 
-  List<TallerEntity> get _visibles => _sort.apply(
-        filtrarTalleres(_talleres ?? <TallerEntity>[], query: _query, tipo: _tipo, estado: _estado),
-        tallerGestionColumns,
-      );
+  /// Talleres con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<TallerEntity> get _base =>
+      filtrarTalleres(_talleres ?? <TallerEntity>[], query: _query, tipo: _tipo, estado: _estado);
+
+  List<TallerEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, tallerGestionColumns), tallerGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -73,7 +78,10 @@ class _TallerGestionViewState extends State<TallerGestionView> {
         _query = '';
         _tipo = null;
         _estado = TallerEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() {
     context.read<TallerBloc>().add(const TallerLoadRequested());
@@ -156,6 +164,8 @@ class _TallerGestionViewState extends State<TallerGestionView> {
             onTipoChanged: (TipoTaller? v) => _updateFilters(() => _tipo = v),
             estado: _estado,
             onEstadoChanged: (TallerEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _TallerGridContent(
@@ -170,6 +180,9 @@ class _TallerGestionViewState extends State<TallerGestionView> {
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
           ),
           detailPanel: TallerDetailPanel(
             taller: selected,
@@ -212,6 +225,9 @@ class _TallerGridContent extends StatelessWidget {
     required this.onActivate,
     required this.onSort,
     required this.onRetry,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
   });
 
   final TallerState state;
@@ -225,6 +241,9 @@ class _TallerGridContent extends StatelessWidget {
   final ValueChanged<TallerEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
   final VoidCallback onRetry;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<TallerEntity> filterSource;
 
   @override
   Widget build(BuildContext context) {
@@ -252,6 +271,9 @@ class _TallerGridContent extends StatelessWidget {
           emptyMessage: hasFilters
               ? 'Ningún taller coincide con los filtros'
               : 'No hay talleres registrados. Pulsa "Nuevo" para crear uno.',
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
         ),
         if (state is TallerLoading)
           const Positioned(

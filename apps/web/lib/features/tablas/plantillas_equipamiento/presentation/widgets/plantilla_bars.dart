@@ -113,6 +113,8 @@ class PlantillaFilters extends StatelessWidget {
     required this.onTipoChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -129,6 +131,8 @@ class PlantillaFilters extends StatelessWidget {
   final ValueChanged<TipoItemEquipamiento?> onTipoChanged;
   final ItemEstadoFiltro estado;
   final ValueChanged<ItemEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -174,6 +178,11 @@ class PlantillaFilters extends StatelessWidget {
             for (final ItemEstadoFiltro e in ItemEstadoFiltro.values) e: e.label,
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<PlantillaEquipamientoItemEntity>(
+          filters: columnFilters,
+          columns: plantillaItemsColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

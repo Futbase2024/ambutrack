@@ -25,6 +25,9 @@ class MotivoCancelacionGestionView extends StatefulWidget {
 class _MotivoCancelacionGestionViewState extends State<MotivoCancelacionGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   bool? _activo;
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
@@ -41,7 +44,8 @@ class _MotivoCancelacionGestionViewState extends State<MotivoCancelacionGestionV
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _activo != null;
+  bool get _hasFilters =>
+      !_colFilters.isEmpty || _query.isNotEmpty || _activo != null;
 
   MotivoCancelacionEntity? get _selected {
     for (final MotivoCancelacionEntity e in _items ?? const <MotivoCancelacionEntity>[]) {
@@ -52,19 +56,24 @@ class _MotivoCancelacionGestionViewState extends State<MotivoCancelacionGestionV
     return null;
   }
 
-  List<MotivoCancelacionEntity> get _visibles => _sort.apply(
-        filtrarMotivosCancelacion(_items ?? <MotivoCancelacionEntity>[], query: _query, activo: _activo),
-        motivoCancelacionGestionColumns,
-      );
+  /// Filas con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<MotivoCancelacionEntity> get _base =>
+      filtrarMotivosCancelacion(_items ?? <MotivoCancelacionEntity>[], query: _query, activo: _activo);
+
+  List<MotivoCancelacionEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, motivoCancelacionGestionColumns), motivoCancelacionGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
+
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
         _query = '';
+        _colFilters = const GestionColumnFilters();
         _activo = null;
       });
 
@@ -145,6 +154,8 @@ class _MotivoCancelacionGestionViewState extends State<MotivoCancelacionGestionV
             onSearchChanged: (String v) => _updateFilters(() => _query = v),
             activo: _activo,
             onActivoChanged: (bool? v) => _updateFilters(() => _activo = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _MotivoCancelacionGridContent(
@@ -155,6 +166,9 @@ class _MotivoCancelacionGestionViewState extends State<MotivoCancelacionGestionV
             selectedId: _selectedId,
             sort: _sort,
             hasFilters: _hasFilters,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             onSelect: (MotivoCancelacionEntity e) => setState(() => _selectedId = e.id),
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
@@ -197,6 +211,9 @@ class _MotivoCancelacionGridContent extends StatelessWidget {
     required this.selectedId,
     required this.sort,
     required this.hasFilters,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.onSelect,
     required this.onActivate,
     required this.onSort,
@@ -210,6 +227,9 @@ class _MotivoCancelacionGridContent extends StatelessWidget {
   final String? selectedId;
   final GestionSort sort;
   final bool hasFilters;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<MotivoCancelacionEntity> filterSource;
   final ValueChanged<MotivoCancelacionEntity> onSelect;
   final ValueChanged<MotivoCancelacionEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
@@ -229,6 +249,9 @@ class _MotivoCancelacionGridContent extends StatelessWidget {
         GestionGrid<MotivoCancelacionEntity>(
           columns: motivoCancelacionGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (MotivoCancelacionEntity e) => e.id,
           selectedId: selectedId,
           onSelect: onSelect,

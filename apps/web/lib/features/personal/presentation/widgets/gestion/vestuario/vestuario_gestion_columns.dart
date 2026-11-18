@@ -55,12 +55,14 @@ List<GestionColumn<VestuarioEntity>> vestuarioColumns(String Function(String per
     ),
     GestionColumn<VestuarioEntity>(
       label: 'Prenda',
+      filterValue: (VestuarioEntity v) => v.prenda,
       flex: 3,
       sortValue: (VestuarioEntity v) => v.prenda.toLowerCase(),
       cell: (VestuarioEntity v) => VestuarioCellText(GestionFormatters.texto(v.prenda)),
     ),
     GestionColumn<VestuarioEntity>(
       label: 'Talla',
+      filterValue: (VestuarioEntity v) => v.talla,
       width: 80,
       sortValue: (VestuarioEntity v) => v.talla.toLowerCase(),
       cell: (VestuarioEntity v) => VestuarioCellText(GestionFormatters.texto(v.talla)),
@@ -74,6 +76,7 @@ List<GestionColumn<VestuarioEntity>> vestuarioColumns(String Function(String per
     ),
     GestionColumn<VestuarioEntity>(
       label: 'Marca',
+      filterValue: (VestuarioEntity v) => v.marca ?? '',
       flex: 2,
       sortValue: (VestuarioEntity v) => (v.marca ?? '').toLowerCase(),
       cell: (VestuarioEntity v) => VestuarioCellText(GestionFormatters.texto(v.marca)),
@@ -86,6 +89,7 @@ List<GestionColumn<VestuarioEntity>> vestuarioColumns(String Function(String per
     ),
     GestionColumn<VestuarioEntity>(
       label: 'Estado',
+      filterValue: (VestuarioEntity v) => v.estaAsignado ? 'Asignado' : 'Devuelto',
       width: 110,
       sortValue: (VestuarioEntity v) => v.estaAsignado ? 0 : 1,
       cell: (VestuarioEntity v) => VestuarioEstadoDot(item: v),

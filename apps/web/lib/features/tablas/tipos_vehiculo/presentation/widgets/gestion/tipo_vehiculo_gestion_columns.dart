@@ -63,6 +63,7 @@ final List<GestionColumn<TipoVehiculoEntity>> tipoVehiculoGestionColumns =
     label: 'Estado',
     width: 100,
     sortValue: (TipoVehiculoEntity c) => c.activo ? 0 : 1,
+    filterValue: (TipoVehiculoEntity c) => c.activo ? 'Activo' : 'Inactivo',
     cell: (TipoVehiculoEntity c) => TipoVehiculoEstadoDot(activo: c.activo),
   ),
 ];

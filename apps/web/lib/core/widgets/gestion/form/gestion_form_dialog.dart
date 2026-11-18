@@ -221,26 +221,30 @@ class _Footer extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          if (readOnly)
-            const Text('Esc cerrar', style: hint)
-          else
-            Text.rich(
-              TextSpan(
-                children: <InlineSpan>[
-                  const TextSpan(
-                    text: '*',
-                    style: TextStyle(color: AppColors.error),
+          // Flexible: en diálogos estrechos el texto de ayuda se recorta en vez de desbordar
+          Expanded(
+            child: readOnly
+                ? const Text('Esc cerrar', style: hint, maxLines: 1, overflow: TextOverflow.ellipsis)
+                : Text.rich(
+                    TextSpan(
+                      children: <InlineSpan>[
+                        const TextSpan(
+                          text: '*',
+                          style: TextStyle(color: AppColors.error),
+                        ),
+                        TextSpan(
+                          text: destructive
+                              ? ' Obligatorio     Esc cancelar'
+                              : ' Obligatorio     Ctrl+Intro guardar · Esc cancelar',
+                        ),
+                      ],
+                    ),
+                    style: hint,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  TextSpan(
-                    text: destructive
-                        ? ' Obligatorio     Esc cancelar'
-                        : ' Obligatorio     Ctrl+Intro guardar · Esc cancelar',
-                  ),
-                ],
-              ),
-              style: hint,
-            ),
-          const Spacer(),
+          ),
+          const SizedBox(width: 8),
           if (!readOnly) ...<Widget>[
             OutlinedButton(
               onPressed: isSaving ? null : onCancel,

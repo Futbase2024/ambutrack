@@ -24,6 +24,9 @@ class TipoVehiculoGestionView extends StatefulWidget {
 class _TipoVehiculoGestionViewState extends State<TipoVehiculoGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
   TipoVehiculoEstadoFiltro _estado = TipoVehiculoEstadoFiltro.todos;
   GestionSort _sort = const GestionSort(columnIndex: 0);
   int _page = 0;
@@ -45,7 +48,8 @@ class _TipoVehiculoGestionViewState extends State<TipoVehiculoGestionView> {
     super.dispose();
   }
 
-  bool get _hasFilters => _query.isNotEmpty || _estado != TipoVehiculoEstadoFiltro.todos;
+  bool get _hasFilters =>
+      !_colFilters.isEmpty || _query.isNotEmpty || _estado != TipoVehiculoEstadoFiltro.todos;
 
   TipoVehiculoEntity? get _selected {
     for (final TipoVehiculoEntity c in _tipos ?? const <TipoVehiculoEntity>[]) {
@@ -56,23 +60,27 @@ class _TipoVehiculoGestionViewState extends State<TipoVehiculoGestionView> {
     return null;
   }
 
-  List<TipoVehiculoEntity> get _visibles => _sort.apply(
-        filtrarTiposVehiculo(
+  /// Filas con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<TipoVehiculoEntity> get _base => filtrarTiposVehiculo(
           _tipos ?? <TipoVehiculoEntity>[],
           query: _query,
           estado: _estado,
-        ),
-        tipoVehiculoGestionColumns,
-      );
+        );
+
+  List<TipoVehiculoEntity> get _visibles =>
+      _sort.apply(_colFilters.apply(_base, tipoVehiculoGestionColumns), tipoVehiculoGestionColumns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
+
   void _clearFilters() => _updateFilters(() {
         _searchController.clear();
         _query = '';
+        _colFilters = const GestionColumnFilters();
         _estado = TipoVehiculoEstadoFiltro.todos;
       });
 
@@ -159,6 +167,8 @@ class _TipoVehiculoGestionViewState extends State<TipoVehiculoGestionView> {
             onSearchChanged: (String v) => _updateFilters(() => _query = v),
             estado: _estado,
             onEstadoChanged: (TipoVehiculoEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: _TipoVehiculoGridContent(
@@ -169,6 +179,9 @@ class _TipoVehiculoGestionViewState extends State<TipoVehiculoGestionView> {
             selectedId: _selectedId,
             sort: _sort,
             hasFilters: _hasFilters,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             onSelect: (TipoVehiculoEntity c) => setState(() => _selectedId = c.id),
             onActivate: _openForm,
             onSort: (GestionSort s) => setState(() => _sort = s),
@@ -211,6 +224,9 @@ class _TipoVehiculoGridContent extends StatelessWidget {
     required this.selectedId,
     required this.sort,
     required this.hasFilters,
+    required this.filters,
+    required this.onFiltersChanged,
+    required this.filterSource,
     required this.onSelect,
     required this.onActivate,
     required this.onSort,
@@ -224,6 +240,9 @@ class _TipoVehiculoGridContent extends StatelessWidget {
   final String? selectedId;
   final GestionSort sort;
   final bool hasFilters;
+  final GestionColumnFilters filters;
+  final ValueChanged<GestionColumnFilters> onFiltersChanged;
+  final List<TipoVehiculoEntity> filterSource;
   final ValueChanged<TipoVehiculoEntity> onSelect;
   final ValueChanged<TipoVehiculoEntity> onActivate;
   final ValueChanged<GestionSort> onSort;
@@ -243,6 +262,9 @@ class _TipoVehiculoGridContent extends StatelessWidget {
         GestionGrid<TipoVehiculoEntity>(
           columns: tipoVehiculoGestionColumns,
           rows: rows,
+          filters: filters,
+          onFiltersChanged: onFiltersChanged,
+          filterSource: filterSource,
           rowId: (TipoVehiculoEntity c) => c.id,
           selectedId: selectedId,
           onSelect: onSelect,

@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/tablas/centros_hospitalarios/presentation/widgets/gestion/centro_hospitalario_gestion_columns.dart';
 import 'package:flutter/material.dart';
@@ -75,6 +76,8 @@ class CentroHospitalarioGestionFilters extends StatelessWidget {
     required this.onTipoChanged,
     required this.estado,
     required this.onEstadoChanged,
+    required this.columnFilters,
+    required this.onColumnFiltersChanged,
     required this.onClear,
     super.key,
   });
@@ -86,6 +89,8 @@ class CentroHospitalarioGestionFilters extends StatelessWidget {
   final ValueChanged<String?> onTipoChanged;
   final CentroHospitalarioEstadoFiltro estado;
   final ValueChanged<CentroHospitalarioEstadoFiltro> onEstadoChanged;
+  final GestionColumnFilters columnFilters;
+  final ValueChanged<GestionColumnFilters> onColumnFiltersChanged;
   final VoidCallback? onClear;
 
   @override
@@ -115,6 +120,11 @@ class CentroHospitalarioGestionFilters extends StatelessWidget {
             CentroHospitalarioEstadoFiltro.inactivos: 'Inactivos',
           },
           onChanged: onEstadoChanged,
+        ),
+        GestionColumnFilterChips<CentroHospitalarioEntity>(
+          filters: columnFilters,
+          columns: centroHospitalarioGestionColumns,
+          onChanged: onColumnFiltersChanged,
         ),
         GestionClearFiltersButton(onPressed: onClear),
       ],

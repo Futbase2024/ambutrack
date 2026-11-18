@@ -25,6 +25,9 @@ class _AlertasGestionViewState extends State<AlertasGestionView> {
   final TextEditingController _searchController = TextEditingController();
   AlertasFiltro _filtro = const AlertasFiltro();
 
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
+
   /// Sin ordenación de columna: se respeta el orden por severidad/urgencia del BLoC
   GestionSort _sort = const GestionSort();
   int _page = 0;
@@ -43,7 +46,10 @@ class _AlertasGestionViewState extends State<AlertasGestionView> {
 
   List<AlertaMantenimiento> get _todas => _alertas ?? <AlertaMantenimiento>[];
 
-  List<AlertaMantenimiento> get _visibles => _sort.apply(_todas.where(_filtro.matches).toList(), alertasColumns);
+  /// Alertas con búsqueda y desplegables aplicados (base de los filtros de columna)
+  List<AlertaMantenimiento> get _base => _todas.where(_filtro.matches).toList();
+
+  List<AlertaMantenimiento> get _visibles => _sort.apply(_colFilters.apply(_base, alertasColumns), alertasColumns);
 
   AlertaMantenimiento? get _selected {
     for (final AlertaMantenimiento a in _todas) {
@@ -59,8 +65,16 @@ class _AlertasGestionViewState extends State<AlertasGestionView> {
         _page = 0;
       });
 
+  void _onColumnFiltersChanged(GestionColumnFilters f) => setState(() {
+        _colFilters = f;
+        _page = 0;
+      });
+
+  bool get _hasFilters => _filtro.activo || !_colFilters.isEmpty;
+
   void _clearFilters() {
     _searchController.clear();
+    _colFilters = const GestionColumnFilters();
     _setFiltro(const AlertasFiltro());
   }
 
@@ -123,7 +137,9 @@ class _AlertasGestionViewState extends State<AlertasGestionView> {
             searchController: _searchController,
             filtro: _filtro,
             onChanged: _setFiltro,
-            onClear: _filtro.activo ? _clearFilters : null,
+            columnFilters: _colFilters,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
+            onClear: _hasFilters ? _clearFilters : null,
           ),
           content: TallerGestionGridContent<AlertaMantenimiento>(
             hasData: _alertas != null,
@@ -136,13 +152,16 @@ class _AlertasGestionViewState extends State<AlertasGestionView> {
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,
             sort: _sort,
-            emptyMessage: _filtro.activo
+            emptyMessage: _hasFilters
                 ? 'Ninguna alerta coincide con los filtros'
                 : 'No hay alertas de mantenimiento pendientes',
             onSelect: (AlertaMantenimiento a) => setState(() => _selectedId = a.id),
             onActivate: _abrir,
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
           ),
           detailPanel: AlertasDetailPanel(alerta: selected, onAbrir: _abrir),
           statusBar: GestionStatusBar(

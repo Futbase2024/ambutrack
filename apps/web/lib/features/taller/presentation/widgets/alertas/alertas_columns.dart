@@ -61,6 +61,7 @@ final List<GestionColumn<AlertaMantenimiento>> alertasColumns = <GestionColumn<A
     label: 'Severidad',
     width: 120,
     sortValue: (AlertaMantenimiento a) => a.severidad.index,
+    filterValue: (AlertaMantenimiento a) => a.severidad.displayName,
     cell: (AlertaMantenimiento a) =>
         GestionDotLabel(label: a.severidad.displayName, color: severidadAlertaColor(a.severidad)),
   ),
@@ -68,12 +69,14 @@ final List<GestionColumn<AlertaMantenimiento>> alertasColumns = <GestionColumn<A
     label: 'Tipo',
     flex: 2,
     sortValue: (AlertaMantenimiento a) => a.tipo.displayName,
+    filterValue: (AlertaMantenimiento a) => a.tipo.displayName,
     cell: (AlertaMantenimiento a) => TallerCellText(a.tipo.displayName),
   ),
   GestionColumn<AlertaMantenimiento>(
     label: 'Vehículo',
     flex: 2,
     sortValue: (AlertaMantenimiento a) => (a.vehiculoMatricula ?? '').toLowerCase(),
+    filterValue: (AlertaMantenimiento a) => a.vehiculoMatricula ?? '',
     cell: (AlertaMantenimiento a) => TallerCellText(GestionFormatters.texto(a.vehiculoMatricula), bold: true),
   ),
   GestionColumn<AlertaMantenimiento>(

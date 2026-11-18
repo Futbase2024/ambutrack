@@ -27,6 +27,10 @@ class EquipamientoGestionView extends StatefulWidget {
 class _EquipamientoGestionViewState extends State<EquipamientoGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+
+  /// Filtros por columna (estilo Excel, varios valores por columna)
+  GestionColumnFilters _colFilters = const GestionColumnFilters();
+
   String? _tipo;
   EquipamientoEstadoFiltro _estado = EquipamientoEstadoFiltro.todos;
   GestionSort _sort = const GestionSort(columnIndex: 1);
@@ -74,7 +78,8 @@ class _EquipamientoGestionViewState extends State<EquipamientoGestionView> {
   }
 
   bool get _hasFilters =>
-      _query.isNotEmpty || _tipo != null || _estado != EquipamientoEstadoFiltro.todos;
+      _query.isNotEmpty || _tipo != null || _estado != EquipamientoEstadoFiltro.todos ||
+      !_colFilters.isEmpty;
 
   EquipamientoPersonalEntity? get _selected {
     for (final EquipamientoPersonalEntity e in _items ?? const <EquipamientoPersonalEntity>[]) {
@@ -85,16 +90,16 @@ class _EquipamientoGestionViewState extends State<EquipamientoGestionView> {
     return null;
   }
 
-  List<EquipamientoPersonalEntity> get _visibles => _sort.apply(
-        filtrarEquipamiento(
-          _items ?? <EquipamientoPersonalEntity>[],
-          nombres: _nombres,
-          query: _query,
-          tipo: _tipo,
-          estado: _estado,
-        ),
-        _columns,
-      );
+  /// Registros con búsqueda y filtros de la barra (base de los filtros de columna)
+  List<EquipamientoPersonalEntity> get _base => filtrarEquipamiento(
+      _items ?? <EquipamientoPersonalEntity>[],
+      nombres: _nombres,
+      query: _query,
+      tipo: _tipo,
+      estado: _estado,
+    );
+
+  List<EquipamientoPersonalEntity> get _visibles => _sort.apply(_colFilters.apply(_base, _columns), _columns);
 
   void _updateFilters(VoidCallback change) => setState(() {
         change();
@@ -106,7 +111,10 @@ class _EquipamientoGestionViewState extends State<EquipamientoGestionView> {
         _query = '';
         _tipo = null;
         _estado = EquipamientoEstadoFiltro.todos;
+        _colFilters = const GestionColumnFilters();
       });
+
+  void _onColumnFiltersChanged(GestionColumnFilters f) => _updateFilters(() => _colFilters = f);
 
   void _refresh() =>
       context.read<EquipamientoPersonalBloc>().add(const EquipamientoPersonalLoadRequested());
@@ -202,6 +210,9 @@ class _EquipamientoGestionViewState extends State<EquipamientoGestionView> {
             onTipoChanged: (String? v) => _updateFilters(() => _tipo = v),
             estado: _estado,
             onEstadoChanged: (EquipamientoEstadoFiltro v) => _updateFilters(() => _estado = v),
+            columnFilters: _colFilters,
+            columns: _columns,
+            onColumnFiltersChanged: _onColumnFiltersChanged,
             onClear: _hasFilters ? _clearFilters : null,
           ),
           content: GestionGridContent<EquipamientoPersonalEntity>(
@@ -211,6 +222,9 @@ class _EquipamientoGestionViewState extends State<EquipamientoGestionView> {
             errorTitle: 'Error al cargar equipamiento',
             columns: _columns,
             rows: gestionPageOf(visibles, _page, _pageSize),
+            filters: _colFilters,
+            onFiltersChanged: _onColumnFiltersChanged,
+            filterSource: _base,
             rowId: (EquipamientoPersonalEntity e) => e.id,
             firstRowNumber: _page * _pageSize + 1,
             selectedId: _selectedId,

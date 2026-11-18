@@ -59,6 +59,7 @@ final List<GestionColumn<TipoPacienteEntity>> tipoPacienteGestionColumns =
     label: 'Estado',
     width: 100,
     sortValue: (TipoPacienteEntity e) => e.activo ? 0 : 1,
+    filterValue: (TipoPacienteEntity e) => e.activo ? 'Activo' : 'Inactivo',
     cell: (TipoPacienteEntity e) => TipoPacienteEstadoDot(activo: e.activo),
   ),
 ];
