@@ -52,6 +52,8 @@ class TurnoJornadaRealBadge extends StatelessWidget {
             ),
             child: Text(
               texto,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: color),
             ),
           ),

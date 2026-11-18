@@ -1172,39 +1172,39 @@ class _TurnoChipWithHoverState extends State<_TurnoChipWithHover> {
               ),
               const SizedBox(height: 2),
               // Segunda fila: Horario (izquierda) + Matrícula (derecha).
-              // Wrap: si no cabe en la celda, la matrícula baja de línea.
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 4,
+              // Flexible + ellipsis: en celdas estrechas se recorta, no desborda.
+              Row(
                 children: <Widget>[
-                  Text(
-                    '${widget.horaInicioDisplay} - ${widget.horaFinDisplay}',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: widget.color,
+                  Flexible(
+                    child: Text(
+                      '${widget.horaInicioDisplay} - ${widget.horaFinDisplay}',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: widget.color,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (widget.vehiculoMatricula != null && widget.vehiculoMatricula!.isNotEmpty)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        const Text('🚑', style: TextStyle(fontSize: 12)),
-                        const SizedBox(width: 2),
-                        Text(
-                          widget.vehiculoMatricula!,
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: widget.color,
-                            letterSpacing: 0.5,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  if (widget.vehiculoMatricula != null && widget.vehiculoMatricula!.isNotEmpty) ...<Widget>[
+                    const SizedBox(width: 4),
+                    const Text('🚑', style: TextStyle(fontSize: 12)),
+                    const SizedBox(width: 2),
+                    Flexible(
+                      child: Text(
+                        widget.vehiculoMatricula!,
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: widget.color,
+                          letterSpacing: 0.5,
                         ),
-                      ],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                  ],
                 ],
               ),
               if (widget.turno.pendienteValidacion && !isDragging)

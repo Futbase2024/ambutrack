@@ -37,6 +37,8 @@ class TurnoAppPendienteBadge extends StatelessWidget {
                 ),
                 child: Text(
                   '📱 App · Pendiente',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
