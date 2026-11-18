@@ -1,6 +1,7 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/administracion/auditoria/presentation/widgets/historial/registro_historial_tab.dart';
+import 'package:ambutrack_web/features/vehiculos/widgets/gestion/export/vehiculo_qr_print.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/flota_gestion_common.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_equipamiento_tab.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_gestion_columns.dart';
@@ -51,6 +52,7 @@ class VehiculoDetailPanel extends StatelessWidget {
       actions: <Widget>[
         FlotaPanelButton.edit(onPressed: onEdit),
         FlotaPanelButton(icon: Icons.file_download_outlined, label: 'Exportar ficha', onPressed: onExport),
+        FlotaPanelButton(icon: Icons.qr_code_2, label: 'Imprimir QR', onPressed: () => imprimirQrVehiculo(v)),
         FlotaPanelButton.delete(onPressed: onDelete),
       ],
     );

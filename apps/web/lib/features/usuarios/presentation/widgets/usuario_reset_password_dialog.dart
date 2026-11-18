@@ -31,6 +31,9 @@ class _UsuarioResetPasswordDialogState extends State<UsuarioResetPasswordDialog>
   bool _visible = true; // Mostrar por defecto para que se vea la generada
   bool _isSaving = false;
 
+  /// true = PIN de 6 dígitos (login de la app móvil); false = contraseña web
+  bool _pinMovil = true;
+
   String get _nombreUsuario => widget.usuario.displayName ?? widget.usuario.email;
 
   @override
@@ -72,10 +75,10 @@ class _UsuarioResetPasswordDialogState extends State<UsuarioResetPasswordDialog>
     }
   }
 
-  /// Genera una contraseña segura aleatoria
+  /// Genera un PIN de 6 dígitos o una contraseña segura aleatoria
   void _generatePassword() {
     setState(() {
-      _passwordController.text = UsuarioFormData.generarPassword();
+      _passwordController.text = _pinMovil ? UsuarioFormData.generarPin() : UsuarioFormData.generarPassword();
       _visible = true;
     });
   }
@@ -136,6 +139,23 @@ class _UsuarioResetPasswordDialogState extends State<UsuarioResetPasswordDialog>
           const GestionFormSection(title: 'Usuario', first: true),
           GestionFormRow(label: 'Email', child: GestionFormReadOnly(value: widget.usuario.email)),
           const GestionFormSection(title: 'Nueva contraseña'),
+          GestionFormRow(
+            label: 'Tipo de clave',
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: SegmentedButton<bool>(
+                segments: const <ButtonSegment<bool>>[
+                  ButtonSegment<bool>(value: true, label: Text('PIN app móvil (6 dígitos)'), icon: Icon(Icons.phone_android)),
+                  ButtonSegment<bool>(value: false, label: Text('Contraseña web'), icon: Icon(Icons.computer)),
+                ],
+                selected: <bool>{_pinMovil},
+                onSelectionChanged: (Set<bool> v) {
+                  _pinMovil = v.first;
+                  _generatePassword();
+                },
+              ),
+            ),
+          ),
           GestionFormRow(
             label: 'Contraseña',
             required: true,

@@ -39,6 +39,7 @@ import 'package:ambutrack_web/features/itv_revisiones/presentation/pages/itv_rev
 import 'package:ambutrack_web/features/mantenimiento/presentation/pages/mantenimiento_preventivo_page_v2.dart';
 import 'package:ambutrack_web/features/perfil/presentation/pages/perfil_page.dart';
 import 'package:ambutrack_web/features/personal/horarios/presentation/pages/fichajes_page.dart';
+import 'package:ambutrack_web/features/personal/horarios/presentation/pages/inicios_turno_page.dart';
 import 'package:ambutrack_web/features/personal/personal_page.dart';
 import 'package:ambutrack_web/features/personal/presentation/pages/certificaciones_catalogo_page.dart';
 import 'package:ambutrack_web/features/personal/presentation/pages/cursos_catalogo_page.dart';
@@ -520,6 +521,16 @@ final GoRouter appRouter = GoRouter(
               _buildPageWithTransition(
             key: state.pageKey,
             child: const FichajesPage(),
+          ),
+        ),
+        // Inicios de turno (validación por coordinación de inicios fuera de base)
+        GoRoute(
+          path: '/personal/inicios-turno',
+          name: 'personal_inicios_turno',
+          pageBuilder: (BuildContext context, GoRouterState state) =>
+              _buildPageWithTransition(
+            key: state.pageKey,
+            child: const IniciosTurnoPage(),
           ),
         ),
         // Excepciones y Festivos

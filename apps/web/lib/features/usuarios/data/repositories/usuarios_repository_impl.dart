@@ -184,11 +184,17 @@ class UsuariosRepositoryImpl implements UsuariosRepository {
     debugPrint('📦 UsuariosRepository: Reseteando contraseña de usuario $userId');
 
     try {
-      // Usar Admin API de Supabase para cambiar password de otro usuario
-      await _supabase.auth.admin.updateUserById(
-        userId,
-        attributes: AdminUserAttributes(password: newPassword),
-      );
+      // La API de administración necesita service_role: se usa la Edge Function
+      // `resetear-clave`, que además comprueba que quien llama es de gestión
+      try {
+        await _supabase.functions.invoke(
+          'resetear-clave',
+          body: <String, dynamic>{'user_id': userId, 'password': newPassword},
+        );
+      } on FunctionException catch (e) {
+        final Object? details = e.details;
+        throw Exception(details is Map && details['error'] != null ? details['error'] : 'No se pudo restablecer la clave');
+      }
       debugPrint('✅ UsuariosRepository: Contraseña reseteada correctamente');
     } catch (e) {
       debugPrint('❌ UsuariosRepository: Error al resetear contraseña - $e');

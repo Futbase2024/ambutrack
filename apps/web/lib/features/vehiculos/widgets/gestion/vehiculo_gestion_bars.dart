@@ -14,6 +14,7 @@ class VehiculoGestionToolbar extends StatelessWidget {
     required this.onRefresh,
     required this.onExport,
     required this.onStock,
+    required this.onQr,
     required this.editing,
     required this.onToggleEditing,
     super.key,
@@ -28,6 +29,9 @@ class VehiculoGestionToolbar extends StatelessWidget {
   final VoidCallback onRefresh;
   final VoidCallback? onExport;
   final VoidCallback onStock;
+
+  /// Imprime la etiqueta QR del vehículo seleccionado
+  final VoidCallback onQr;
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +81,12 @@ class VehiculoGestionToolbar extends StatelessWidget {
             label: 'Stock',
             tooltip: 'Abrir el stock de equipamiento del vehículo seleccionado',
             onPressed: hasSelection ? onStock : null,
+          ),
+          GestionToolbarAction(
+            icon: Icons.qr_code_2,
+            label: 'Imprimir QR',
+            tooltip: 'Imprimir la etiqueta QR del vehículo seleccionado para el salpicadero',
+            onPressed: hasSelection ? onQr : null,
           ),
         ],
       ],

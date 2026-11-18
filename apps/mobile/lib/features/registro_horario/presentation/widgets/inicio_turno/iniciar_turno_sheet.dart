@@ -1,21 +1,39 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../core/di/injection.dart';
+import '../../../../../core/services/preferencias_dispositivo_service.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../../auth/presentation/bloc/auth_state.dart';
 import '../../../domain/repositories/turno_actual_repository.dart';
 import '../../bloc/registro_horario_event.dart';
 import '../../cubit/inicio_turno_cubit.dart';
+import '../../cubit/inicio_turno_reglas.dart';
 import '../../cubit/inicio_turno_state.dart';
-import 'inicio_turno_resumen.dart';
-import 'selector_plantilla_turno.dart';
-import 'selector_vehiculo_lista.dart';
+import 'inicio_turno_comunes.dart';
+import 'pasos/paso_checklist.dart';
+import 'pasos/paso_dotacion.dart';
+import 'pasos/paso_estado_vehiculo.dart';
+import 'pasos/paso_resumen.dart';
+import 'pasos/paso_turno.dart';
+import 'pasos/paso_vehiculo.dart';
 
-/// Abre la hoja "Iniciar turno" y devuelve lo elegido (null si cancela)
+/// Abre el asistente "Iniciar turno" y devuelve lo elegido (null si cancela)
+///
+/// [latitud]/[longitud]: posición del fichaje, para comprobar la geocerca de la base.
 Future<InicioTurnoSeleccion?> showIniciarTurnoSheet(
   BuildContext context, {
   required String idPersonal,
+  double? latitud,
+  double? longitud,
 }) {
+  final AuthState auth = context.read<AuthBloc>().state;
+  final TPersonalEntity? personal = auth is AuthAuthenticated ? auth.personal : null;
+  if (personal == null || personal.id != idPersonal) {
+    return Future<InicioTurnoSeleccion?>.value();
+  }
   return showModalBottomSheet<InicioTurnoSeleccion>(
     context: context,
     isScrollControlled: true,
@@ -26,17 +44,15 @@ Future<InicioTurnoSeleccion?> showIniciarTurnoSheet(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (_) => BlocProvider<InicioTurnoCubit>(
-      create: (_) => InicioTurnoCubit(getIt<TurnoActualRepository>())..cargar(idPersonal),
+      create: (_) => InicioTurnoCubit(getIt<TurnoActualRepository>())
+        ..cargar(personal, latitud: latitud, longitud: longitud),
       child: const IniciarTurnoSheet(),
     ),
   );
 }
 
-/// Hoja de inicio de turno
-///
-/// - Turno con vehículo → confirma directamente
-/// - Turno sin vehículo → pide vehículo
-/// - Sin turno → pide tipo de turno + vehículo (se crea desde la app)
+/// Asistente de entrada en turno:
+/// turno → vehículo → dotación → km/combustible → revisión → confirmar
 class IniciarTurnoSheet extends StatelessWidget {
   const IniciarTurnoSheet({super.key});
 
@@ -44,18 +60,22 @@ class IniciarTurnoSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: SizedBox(
-        height: MediaQuery.sizeOf(context).height * 0.85,
-        child: BlocBuilder<InicioTurnoCubit, InicioTurnoState>(
-          builder: (BuildContext context, InicioTurnoState state) {
-            return Column(
-              children: <Widget>[
-                const _Cabecera(),
-                Expanded(child: _Cuerpo(state: state)),
-                _Acciones(state: state),
-              ],
-            );
-          },
+      child: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.9,
+          child: BlocBuilder<InicioTurnoCubit, InicioTurnoState>(
+            builder: (BuildContext context, InicioTurnoState state) {
+              return Column(
+                children: <Widget>[
+                  const _Cabecera(),
+                  if (state.status == InicioTurnoStatus.listo) IndicadorPasosInicio(actual: state.paso),
+                  Expanded(child: _Cuerpo(state: state)),
+                  _Acciones(state: state),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -105,66 +125,36 @@ class _Cuerpo extends StatelessWidget {
           ),
         );
       case InicioTurnoStatus.listo:
-        return _Formulario(state: state);
+        return ListView(
+          key: ValueKey<PasoInicioTurno>(state.paso),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          children: <Widget>[_PasoActual(state: state)],
+        );
     }
   }
 }
 
-class _Formulario extends StatelessWidget {
-  const _Formulario({required this.state});
+class _PasoActual extends StatelessWidget {
+  const _PasoActual({required this.state});
 
   final InicioTurnoState state;
 
   @override
   Widget build(BuildContext context) {
-    final InicioTurnoCubit cubit = context.read<InicioTurnoCubit>();
-    final bool sinTurno = state.turno == null;
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-      children: <Widget>[
-        if (sinTurno) ...<Widget>[
-          const SinTurnoAviso(),
-          const _Titulo('Tipo de turno'),
-          SelectorPlantillaTurno(
-            plantillas: state.plantillas,
-            seleccionada: state.plantillaSeleccionada,
-            onSeleccionar: cubit.seleccionarPlantilla,
-          ),
-        ] else
-          TurnoAsignadoCard(
-            turno: state.turno!,
-            vehiculo: state.tieneTurnoConVehiculo ? state.vehiculoSeleccionado : null,
-            onCambiarVehiculo: state.tieneTurnoConVehiculo && !state.cambiandoVehiculo ? cubit.activarCambioVehiculo : null,
-          ),
-        if (state.mostrarSelectorVehiculo) ...<Widget>[
-          const _Titulo('Vehículo'),
-          SelectorVehiculoLista(
-            vehiculos: state.vehiculosFiltrados,
-            seleccionado: state.vehiculoSeleccionado,
-            onSeleccionar: cubit.seleccionarVehiculo,
-            onFiltrar: cubit.filtrar,
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _Titulo extends StatelessWidget {
-  const _Titulo(this.texto);
-
-  final String texto;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 10),
-      child: Text(
-        texto.toUpperCase(),
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.gray600, letterSpacing: 0.8),
-      ),
-    );
+    switch (state.paso) {
+      case PasoInicioTurno.turno:
+        return PasoTurno(state: state);
+      case PasoInicioTurno.vehiculo:
+        return PasoVehiculo(state: state);
+      case PasoInicioTurno.dotacion:
+        return PasoDotacion(state: state);
+      case PasoInicioTurno.estado:
+        return PasoEstadoVehiculo(state: state);
+      case PasoInicioTurno.checklist:
+        return PasoChecklist(state: state);
+      case PasoInicioTurno.resumen:
+        return PasoResumen(state: state);
+    }
   }
 }
 
@@ -173,8 +163,20 @@ class _Acciones extends StatelessWidget {
 
   final InicioTurnoState state;
 
+  void _confirmar(BuildContext context) {
+    Navigator.of(context).pop(
+      state.toSeleccion(modoDispositivo: getIt<PreferenciasDispositivoService>().modo.value),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final InicioTurnoCubit cubit = context.read<InicioTurnoCubit>();
+    final bool listo = state.status == InicioTurnoStatus.listo;
+    final bool primero = state.paso == PasoInicioTurno.turno;
+    final bool ultimo = state.paso == PasoInicioTurno.resumen;
+    final RoundedRectangleBorder forma = RoundedRectangleBorder(borderRadius: BorderRadius.circular(10));
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
       decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.gray200))),
@@ -182,39 +184,26 @@ class _Acciones extends StatelessWidget {
         children: <Widget>[
           Expanded(
             child: OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: const Text('Cancelar'),
+              onPressed: () => primero || !listo ? Navigator.of(context).pop() : cubit.anterior(),
+              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: forma),
+              child: Text(primero || !listo ? 'Cancelar' : 'Atrás'),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             flex: 2,
             child: FilledButton.icon(
-              onPressed: state.puedeConfirmar ? () => _confirmar(context) : null,
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: const Text('Iniciar turno'),
+              onPressed: listo && state.puedeAvanzar ? () => ultimo ? _confirmar(context) : cubit.siguiente() : null,
+              icon: Icon(ultimo ? Icons.play_arrow_rounded : Icons.arrow_forward_rounded),
+              label: Text(ultimo ? 'Iniciar turno' : 'Siguiente'),
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: ultimo ? AppColors.success : AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: forma,
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  void _confirmar(BuildContext context) {
-    Navigator.of(context).pop(
-      InicioTurnoSeleccion(
-        turno: state.turno,
-        vehiculo: state.vehiculoSeleccionado!,
-        plantilla: state.plantillaSeleccionada,
       ),
     );
   }

@@ -1,6 +1,6 @@
 # Plan: Login, Entrada en Turno y Logout (app móvil)
 
-> Fecha: 2026-11-18 · Rama: `features/taller_vehiculos` · Estado: **pendiente de aprobación**
+> Fecha: 2026-11-18 · Rama: `features/taller_vehiculos` · Estado: **implementado (pendiente de pruebas en dispositivo)**
 
 ## Decisiones tomadas
 
@@ -80,26 +80,20 @@ GPS a > 200 m de bases.latitud/longitud
               ──▶ Web: coordinador aprueba / rechaza → notificación al técnico
 ```
 
-### Datos (reutilizando tablas existentes)
-- `asignaciones_vehiculos_turnos`: vehiculo_id, fecha, plantilla_turno_id, base_id, **km_inicial**, estado
-  (`en_curso` / `pendiente_validacion`), confirmada_por, fecha_confirmacion
-- `turnos_personal_vehiculos`: rol, es_responsable (uno por técnico; compañero opcional)
-- `checklists_vehiculo` + `items_checklist_vehiculo`: tipo `inicio_turno`, kilometraje
-- `registros_horarios`: fichaje de entrada (ya existe)
-- `tvehiculos.km_actual` ← km inicial
+### Datos (implementado)
+> Cambio respecto al borrador: NO se usa `asignaciones_vehiculos_turnos` porque la web la usa para
+> el cuadrante visual (unidades por dotación). Se crea una tabla propia.
 
-### Migración (nueva)
-```sql
-ALTER TABLE asignaciones_vehiculos_turnos
-  ADD COLUMN combustible_inicial text CHECK (combustible_inicial IN ('1/4','1/2','3/4','lleno')),
-  ADD COLUMN foto_km_url text,
-  ADD COLUMN fuera_de_base boolean DEFAULT false,
-  ADD COLUMN motivo_fuera_base text,
-  ADD COLUMN declaracion_aptitud boolean DEFAULT false;
--- + seed de items 'inicio_turno' en plantilla_checklist_vehiculo
--- + bucket storage 'fotos-km' con RLS
-```
-> ⚠️ Verificar antes cómo usa la web `asignaciones_vehiculos_turnos` y `turnos_personal_vehiculos`.
+Migración `inicio_turno_controles`:
+- `plantilla_checklist_inicio_turno`: puntos del checklist corto (6 por defecto, editable por gestión)
+- `inicios_turno`: rol, compañero, km, combustible, foto, checklist (jsonb), declaración, GPS,
+  distancia a base, fuera de base + motivo, avisos, `estado_validacion`
+- Triggers: empresa, `estado_validacion` (fuera de base → pendiente), km del vehículo,
+  notificación a gestión (`inicio_turno_pendiente`) y al técnico (`inicio_turno_aprobado/rechazado`)
+- RPC `fn_ocupacion_vehiculo(uuid)`: quién tiene la jornada abierta en un vehículo (SECURITY DEFINER,
+  porque RLS de `registros_horarios` solo deja ver los propios)
+- Bucket privado `fotos-km` (carpeta = auth.uid())
+- Edge Function `resetear-clave` (service_role en servidor; solo roles de gestión)
 
 ### Archivos
 - `packages/ambutrack_core_datasource`: ampliar datasource de inicio de turno (contract/impl/factory/model)

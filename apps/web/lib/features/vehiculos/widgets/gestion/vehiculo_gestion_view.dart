@@ -15,6 +15,7 @@ import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_sta
 import 'package:ambutrack_web/features/vehiculos/presentation/widgets/vehiculo_form_dialog.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/export/vehiculo_export_dialog.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/export/vehiculo_export_options.dart';
+import 'package:ambutrack_web/features/vehiculos/widgets/gestion/export/vehiculo_qr_print.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/flota_gestion_common.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_detail_panel.dart';
 import 'package:ambutrack_web/features/vehiculos/widgets/gestion/vehiculo_gestion_bars.dart';
@@ -257,6 +258,7 @@ class _VehiculoGestionViewState extends State<VehiculoGestionView> with Vehiculo
             onRefresh: _refresh,
             onExport: visibles.isEmpty && selected == null ? null : _openExport,
             onStock: () => _openStock(selected!),
+            onQr: () => imprimirQrVehiculo(selected!),
             editing: editando,
             onToggleEditing: toggleEdicion,
           ),

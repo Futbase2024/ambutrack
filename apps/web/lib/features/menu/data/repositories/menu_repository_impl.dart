@@ -247,6 +247,12 @@ class MenuRepositoryImpl implements MenuRepository {
           icon: Icons.location_on,
           route: '/personal/fichajes',
         ),
+        MenuItem(
+          key: 'personal_inicios_turno',
+          label: 'Inicios de turno',
+          icon: Icons.play_circle_outline,
+          route: '/personal/inicios-turno',
+        ),
       ],
     ),
 

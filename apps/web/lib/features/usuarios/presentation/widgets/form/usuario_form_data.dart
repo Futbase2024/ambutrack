@@ -58,6 +58,12 @@ class UsuarioFormData {
     );
   }
 
+  /// Genera un PIN de 6 dígitos (clave de la app móvil)
+  static String generarPin() {
+    final Random rnd = Random.secure();
+    return List<String>.generate(6, (_) => '${rnd.nextInt(10)}').join();
+  }
+
   void dispose() {
     dni.dispose();
     nombre.dispose();
