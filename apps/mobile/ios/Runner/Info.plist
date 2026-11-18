@@ -27,9 +27,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>AmbuTrack necesita tu ubicación para registrar tu fichaje</string>
+	<string>AmbuTrack usa tu ubicación para registrar tu fichaje y, durante tu jornada, la posición de la ambulancia asignada para el centro de coordinación</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>AmbuTrack necesita tu ubicación para registrar tu fichaje</string>
+	<string>AmbuTrack usa tu ubicación para registrar tu fichaje y, durante tu jornada, la posición de la ambulancia asignada para el centro de coordinación</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

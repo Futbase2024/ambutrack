@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -6,6 +8,7 @@ import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 import '../core/config/router_config.dart';
 import '../core/di/injection.dart';
+import '../core/services/gps_tracking_service.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/presentation/bloc/auth_bloc.dart';
 import '../features/auth/presentation/bloc/auth_event.dart';
@@ -33,6 +36,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   NotificacionesBloc? _notificacionesBloc;
   late final LocalNotificationsService _notificationsService;
   late final GoRouter _router;
+  late final GpsTrackingService _gpsService;
   bool _isNotificacionesBlocInitialized = false;
 
   @override
@@ -47,6 +51,11 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     _notificationsService = getIt<LocalNotificationsService>();
 
     debugPrint('🔔 [App] LocalNotificationsService obtenido: $_notificationsService');
+
+    // Seguimiento GPS: envía la posición mientras la jornada está fichada
+    _gpsService = GpsTrackingService(registroHorarioBloc: _registroHorarioBloc)
+      ..setAutenticado(value: _authBloc.state is AuthAuthenticated)
+      ..iniciar();
 
     // Crear router
     _router = createAppRouter(_authBloc);
@@ -76,6 +85,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
 
   /// Inicializa NotificacionesBloc cuando el usuario se autentica
   void _onAuthStateChanged(AuthState state) {
+    _gpsService.setAutenticado(value: state is AuthAuthenticated);
     debugPrint('🔔 [App] Estado de AuthBloc cambiado: ${state.runtimeType}');
 
     if (!_isNotificacionesBlocInitialized && state is AuthAuthenticated) {
@@ -98,6 +108,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    unawaited(_gpsService.dispose());
     _router.dispose();
     super.dispose();
   }
@@ -109,6 +120,11 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     // Actualizar estado del servicio de notificaciones
     final isInForeground = state == AppLifecycleState.resumed;
     _notificationsService.setAppLifecycleState(isInForeground);
+
+    // GPS: "inactive" (diálogos del sistema, p.ej. permisos) cuenta como primer plano
+    _gpsService.setPrimerPlano(
+      value: state == AppLifecycleState.resumed || state == AppLifecycleState.inactive,
+    );
 
     debugPrint('📱 [App] Ciclo de vida: $state (${isInForeground ? "primer plano" : "segundo plano"})');
   }
