@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../bloc/alertas_caducidad_bloc.dart';
 import '../bloc/alertas_caducidad_state.dart';
+import 'helpers/alerta_helpers.dart';
 
 /// Diálogo de alertas críticas que se muestra al inicio de la aplicación.
 ///
@@ -48,6 +49,13 @@ class AlertasDialogoInicial extends StatelessWidget {
       },
     );
   }
+}
+
+/// Alerta con menos días restantes (la más urgente)
+AlertaCaducidadEntity _masUrgente(List<AlertaCaducidadEntity> alertas) {
+  return alertas.reduce(
+    (AlertaCaducidadEntity a, AlertaCaducidadEntity b) => b.diasRestantes < a.diasRestantes ? b : a,
+  );
 }
 
 /// Contenido del diálogo de alertas críticas.
@@ -170,7 +178,8 @@ class _DialogContent extends StatelessWidget {
                     child: FilledButton(
                       onPressed: () {
                         Navigator.of(context).pop();
-                        // TODO(team): Navegar a la página de alertas
+                        // Abre la pantalla de la alerta más urgente
+                        abrirDestinoAlerta(context, _masUrgente(criticas));
                       },
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.emergency,

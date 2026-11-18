@@ -382,12 +382,20 @@ class _ServicioFormWizardDialogState extends State<ServicioFormWizardDialog> {
       _observacionesGenerales = servicio.observaciones ?? '';
       _observacionesMedicas = servicio.observacionesMedicas ?? '';
 
-      // Recursos médicos (checkboxes del Step 1)
-      // Estos mapean desde los campos del servicio
-      // requiereAyuda, requiereCamilla, requiereSillaRuedas
+      // Recursos médicos (Step 1): inverso del mapeo usado al guardar
+      // (ServicioCreator / _actualizarServicio)
       _requiereAyudante = servicio.requiereAyuda;
-      // TODO(dev): Mapear movilidad, acompañantes, oxígeno cuando estén en el modelo
-      // Por ahora dejamos valores por defecto
+      // Movilidad: la tabla solo guarda requiere_camilla / requiere_silla_ruedas,
+      // por lo que 'camilla_palas' y 'silla_electrica' se cargan como su tipo base
+      _movilidad = servicio.requiereCamilla
+          ? 'camilla'
+          : servicio.requiereSillaRuedas
+              ? 'silla_ruedas'
+              : 'sentado';
+      // Acompañantes: la tabla solo guarda requiere_acompanante (bool)
+      _acompanantes = servicio.requiereAcompanante ? 1 : 0;
+      // Oxígeno: no existe columna en servicios/servicios_recurrentes/traslados,
+      // se mantiene el valor por defecto (no se persiste)
 
       // Tipo de ambulancia
       _tipoAmbulancia = servicio.tipoAmbulancia;

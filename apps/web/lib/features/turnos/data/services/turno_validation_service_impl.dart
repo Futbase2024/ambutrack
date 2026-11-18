@@ -1,13 +1,19 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/configuracion_validacion_entity.dart';
+import 'package:ambutrack_web/features/turnos/data/services/indisponibilidad_personal_loader.dart';
+import 'package:ambutrack_web/features/turnos/data/services/turno_validaciones_periodo_mixin.dart';
 import 'package:ambutrack_web/features/turnos/domain/entities/validation_result_entity.dart';
+import 'package:ambutrack_web/features/turnos/domain/services/turno_ausencias_checker.dart';
 import 'package:ambutrack_web/features/turnos/domain/services/turno_validation_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 
 /// Implementación del servicio de validación de turnos
 @LazySingleton(as: TurnoValidationService)
-class TurnoValidationServiceImpl implements TurnoValidationService {
+class TurnoValidationServiceImpl with TurnoValidacionesPeriodo implements TurnoValidationService {
+  /// No se inyecta por constructor para no requerir regenerar DI
+  final IndisponibilidadPersonalLoader _indisponibilidadLoader = IndisponibilidadPersonalLoader();
+
   @override
   Future<ValidationResult> validateTurno({
     required TurnoEntity turnoNuevo,
@@ -283,160 +289,24 @@ class TurnoValidationServiceImpl implements TurnoValidationService {
   }
 
   @override
-  ValidationResult validateHorasSemanales({
-    required TurnoEntity turnoNuevo,
-    required List<TurnoEntity> turnosExistentes,
-    double? horasMaximasSemanales,
-  }) {
-    // Si no hay límite (null = sin límite), no validar
-    if (horasMaximasSemanales == null) {
-      return ValidationResult.empty();
-    }
-
-    // Calcular inicio de la semana (lunes)
-    final DateTime inicioSemana = turnoNuevo.fechaInicio.subtract(
-      Duration(days: turnoNuevo.fechaInicio.weekday - 1),
-    );
-    final DateTime finSemana = inicioSemana.add(const Duration(days: 7));
-
-    // Filtrar turnos de esta semana
-    final List<TurnoEntity> turnosSemana = turnosExistentes
-        .where(
-          (TurnoEntity t) =>
-              t.fechaInicio.isAfter(inicioSemana) &&
-              t.fechaInicio.isBefore(finSemana),
-        )
-        .toList();
-
-    final double horasTrabajadas = calcularHorasTrabajadas(
-      turnos: <TurnoEntity>[...turnosSemana, turnoNuevo],
-      fechaInicio: inicioSemana,
-      fechaFin: finSemana,
-    );
-
-    if (horasTrabajadas > horasMaximasSemanales) {
-      return ValidationResult.error(
-        ValidationIssue(
-          ruleType: ValidationRuleType.excesoHorasSemanales,
-          severity: ValidationSeverity.warning,
-          message:
-              'Exceso de horas semanales (${horasTrabajadas.toStringAsFixed(1)}h / $horasMaximasSemanales h)',
-          details: 'El convenio establece un máximo de $horasMaximasSemanales horas semanales',
-          suggestedAction: 'Reduce la carga horaria o distribuye en otra semana',
-        ),
-      );
-    }
-
-    return ValidationResult.empty();
-  }
-
-  @override
-  ValidationResult validateHorasMensuales({
-    required TurnoEntity turnoNuevo,
-    required List<TurnoEntity> turnosExistentes,
-    double? horasMaximasMensuales,
-  }) {
-    // Si no hay límite (null = sin límite), no validar
-    if (horasMaximasMensuales == null) {
-      return ValidationResult.empty();
-    }
-
-    // Primer y último día del mes
-    final DateTime inicioMes = DateTime(
-      turnoNuevo.fechaInicio.year,
-      turnoNuevo.fechaInicio.month,
-    );
-    final DateTime finMes = DateTime(
-      turnoNuevo.fechaInicio.year,
-      turnoNuevo.fechaInicio.month + 1,
-    );
-
-    // Filtrar turnos de este mes
-    final List<TurnoEntity> turnosMes = turnosExistentes
-        .where(
-          (TurnoEntity t) =>
-              t.fechaInicio.isAfter(inicioMes) &&
-              t.fechaInicio.isBefore(finMes),
-        )
-        .toList();
-
-    final double horasTrabajadas = calcularHorasTrabajadas(
-      turnos: <TurnoEntity>[...turnosMes, turnoNuevo],
-      fechaInicio: inicioMes,
-      fechaFin: finMes,
-    );
-
-    if (horasTrabajadas > horasMaximasMensuales) {
-      return ValidationResult.error(
-        ValidationIssue(
-          ruleType: ValidationRuleType.excesoHorasMensuales,
-          severity: ValidationSeverity.warning,
-          message:
-              'Exceso de horas mensuales (${horasTrabajadas.toStringAsFixed(1)}h / $horasMaximasMensuales h)',
-          details: 'El convenio establece un máximo de $horasMaximasMensuales horas mensuales',
-          suggestedAction: 'Reduce la carga horaria o distribuye en otro mes',
-        ),
-      );
-    }
-
-    return ValidationResult.empty();
-  }
-
-  @override
-  ValidationResult validateDescansoSemanal({
-    required TurnoEntity turnoNuevo,
-    required List<TurnoEntity> turnosExistentes,
-    required int diasDescansoSemanal,
-  }) {
-    // Calcular inicio de la semana
-    final DateTime inicioSemana = turnoNuevo.fechaInicio.subtract(
-      Duration(days: turnoNuevo.fechaInicio.weekday - 1),
-    );
-    final DateTime finSemana = inicioSemana.add(const Duration(days: 7));
-
-    // Filtrar turnos de esta semana
-    final List<TurnoEntity> turnosSemana = turnosExistentes
-        .where(
-          (TurnoEntity t) =>
-              t.fechaInicio.isAfter(inicioSemana) &&
-              t.fechaInicio.isBefore(finSemana),
-        )
-        .toList();
-
-    // Contar días únicos con turno
-    final Set<int> diasConTurno = <int>{
-      ...turnosSemana.map((TurnoEntity t) => t.fechaInicio.day),
-      turnoNuevo.fechaInicio.day,
-    };
-
-    final int diasTrabajados = diasConTurno.length;
-    final int diasLibres = 7 - diasTrabajados;
-
-    if (diasLibres < diasDescansoSemanal) {
-      return ValidationResult.error(
-        ValidationIssue(
-          ruleType: ValidationRuleType.faltaDescansoSemanal,
-          severity: ValidationSeverity.warning,
-          message: 'Falta descanso semanal obligatorio',
-          details:
-              'Trabaja $diasTrabajados días esta semana, quedan solo $diasLibres días libres (mínimo: $diasDescansoSemanal)',
-          suggestedAction: 'Asegura al menos $diasDescansoSemanal día(s) de descanso por semana',
-        ),
-      );
-    }
-
-    return ValidationResult.empty();
-  }
-
-  @override
   Future<ValidationResult> validateCruceConAusencias({
     required TurnoEntity turnoNuevo,
     required String idPersonal,
   }) async {
-    // TODO(dev): Integrar con módulo de ausencias cuando esté disponible
-    // Por ahora retorna validación vacía
-    debugPrint('ℹ️ Validación de ausencias pendiente de implementar');
-    return ValidationResult.empty();
+    try {
+      final List<PeriodoIndisponibilidad> periodos = await _indisponibilidadLoader.cargarDePersonal(idPersonal);
+      return TurnoAusenciasChecker.validar(turno: turnoNuevo, idPersonal: idPersonal, periodos: periodos);
+    } catch (e) {
+      debugPrint('⚠️ No se pudieron comprobar ausencias/vacaciones: $e');
+      return ValidationResult.error(
+        const ValidationIssue(
+          ruleType: ValidationRuleType.cruceConAusencia,
+          severity: ValidationSeverity.warning,
+          message: 'No se pudieron comprobar las ausencias y vacaciones del trabajador',
+          suggestedAction: 'Verifica manualmente que no tenga ausencias o vacaciones aprobadas ese día',
+        ),
+      );
+    }
   }
 
   @override

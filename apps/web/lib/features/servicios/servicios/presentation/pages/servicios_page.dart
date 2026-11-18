@@ -8,6 +8,7 @@ import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/ser
 import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/servicios_event.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/servicios_state.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/formulario/servicio_form_wizard_dialog.dart';
+import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/servicio_fechas_excepcion_panel.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/servicios_page_bars.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/servicios_side_panel.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/servicios_table.dart';
@@ -327,15 +328,20 @@ class _ServiciosViewState extends State<_ServiciosView> {
     }
   }
 
-  /// Maneja la exclusión de fechas de trayectos
-  void _handleExcluir(BuildContext context, ServicioEntity servicio) {
-    // TODO(dev): Implementar diálogo de exclusión de fechas
-    debugPrint('🚫 Excluir trayectos: ${servicio.codigo}');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Funcionalidad de exclusión en desarrollo'),
-        backgroundColor: AppColors.info,
-      ),
+  /// Abre el diálogo de fechas excluidas/incluidas del servicio.
+  /// Al cerrarlo se recargan los detalles para refrescar los trayectos.
+  Future<void> _handleExcluir(BuildContext context, ServicioEntity servicio) async {
+    final String? id = servicio.id;
+    if (id == null) {
+      return;
+    }
+    debugPrint('🚫 Excepciones de fechas: ${servicio.codigo}');
+    final ServiciosBloc bloc = context.read<ServiciosBloc>();
+    await showServicioFechasExcepcionDialog(
+      context: context,
+      servicioId: id,
+      codigo: servicio.codigo,
     );
+    bloc.add(ServiciosEvent.loadServicioDetailsRequested(id: id));
   }
 }

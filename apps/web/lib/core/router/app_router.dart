@@ -17,6 +17,7 @@ import 'package:ambutrack_web/features/almacen/presentation/pages/proveedores_pa
 import 'package:ambutrack_web/features/ausencias/presentation/pages/ausencias_page.dart';
 import 'package:ambutrack_web/features/auth/domain/repositories/auth_repository.dart';
 import 'package:ambutrack_web/features/auth/presentation/pages/login_page.dart';
+import 'package:ambutrack_web/features/auth/presentation/pages/logout_page.dart';
 import 'package:ambutrack_web/features/contratos/presentation/pages/contratos_page.dart';
 import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/pages/asignaciones_page.dart';
 import 'package:ambutrack_web/features/cuadrante/asignaciones/presentation/pages/cuadrante_mensual_page.dart';
@@ -64,10 +65,12 @@ import 'package:ambutrack_web/features/tablas/localidades/presentation/pages/loc
 import 'package:ambutrack_web/features/tablas/motivos_cancelacion/presentation/pages/motivos_cancelacion_page.dart';
 import 'package:ambutrack_web/features/tablas/motivos_traslado/presentation/pages/motivos_traslado_page.dart';
 import 'package:ambutrack_web/features/tablas/plantillas_equipamiento/presentation/pages/plantillas_equipamiento_page.dart';
+import 'package:ambutrack_web/features/tablas/protocolos_normativas/presentation/pages/protocolos_normativas_page.dart';
 import 'package:ambutrack_web/features/tablas/provincias/presentation/pages/provincias_page.dart';
 import 'package:ambutrack_web/features/tablas/tipos_paciente/presentation/pages/tipos_paciente_page.dart';
 import 'package:ambutrack_web/features/tablas/tipos_traslado/presentation/pages/tipos_traslado_page.dart';
 import 'package:ambutrack_web/features/tablas/tipos_vehiculo/presentation/pages/tipos_vehiculo_page.dart';
+import 'package:ambutrack_web/features/tablas/vehiculos_catalogo/presentation/pages/catalogo_vehiculos_page.dart';
 import 'package:ambutrack_web/features/taller/presentation/pages/alertas_mantenimiento_page.dart';
 import 'package:ambutrack_web/features/taller/presentation/pages/control_repuestos_page.dart';
 import 'package:ambutrack_web/features/taller/presentation/pages/historial_reparaciones_page.dart';
@@ -282,11 +285,7 @@ final GoRouter appRouter = GoRouter(
           name: 'tablas_vehiculos',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Vehículos',
-          subtitle: 'Catálogo de vehículos',
-          icon: Icons.directions_car,
-        ),
+        child: const CatalogoVehiculosPage(),
       ),
         ),
         // Facultativos
@@ -305,11 +304,7 @@ final GoRouter appRouter = GoRouter(
           name: 'tablas_protocolos',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Protocolos y Normativas',
-          subtitle: 'Gestión de protocolos médicos',
-          icon: Icons.gavel,
-        ),
+        child: const ProtocolosNormativasPage(),
       ),
         ),
         // Categorías de Vehículos
@@ -1097,11 +1092,7 @@ final GoRouter appRouter = GoRouter(
           name: 'logout',
           pageBuilder: (BuildContext context, GoRouterState state) => _buildPageWithTransition(
         key: state.pageKey,
-        child: const PlaceholderPage(
-          title: 'Cerrar Sesión',
-          subtitle: 'Proceso de cierre de sesión',
-          icon: Icons.logout,
-        ),
+        child: const LogoutPage(),
       ),
         ),
       ],

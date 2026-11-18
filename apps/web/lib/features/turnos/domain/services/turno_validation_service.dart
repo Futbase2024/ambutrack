@@ -74,9 +74,9 @@ abstract class TurnoValidationService {
     required int diasDescansoSemanal,
   });
 
-  /// Valida cruce con ausencias registradas
+  /// Valida cruce con ausencias y vacaciones aprobadas del personal.
   ///
-  // TODO(dev): Integrar con módulo de ausencias cuando esté disponible
+  /// Devuelve un error crítico si el turno cae en uno de esos periodos.
   Future<ValidationResult> validateCruceConAusencias({
     required TurnoEntity turnoNuevo,
     required String idPersonal,

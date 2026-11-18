@@ -3,6 +3,7 @@ import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.
 import 'package:ambutrack_web/features/turnos/domain/entities/configuracion_generacion_entity.dart';
 import 'package:ambutrack_web/features/turnos/domain/entities/preferencia_personal_entity.dart';
 import 'package:ambutrack_web/features/turnos/domain/entities/resultado_generacion_entity.dart';
+import 'package:ambutrack_web/features/turnos/domain/services/turno_ausencias_checker.dart';
 
 /// Servicio para la generación automática de cuadrantes
 abstract class GeneracionAutomaticaService {
@@ -14,6 +15,9 @@ abstract class GeneracionAutomaticaService {
     required ConfiguracionGeneracionEntity configuracion,
     List<PreferenciaPersonalEntity>? preferencias,
     List<TurnoEntity>? turnosExistentes,
+
+    /// Ausencias/vacaciones aprobadas. Si es null, el servicio las carga.
+    List<PeriodoIndisponibilidad>? indisponibilidades,
   });
 
   /// Valida si un turno cumple con las restricciones legales

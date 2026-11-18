@@ -58,4 +58,20 @@ abstract class ServicioRepository {
   /// 2. Regenera traslados desde la fecha actual hacia adelante
   /// 3. Respeta la configuración original de recurrencia
   Future<int> reanudar(String id);
+
+  /// Obtiene las fechas excluidas e incluidas de un servicio recurrente
+  Future<FechasExcepcionServicio> getFechasExcepcion(String id);
+
+  /// Guarda las fechas excluidas e incluidas de un servicio recurrente.
+  ///
+  /// La BD (trigger `trg_servicios_fechas_excepcion`) elimina los traslados
+  /// pendientes de las fechas excluidas y genera los de las fechas incluidas.
+  Future<void> updateFechasExcepcion(
+    String id, {
+    required List<DateTime> excluidas,
+    required List<DateTime> incluidas,
+  });
 }
+
+/// Fechas excluidas (sin traslados) e incluidas (traslados extra) de un servicio
+typedef FechasExcepcionServicio = ({List<DateTime> excluidas, List<DateTime> incluidas});

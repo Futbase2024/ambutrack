@@ -1,9 +1,12 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
+import 'package:ambutrack_web/features/turnos/data/services/indisponibilidad_personal_loader.dart';
 import 'package:ambutrack_web/features/turnos/domain/entities/configuracion_generacion_entity.dart';
 import 'package:ambutrack_web/features/turnos/domain/entities/preferencia_personal_entity.dart';
 import 'package:ambutrack_web/features/turnos/domain/entities/resultado_generacion_entity.dart';
+import 'package:ambutrack_web/features/turnos/domain/services/estadisticas_generacion_calculator.dart';
 import 'package:ambutrack_web/features/turnos/domain/services/generacion_automatica_service.dart';
+import 'package:ambutrack_web/features/turnos/domain/services/turno_ausencias_checker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
@@ -20,6 +23,7 @@ class GeneracionAutomaticaServiceImpl implements GeneracionAutomaticaService {
     required ConfiguracionGeneracionEntity configuracion,
     List<PreferenciaPersonalEntity>? preferencias,
     List<TurnoEntity>? turnosExistentes,
+    List<PeriodoIndisponibilidad>? indisponibilidades,
   }) async {
     debugPrint('🚀 Iniciando generación automática de cuadrante...');
     debugPrint('📅 Período: ${fechaInicio.toString().split(' ')[0]} - ${fechaFin.toString().split(' ')[0]}');
@@ -29,6 +33,10 @@ class GeneracionAutomaticaServiceImpl implements GeneracionAutomaticaService {
     final List<ConflictoGeneracion> conflictos = <ConflictoGeneracion>[];
     final List<AdvertenciaGeneracion> advertencias = <AdvertenciaGeneracion>[];
     final List<TurnoEntity> todosTurnos = turnosExistentes ?? <TurnoEntity>[];
+    final List<PeriodoIndisponibilidad> periodos = indisponibilidades ??
+        await _cargarIndisponibilidades(fechaInicio, fechaFin, advertencias);
+    // Evita repetir el mismo conflicto de ausencia por persona y día
+    final Set<String> ausenciasNotificadas = <String>{};
 
     // Calcular días a generar
     final int totalDias = fechaFin.difference(fechaInicio).inDays + 1;
@@ -68,6 +76,27 @@ class GeneracionAutomaticaServiceImpl implements GeneracionAutomaticaService {
             fecha: fecha,
             tipoTurno: tipoTurno,
           );
+
+          // Ausencias y vacaciones aprobadas bloquean la asignación
+          final PeriodoIndisponibilidad? ausencia = TurnoAusenciasChecker.buscarConflicto(
+            turno: turnoTemporal,
+            idPersonal: candidato.id,
+            periodos: periodos,
+          );
+          if (ausencia != null) {
+            if (ausenciasNotificadas.add('${candidato.id}_${TurnoAusenciasChecker.formatearFecha(fecha)}')) {
+              conflictos.add(ConflictoGeneracion(
+                tipo: TipoConflicto.personalNoDisponible,
+                mensaje: TurnoAusenciasChecker.mensajeConflicto(
+                  nombrePersonal: '${candidato.nombre} ${candidato.apellidos}',
+                  periodo: ausencia,
+                ),
+                idPersonal: candidato.id,
+                fecha: fecha,
+              ));
+            }
+            continue;
+          }
 
           // Validar restricciones legales
           final List<TurnoEntity> turnosCandidato = todosTurnos
@@ -145,9 +174,9 @@ class GeneracionAutomaticaServiceImpl implements GeneracionAutomaticaService {
     }
 
     // Calcular estadísticas
-    final EstadisticasGeneracion estadisticas = _calcularEstadisticas(
+    final EstadisticasGeneracion estadisticas = EstadisticasGeneracionCalculator.calcular(
       turnosGenerados: turnosGenerados,
-      personal: personal,
+      huecosNecesarios: totalDias * tiposTurnoPorDia.length,
     );
 
     debugPrint('📊 Generación completada:');
@@ -331,38 +360,21 @@ class GeneracionAutomaticaServiceImpl implements GeneracionAutomaticaService {
     return resultado;
   }
 
-  EstadisticasGeneracion _calcularEstadisticas({
-    required List<TurnoEntity> turnosGenerados,
-    required List<PersonalEntity> personal,
-  }) {
-    final Map<String, int> turnosPorPersonal = <String, int>{};
-    final Map<TipoTurno, int> distribucionPorTipo = <TipoTurno, int>{};
-
-    for (final TurnoEntity turno in turnosGenerados) {
-      // Contar turnos por personal
-      turnosPorPersonal[turno.idPersonal] = (turnosPorPersonal[turno.idPersonal] ?? 0) + 1;
-
-      // Contar por tipo de turno
-      distribucionPorTipo[turno.tipoTurno] =
-          (distribucionPorTipo[turno.tipoTurno] ?? 0) + 1;
+  /// Carga ausencias/vacaciones aprobadas del período; si falla, avisa y sigue
+  Future<List<PeriodoIndisponibilidad>> _cargarIndisponibilidades(
+    DateTime fechaInicio,
+    DateTime fechaFin,
+    List<AdvertenciaGeneracion> advertencias,
+  ) async {
+    try {
+      return await IndisponibilidadPersonalLoader().cargarEnRango(desde: fechaInicio, hasta: fechaFin);
+    } catch (e) {
+      debugPrint('⚠️ No se pudieron cargar ausencias/vacaciones: $e');
+      advertencias.add(const AdvertenciaGeneracion(
+        mensaje: 'No se pudieron comprobar ausencias y vacaciones: revisa el cuadrante manualmente',
+        idPersonal: null,
+      ));
+      return <PeriodoIndisponibilidad>[];
     }
-
-    // Calcular horas promedio
-    double totalHoras = 0;
-    for (final TurnoEntity turno in turnosGenerados) {
-      totalHoras += turno.fechaFin.difference(turno.fechaInicio).inHours.toDouble();
-    }
-
-    final int personalConTurnos = turnosPorPersonal.keys.length;
-    final double horasPromedio =
-        personalConTurnos > 0 ? totalHoras / personalConTurnos : 0;
-
-    return EstadisticasGeneracion(
-      totalTurnosGenerados: turnosGenerados.length,
-      totalPersonalAsignado: personalConTurnos,
-      horasPromedioPorPersona: horasPromedio,
-      distribucionPorTipoTurno: distribucionPorTipo,
-      coberturaCompletada: 100.0, // TODO(dev): Calcular basado en turnos necesarios vs generados
-    );
   }
 }

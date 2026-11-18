@@ -9,6 +9,7 @@ import 'package:ambutrack_web/core/widgets/menus/action_menu.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/entities/servicio_entity.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/servicios_bloc.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/bloc/servicios_state.dart';
+import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/servicio_fechas_excepcion_panel.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/trayecto_form_dialog.dart';
 import 'package:ambutrack_web/features/tablas/tipos_vehiculo/presentation/bloc/tipo_vehiculo_bloc.dart';
 import 'package:ambutrack_web/features/tablas/tipos_vehiculo/presentation/bloc/tipo_vehiculo_event.dart';
@@ -800,7 +801,6 @@ class _TrayectosExcepcionesTab extends StatefulWidget {
 
 class _TrayectosExcepcionesTabState extends State<_TrayectosExcepcionesTab>
     with TickerProviderStateMixin {
-  late TabController _subTabController;
   late TabController _trayectosTabController;
   final TrasladoDataSource _trasladoDataSource = TrasladoDataSourceFactory.createSupabase();
 
@@ -816,7 +816,6 @@ class _TrayectosExcepcionesTabState extends State<_TrayectosExcepcionesTab>
   @override
   void initState() {
     super.initState();
-    _subTabController = TabController(length: 2, vsync: this);
     _trayectosTabController = TabController(length: 3, vsync: this);
     _trayectosTabController.addListener(() {
       if (_trayectosTabController.indexIsChanging) {
@@ -831,7 +830,6 @@ class _TrayectosExcepcionesTabState extends State<_TrayectosExcepcionesTab>
 
   @override
   void dispose() {
-    _subTabController.dispose();
     _trayectosTabController.dispose();
     super.dispose();
   }
@@ -926,71 +924,12 @@ class _TrayectosExcepcionesTabState extends State<_TrayectosExcepcionesTab>
 
         // Sección de fechas excluidas/incluidas (abajo)
         Expanded(
-          child: Column(
-            children: <Widget>[
-              // Sub-tabs: Fechas Excluidas / Fechas Incluidas
-              DecoratedBox(
-                decoration: const BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: AppColors.gray200),
-                  ),
-                ),
-                child: TabBar(
-                  controller: _subTabController,
-                  labelColor: AppColors.secondary,
-                  unselectedLabelColor: AppColors.textSecondaryLight,
-                  indicatorColor: AppColors.secondary,
-                  labelStyle: const TextStyle(
-                    fontSize: AppSizes.fontSmall,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  tabs: const <Tab>[
-                    Tab(text: 'FECHAS EXCLUIDAS'),
-                    Tab(text: 'FECHAS INCLUIDAS'),
-                  ],
-                ),
-              ),
-
-              // Contenido de fechas excluidas/incluidas
-              Expanded(
-                child: TabBarView(
-                  controller: _subTabController,
-                  children: <Widget>[
-                    _buildFechasExcluidasContent(),
-                    _buildFechasIncluidasContent(),
-                  ],
-                ),
-              ),
-            ],
+          child: ServicioFechasExcepcionPanel(
+            servicioId: widget.servicio.id ?? '',
+            onChanged: _loadTrayectos,
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildFechasExcluidasContent() {
-    // TODO(feature): Implementar fechas excluidas desde Supabase cuando esté disponible
-    return const Center(
-      child: Text(
-        'Sin fechas excluidas',
-        style: TextStyle(
-          fontSize: AppSizes.fontSmall,
-          color: AppColors.textSecondaryLight,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFechasIncluidasContent() {
-    // TODO(feature): Implementar fechas incluidas desde Supabase cuando esté disponible
-    return const Center(
-      child: Text(
-        'Sin fechas incluidas',
-        style: TextStyle(
-          fontSize: AppSizes.fontSmall,
-          color: AppColors.textSecondaryLight,
-        ),
-      ),
     );
   }
 

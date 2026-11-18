@@ -537,11 +537,77 @@ class ServicioRepositoryImpl implements ServicioRepository {
       }
 
       debugPrint('✅ Traslados regenerados: $trasladosGenerados');
+
+      // 5. Reaplicar fechas excluidas/incluidas sobre los traslados regenerados
+      await _supabase.rpc<dynamic>(
+        'aplicar_fechas_excepcion_servicio',
+        params: <String, dynamic>{'p_id_servicio': id},
+      );
+      debugPrint('✅ Fechas excluidas/incluidas reaplicadas');
       debugPrint('📦 ServicioRepository: ✅ Servicio reanudado exitosamente');
       return trasladosGenerados;
     } catch (e) {
       debugPrint('📦 ServicioRepository: ❌ Error al reanudar: $e');
       rethrow;
     }
+  }
+
+  @override
+  Future<FechasExcepcionServicio> getFechasExcepcion(String id) async {
+    debugPrint('📦 ServicioRepository: Obteniendo fechas excluidas/incluidas de $id...');
+    try {
+      final Map<String, dynamic> response = await _supabase
+          .from('servicios')
+          .select('fechas_excluidas, fechas_incluidas')
+          .eq('id', id)
+          .single();
+
+      return (
+        excluidas: _parseFechas(response['fechas_excluidas']),
+        incluidas: _parseFechas(response['fechas_incluidas']),
+      );
+    } catch (e) {
+      debugPrint('📦 ServicioRepository: ❌ Error al obtener fechas: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> updateFechasExcepcion(
+    String id, {
+    required List<DateTime> excluidas,
+    required List<DateTime> incluidas,
+  }) async {
+    debugPrint(
+      '📦 ServicioRepository: Guardando fechas de $id '
+      '(${excluidas.length} excluidas, ${incluidas.length} incluidas)...',
+    );
+    try {
+      await _supabase.from('servicios').update(<String, dynamic>{
+        'fechas_excluidas': _formatFechas(excluidas),
+        'fechas_incluidas': _formatFechas(incluidas),
+      }).eq('id', id);
+      debugPrint('📦 ServicioRepository: ✅ Fechas guardadas');
+    } catch (e) {
+      debugPrint('📦 ServicioRepository: ❌ Error al guardar fechas: $e');
+      rethrow;
+    }
+  }
+
+  List<DateTime> _parseFechas(Object? raw) {
+    if (raw is! List) {
+      return <DateTime>[];
+    }
+    return raw.map((Object? f) => DateTime.parse(f.toString())).toList()
+      ..sort();
+  }
+
+  List<String> _formatFechas(List<DateTime> fechas) {
+    final List<String> result = fechas
+        .map((DateTime f) => DateTime(f.year, f.month, f.day).toIso8601String().split('T').first)
+        .toSet()
+        .toList()
+      ..sort();
+    return result;
   }
 }

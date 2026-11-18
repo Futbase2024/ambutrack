@@ -461,6 +461,24 @@ export 'src/datasources/ordenes_reparacion/implementations/supabase/supabase_ord
 export 'src/datasources/ordenes_reparacion/models/orden_reparacion_supabase_model.dart';
 export 'src/datasources/ordenes_reparacion/models/repuesto_orden_supabase_model.dart';
 
+// ✅ TABLAS MAESTRAS - Protocolos y Normativas
+export 'src/datasources/protocolos_normativas/entities/protocolo_normativa_entity.dart';
+export 'src/datasources/protocolos_normativas/protocolos_normativas_contract.dart';
+export 'src/datasources/protocolos_normativas/protocolos_normativas_factory.dart'
+    show ProtocolosNormativasDataSourceFactory;
+
+// ✅ PERSONAL - Documentación del personal (tabla `tdocumentos_personal`)
+export 'src/datasources/documentos_personal/documentos_personal_contract.dart';
+export 'src/datasources/documentos_personal/documentos_personal_factory.dart'
+    show DocumentosPersonalDataSourceFactory;
+export 'src/datasources/documentos_personal/entities/documento_personal_entity.dart';
+
+// ✅ PERSONAL - Evaluaciones de desempeño (tabla `tevaluaciones_desempeno`)
+export 'src/datasources/evaluaciones_desempeno/entities/evaluacion_desempeno_entity.dart';
+export 'src/datasources/evaluaciones_desempeno/evaluaciones_desempeno_contract.dart';
+export 'src/datasources/evaluaciones_desempeno/evaluaciones_desempeno_factory.dart'
+    show EvaluacionesDesempenoDataSourceFactory;
+
 // Utils - Utilidades públicas
 export 'src/utils/exceptions/datasource_exception.dart';
 export 'src/utils/typedefs/datasource_typedefs.dart';
