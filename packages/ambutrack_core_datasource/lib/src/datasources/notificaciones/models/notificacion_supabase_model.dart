@@ -6,7 +6,7 @@ part 'notificacion_supabase_model.g.dart';
 
 /// Model Supabase para Notificaciones
 @freezed
-class NotificacionSupabaseModel with _$NotificacionSupabaseModel {
+abstract class NotificacionSupabaseModel with _$NotificacionSupabaseModel {
   const NotificacionSupabaseModel._();
 
   const factory NotificacionSupabaseModel({

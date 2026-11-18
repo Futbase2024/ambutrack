@@ -7,7 +7,7 @@ part 'alertas_caducidad_state.freezed.dart';
 
 /// Estados para el BLoC de Alertas de Caducidad
 @freezed
-class AlertasCaducidadState with _$AlertasCaducidadState {
+sealed class AlertasCaducidadState with _$AlertasCaducidadState {
   /// Estado inicial
   const factory AlertasCaducidadState.initial() = _Initial;
 

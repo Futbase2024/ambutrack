@@ -6,7 +6,7 @@ part 'checklist_event.freezed.dart';
 
 /// Eventos del ChecklistBloc
 @freezed
-class ChecklistEvent with _$ChecklistEvent {
+sealed class ChecklistEvent with _$ChecklistEvent {
   /// Evento inicial - Carga historial del vehículo asignado
   const factory ChecklistEvent.started() = _Started;
 

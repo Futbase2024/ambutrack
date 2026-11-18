@@ -5,7 +5,7 @@ part 'incidencia_vehiculo_state.freezed.dart';
 
 /// Estados del BLoC de incidencias de vehículos
 @freezed
-class IncidenciaVehiculoState with _$IncidenciaVehiculoState {
+sealed class IncidenciaVehiculoState with _$IncidenciaVehiculoState {
   /// Estado inicial - Antes de cargar datos
   const factory IncidenciaVehiculoState.initial() = _Initial;
 

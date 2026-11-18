@@ -56,7 +56,7 @@ class SupabasePacienteDataSource implements PacienteDataSource {
       debugPrint('📦 SupabasePacienteDataSource: Buscando pacientes con query: "$query"');
 
       if (query.isEmpty) {
-        return getAll();
+        return await getAll();
       }
 
       // Búsqueda por nombre, apellidos, documento o identificación

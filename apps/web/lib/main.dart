@@ -17,7 +17,7 @@ void main() async {
   // Inicializar Supabase
   await Supabase.initialize(
     url: SupabaseOptions.prod.url,
-    anonKey: SupabaseOptions.prod.anonKey,
+    publishableKey: SupabaseOptions.prod.anonKey,
   );
 
   await initializeDependencies();

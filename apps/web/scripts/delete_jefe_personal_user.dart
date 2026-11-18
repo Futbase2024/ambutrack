@@ -30,7 +30,7 @@ Future<void> main() async {
   print('📦 Inicializando Supabase...');
   await Supabase.initialize(
     url: supabaseUrl,
-    anonKey: supabaseServiceRoleKey, // Usar service role key para admin
+    publishableKey: supabaseServiceRoleKey, // Usar service role key para admin
   );
 
   final SupabaseClient supabase = Supabase.instance.client;

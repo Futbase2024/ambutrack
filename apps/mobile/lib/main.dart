@@ -22,7 +22,7 @@ Future<void> main() async {
   // Inicializar Supabase
   await Supabase.initialize(
     url: SupabaseConfig.devUrl,
-    anonKey: SupabaseConfig.devAnonKey,
+    publishableKey: SupabaseConfig.devAnonKey,
   );
 
   debugPrint('✅ [Main] Supabase inicializado');

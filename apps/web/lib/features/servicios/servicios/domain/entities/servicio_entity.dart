@@ -13,7 +13,7 @@ part 'servicio_entity.g.dart';
 /// Representa la cabecera de un servicio médico (nivel 1 de la arquitectura)
 /// que puede generar múltiples traslados automáticamente.
 @freezed
-class ServicioEntity with _$ServicioEntity {
+abstract class ServicioEntity with _$ServicioEntity {
   const factory ServicioEntity({
     /// ID único del servicio
     String? id,

@@ -25,7 +25,7 @@ void main() async {
   // Inicializar Supabase
   await Supabase.initialize(
     url: SupabaseConfig.prodUrl,
-    anonKey: SupabaseConfig.prodAnonKey,
+    publishableKey: SupabaseConfig.prodAnonKey,
   );
 
   // Inicializar Dependency Injection (GetIt + Injectable)

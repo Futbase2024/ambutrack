@@ -4,7 +4,7 @@ part 'rutas_event.freezed.dart';
 
 /// Eventos del RutasBloc
 @freezed
-class RutasEvent with _$RutasEvent {
+sealed class RutasEvent with _$RutasEvent {
   /// Evento de inicialización
   const factory RutasEvent.started() = _Started;
 

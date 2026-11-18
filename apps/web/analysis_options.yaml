@@ -20,6 +20,7 @@ analyzer:
     - "build/**"
     - "lib/generated/**"
     - ".dart_tool/**"
+    - web/**
 
   errors:
     # treat missing required parameters as an error (not a hint)

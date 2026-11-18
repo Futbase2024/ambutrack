@@ -5,7 +5,7 @@ part 'rutas_state.freezed.dart';
 
 /// Estados del RutasBloc
 @freezed
-class RutasState with _$RutasState {
+sealed class RutasState with _$RutasState {
   /// Estado inicial
   const factory RutasState.initial() = _Initial;
 

@@ -6,7 +6,7 @@ part 'checklist_state.freezed.dart';
 
 /// Estados del ChecklistBloc
 @freezed
-class ChecklistState with _$ChecklistState {
+sealed class ChecklistState with _$ChecklistState {
   /// Estado inicial
   const factory ChecklistState.initial() = _Initial;
 

@@ -4,7 +4,7 @@ part 'perfil_event.freezed.dart';
 
 /// Eventos del BLoC de Perfil
 @freezed
-class PerfilEvent with _$PerfilEvent {
+sealed class PerfilEvent with _$PerfilEvent {
   /// Evento para cargar el perfil del usuario actual
   const factory PerfilEvent.loaded() = _Loaded;
 

@@ -609,7 +609,7 @@ class SupabaseTrasladoDataSource implements TrasladoDataSource {
       );
 
       if (query.isEmpty) {
-        return getAll();
+        return await getAll();
       }
 
       // Incluir JOINs con pacientes y tmotivos_traslado para obtener datos embebidos

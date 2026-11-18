@@ -4,7 +4,7 @@ part 'caducidades_event.freezed.dart';
 
 /// Eventos del CaducidadesBloc
 @freezed
-class CaducidadesEvent with _$CaducidadesEvent {
+sealed class CaducidadesEvent with _$CaducidadesEvent {
   /// Evento inicial - Carga caducidades del vehículo asignado
   const factory CaducidadesEvent.started({
     required String vehiculoId,

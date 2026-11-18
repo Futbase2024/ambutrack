@@ -5,7 +5,7 @@ part 'consumo_combustible_state.freezed.dart';
 
 /// Estados del BLoC de consumo de combustible
 @freezed
-class ConsumoCombustibleState with _$ConsumoCombustibleState {
+sealed class ConsumoCombustibleState with _$ConsumoCombustibleState {
   /// Estado inicial - Antes de cargar datos
   const factory ConsumoCombustibleState.initial() = _Initial;
 

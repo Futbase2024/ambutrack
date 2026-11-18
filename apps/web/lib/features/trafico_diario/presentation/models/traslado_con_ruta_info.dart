@@ -6,7 +6,7 @@ part 'traslado_con_ruta_info.freezed.dart';
 
 /// Información de un traslado con datos calculados de ruta
 @freezed
-class TrasladoConRutaInfo with _$TrasladoConRutaInfo {
+abstract class TrasladoConRutaInfo with _$TrasladoConRutaInfo {
   const factory TrasladoConRutaInfo({
     /// Orden en la secuencia de la ruta (1, 2, 3...)
     required int orden,
@@ -43,7 +43,7 @@ class TrasladoConRutaInfo with _$TrasladoConRutaInfo {
 
 /// Punto de ubicación con coordenadas geográficas
 @freezed
-class PuntoUbicacion with _$PuntoUbicacion {
+abstract class PuntoUbicacion with _$PuntoUbicacion {
   const factory PuntoUbicacion({
     /// Nombre del punto (ej: "Hospital Universitario")
     required String nombre,
@@ -64,7 +64,7 @@ class PuntoUbicacion with _$PuntoUbicacion {
 
 /// Información de un traslado con retraso
 @freezed
-class TrasladoConRetrasoInfo with _$TrasladoConRetrasoInfo {
+abstract class TrasladoConRetrasoInfo with _$TrasladoConRetrasoInfo {
   const factory TrasladoConRetrasoInfo({
     /// Orden del traslado (1-based)
     required int orden,
@@ -76,7 +76,7 @@ class TrasladoConRetrasoInfo with _$TrasladoConRetrasoInfo {
 
 /// Resumen de la ruta completa
 @freezed
-class RutaResumen with _$RutaResumen {
+abstract class RutaResumen with _$RutaResumen {
   const factory RutaResumen({
     /// Total de traslados en la ruta
     required int totalTraslados,

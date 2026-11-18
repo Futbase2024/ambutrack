@@ -244,7 +244,7 @@ class SupabaseServicioRecurrenteDataSource
       );
 
       if (query.isEmpty) {
-        return getAll();
+        return await getAll();
       }
 
       final response = await _supabase

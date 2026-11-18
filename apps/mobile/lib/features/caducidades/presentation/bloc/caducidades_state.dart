@@ -5,7 +5,7 @@ part 'caducidades_state.freezed.dart';
 
 /// Estados del CaducidadesBloc
 @freezed
-class CaducidadesState with _$CaducidadesState {
+sealed class CaducidadesState with _$CaducidadesState {
   /// Estado inicial
   const factory CaducidadesState.initial() = _Initial;
 

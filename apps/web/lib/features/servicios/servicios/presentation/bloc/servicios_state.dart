@@ -6,7 +6,7 @@ part 'servicios_state.freezed.dart';
 
 /// Estados del BLoC de Servicios
 @freezed
-class ServiciosState with _$ServiciosState {
+sealed class ServiciosState with _$ServiciosState {
   /// Estado inicial
   const factory ServiciosState.initial() = _Initial;
 

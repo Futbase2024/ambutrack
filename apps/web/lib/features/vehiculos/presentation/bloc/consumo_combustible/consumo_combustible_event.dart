@@ -5,7 +5,7 @@ part 'consumo_combustible_event.freezed.dart';
 
 /// Eventos del BLoC de consumo de combustible
 @freezed
-class ConsumoCombustibleEvent with _$ConsumoCombustibleEvent {
+sealed class ConsumoCombustibleEvent with _$ConsumoCombustibleEvent {
   /// Evento inicial - Carga registros al iniciar
   const factory ConsumoCombustibleEvent.started() = _Started;
 

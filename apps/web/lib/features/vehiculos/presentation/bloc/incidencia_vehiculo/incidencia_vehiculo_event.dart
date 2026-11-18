@@ -5,7 +5,7 @@ part 'incidencia_vehiculo_event.freezed.dart';
 
 /// Eventos del BLoC de incidencias de vehículos
 @freezed
-class IncidenciaVehiculoEvent with _$IncidenciaVehiculoEvent {
+sealed class IncidenciaVehiculoEvent with _$IncidenciaVehiculoEvent {
   /// Evento inicial - Carga incidencias al iniciar
   const factory IncidenciaVehiculoEvent.started() = _Started;
 

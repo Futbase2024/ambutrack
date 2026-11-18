@@ -3,6 +3,7 @@ import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion_frame/gestion_frame.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/trafico_diario_bloc.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/trafico_diario_event.dart';
+import 'package:ambutrack_web/features/trafico_diario/presentation/bloc/trafico_diario_state.dart';
 import 'package:ambutrack_web/features/trafico_diario/presentation/widgets/generate_traslados_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

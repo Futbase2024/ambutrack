@@ -5,7 +5,7 @@ part 'alertas_caducidad_event.freezed.dart';
 
 /// Eventos para el BLoC de Alertas de Caducidad
 @freezed
-class AlertasCaducidadEvent with _$AlertasCaducidadEvent {
+sealed class AlertasCaducidadEvent with _$AlertasCaducidadEvent {
   /// Evento inicial al cargar el BLoC
   const factory AlertasCaducidadEvent.started() = _Started;
 

@@ -5,7 +5,7 @@ part 'notificacion_state.freezed.dart';
 
 /// Estados del BLoC de notificaciones
 @freezed
-class NotificacionState with _$NotificacionState {
+sealed class NotificacionState with _$NotificacionState {
   const factory NotificacionState.initial() = _Initial;
 
   const factory NotificacionState.loading() = _Loading;

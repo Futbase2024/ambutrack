@@ -97,7 +97,7 @@ class SupabaseEquipamientoVehiculoDataSource implements EquipamientoVehiculoData
           })
           .select('id')
           .single();
-      return _releer(response['id'] as String);
+      return await _releer(response['id'] as String);
     } catch (e) {
       debugPrint('🚑 EquipamientoVehiculo: ❌ Error addExtra: $e');
       rethrow;
@@ -172,7 +172,7 @@ class SupabaseEquipamientoVehiculoDataSource implements EquipamientoVehiculoData
   Future<StockVehiculoEntity> _actualizar(String id, Map<String, dynamic> cambios) async {
     try {
       await _client.from(_tabla).update(cambios).eq('id', id);
-      return _releer(id);
+      return await _releer(id);
     } catch (e) {
       debugPrint('🚑 EquipamientoVehiculo: ❌ Error actualizando $id: $e');
       rethrow;

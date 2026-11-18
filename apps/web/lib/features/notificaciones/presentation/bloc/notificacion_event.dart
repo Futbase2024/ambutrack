@@ -5,7 +5,7 @@ part 'notificacion_event.freezed.dart';
 
 /// Eventos del BLoC de notificaciones
 @freezed
-class NotificacionEvent with _$NotificacionEvent {
+sealed class NotificacionEvent with _$NotificacionEvent {
   const factory NotificacionEvent.started() = _Started;
 
   const factory NotificacionEvent.subscribeNotificaciones(String usuarioId) = _SubscribeNotificaciones;

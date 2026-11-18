@@ -209,7 +209,7 @@ class _PdfParts {
             border: pw.Border(bottom: pw.BorderSide(color: gray200, width: 0.5)),
           ),
           children: <pw.Widget>[
-            for (int c = i; c < i + columns; c++) c < s.fields.length ? fieldCell(s.fields[c]) : pw.SizedBox(),
+            for (int c = i; c < i + columns; c++) if (c < s.fields.length) fieldCell(s.fields[c]) else pw.SizedBox(),
           ],
         ),
       );

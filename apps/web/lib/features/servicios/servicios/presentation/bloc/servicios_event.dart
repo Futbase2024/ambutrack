@@ -4,7 +4,7 @@ part 'servicios_event.freezed.dart';
 
 /// Eventos del BLoC de Servicios
 @freezed
-class ServiciosEvent with _$ServiciosEvent {
+sealed class ServiciosEvent with _$ServiciosEvent {
   /// Evento inicial - carga todos los servicios
   const factory ServiciosEvent.started() = _Started;
 

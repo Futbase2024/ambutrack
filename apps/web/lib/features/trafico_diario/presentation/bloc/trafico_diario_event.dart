@@ -5,7 +5,7 @@ part 'trafico_diario_event.freezed.dart';
 
 /// Eventos del BLoC de Tráfico Diario (Planificación de Traslados)
 @freezed
-class TraficoDiarioEvent with _$TraficoDiarioEvent {
+sealed class TraficoDiarioEvent with _$TraficoDiarioEvent {
   /// Evento inicial - prepara el estado
   const factory TraficoDiarioEvent.started() = _Started;
 

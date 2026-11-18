@@ -6,7 +6,7 @@ part 'perfil_state.freezed.dart';
 
 /// Estados del BLoC de Perfil
 @freezed
-class PerfilState with _$PerfilState {
+sealed class PerfilState with _$PerfilState {
   /// Estado inicial
   const factory PerfilState.initial() = _Initial;
 
