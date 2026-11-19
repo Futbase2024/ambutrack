@@ -15,8 +15,9 @@ import '../../features/notificaciones/services/local_notifications_service.dart'
 ///   funcionando como antes (avisos por Realtime con la app abierta).
 /// - Con sesión iniciada registra el token del móvil en `dispositivos_push`;
 ///   cada aviso nuevo de `tnotificaciones` llega entonces aunque la app esté cerrada.
-/// - También en primer plano: iOS lo presenta él mismo; Android no pinta los push con
-///   la app abierta, así que se muestran con [LocalNotificationsService].
+/// - Con la app abierta y visible NO se pinta el push: el aviso llega por Realtime y
+///   se muestra como diálogo in-app. Si la app está viva pero no visible (persiana,
+///   multitarea), el push se pinta en el sistema con [LocalNotificationsService].
 class PushNotificationsService {
   PushNotificationsService({
     required LocalNotificationsService local,
@@ -49,11 +50,11 @@ class PushNotificationsService {
       debugPrint('ℹ️ [Push] Desactivado: falta la configuración de Firebase ($e)');
       return;
     }
-    // Con la app abierta: iOS presenta el banner; en Android lo pinta _enPrimerPlano
+    // Con la app abierta el aviso es el diálogo in-app: iOS no presenta banner ni sonido
     await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: true,
+      alert: false,
       badge: true,
-      sound: true,
+      sound: false,
     );
     FirebaseMessaging.onMessage.listen(_enPrimerPlano);
     FirebaseMessaging.onMessageOpenedApp.listen(_abrir);
@@ -157,9 +158,11 @@ class PushNotificationsService {
     return false;
   }
 
-  /// Push recibido con la app abierta (Android): notificación del sistema local
+  /// Push recibido con el proceso de la app vivo.
+  /// Visible → nada (diálogo in-app por Realtime). No visible → notificación del sistema.
   void _enPrimerPlano(RemoteMessage mensaje) {
-    if (!Platform.isAndroid) {
+    if (_local.enPrimerPlano) {
+      debugPrint('📱 [Push] App visible: el aviso se muestra como diálogo in-app');
       return;
     }
     final RemoteNotification? n = mensaje.notification;

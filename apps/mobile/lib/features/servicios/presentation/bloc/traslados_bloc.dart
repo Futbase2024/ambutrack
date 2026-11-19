@@ -97,7 +97,9 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
 
       if (state is TrasladosLoaded) {
         final currentState = state as TrasladosLoaded;
+        final bool enLista = currentState.traslados.any((TrasladoEntity t) => t.id == traslado.id);
         emit(currentState.copyWith(
+          traslados: enLista ? null : <TrasladoEntity>[...currentState.traslados, traslado],
           trasladoSeleccionado: traslado,
           pacienteSeleccionado: paciente,
         ));
@@ -374,10 +376,14 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
       await _trasladosStreamSubscription?.cancel();
       await _eventosStreamSubscription?.cancel();
 
-      // Cargar traslados iniciales
-      emit(const TrasladosLoading());
+      // Cargar traslados iniciales. En el detalle, CargarTraslado corre a la vez:
+      // si ya cargó el traslado seleccionado no se debe pisar (spinner infinito)
+      if (state is! TrasladosLoaded) {
+        emit(const TrasladosLoading());
+      }
       final traslados = await _repository.getActivosByIdConductor(event.idConductor);
-      emit(TrasladosLoaded(traslados: traslados));
+      final TrasladosState actual = state;
+      emit(actual is TrasladosLoaded ? actual.copyWith(traslados: traslados) : TrasladosLoaded(traslados: traslados));
 
       AppLogger.info(
         '${traslados.length} traslados cargados inicialmente',

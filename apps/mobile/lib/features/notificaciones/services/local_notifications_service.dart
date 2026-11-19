@@ -22,12 +22,15 @@ class LocalNotificationsService {
   /// Callback para mostrar notificación in-app (cuando la app está en primer plano)
   Function(NotificacionEntity notificacion)? onShowInAppNotification;
 
-  /// true = este móvil recibe push FCM: la notificación del sistema la pone el
-  /// push (app abierta, en segundo plano o cerrada), no este servicio
+  /// true = este móvil recibe push FCM: con la app en segundo plano o cerrada
+  /// la notificación del sistema la pone el push, no este servicio
   bool pushActivo = false;
 
   /// Indica si la app está en primer plano (abierta y visible)
   var _isAppInForeground = true;
+
+  /// App abierta y visible (los avisos se muestran como diálogo in-app)
+  bool get enPrimerPlano => _isAppInForeground;
 
   /// Actualiza el estado de la aplicación (primer plano o segundo plano)
   void setAppLifecycleState(bool isInForeground) {
@@ -164,18 +167,16 @@ class LocalNotificationsService {
     debugPrint('🔔 [LocalNotifications] Callback configurado: ${onShowInAppNotification != null}');
     debugPrint('🔔 [LocalNotifications] ========================================');
 
-    // Con push FCM activo, el push muestra la notificación del sistema en cualquier
-    // estado de la app (también abierta): ni diálogo in-app ni local, para no duplicar
-    if (pushActivo) {
-      debugPrint('📱 [LocalNotifications] Push activo - la notificación la muestra FCM');
-      return;
-    }
-
-    // Sin push (p.ej. sin config de Firebase): diálogo in-app en primer plano
+    // App abierta y visible: SIEMPRE diálogo in-app (nunca push del sistema)
     if (_isAppInForeground) {
       debugPrint('📱 [LocalNotifications] App en primer plano - mostrando diálogo in-app');
       onShowInAppNotification?.call(notificacion);
-      debugPrint('📱 [LocalNotifications] Callback llamado');
+      return;
+    }
+
+    // Segundo plano con push FCM: la notificación del sistema la pone el push
+    if (pushActivo) {
+      debugPrint('📱 [LocalNotifications] Segundo plano con push activo - la muestra FCM');
       return;
     }
 

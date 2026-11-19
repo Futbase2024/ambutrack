@@ -11,7 +11,8 @@ import 'iniciar_turno_sheet.dart';
 
 /// Pide al usuario los datos para iniciar turno y devuelve el evento a lanzar
 ///
-/// - Puestos sin vehículo (jefaturas, administración, coordinación): confirmación simple.
+/// - Puestos sin vehículo (jefaturas, administración, coordinación): confirmación simple,
+///   salvo que la ficha de personal sea de categoría operativa (TES, conductor...).
 /// - Resto: asistente completo "Iniciar turno" (turno, vehículo, km, checklist...).
 /// Devuelve null si el usuario cancela.
 Future<RegistroHorarioEvent?> solicitarInicioTurno(
@@ -24,8 +25,9 @@ Future<RegistroHorarioEvent?> solicitarInicioTurno(
 }) async {
   final AuthState auth = context.read<AuthBloc>().state;
   final String? rol = auth is AuthAuthenticated ? auth.user.rol : null;
+  final String? categoria = auth is AuthAuthenticated ? auth.personal?.categoria : null;
 
-  if (rolFichaSinVehiculo(rol)) {
+  if (rolFichaSinVehiculo(rol, categoria: categoria)) {
     final bool? confirmado = await showProfessionalConfirmDialog(
       context,
       title: 'Iniciar jornada',
