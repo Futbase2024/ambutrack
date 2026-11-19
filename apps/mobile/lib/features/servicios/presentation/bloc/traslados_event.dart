@@ -120,3 +120,19 @@ class EventoTrasladoRecibido extends TrasladosEvent {
   @override
   List<Object?> get props => [evento, idConductor];
 }
+
+/// Carga el histórico del conductor en un rango de fechas (todos los estados)
+class CargarHistoricoTraslados extends TrasladosEvent {
+  const CargarHistoricoTraslados({
+    required this.idConductor,
+    required this.desde,
+    required this.hasta,
+  });
+
+  final String idConductor;
+  final DateTime desde;
+  final DateTime hasta;
+
+  @override
+  List<Object?> get props => <Object?>[idConductor, desde, hasta];
+}

@@ -115,9 +115,14 @@ class PdfComponentes {
   }
 
   /// Pastilla redondeada con texto blanco (cabeceras de columna y categorías)
-  static pw.Widget pastilla(String texto, {PdfColor color = PdfEstilos.granate, double fontSize = 7}) {
+  static pw.Widget pastilla(
+    String texto, {
+    PdfColor color = PdfEstilos.granate,
+    double fontSize = 7,
+    double paddingHorizontal = 8,
+  }) {
     return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+      padding: pw.EdgeInsets.symmetric(horizontal: paddingHorizontal, vertical: 2.5),
       decoration: pw.BoxDecoration(color: color, borderRadius: pw.BorderRadius.circular(8)),
       child: pw.Text(
         texto,

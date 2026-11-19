@@ -9,7 +9,7 @@ import 'pdf_estilos.dart';
 const int filasPorHoja = 17;
 
 /// Anchos relativos de las columnas: paciente, domicilio, origen, destino, recog., final, entidad
-const List<int> _flex = <int>[22, 20, 15, 15, 7, 7, 11];
+const List<int> _flex = <int>[21, 19, 15, 15, 8, 8, 11];
 const double _altoFila = 22;
 
 /// Hoja 1: "Registro prestaciones de servicios".
@@ -90,17 +90,18 @@ class HojaServicios {
   }
 
   static pw.Widget _cabeceraTabla() {
-    pw.Widget col(int flex, String texto) => pw.Expanded(
+    // Las columnas de hora son estrechas: menos relleno para que "RECOG." no se parta
+    pw.Widget col(int flex, String texto, {double padding = 8}) => pw.Expanded(
           flex: flex,
-          child: pw.Center(child: PdfComponentes.pastilla(texto)),
+          child: pw.Center(child: PdfComponentes.pastilla(texto, paddingHorizontal: padding)),
         );
     return pw.Row(
       children: <pw.Widget>[
         col(_flex[0], 'NOMBRE PACIENTE'),
         col(_flex[1], 'DOMICILIO'),
         col(_flex[2] + _flex[3], 'TRAYECTO (ORIGEN / DESTINO)'),
-        col(_flex[4], 'RECOG.\nHORA'),
-        col(_flex[5], 'FINAL\nHORA'),
+        col(_flex[4], 'RECOG.\nHORA', padding: 4),
+        col(_flex[5], 'FINAL\nHORA', padding: 4),
         col(_flex[6], 'ENTIDAD'),
       ],
     );

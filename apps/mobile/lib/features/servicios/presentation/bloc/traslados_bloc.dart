@@ -16,6 +16,7 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
   TrasladosBloc(this._repository) : super(const TrasladosInitial()) {
     on<CargarTrasladosActivos>(_onCargarTrasladosActivos);
     on<CargarTraslado>(_onCargarTraslado);
+    on<CargarHistoricoTraslados>(_onCargarHistoricoTraslados);
     on<CambiarEstadoTraslado>(_onCambiarEstadoTraslado);
     on<IniciarStreamTrasladosActivos>(_onIniciarStreamTrasladosActivos);
     on<TrasladosStreamActualizado>(_onTrasladosStreamActualizado);
@@ -69,6 +70,25 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
         tag: _tag,
       );
       emit(TrasladosError('Error al cargar traslados: $e'));
+    }
+  }
+
+  /// Histórico: todos los traslados del conductor en el rango (incluye finalizados)
+  Future<void> _onCargarHistoricoTraslados(
+    CargarHistoricoTraslados event,
+    Emitter<TrasladosState> emit,
+  ) async {
+    try {
+      emit(const TrasladosLoading());
+      final List<TrasladoEntity> traslados = await _repository.getByRangoFechas(
+        fechaInicio: event.desde,
+        fechaFin: event.hasta,
+        idConductor: event.idConductor,
+      );
+      emit(TrasladosLoaded(traslados: traslados));
+    } catch (e, stackTrace) {
+      AppLogger.failOperation('Cargar histórico de traslados', e, stackTrace, tag: _tag);
+      emit(TrasladosError('Error al cargar el histórico: $e'));
     }
   }
 
