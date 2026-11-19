@@ -123,6 +123,18 @@ class TopBarNotificaciones extends StatelessWidget {
               a.where((AlertaCaducidadEntity x) => x.esCritica == true).length,
           orElse: () => 0,
         );
+        // MainLayout solo provee NotificacionBloc con sesión autenticada
+        // (al arrancar o tras cerrar sesión no existe todavía)
+        final bool autenticado = context.select<AuthBloc, bool>(
+          (AuthBloc bloc) => bloc.state is AuthAuthenticated,
+        );
+        if (!autenticado) {
+          return TopBarIconButton(
+            icon: Icons.notifications_none,
+            tooltip: 'Notificaciones y alertas',
+            onTap: () {},
+          );
+        }
         return BlocBuilder<NotificacionBloc, NotificacionState>(
           builder: (BuildContext context, NotificacionState notif) {
             final int noLeidas = notif.whenOrNull(loaded: (List<NotificacionEntity> _, int c) => c) ?? 0;

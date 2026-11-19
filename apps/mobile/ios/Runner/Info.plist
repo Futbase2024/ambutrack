@@ -32,8 +32,6 @@
 	<string>EmerTrack usa Face ID para desbloquear la app de forma rápida y segura</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>EmerTrack accede a tus fotos para adjuntar la foto del cuentakilómetros</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>EmerTrack usa tu ubicación para registrar tu fichaje y, durante tu jornada, la posición de la ambulancia asignada para el centro de coordinación</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>EmerTrack usa tu ubicación para registrar tu fichaje y, durante tu jornada, la posición de la ambulancia asignada para el centro de coordinación</string>
 	<key>UIApplicationSceneManifest</key>

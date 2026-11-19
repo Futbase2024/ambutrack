@@ -15,7 +15,7 @@ import '../widgets/boton_registro_circular_widget.dart';
 import '../widgets/cambiar_vehiculo_dialog.dart';
 import '../widgets/historial_fichajes_widget.dart';
 import '../widgets/finalizar_jornada/finalizar_jornada_dialog.dart';
-import '../widgets/inicio_turno/iniciar_turno_sheet.dart';
+import '../widgets/inicio_turno/solicitar_inicio_turno.dart';
 import '../widgets/info_turno_grupo.dart';
 import '../widgets/registro_horario_feedback.dart';
 import '../widgets/turno_estado_card.dart';
@@ -193,8 +193,8 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
 
   /// Maneja el evento de fichar (entrada o salida)
   ///
-  /// La entrada abre la hoja "Iniciar turno" para confirmar o elegir
-  /// turno y vehículo antes de fichar.
+  /// La entrada abre la hoja "Iniciar turno" (o una confirmación simple
+  /// en puestos sin vehículo) antes de fichar.
   Future<void> _onFichar(
     BuildContext context,
     EstadoFichaje estadoActual,
@@ -211,25 +211,19 @@ class _RegistroHorarioPageState extends State<RegistroHorarioPage> {
     final RegistroHorarioBloc bloc = context.read<RegistroHorarioBloc>();
 
     if (estadoActual == EstadoFichaje.fuera) {
-      final InicioTurnoSeleccion? seleccion = await showIniciarTurnoSheet(
+      final RegistroHorarioEvent? evento = await solicitarInicioTurno(
         context,
         idPersonal: idPersonal,
         latitud: lat,
         longitud: lon,
+        precisionGps: precision,
+        observaciones: observaciones,
       );
-      if (seleccion == null) {
+      if (evento == null) {
         return;
       }
       _fichajeEnCurso = FichajeEnCurso.entrada;
-      bloc.add(
-        FicharEntrada(
-          latitud: lat,
-          longitud: lon,
-          precisionGps: precision,
-          seleccion: seleccion,
-          observaciones: observaciones,
-        ),
-      );
+      bloc.add(evento);
     } else {
       final RegistroHorarioState state = bloc.state;
       final RegistroHorarioEntity? entrada = state is RegistroHorarioLoadedWithContext ? state.entradaJornada : null;

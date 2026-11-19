@@ -20,11 +20,57 @@ class NotificacionTipoConfig {
 /// Devuelve la configuración visual para un tipo de notificación
 NotificacionTipoConfig getNotificacionTipoConfig(NotificacionTipo tipo) {
   switch (tipo) {
+    case NotificacionTipo.inicioTurnoPendiente:
+      return const NotificacionTipoConfig(
+        icon: Icons.pending_actions_outlined,
+        color: AppColors.warning,
+        label: 'Inicio de Turno Fuera de Base',
+        routeName: 'personal_inicios_turno',
+      );
+    case NotificacionTipo.inicioTurnoAprobado:
+      return const NotificacionTipoConfig(
+        icon: Icons.check_circle_outline,
+        color: AppColors.success,
+        label: 'Inicio de Turno Validado',
+      );
+    case NotificacionTipo.inicioTurnoRechazado:
+      return const NotificacionTipoConfig(
+        icon: Icons.cancel_outlined,
+        color: AppColors.error,
+        label: 'Inicio de Turno Rechazado',
+      );
+    case NotificacionTipo.vestuarioSolicitado:
+      return const NotificacionTipoConfig(
+        icon: Icons.checkroom_outlined,
+        color: AppColors.info,
+        label: 'Solicitud de Vestuario',
+        routeName: 'personal_solicitudes_vestuario',
+      );
+    case NotificacionTipo.vestuarioAprobado:
+    case NotificacionTipo.vestuarioEntregado:
+      return const NotificacionTipoConfig(
+        icon: Icons.check_circle_outline,
+        color: AppColors.success,
+        label: 'Vestuario',
+      );
+    case NotificacionTipo.vestuarioRechazado:
+      return const NotificacionTipoConfig(
+        icon: Icons.cancel_outlined,
+        color: AppColors.error,
+        label: 'Vestuario Rechazado',
+      );
     case NotificacionTipo.incidenciaVehiculoReportada:
       return const NotificacionTipoConfig(
         icon: Icons.car_crash_outlined,
         color: AppColors.error,
         label: 'Incidencia de Vehículo',
+        routeName: 'historial_averias',
+      );
+    case NotificacionTipo.incidenciaVehiculoActualizada:
+      return const NotificacionTipoConfig(
+        icon: Icons.handyman_outlined,
+        color: AppColors.success,
+        label: 'Incidencia Actualizada',
         routeName: 'historial_averias',
       );
     case NotificacionTipo.ausenciaSolicitada:

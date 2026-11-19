@@ -9,6 +9,7 @@ import '../../../../core/widgets/dialogs/dialogs.dart';
 import '../bloc/notificaciones_bloc.dart';
 import '../bloc/notificaciones_event.dart';
 import '../bloc/notificaciones_state.dart';
+import '../widgets/incidencia/incidencia_detalle_sheet.dart';
 import '../widgets/notificacion_card.dart';
 import '../widgets/notificaciones_empty_state.dart';
 
@@ -24,12 +25,28 @@ class NotificacionesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Nota: Usamos BlocProvider.value porque el NotificacionesBloc es un singleton
-    // que se inicializa en app.dart. No volvemos a inicializarlo aquí.
-    return BlocProvider.value(
-      value: getIt<NotificacionesBloc>(),
+    // Se reutiliza el NotificacionesBloc que app.dart inicializa y provee.
+    // getIt lo registra como factory: pedirlo aquí daría una instancia nueva sin
+    // arrancar (spinner infinito). Solo si aún no existe se crea y se arranca uno.
+    final NotificacionesBloc? compartido = _blocCompartido(context);
+    if (compartido != null) {
+      return BlocProvider<NotificacionesBloc>.value(
+        value: compartido,
+        child: const _NotificacionesView(),
+      );
+    }
+    return BlocProvider<NotificacionesBloc>(
+      create: (_) => getIt<NotificacionesBloc>()..add(const NotificacionesEvent.started()),
       child: const _NotificacionesView(),
     );
+  }
+
+  static NotificacionesBloc? _blocCompartido(BuildContext context) {
+    try {
+      return BlocProvider.of<NotificacionesBloc>(context);
+    } on FlutterError {
+      return null;
+    }
   }
 }
 
@@ -582,17 +599,27 @@ class _NotificacionesViewState extends State<_NotificacionesView> {
         break;
 
       case NotificacionTipo.incidenciaVehiculoReportada:
-        // Las incidencias de vehículos se gestionan desde la aplicación web
-        _mostrarMensaje(
-          context,
-          'Las incidencias de vehículos se gestionan desde la aplicación web',
-        );
+      case NotificacionTipo.incidenciaVehiculoActualizada:
+        showIncidenciaDetalleSheet(context, notificacion);
         break;
 
       case NotificacionTipo.alertaCaducidad:
         // Navegar a control de caducidades
         debugPrint('📍 [Notificaciones] Navegando a Caducidades');
-        context.push('/caducidades');
+        context.push('/vehiculo/caducidades');
+        break;
+
+      case NotificacionTipo.inicioTurnoPendiente:
+      case NotificacionTipo.inicioTurnoAprobado:
+      case NotificacionTipo.inicioTurnoRechazado:
+        context.push('/registro-horario');
+        break;
+
+      case NotificacionTipo.vestuarioSolicitado:
+      case NotificacionTipo.vestuarioAprobado:
+      case NotificacionTipo.vestuarioRechazado:
+      case NotificacionTipo.vestuarioEntregado:
+        context.push('/vestuario');
         break;
 
       case NotificacionTipo.alerta:

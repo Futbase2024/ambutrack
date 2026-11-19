@@ -59,6 +59,24 @@ class FicharEntrada extends RegistroHorarioEvent {
   List<Object?> get props => [latitud, longitud, precisionGps, seleccion, observaciones];
 }
 
+/// Evento para fichar entrada sin vehículo (puestos de oficina/jefatura)
+class FicharEntradaSinVehiculo extends RegistroHorarioEvent {
+  const FicharEntradaSinVehiculo({
+    required this.latitud,
+    required this.longitud,
+    required this.precisionGps,
+    this.observaciones,
+  });
+
+  final double latitud;
+  final double longitud;
+  final double precisionGps;
+  final String? observaciones;
+
+  @override
+  List<Object?> get props => [latitud, longitud, precisionGps, observaciones];
+}
+
 /// Evento para fichar salida
 class FicharSalida extends RegistroHorarioEvent {
   const FicharSalida({

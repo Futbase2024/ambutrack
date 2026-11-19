@@ -202,6 +202,24 @@ class SupabaseIncidenciaVehiculoDataSource
   }
 
   @override
+  Future<int> reenviarAviso(String id) async {
+    try {
+      debugPrint('📦 SupabaseIncidenciaVehiculoDS: 🔁 Reenviando aviso de avería ID: $id');
+      final dynamic avisados = await _supabase.rpc<dynamic>(
+        'reenviar_aviso_averia',
+        params: <String, dynamic>{'p_incidencia_id': id},
+      );
+      final int total = (avisados as num?)?.toInt() ?? 0;
+      debugPrint('📦 SupabaseIncidenciaVehiculoDS: ✅ Aviso reenviado a $total gestores');
+      return total;
+    } catch (e, stack) {
+      debugPrint('📦 SupabaseIncidenciaVehiculoDS: ❌ Error al reenviar aviso: $e');
+      debugPrint('Stack: $stack');
+      rethrow;
+    }
+  }
+
+  @override
   Stream<List<IncidenciaVehiculoEntity>> watchByVehiculoId(
       String vehiculoId) {
     debugPrint(

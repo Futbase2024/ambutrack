@@ -25,12 +25,24 @@ enum NotificacionTipo {
 
   // Incidencias de vehículos
   incidenciaVehiculoReportada('incidencia_vehiculo_reportada', 'Incidencia de Vehículo Reportada'),
+  incidenciaVehiculoActualizada('incidencia_vehiculo_actualizada', 'Incidencia de Vehículo Actualizada'),
 
   // Caducidades
   alertaCaducidad('alerta_caducidad', 'Alerta de Caducidad'),
 
   // Agenda
   agendaPendiente('agenda_pendiente', 'Pendiente Programado'),
+
+  // Inicio de turno fuera de base (validación por coordinación)
+  inicioTurnoPendiente('inicio_turno_pendiente', 'Inicio de Turno Pendiente'),
+  inicioTurnoAprobado('inicio_turno_aprobado', 'Inicio de Turno Validado'),
+  inicioTurnoRechazado('inicio_turno_rechazado', 'Inicio de Turno Rechazado'),
+
+  // Vestuario
+  vestuarioSolicitado('vestuario_solicitado', 'Solicitud de Vestuario'),
+  vestuarioAprobado('vestuario_aprobado', 'Vestuario Aprobado'),
+  vestuarioRechazado('vestuario_rechazado', 'Vestuario Rechazado'),
+  vestuarioEntregado('vestuario_entregado', 'Vestuario Entregado'),
 
   // Generales
   alerta('alerta', 'Alerta'),

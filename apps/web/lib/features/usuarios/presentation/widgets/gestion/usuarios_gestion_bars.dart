@@ -4,6 +4,8 @@ import 'package:ambutrack_web/features/usuarios/presentation/widgets/gestion/usu
 import 'package:flutter/material.dart';
 
 /// Barra de herramientas de la pantalla de usuarios
+///
+/// Las acciones con callback null se muestran deshabilitadas (rol sin permiso).
 class UsuariosGestionToolbar extends StatelessWidget {
   const UsuariosGestionToolbar({
     required this.selected,
@@ -18,11 +20,11 @@ class UsuariosGestionToolbar extends StatelessWidget {
   });
 
   final UserEntity? selected;
-  final VoidCallback onNew;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-  final VoidCallback onResetPassword;
-  final VoidCallback onToggleActivo;
+  final VoidCallback? onNew;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final VoidCallback? onResetPassword;
+  final VoidCallback? onToggleActivo;
   final VoidCallback onRefresh;
   final VoidCallback? onPrint;
 

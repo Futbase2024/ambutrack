@@ -28,6 +28,10 @@ abstract class IncidenciaVehiculoRepository {
   /// Eliminar una incidencia
   Future<void> delete(String id);
 
+  /// Reenvía el aviso (notificación + push) de la avería a los gestores de flota.
+  /// Devuelve a cuántos gestores se avisó.
+  Future<int> reenviarAviso(String id);
+
   /// Stream en tiempo real de incidencias de un vehículo
   Stream<List<IncidenciaVehiculoEntity>> watchByVehiculoId(String vehiculoId);
 }

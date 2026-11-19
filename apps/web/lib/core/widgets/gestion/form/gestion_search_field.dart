@@ -123,7 +123,7 @@ class _SearchFieldBodyState<T> extends State<_SearchFieldBody<T>> {
         ),
         menuChildren: <Widget>[
           _SearchMenu<T>(
-            width: c.maxWidth,
+            width: c.maxWidth.isFinite ? c.maxWidth : 320,
             query: _query,
             options: widget.options,
             selected: widget.state.value,
@@ -223,14 +223,23 @@ class _SearchMenuState<T> extends State<_SearchMenu<T>> {
                     padding: EdgeInsets.all(14),
                     child: Text('Sin resultados', style: TextStyle(fontSize: 12.5, color: AppColors.gray500)),
                   )
-                : ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: items.length,
-                    itemExtent: 32,
-                    itemBuilder: (BuildContext context, int i) => _SearchItem<T>(
-                      option: items[i],
-                      selected: items[i].value == widget.selected,
-                      onTap: () => widget.onSelect(items[i].value),
+                // MenuAnchor mide el contenido con dimensiones intrínsecas:
+                // un ListView (viewport perezoso) no las soporta, por eso Column
+                : SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        for (final GestionOption<T> o in items)
+                          SizedBox(
+                            height: 32,
+                            child: _SearchItem<T>(
+                              option: o,
+                              selected: o.value == widget.selected,
+                              onTap: () => widget.onSelect(o.value),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
           ),

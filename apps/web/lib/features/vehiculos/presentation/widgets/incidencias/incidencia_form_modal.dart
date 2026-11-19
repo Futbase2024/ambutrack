@@ -3,13 +3,15 @@ import 'package:ambutrack_web/core/services/auth_service.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
 import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
+import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
 import 'package:ambutrack_web/features/taller/presentation/widgets/taller_nombre_field.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/vehiculos_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:uuid/uuid.dart';
 
 /// Modal para crear/editar incidencias de vehículos
@@ -37,6 +39,8 @@ class IncidenciaFormModal extends StatefulWidget {
 }
 
 class _IncidenciaFormModalState extends State<IncidenciaFormModal> {
+  static const String _empresaFallback = '00000000-0000-0000-0000-000000000001';
+
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _tituloController = TextEditingController();
   final TextEditingController _descripcionController = TextEditingController();
@@ -95,6 +99,14 @@ class _IncidenciaFormModalState extends State<IncidenciaFormModal> {
   double? get _kilometraje =>
       _kilometrajeController.text.isNotEmpty ? double.tryParse(_kilometrajeController.text) : null;
 
+  /// empresa_id del usuario (tabla usuarios vía AuthBloc); el user_metadata no lo trae
+  String _empresaId() {
+    final AuthState authState = context.read<AuthBloc>().state;
+    return authState is AuthAuthenticated
+        ? (authState.user.empresaId ?? _empresaFallback)
+        : _empresaFallback;
+  }
+
   Future<void> _onSave() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -137,7 +149,7 @@ class _IncidenciaFormModalState extends State<IncidenciaFormModal> {
               titulo: _tituloController.text.trim(),
               descripcion: _descripcionController.text.trim(),
               kilometrajeReporte: _kilometraje,
-              empresaId: currentUser.userMetadata?['empresa_id']?.toString() ?? '',
+              empresaId: _empresaId(),
               createdAt: DateTime.now(),
             );
 

@@ -214,7 +214,7 @@ class SupabaseConsumoCombustibleDataSource implements ConsumoCombustibleDataSour
           .select();
 
       return response
-          .map((json) => ConsumoCombustibleSupabaseModel.fromJson(json as Map<String, dynamic>).toEntity())
+          .map<ConsumoCombustibleEntity>((dynamic json) => ConsumoCombustibleSupabaseModel.fromJson(json as Map<String, dynamic>).toEntity())
           .toList();
     } catch (e) {
       throw Exception('Error al crear registros en lote: $e');
@@ -283,8 +283,8 @@ class SupabaseConsumoCombustibleDataSource implements ConsumoCombustibleDataSour
 
       final dynamic response = await query.order('fecha', ascending: false);
 
-      return response
-          .map((json) => ConsumoCombustibleSupabaseModel.fromJson(json as Map<String, dynamic>).toEntity())
+      return (response as List<dynamic>)
+          .map<ConsumoCombustibleEntity>((dynamic json) => ConsumoCombustibleSupabaseModel.fromJson(json as Map<String, dynamic>).toEntity())
           .toList();
     } catch (e) {
       throw Exception('Error al obtener registros por vehículo: $e');
@@ -298,20 +298,20 @@ class SupabaseConsumoCombustibleDataSource implements ConsumoCombustibleDataSour
     String? empresaId,
   }) async {
     try {
-      final query = _supabase
+      PostgrestFilterBuilder<List<Map<String, dynamic>>> query = _supabase
           .from(_tableName)
           .select()
           .gte('fecha', fechaInicio.toIso8601String())
           .lte('fecha', fechaFin.toIso8601String());
 
       if (empresaId != null) {
-        query.eq('empresa_id', empresaId);
+        query = query.eq('empresa_id', empresaId);
       }
 
       final dynamic response = await query.order('fecha', ascending: false);
 
-      return response
-          .map((json) => ConsumoCombustibleSupabaseModel.fromJson(json as Map<String, dynamic>).toEntity())
+      return (response as List<dynamic>)
+          .map<ConsumoCombustibleEntity>((dynamic json) => ConsumoCombustibleSupabaseModel.fromJson(json as Map<String, dynamic>).toEntity())
           .toList();
     } catch (e) {
       throw Exception('Error al obtener registros por rango de fechas: $e');
@@ -333,8 +333,8 @@ class SupabaseConsumoCombustibleDataSource implements ConsumoCombustibleDataSour
           .lte('fecha', fechaFin.toIso8601String())
           .order('fecha', ascending: false);
 
-      return response
-          .map((json) => ConsumoCombustibleSupabaseModel.fromJson(json as Map<String, dynamic>).toEntity())
+      return (response as List<dynamic>)
+          .map<ConsumoCombustibleEntity>((dynamic json) => ConsumoCombustibleSupabaseModel.fromJson(json as Map<String, dynamic>).toEntity())
           .toList();
     } catch (e) {
       throw Exception('Error al obtener registros por vehículo y fechas: $e');
@@ -497,8 +497,8 @@ class SupabaseConsumoCombustibleDataSource implements ConsumoCombustibleDataSour
 
       final dynamic response = await query.order('fecha', ascending: false);
 
-      return response
-          .map((json) => ConsumoCombustibleSupabaseModel.fromJson(json as Map<String, dynamic>).toEntity())
+      return (response as List<dynamic>)
+          .map<ConsumoCombustibleEntity>((dynamic json) => ConsumoCombustibleSupabaseModel.fromJson(json as Map<String, dynamic>).toEntity())
           .toList();
     } catch (e) {
       throw Exception('Error al obtener registros por empresa: $e');

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+import 'package:ambutrack_web/core/auth/enums/user_role.dart';
+import 'package:ambutrack_web/core/auth/permissions/gestion_usuarios_permissions.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
@@ -18,9 +20,12 @@ import 'package:uuid/uuid.dart';
 
 /// Diálogo para crear/editar usuarios
 class UsuarioFormDialog extends StatefulWidget {
-  const UsuarioFormDialog({super.key, this.usuario});
+  const UsuarioFormDialog({required this.rolActual, super.key, this.usuario});
 
   final UserEntity? usuario;
+
+  /// Rol de quien crea/edita: limita los roles asignables y la empresa
+  final UserRole rolActual;
 
   @override
   State<UsuarioFormDialog> createState() => _UsuarioFormDialogState();
@@ -44,7 +49,14 @@ class _UsuarioFormDialogState extends State<UsuarioFormDialog> {
     super.initState();
     _loadRoles();
     _loadEmpresas();
+    if (!_isEditing) {
+      // Clave provisional generada de inicio (PIN de 6 dígitos por defecto)
+      _data.password.text = UsuarioFormData.generarPin();
+      _data.passwordVisible = true;
+    }
   }
+
+  bool get _puedeElegirEmpresa => widget.rolActual == UserRole.admin;
 
   @override
   void dispose() {
@@ -85,8 +97,16 @@ class _UsuarioFormDialogState extends State<UsuarioFormDialog> {
       if (!mounted) {
         return;
       }
+      // Solo los roles que quien edita puede asignar
+      final List<String> asignables = GestionUsuariosPermissions.rolesAsignables(
+        widget.rolActual,
+        response.cast<Map<String, dynamic>>().map((Map<String, dynamic> r) => r['nombre'] as String),
+      );
       setState(() {
-        _roles = response.cast<Map<String, dynamic>>();
+        _roles = response
+            .cast<Map<String, dynamic>>()
+            .where((Map<String, dynamic> r) => asignables.contains(r['nombre']))
+            .toList();
         _isLoadingRoles = false;
       });
     } catch (e) {
@@ -127,9 +147,9 @@ class _UsuarioFormDialogState extends State<UsuarioFormDialog> {
     }
   }
 
-  /// Genera una contraseña segura, la muestra y la copia al portapapeles
+  /// Genera un PIN o una contraseña segura, la muestra y la copia al portapapeles
   void _generatePassword() {
-    final String password = UsuarioFormData.generarPassword();
+    final String password = _data.pinMovil ? UsuarioFormData.generarPin() : UsuarioFormData.generarPassword();
     setState(() {
       _data.password.text = password;
       _data.passwordVisible = true;
@@ -137,7 +157,7 @@ class _UsuarioFormDialogState extends State<UsuarioFormDialog> {
     Clipboard.setData(ClipboardData(text: password));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Contraseña generada y copiada al portapapeles'),
+        content: Text('Clave provisional generada y copiada al portapapeles'),
         backgroundColor: AppColors.success,
         duration: Duration(seconds: 2),
       ),
@@ -155,7 +175,9 @@ class _UsuarioFormDialogState extends State<UsuarioFormDialog> {
   }
 
   Map<String, dynamic> get _metadata => <String, dynamic>{
-        'empresaId': _data.empresaId,
+        'nombre': _data.nombre.text.trim(),
+        'apellidos': _data.apellidos.text.trim(),
+        'empresaId': _puedeElegirEmpresa ? _data.empresaId : widget.usuario?.empresaId,
         'empresaNombre': _empresaNombre,
         'dni': _data.dni.text.trim().toUpperCase(),
       };
@@ -247,6 +269,7 @@ class _UsuarioFormDialogState extends State<UsuarioFormDialog> {
               roles: _roles,
               empresas: _empresas,
               isLoadingRoles: _isLoadingRoles,
+              puedeElegirEmpresa: _puedeElegirEmpresa,
               onGeneratePassword: _generatePassword,
               onChanged: () => setState(() {}),
             ),

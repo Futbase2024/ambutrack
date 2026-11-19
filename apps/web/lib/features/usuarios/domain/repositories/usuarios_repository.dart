@@ -12,14 +12,14 @@ abstract class UsuariosRepository {
   /// Returns null si no existe
   Future<UserEntity?> getById(String id);
 
-  /// Crea un nuevo usuario
+  /// Crea un nuevo usuario con una clave provisional
   ///
   /// [usuario] - Datos del usuario a crear
-  /// [password] - Contraseña inicial del usuario
+  /// [password] - Clave provisional (PIN de 6 dígitos o contraseña web)
   ///
-  /// Este método:
-  /// 1. Crea el usuario en auth.users usando AuthService
-  /// 2. Crea el registro en la tabla usuarios con el ID generado
+  /// Va por la Edge Function `admin-users`: crea la cuenta ya confirmada,
+  /// completa la fila de `usuarios` y marca la clave como provisional
+  /// (el usuario tendrá que cambiarla en su primer acceso).
   ///
   /// Returns el usuario creado con su ID
   Future<UserEntity> create(UserEntity usuario, String password);
@@ -35,9 +35,7 @@ abstract class UsuariosRepository {
   ///
   /// [id] - ID del usuario a eliminar
   ///
-  /// Este método:
-  /// 1. Elimina el registro de la tabla usuarios
-  /// 2. Elimina el usuario de auth.users usando Admin API
+  /// Solo admin. Elimina la cuenta de auth.users (la fila de usuarios cae en cascada).
   Future<void> delete(String id);
 
   /// Cambia el estado activo/inactivo de un usuario
@@ -51,8 +49,7 @@ abstract class UsuariosRepository {
   /// [userId] - ID del usuario
   /// [newPassword] - Nueva contraseña
   ///
-  /// Usa la Admin API de Supabase para cambiar la contraseña
-  /// sin requerir la contraseña actual
+  /// La nueva clave queda como provisional: el usuario la cambiará al entrar
   Future<void> resetearPassword(String userId, String newPassword);
 
   /// Obtiene usuarios por rol específico

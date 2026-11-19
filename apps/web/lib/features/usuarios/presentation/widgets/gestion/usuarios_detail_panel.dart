@@ -5,6 +5,8 @@ import 'package:ambutrack_web/features/usuarios/presentation/widgets/gestion/usu
 import 'package:flutter/material.dart';
 
 /// Ficha lateral del usuario seleccionado
+///
+/// Solo se muestran los botones cuyo callback no es null (permisos del rol).
 class UsuariosDetailPanel extends StatelessWidget {
   const UsuariosDetailPanel({
     required this.usuario,
@@ -15,9 +17,9 @@ class UsuariosDetailPanel extends StatelessWidget {
   });
 
   final UserEntity? usuario;
-  final VoidCallback onEdit;
-  final VoidCallback onResetPassword;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onResetPassword;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -36,14 +38,17 @@ class UsuariosDetailPanel extends StatelessWidget {
         GestionDetailTab(label: 'General', child: _UsuarioGeneralTab(usuario: u)),
       ],
       actions: <Widget>[
-        _PanelButton(label: 'Editar', icon: Icons.edit_outlined, color: AppColors.primary, onPressed: onEdit),
-        _PanelButton(
-          label: 'Contraseña',
-          icon: Icons.lock_reset,
-          color: AppColors.warning,
-          onPressed: onResetPassword,
-        ),
-        _PanelButton(label: 'Eliminar', icon: Icons.delete_outline, color: AppColors.error, onPressed: onDelete),
+        if (onEdit != null)
+          _PanelButton(label: 'Editar', icon: Icons.edit_outlined, color: AppColors.primary, onPressed: onEdit!),
+        if (onResetPassword != null)
+          _PanelButton(
+            label: 'Contraseña',
+            icon: Icons.lock_reset,
+            color: AppColors.warning,
+            onPressed: onResetPassword!,
+          ),
+        if (onDelete != null)
+          _PanelButton(label: 'Eliminar', icon: Icons.delete_outline, color: AppColors.error, onPressed: onDelete!),
       ],
     );
   }

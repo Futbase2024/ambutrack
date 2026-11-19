@@ -6,6 +6,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
+import 'notificacion_canales.dart';
+
 /// Servicio de notificaciones locales
 ///
 /// Maneja notificaciones push locales con sonido, vibración y navegación
@@ -19,6 +21,10 @@ class LocalNotificationsService {
 
   /// Callback para mostrar notificación in-app (cuando la app está en primer plano)
   Function(NotificacionEntity notificacion)? onShowInAppNotification;
+
+  /// true = este móvil recibe push FCM: la notificación del sistema la pone el
+  /// push (app abierta, en segundo plano o cerrada), no este servicio
+  bool pushActivo = false;
 
   /// Indica si la app está en primer plano (abierta y visible)
   var _isAppInForeground = true;
@@ -110,83 +116,11 @@ class LocalNotificationsService {
   /// Crea los canales de notificación para Android
   Future<void> _createNotificationChannels() async {
     debugPrint('📱 [LocalNotifications] Creando canales Android...');
-
-    // Canal para emergencias (urgente, no silenciable)
-    // playSound: true sin 'sound:' = usa sonido por defecto del sistema
-    const emergenciaChannel = AndroidNotificationChannel(
-      'emergencias_v5',
-      'Emergencias',
-      description: 'Notificaciones críticas de emergencias que no se pueden silenciar',
-      importance: Importance.max,
-      playSound: true,
-      enableVibration: true,
-      showBadge: true,
-    );
-
-    // Canal para traslados asignados (alta prioridad)
-    const trasladosChannel = AndroidNotificationChannel(
-      'traslados_v5',
-      'Traslados',
-      description: 'Nuevos traslados asignados y cambios de estado',
-      importance: Importance.high,
-      playSound: true,
-      enableVibration: true,
-      showBadge: true,
-    );
-
-    // Canal para caducidades (alta prioridad)
-    const caducidadesChannel = AndroidNotificationChannel(
-      'caducidades_v5',
-      'Caducidades',
-      description: 'Alertas de productos próximos a caducar',
-      importance: Importance.high,
-      playSound: true,
-      enableVibration: true,
-      showBadge: true,
-    );
-
-    // Canal para información general (normal)
-    const infoChannel = AndroidNotificationChannel(
-      'info_v5',
-      'Información',
-      description: 'Notificaciones informativas generales',
-      importance: Importance.defaultImportance,
-      playSound: true,
-      enableVibration: false,
-      showBadge: true,
-    );
-
-    // Canal especial solo para reproducir sonido (notificaciones in-app)
-    const soundOnlyChannel = AndroidNotificationChannel(
-      'sound_only',
-      'Sonidos',
-      description: 'Canal para reproducir sonidos en notificaciones in-app',
-      importance: Importance.high,
-      playSound: true,
-      enableVibration: true,
-      showBadge: false, // No mostrar badge
-    );
-
-    await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(emergenciaChannel);
-
-    await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(trasladosChannel);
-
-    await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(caducidadesChannel);
-
-    await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(infoChannel);
-
-    await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(soundOnlyChannel);
-
+    final AndroidFlutterLocalNotificationsPlugin? android =
+        _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    for (final AndroidNotificationChannel canal in NotificacionCanales.android) {
+      await android?.createNotificationChannel(canal);
+    }
     debugPrint('✅ [LocalNotifications] Canales Android creados');
   }
 
@@ -230,7 +164,14 @@ class LocalNotificationsService {
     debugPrint('🔔 [LocalNotifications] Callback configurado: ${onShowInAppNotification != null}');
     debugPrint('🔔 [LocalNotifications] ========================================');
 
-    // Si la app está en primer plano, mostrar notificación in-app
+    // Con push FCM activo, el push muestra la notificación del sistema en cualquier
+    // estado de la app (también abierta): ni diálogo in-app ni local, para no duplicar
+    if (pushActivo) {
+      debugPrint('📱 [LocalNotifications] Push activo - la notificación la muestra FCM');
+      return;
+    }
+
+    // Sin push (p.ej. sin config de Firebase): diálogo in-app en primer plano
     if (_isAppInForeground) {
       debugPrint('📱 [LocalNotifications] App en primer plano - mostrando diálogo in-app');
       onShowInAppNotification?.call(notificacion);
@@ -238,50 +179,61 @@ class LocalNotificationsService {
       return;
     }
 
-    // Si la app está en segundo plano, mostrar notificación push normal
     debugPrint('📱 [LocalNotifications] App en segundo plano - mostrando notificación push');
+    await mostrarEnSistema(
+      id: notificacion.id,
+      tipo: notificacion.tipo,
+      titulo: notificacion.titulo,
+      mensaje: notificacion.mensaje,
+      entidadId: notificacion.entidadId,
+    );
+  }
 
-    final channelId = _getChannelId(notificacion.tipo);
-    final channelName = _getChannelName(channelId);
-    final importance = _getImportance(notificacion.tipo);
-    final priority = _getPriority(notificacion.tipo);
-    final vibrationPattern = _getVibrationPattern(notificacion.tipo);
+  /// Muestra la notificación en la bandeja/banner del sistema (cualquier estado de la app)
+  Future<void> mostrarEnSistema({
+    required String id,
+    required NotificacionTipo tipo,
+    required String titulo,
+    required String mensaje,
+    String? entidadId,
+  }) async {
+    final AndroidNotificationChannel canal = NotificacionCanales.canal(NotificacionCanales.canalId(tipo));
 
     try {
       await _plugin.show(
-        notificacion.id.hashCode,
-        notificacion.titulo,
-        notificacion.mensaje,
+        id.hashCode,
+        titulo,
+        mensaje,
         NotificationDetails(
           android: AndroidNotificationDetails(
-            channelId,
-            channelName,
-            channelDescription: _getChannelDescription(channelId),
-            importance: importance,
-            priority: priority,
+            canal.id,
+            canal.name,
+            channelDescription: canal.description,
+            importance: NotificacionCanales.importancia(tipo),
+            priority: NotificacionCanales.prioridad(tipo),
             playSound: true,
             enableVibration: true,
-            vibrationPattern: vibrationPattern,
+            vibrationPattern: NotificacionCanales.vibracion(tipo),
             largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
             styleInformation: BigTextStyleInformation(
-              notificacion.mensaje,
-              contentTitle: notificacion.titulo,
+              mensaje,
+              contentTitle: titulo,
             ),
-            category: _getAndroidCategory(notificacion.tipo),
+            category: NotificacionCanales.categoriaAndroid(tipo),
           ),
           iOS: DarwinNotificationDetails(
             presentSound: true,
             presentBadge: true,
             presentAlert: true,
-            sound: _getIosSound(notificacion.tipo),
-            subtitle: _getIosSubtitle(notificacion.tipo),
-            interruptionLevel: _getInterruptionLevel(notificacion.tipo),
+            sound: NotificacionCanales.sonidoIos(tipo),
+            subtitle: tipo.label,
+            interruptionLevel: NotificacionCanales.interrupcionIos(tipo),
           ),
         ),
         payload: jsonEncode({
-          'id': notificacion.id,
-          'tipo': notificacion.tipo.value,
-          'entidadId': notificacion.entidadId,
+          'id': id,
+          'tipo': tipo.value,
+          'entidadId': entidadId,
         }),
       );
 
@@ -323,143 +275,5 @@ class LocalNotificationsService {
   Future<void> cancelarTodas() async {
     await _plugin.cancelAll();
     debugPrint('🚫 [LocalNotifications] Todas las notificaciones canceladas');
-  }
-
-  // ===== HELPERS =====
-
-  /// Obtiene el ID del canal según el tipo de notificación
-  String _getChannelId(NotificacionTipo tipo) {
-    switch (tipo) {
-      case NotificacionTipo.alerta:
-        return 'emergencias_v5';
-      case NotificacionTipo.trasladoAsignado:
-      case NotificacionTipo.trasladoDesadjudicado:
-      case NotificacionTipo.trasladoIniciado:
-      case NotificacionTipo.trasladoFinalizado:
-      case NotificacionTipo.trasladoCancelado:
-        return 'traslados_v5';
-      case NotificacionTipo.alertaCaducidad:
-        return 'caducidades_v5';
-      default:
-        return 'info_v5';
-    }
-  }
-
-  /// Obtiene el nombre del canal
-  String _getChannelName(String channelId) {
-    switch (channelId) {
-      case 'emergencias_v5':
-        return 'Emergencias';
-      case 'traslados_v5':
-        return 'Traslados';
-      case 'caducidades_v5':
-        return 'Caducidades';
-      default:
-        return 'Información';
-    }
-  }
-
-  /// Obtiene la descripción del canal
-  String _getChannelDescription(String channelId) {
-    switch (channelId) {
-      case 'emergencias_v5':
-        return 'Notificaciones críticas de emergencias';
-      case 'traslados_v5':
-        return 'Nuevos traslados asignados y cambios de estado';
-      case 'caducidades_v5':
-        return 'Alertas de productos próximos a caducar';
-      default:
-        return 'Notificaciones informativas generales';
-    }
-  }
-
-  /// Obtiene la importancia para Android
-  Importance _getImportance(NotificacionTipo tipo) {
-    switch (tipo) {
-      case NotificacionTipo.alerta:
-        return Importance.max;
-      case NotificacionTipo.trasladoAsignado:
-      case NotificacionTipo.trasladoDesadjudicado:
-      case NotificacionTipo.alertaCaducidad:
-        return Importance.high;
-      default:
-        return Importance.defaultImportance;
-    }
-  }
-
-  /// Obtiene la prioridad para Android
-  Priority _getPriority(NotificacionTipo tipo) {
-    switch (tipo) {
-      case NotificacionTipo.alerta:
-        return Priority.max;
-      case NotificacionTipo.trasladoAsignado:
-      case NotificacionTipo.trasladoDesadjudicado:
-      case NotificacionTipo.alertaCaducidad:
-        return Priority.high;
-      default:
-        return Priority.defaultPriority;
-    }
-  }
-
-  /// Obtiene el patrón de vibración para Android (en milisegundos)
-  Int64List? _getVibrationPattern(NotificacionTipo tipo) {
-    switch (tipo) {
-      case NotificacionTipo.alerta:
-        // Patrón agresivo para emergencias: vibración continua
-        return Int64List.fromList([0, 500, 200, 500, 200, 500]);
-      case NotificacionTipo.trasladoAsignado:
-      case NotificacionTipo.trasladoDesadjudicado:
-        // Patrón distintivo para traslados
-        return Int64List.fromList([0, 300, 200, 300]);
-      case NotificacionTipo.alertaCaducidad:
-        // Patrón para caducidades: vibración doble corta
-        return Int64List.fromList([0, 250, 100, 250]);
-      default:
-        // Patrón suave para info
-        return Int64List.fromList([0, 200]);
-    }
-  }
-
-  /// Obtiene la categoría de Android
-  AndroidNotificationCategory? _getAndroidCategory(NotificacionTipo tipo) {
-    switch (tipo) {
-      case NotificacionTipo.alerta:
-        return AndroidNotificationCategory.alarm;
-      case NotificacionTipo.trasladoAsignado:
-      case NotificacionTipo.trasladoDesadjudicado:
-        return AndroidNotificationCategory.message;
-      default:
-        return null;
-    }
-  }
-
-  /// Obtiene el sonido para iOS
-  String? _getIosSound(NotificacionTipo tipo) {
-    // Usar sonidos del sistema de iOS
-    switch (tipo) {
-      case NotificacionTipo.alerta:
-        return 'default'; // Sonido por defecto (más fuerte)
-      default:
-        return null; // Sin sonido personalizado
-    }
-  }
-
-  /// Obtiene el subtítulo para iOS
-  String? _getIosSubtitle(NotificacionTipo tipo) {
-    return tipo.label;
-  }
-
-  /// Obtiene el nivel de interrupción para iOS
-  InterruptionLevel _getInterruptionLevel(NotificacionTipo tipo) {
-    switch (tipo) {
-      case NotificacionTipo.alerta:
-        return InterruptionLevel.critical;
-      case NotificacionTipo.trasladoAsignado:
-      case NotificacionTipo.trasladoDesadjudicado:
-      case NotificacionTipo.alertaCaducidad:
-        return InterruptionLevel.timeSensitive;
-      default:
-        return InterruptionLevel.active;
-    }
   }
 }

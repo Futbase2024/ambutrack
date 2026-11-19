@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/dialogs/dialogs.dart';
+import 'incidencia/incidencia_chips.dart';
 
 /// Widget para mostrar una notificación individual
 ///
@@ -106,6 +107,11 @@ class NotificacionCard extends StatelessWidget {
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (notificacion.tipo == NotificacionTipo.incidenciaVehiculoReportada ||
+                          notificacion.tipo == NotificacionTipo.incidenciaVehiculoActualizada) ...<Widget>[
+                        const SizedBox(height: 8),
+                        IncidenciaNotificacionChips(notificacion: notificacion),
+                      ],
                       const SizedBox(height: 8),
                       Text(
                         _formatearFecha(notificacion.createdAt),
@@ -239,11 +245,29 @@ class _NotificationIcon extends StatelessWidget {
       case NotificacionTipo.incidenciaVehiculoReportada:
         return (Icons.build_circle_rounded, Colors.orange);
 
+      case NotificacionTipo.incidenciaVehiculoActualizada:
+        return (Icons.handyman_rounded, AppColors.success);
+
       case NotificacionTipo.alertaCaducidad:
         return (Icons.warning_amber_rounded, Colors.orange);
 
       case NotificacionTipo.agendaPendiente:
         return (Icons.event_note_rounded, colorScheme.primary);
+
+      case NotificacionTipo.inicioTurnoPendiente:
+        return (Icons.pending_actions_rounded, AppColors.warning);
+
+      case NotificacionTipo.inicioTurnoAprobado:
+      case NotificacionTipo.vestuarioAprobado:
+      case NotificacionTipo.vestuarioEntregado:
+        return (Icons.check_circle_rounded, AppColors.success);
+
+      case NotificacionTipo.inicioTurnoRechazado:
+      case NotificacionTipo.vestuarioRechazado:
+        return (Icons.cancel_rounded, colorScheme.error);
+
+      case NotificacionTipo.vestuarioSolicitado:
+        return (Icons.checkroom_rounded, colorScheme.primary);
 
       case NotificacionTipo.info:
         return (Icons.info_rounded, colorScheme.primary);

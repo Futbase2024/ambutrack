@@ -57,6 +57,7 @@ import 'package:ambutrack_web/features/servicios/operativa/presentation/pages/pr
 import 'package:ambutrack_web/features/servicios/operativa/presentation/pages/servicios_urgentes_page.dart';
 import 'package:ambutrack_web/features/servicios/pacientes/presentation/pages/pacientes_page.dart';
 import 'package:ambutrack_web/features/servicios/servicios/presentation/pages/servicios_page.dart';
+import 'package:ambutrack_web/features/stock_vestuario/presentation/pages/solicitudes_vestuario_page.dart';
 import 'package:ambutrack_web/features/stock_vestuario/presentation/pages/stock_vestuario_page.dart';
 import 'package:ambutrack_web/features/tablas/categorias_vehiculo/presentation/pages/categoria_vehiculo_page.dart';
 import 'package:ambutrack_web/features/tablas/centros_hospitalarios/presentation/pages/centros_hospitalarios_page.dart';
@@ -633,6 +634,16 @@ final GoRouter appRouter = GoRouter(
           _buildPageWithTransition(
         key: state.pageKey,
         child: const StockVestuarioPage(),
+      ),
+        ),
+        // Solicitudes de Vestuario
+        GoRoute(
+          path: '/personal/solicitudes-vestuario',
+          name: 'personal_solicitudes_vestuario',
+          pageBuilder: (BuildContext context, GoRouterState state) =>
+          _buildPageWithTransition(
+        key: state.pageKey,
+        child: const SolicitudesVestuarioPage(),
       ),
         ),
         // Cuadrante de Personal

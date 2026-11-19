@@ -180,6 +180,12 @@ class IncidenciaVehiculoRepositoryImpl implements IncidenciaVehiculoRepository {
   }
 
   @override
+  Future<int> reenviarAviso(String id) async {
+    debugPrint('📦 IncidenciaVehiculoRepository: Reenviando aviso de avería ID: $id');
+    return _incidenciasDataSource.reenviarAviso(id);
+  }
+
+  @override
   Stream<List<IncidenciaVehiculoEntity>> watchByVehiculoId(String vehiculoId) {
     debugPrint(
         '📦 IncidenciaVehiculoRepository: 🔄 Stream de incidencias para vehículo: $vehiculoId');

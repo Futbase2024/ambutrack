@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+import 'package:ambutrack_web/core/auth/enums/user_role.dart';
+import 'package:ambutrack_web/core/auth/permissions/gestion_usuarios_permissions.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
@@ -43,6 +47,15 @@ class _UsuariosGestionViewState extends State<UsuariosGestionView> {
 
   /// Últimos datos cargados (evita parpadeos durante recargas)
   List<UserEntity>? _usuarios;
+
+  /// Rol de quien usa la pantalla: decide qué acciones se ofrecen
+  UserRole _rolActual = UserRole.operador;
+
+  bool get _puedeCrear => GestionUsuariosPermissions.puedeCrear(_rolActual);
+
+  bool _puedeGestionar(UserEntity? u) => u != null && GestionUsuariosPermissions.puedeGestionar(_rolActual, u.rol);
+
+  bool _puedeEliminar(UserEntity? u) => u != null && GestionUsuariosPermissions.puedeEliminar(_rolActual) && _puedeGestionar(u);
 
   @override
   void dispose() {
@@ -97,7 +110,15 @@ class _UsuariosGestionViewState extends State<UsuariosGestionView> {
     );
   }
 
-  Future<void> _openForm([UserEntity? usuario]) => _openDialog(UsuarioFormDialog(usuario: usuario));
+  Future<void> _openForm([UserEntity? usuario]) =>
+      _openDialog(UsuarioFormDialog(usuario: usuario, rolActual: _rolActual));
+
+  /// Doble clic / Intro: abre la edición solo si el rol puede gestionar a ese usuario
+  void _onActivate(UserEntity u) {
+    if (_puedeGestionar(u)) {
+      unawaited(_openForm(u));
+    }
+  }
 
   Future<void> _openResetPassword(UserEntity usuario) => _openDialog(UsuarioResetPasswordDialog(usuario: usuario));
 
@@ -147,6 +168,7 @@ class _UsuariosGestionViewState extends State<UsuariosGestionView> {
     if (state is UsuariosLoaded) {
       setState(() {
         _usuarios = state.usuarios;
+        _rolActual = state.rolActual;
         _operacion = _OperacionVista.ninguna;
       });
     } else if (state is UsuariosDeleted && _operacion == _OperacionVista.eliminar) {
@@ -177,11 +199,11 @@ class _UsuariosGestionViewState extends State<UsuariosGestionView> {
         return GestionLayout(
           toolbar: UsuariosGestionToolbar(
             selected: selected,
-            onNew: _openForm,
-            onEdit: () => _openForm(selected),
-            onDelete: () => _confirmDelete(selected!),
-            onResetPassword: () => _openResetPassword(selected!),
-            onToggleActivo: () => _confirmToggleActivo(selected!),
+            onNew: _puedeCrear ? _openForm : null,
+            onEdit: _puedeGestionar(selected) ? () => _openForm(selected) : null,
+            onDelete: _puedeEliminar(selected) ? () => _confirmDelete(selected!) : null,
+            onResetPassword: _puedeGestionar(selected) ? () => _openResetPassword(selected!) : null,
+            onToggleActivo: _puedeGestionar(selected) ? () => _confirmToggleActivo(selected!) : null,
             onRefresh: _refresh,
             onPrint: visibles.isEmpty ? null : () => imprimirUsuarios(visibles),
           ),
@@ -210,15 +232,15 @@ class _UsuariosGestionViewState extends State<UsuariosGestionView> {
             sort: _sort,
             hasFilters: _hasFilters,
             onSelect: (UserEntity u) => setState(() => _selectedId = u.id),
-            onActivate: _openForm,
+            onActivate: _onActivate,
             onSort: (GestionSort s) => setState(() => _sort = s),
             onRetry: _refresh,
           ),
           detailPanel: UsuariosDetailPanel(
             usuario: selected,
-            onEdit: () => _openForm(selected),
-            onResetPassword: () => _openResetPassword(selected!),
-            onDelete: () => _confirmDelete(selected!),
+            onEdit: _puedeGestionar(selected) ? () => _openForm(selected) : null,
+            onResetPassword: _puedeGestionar(selected) ? () => _openResetPassword(selected!) : null,
+            onDelete: _puedeEliminar(selected) ? () => _confirmDelete(selected!) : null,
           ),
           statusBar: GestionStatusBar(
             items: resumenUsuarios(_usuarios ?? <UserEntity>[], visibles.length),

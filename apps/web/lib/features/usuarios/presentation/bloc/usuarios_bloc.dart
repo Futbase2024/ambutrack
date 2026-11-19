@@ -2,6 +2,7 @@ import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/auth/enums/app_module.dart';
 import 'package:ambutrack_web/core/auth/enums/user_role.dart';
 import 'package:ambutrack_web/core/auth/permissions/crud_permissions.dart';
+import 'package:ambutrack_web/core/auth/permissions/gestion_usuarios_permissions.dart';
 import 'package:ambutrack_web/core/auth/services/role_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,7 +22,8 @@ import 'usuarios_state.dart';
 /// - Reset de contraseña
 /// - Cambio de estado activo/inactivo
 ///
-/// ⚠️ PERMISOS: Solo usuarios con rol Admin pueden gestionar usuarios
+/// ⚠️ PERMISOS: Admin (todo) y Jefe de Personal (personal operativo, sin eliminar).
+/// La Edge Function `admin-users` vuelve a validarlo en servidor.
 @injectable
 class UsuariosBloc extends Bloc<UsuariosEvent, UsuariosState> {
   UsuariosBloc(this._repository, this._roleService) : super(const UsuariosInitial()) {
@@ -46,9 +48,10 @@ class UsuariosBloc extends Bloc<UsuariosEvent, UsuariosState> {
       emit(const UsuariosLoading());
 
       final List<UserEntity> usuarios = await _repository.getAll();
+      final UserRole rolActual = await _roleService.getCurrentUserRole();
 
       debugPrint('✅ UsuariosBloc: ${usuarios.length} usuarios cargados');
-      emit(UsuariosLoaded(usuarios));
+      emit(UsuariosLoaded(usuarios, rolActual: rolActual));
     } catch (e) {
       debugPrint('❌ UsuariosBloc: Error al cargar usuarios - $e');
       emit(UsuariosError(e.toString()));
@@ -61,13 +64,13 @@ class UsuariosBloc extends Bloc<UsuariosEvent, UsuariosState> {
     Emitter<UsuariosState> emit,
   ) async {
     try {
-      // ✅ VALIDAR PERMISOS: Solo Admin puede crear usuarios
+      // ✅ VALIDAR PERMISOS: Admin o Jefe de Personal
       final UserRole role = await _roleService.getCurrentUserRole();
-      if (!CrudPermissions.canCreate(role, AppModule.usuariosRoles)) {
+      if (!GestionUsuariosPermissions.puedeCrear(role)) {
         debugPrint('🚫 UsuariosBloc: Usuario sin permisos para crear usuarios');
         emit(const UsuariosError(
           'No tienes permisos para crear usuarios.\n'
-          'Solo usuarios con rol Administrador pueden gestionar usuarios.',
+          'Solo el Administrador y el Jefe de Personal pueden gestionar usuarios.',
         ));
         return;
       }
@@ -97,13 +100,13 @@ class UsuariosBloc extends Bloc<UsuariosEvent, UsuariosState> {
     Emitter<UsuariosState> emit,
   ) async {
     try {
-      // ✅ VALIDAR PERMISOS: Solo Admin puede actualizar usuarios
+      // ✅ VALIDAR PERMISOS: Admin o Jefe de Personal
       final UserRole role = await _roleService.getCurrentUserRole();
       if (!CrudPermissions.canUpdate(role, AppModule.usuariosRoles)) {
         debugPrint('🚫 UsuariosBloc: Usuario sin permisos para actualizar usuarios');
         emit(const UsuariosError(
           'No tienes permisos para actualizar usuarios.\n'
-          'Solo usuarios con rol Administrador pueden gestionar usuarios.',
+          'Solo el Administrador y el Jefe de Personal pueden gestionar usuarios.',
         ));
         return;
       }
@@ -133,13 +136,13 @@ class UsuariosBloc extends Bloc<UsuariosEvent, UsuariosState> {
     Emitter<UsuariosState> emit,
   ) async {
     try {
-      // ✅ VALIDAR PERMISOS: Solo Admin puede eliminar usuarios
+      // ✅ VALIDAR PERMISOS: Solo Admin elimina
       final UserRole role = await _roleService.getCurrentUserRole();
-      if (!CrudPermissions.canDelete(role, AppModule.usuariosRoles)) {
+      if (!GestionUsuariosPermissions.puedeEliminar(role)) {
         debugPrint('🚫 UsuariosBloc: Usuario sin permisos para eliminar usuarios');
         emit(const UsuariosError(
           'No tienes permisos para eliminar usuarios.\n'
-          'Solo usuarios con rol Administrador pueden gestionar usuarios.',
+          'Solo el Administrador puede eliminar usuarios; desactívalo en su lugar.',
         ));
         return;
       }
@@ -169,13 +172,13 @@ class UsuariosBloc extends Bloc<UsuariosEvent, UsuariosState> {
     Emitter<UsuariosState> emit,
   ) async {
     try {
-      // ✅ VALIDAR PERMISOS: Solo Admin puede resetear contraseñas
+      // ✅ VALIDAR PERMISOS: Admin o Jefe de Personal
       final UserRole role = await _roleService.getCurrentUserRole();
       if (!CrudPermissions.canUpdate(role, AppModule.usuariosRoles)) {
         debugPrint('🚫 UsuariosBloc: Usuario sin permisos para resetear contraseñas');
         emit(const UsuariosError(
           'No tienes permisos para resetear contraseñas.\n'
-          'Solo usuarios con rol Administrador pueden gestionar usuarios.',
+          'Solo el Administrador y el Jefe de Personal pueden gestionar usuarios.',
         ));
         return;
       }
@@ -205,13 +208,13 @@ class UsuariosBloc extends Bloc<UsuariosEvent, UsuariosState> {
     Emitter<UsuariosState> emit,
   ) async {
     try {
-      // ✅ VALIDAR PERMISOS: Solo Admin puede cambiar estado de usuarios
+      // ✅ VALIDAR PERMISOS: Admin o Jefe de Personal
       final UserRole role = await _roleService.getCurrentUserRole();
       if (!CrudPermissions.canUpdate(role, AppModule.usuariosRoles)) {
         debugPrint('🚫 UsuariosBloc: Usuario sin permisos para cambiar estado de usuarios');
         emit(const UsuariosError(
           'No tienes permisos para cambiar el estado de usuarios.\n'
-          'Solo usuarios con rol Administrador pueden gestionar usuarios.',
+          'Solo el Administrador y el Jefe de Personal pueden gestionar usuarios.',
         ));
         return;
       }

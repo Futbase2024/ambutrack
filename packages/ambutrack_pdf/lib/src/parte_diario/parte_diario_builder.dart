@@ -13,9 +13,12 @@ const Set<EstadoTraslado> _estadosFueraDeTabla = <EstadoTraslado>{
 
 /// Construye los partes diarios de una persona a partir de las entities del día.
 ///
-/// Se genera **un parte por inicio de turno** (si la persona cambió de vehículo
-/// o hizo dos turnos, salen dos partes). Fichajes, traslados, repostajes e
+/// Se genera **un parte por vehículo**: los inicios de turno seguidos con la
+/// misma ambulancia (p. ej. repetido o con otro rol) se juntan en un solo parte;
+/// si la persona cambia de vehículo sale otro. Fichajes, traslados, repostajes e
 /// incidencias se reparten por la hora en que ocurrieron.
+///
+/// [soloInicioId]: devuelve únicamente el parte que contiene ese inicio.
 class ParteDiarioBuilder {
   const ParteDiarioBuilder._();
 
@@ -30,12 +33,12 @@ class ParteDiarioBuilder {
     List<ConsumoCombustibleEntity> repostajes = const <ConsumoCombustibleEntity>[],
     List<IncidenciaVehiculoEntity> incidencias = const <IncidenciaVehiculoEntity>[],
     Map<String, String> nombresCentros = const <String, String>{},
+    String? soloInicioId,
   }) {
-    final List<InicioTurnoEntity?> turnos = List<InicioTurnoEntity?>.of(inicios)
-      ..sort((InicioTurnoEntity? a, InicioTurnoEntity? b) => _t(a?.createdAt).compareTo(_t(b?.createdAt)));
-    if (turnos.isEmpty) {
-      turnos.add(null);
-    }
+    final List<List<InicioTurnoEntity>> grupos = _agrupar(inicios);
+    final List<InicioTurnoEntity?> turnos = grupos.isEmpty
+        ? <InicioTurnoEntity?>[null]
+        : grupos.map((List<InicioTurnoEntity> g) => g.first).toList();
     final List<DateTime> inicioVentanas = turnos.map((InicioTurnoEntity? i) => _t(i?.createdAt)).toList();
     final Set<String> vehiculos = turnos.map((InicioTurnoEntity? i) => i?.vehiculoId).whereType<String>().toSet();
 
@@ -44,39 +47,57 @@ class ParteDiarioBuilder {
           t.idPersonalEnfermero == personalId ||
           t.idPersonalMedico == personalId ||
           (t.idVehiculo != null && vehiculos.contains(t.idVehiculo));
-    }).toList()
-      ..sort((TrasladoEntity a, TrasladoEntity b) => _t(_horaTraslado(a)).compareTo(_t(_horaTraslado(b))));
+    }).toList()..sort((TrasladoEntity a, TrasladoEntity b) => _t(_horaTraslado(a)).compareTo(_t(_horaTraslado(b))));
 
     final List<RegistroHorarioEntity> fichajesOrdenados = List<RegistroHorarioEntity>.of(fichajes)
       ..sort((RegistroHorarioEntity a, RegistroHorarioEntity b) => a.fechaHora.compareTo(b.fechaHora));
 
     return <ParteDiarioData>[
       for (int i = 0; i < turnos.length; i++)
-        _construirTurno(
-          inicio: turnos[i],
-          personalId: personalId,
-          personalNombre: personalNombre,
-          dia: dia,
-          empresa: empresa,
-          fichajes: fichajesOrdenados
-              .where((RegistroHorarioEntity f) => _ventana(f.fechaHora, inicioVentanas) == i)
-              .toList(),
-          traslados: propios.where((TrasladoEntity t) => _ventana(_horaTraslado(t), inicioVentanas) == i).toList(),
-          repostajes: repostajes.where((ConsumoCombustibleEntity r) {
-            final bool mio = r.conductorId == personalId ||
-                (r.conductorId == null && r.vehiculoId == turnos[i]?.vehiculoId);
-            return mio && _ventana(r.fecha, inicioVentanas) == i;
-          }).toList(),
-          incidencias: incidencias.where((IncidenciaVehiculoEntity inc) {
-            return inc.vehiculoId == turnos[i]?.vehiculoId && _ventana(inc.fechaReporte, inicioVentanas) == i;
-          }).toList(),
-          nombresCentros: nombresCentros,
-        ),
+        if (soloInicioId == null || grupos[i].any((InicioTurnoEntity x) => x.id == soloInicioId))
+          _construirTurno(
+            inicio: turnos[i],
+            grupo: grupos.isEmpty ? const <InicioTurnoEntity>[] : grupos[i],
+            personalId: personalId,
+            personalNombre: personalNombre,
+            dia: dia,
+            empresa: empresa,
+            fichajes: fichajesOrdenados
+                .where((RegistroHorarioEntity f) => _ventana(f.fechaHora, inicioVentanas) == i)
+                .toList(),
+            traslados: propios.where((TrasladoEntity t) => _ventana(_horaTraslado(t), inicioVentanas) == i).toList(),
+            repostajes: repostajes.where((ConsumoCombustibleEntity r) {
+              final bool mio =
+                  r.conductorId == personalId || (r.conductorId == null && r.vehiculoId == turnos[i]?.vehiculoId);
+              return mio && _ventana(r.fecha, inicioVentanas) == i;
+            }).toList(),
+            incidencias: incidencias.where((IncidenciaVehiculoEntity inc) {
+              return inc.vehiculoId == turnos[i]?.vehiculoId && _ventana(inc.fechaReporte, inicioVentanas) == i;
+            }).toList(),
+            nombresCentros: nombresCentros,
+          ),
     ];
+  }
+
+  /// Inicios ordenados y agrupados: seguidos con el mismo vehículo → mismo parte
+  static List<List<InicioTurnoEntity>> _agrupar(List<InicioTurnoEntity> inicios) {
+    final List<InicioTurnoEntity> orden = List<InicioTurnoEntity>.of(inicios)
+      ..sort((InicioTurnoEntity a, InicioTurnoEntity b) => _t(a.createdAt).compareTo(_t(b.createdAt)));
+    final List<List<InicioTurnoEntity>> grupos = <List<InicioTurnoEntity>>[];
+    for (final InicioTurnoEntity i in orden) {
+      final InicioTurnoEntity? previo = grupos.isEmpty ? null : grupos.last.last;
+      if (previo != null && i.vehiculoId != null && i.vehiculoId == previo.vehiculoId) {
+        grupos.last.add(i);
+      } else {
+        grupos.add(<InicioTurnoEntity>[i]);
+      }
+    }
+    return grupos;
   }
 
   static ParteDiarioData _construirTurno({
     required InicioTurnoEntity? inicio,
+    required List<InicioTurnoEntity> grupo,
     required String personalId,
     required String personalNombre,
     required DateTime dia,
@@ -88,6 +109,8 @@ class ParteDiarioBuilder {
     required Map<String, String> nombresCentros,
   }) {
     final RegistroHorarioEntity? entrada = _entrada(fichajes, inicio?.registroEntradaId);
+    // km final: el del último inicio del grupo que lo tenga
+    final int? kmFinal = grupo.reversed.map((InicioTurnoEntity g) => g.kmFinal).nonNulls.firstOrNull;
     final RegistroHorarioEntity? salida = entrada == null
         ? null
         : fichajes.where((RegistroHorarioEntity f) {
@@ -107,32 +130,40 @@ class ParteDiarioBuilder {
     return ParteDiarioData(
       empresa: empresa,
       tecnico: ParteFormato.mayusculas(inicio?.personalNombre ?? personalNombre),
-      rol: ParteFormato.mayusculas(inicio?.rol?.label),
+      rol: ParteFormato.mayusculas(grupo.map((InicioTurnoEntity g) => g.rol?.label).nonNulls.toSet().join(' / ')),
       companero: ParteFormato.mayusculas(inicio?.companeroNombre),
       matricula: ParteFormato.mayusculas(inicio?.vehiculoMatricula ?? entrada?.vehiculoMatricula),
       fecha: ParteFormato.fecha(inicio?.createdAt ?? dia),
       horaEntrada: ParteFormato.hora(entrada?.fechaHora),
       horaSalida: ParteFormato.hora(salida?.fechaHora),
       kmEntrada: ParteFormato.entero(inicio?.kmInicial),
-      kmSalida: ParteFormato.entero(inicio?.kmFinal),
-      kmRecorridos: ParteFormato.entero(inicio?.kmRecorridos),
+      kmSalida: ParteFormato.entero(kmFinal),
+      kmRecorridos: ParteFormato.entero(_kmRecorridos(inicio?.kmInicial, kmFinal)),
       gasoleoLitros: ParteFormato.decimal(litros),
       importe: importe == 0 ? '' : '${ParteFormato.decimal(importe)} €',
       numServicios: finalizados.toString(),
       revisadoControles: inicio != null && inicio.checklistItems.isNotEmpty,
       servicios: enTabla.map((TrasladoEntity t) => _servicio(t, nombresCentros)).toList(),
       incidencias: _incidencias(traslados, incidencias),
-      numerosP10: ParteFormato.mayusculas(inicio?.numerosP10),
+      numerosP10: ParteFormato.mayusculas(
+        grupo
+            .map((InicioTurnoEntity g) => (g.numerosP10 ?? '').trim())
+            .where((String n) => n.isNotEmpty)
+            .toSet()
+            .join(', '),
+      ),
       checklist: (inicio?.checklistItems ?? const <ChecklistInicioItem>[])
-          .map((ChecklistInicioItem c) => ChecklistParte(
-                nombre: ParteFormato.mayusculas(c.nombre),
-                correcto: c.correcto,
-                observacion: c.observacion,
-              ))
+          .map(
+            (ChecklistInicioItem c) => ChecklistParte(
+              nombre: ParteFormato.mayusculas(c.nombre),
+              correcto: c.correcto,
+              observacion: c.observacion,
+            ),
+          )
           .toList(),
       combustible: ParteFormato.mayusculas(inicio?.combustible?.label),
       declaracionAptitud: inicio?.declaracionAptitud ?? false,
-      otrasIncidencias: inicio == null ? const <String>[] : _otrasIncidencias(inicio),
+      otrasIncidencias: grupo.expand(_otrasIncidencias).toSet().toList(),
     );
   }
 
@@ -159,16 +190,25 @@ class ParteDiarioBuilder {
       }
       final String motivo = (t.motivoNoRealizacion ?? t.motivoCancelacion ?? '').trim();
       final String paciente = ParteFormato.paciente(t.paciente);
-      lineas.add(<String>[
-        if (paciente.isNotEmpty) paciente,
-        estado.label.toUpperCase(),
-        if (motivo.isNotEmpty) motivo,
-      ].join(' - '));
+      lineas.add(
+        <String>[
+          if (paciente.isNotEmpty) paciente,
+          estado.label.toUpperCase(),
+          if (motivo.isNotEmpty) motivo,
+        ].join(' - '),
+      );
     }
     for (final IncidenciaVehiculoEntity inc in vehiculo) {
       lineas.add('VEHÍCULO: ${inc.titulo}${inc.descripcion.trim().isEmpty ? '' : ' - ${inc.descripcion.trim()}'}');
     }
     return lineas;
+  }
+
+  static int? _kmRecorridos(int? inicial, int? fin) {
+    if (inicial == null || fin == null || fin < inicial) {
+      return null;
+    }
+    return fin - inicial;
   }
 
   static List<String> _otrasIncidencias(InicioTurnoEntity inicio) {
@@ -184,8 +224,9 @@ class ParteDiarioBuilder {
 
   /// Fichaje de entrada del turno: el vinculado al inicio o la primera entrada
   static RegistroHorarioEntity? _entrada(List<RegistroHorarioEntity> fichajes, String? registroEntradaId) {
-    final Iterable<RegistroHorarioEntity> entradas =
-        fichajes.where((RegistroHorarioEntity f) => f.tipo.toLowerCase() == 'entrada');
+    final Iterable<RegistroHorarioEntity> entradas = fichajes.where(
+      (RegistroHorarioEntity f) => f.tipo.toLowerCase() == 'entrada',
+    );
     return entradas.where((RegistroHorarioEntity f) => f.id == registroEntradaId).firstOrNull ?? entradas.firstOrNull;
   }
 

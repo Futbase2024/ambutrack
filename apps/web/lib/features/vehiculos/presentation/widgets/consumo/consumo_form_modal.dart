@@ -2,10 +2,13 @@ import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/services/auth_service.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
 import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
+import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/widgets/consumo/form/consumo_form_body.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/widgets/consumo/form/consumo_form_data.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:uuid/uuid.dart';
 
 /// Modal para crear/editar registros de consumo de combustible
@@ -38,6 +41,16 @@ class ConsumoFormModal extends StatefulWidget {
 }
 
 class _ConsumoFormModalState extends State<ConsumoFormModal> {
+  static const String _empresaFallback = '00000000-0000-0000-0000-000000000001';
+
+  /// empresa_id del usuario (tabla usuarios vía AuthBloc); el user_metadata no lo trae
+  String _empresaId() {
+    final AuthState authState = context.read<AuthBloc>().state;
+    return authState is AuthAuthenticated
+        ? (authState.user.empresaId ?? _empresaFallback)
+        : _empresaFallback;
+  }
+
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final ConsumoFormData _data = ConsumoFormData(original: widget.consumo);
   bool _isSaving = false;
@@ -135,7 +148,7 @@ class _ConsumoFormModalState extends State<ConsumoFormModal> {
       costoTotal: costoTotal,
       estacion: _data.estacionValue,
       ubicacion: _data.ubicacionValue,
-      empresaId: currentUser.userMetadata?['empresa_id']?.toString() ?? '',
+      empresaId: _empresaId(),
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );

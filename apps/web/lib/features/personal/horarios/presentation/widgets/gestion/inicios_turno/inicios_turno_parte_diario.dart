@@ -19,7 +19,7 @@ mixin IniciosTurnoParteDiario<T extends StatefulWidget> on State<T> {
 
   static String _nombre(InicioTurnoEntity i) => (i.personalNombre ?? '').trim();
 
-  /// Parte diario de la persona del inicio seleccionado (su día completo)
+  /// Parte diario del inicio seleccionado (junto a los inicios seguidos con la misma ambulancia)
   Future<void> imprimirParteDiario(InicioTurnoEntity inicio) {
     final DateTime dia = _diaDe(inicio);
     return _generar(
@@ -30,6 +30,7 @@ mixin IniciosTurnoParteDiario<T extends StatefulWidget> on State<T> {
         personalNombre: _nombre(inicio),
         dia: dia,
         empresaId: inicio.empresaId,
+        soloInicioId: inicio.id,
       ),
     );
   }
@@ -57,7 +58,8 @@ mixin IniciosTurnoParteDiario<T extends StatefulWidget> on State<T> {
     required String nombreArchivo,
     required Future<List<ParteDiarioData>> Function() carga,
   }) async {
-    final NavigatorState navigator = Navigator.of(context);
+    // showDialog usa el navegador raíz: cerrar ahí (el del shell quitaría la página)
+    final NavigatorState navigator = Navigator.of(context, rootNavigator: true);
     bool overlayAbierto = true;
     unawaited(showDialog<void>(
       context: context,

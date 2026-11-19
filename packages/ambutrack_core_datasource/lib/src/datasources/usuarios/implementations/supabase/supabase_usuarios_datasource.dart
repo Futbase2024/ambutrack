@@ -33,7 +33,11 @@ class SupabaseUsuarioDataSource implements UsuarioDataSource {
   }
 
   /// Invalida el caché
-  void _invalidateCache() {
+  void _invalidateCache() => invalidarCache();
+
+  /// Invalida el caché compartido (lo usan también las escrituras que van
+  /// por la Edge Function `admin-users`)
+  static void invalidarCache() {
     debugPrint('🗑️ SupabaseUsuarioDataSource: Invalidando caché');
     _cache = null;
     _cacheTimestamp = null;

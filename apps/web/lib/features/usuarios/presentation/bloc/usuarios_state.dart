@@ -1,4 +1,5 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+import 'package:ambutrack_web/core/auth/enums/user_role.dart';
 import 'package:equatable/equatable.dart';
 
 /// Estados del BLoC de usuarios
@@ -21,12 +22,15 @@ class UsuariosLoading extends UsuariosState {
 
 /// Usuarios cargados correctamente
 class UsuariosLoaded extends UsuariosState {
-  const UsuariosLoaded(this.usuarios);
+  const UsuariosLoaded(this.usuarios, {this.rolActual = UserRole.operador});
 
   final List<UserEntity> usuarios;
 
+  /// Rol de quien está usando la pantalla (decide qué acciones se ofrecen)
+  final UserRole rolActual;
+
   @override
-  List<Object?> get props => <Object?>[usuarios];
+  List<Object?> get props => <Object?>[usuarios, rolActual];
 }
 
 /// Creando usuario

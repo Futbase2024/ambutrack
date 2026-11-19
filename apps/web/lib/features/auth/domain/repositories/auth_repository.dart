@@ -37,4 +37,10 @@ abstract class AuthRepository {
 
   /// Restablecer contraseña
   Future<void> resetPassword({required String email});
+
+  /// true si la clave actual es provisional (alta o restablecimiento) y hay que cambiarla
+  Future<bool> debeCambiarClave();
+
+  /// Cambia la clave del usuario autenticado y quita la marca de provisional
+  Future<void> cambiarMiClave(String nuevaClave);
 }

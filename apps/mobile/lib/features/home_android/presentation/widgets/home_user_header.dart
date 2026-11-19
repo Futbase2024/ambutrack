@@ -2,6 +2,7 @@ import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/rol_label.dart';
 
 /// Cabecera de la home: datos del usuario y estado de su turno
 class HomeUserHeader extends StatelessWidget {
@@ -99,15 +100,7 @@ class HomeUserHeader extends StatelessWidget {
     if (categoria != null && categoria.trim().isNotEmpty) {
       return categoria;
     }
-    return switch (user.rol?.toLowerCase()) {
-      'tecnico' || 'tes' => 'Técnico en Emergencias Sanitarias',
-      'conductor' => 'Conductor de Ambulancia',
-      'admin' || 'administrador' => 'Administrador',
-      'enfermero' => 'Enfermero/a',
-      'medico' => 'Médico/a',
-      null || '' => 'Sin puesto asignado',
-      final String rol => rol,
-    };
+    return rolLabel(user.rol) ?? 'Sin puesto asignado';
   }
 
   static String _saludo() {

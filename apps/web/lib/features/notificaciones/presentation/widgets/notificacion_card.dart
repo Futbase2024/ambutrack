@@ -210,6 +210,8 @@ class NotificacionCard extends StatelessWidget {
         return AppColors.warning;
       case NotificacionTipo.incidenciaVehiculoReportada:
         return AppColors.error;
+      case NotificacionTipo.incidenciaVehiculoActualizada:
+        return AppColors.success;
       default:
         return AppColors.primary;
     }
@@ -231,6 +233,8 @@ class NotificacionCard extends StatelessWidget {
         return Icons.warning_amber_rounded;
       case NotificacionTipo.incidenciaVehiculoReportada:
         return Icons.car_crash_outlined;
+      case NotificacionTipo.incidenciaVehiculoActualizada:
+        return Icons.handyman_outlined;
       default:
         return Icons.notifications_outlined;
     }

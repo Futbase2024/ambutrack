@@ -207,7 +207,7 @@ class UbicacionFichajeDialog extends StatelessWidget {
                     TileLayer(
                       urlTemplate:
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.ambutrack.ambutrack_mobile',
+                      userAgentPackageName: 'com.emertrack.app',
                       maxZoom: 19,
                       tileBuilder: (context, tileWidget, tile) {
                         return ColorFiltered(

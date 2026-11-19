@@ -8,6 +8,8 @@ import 'app/flavors.dart';
 import 'core/config/supabase_config.dart';
 import 'core/di/injection.dart';
 import 'core/monitoring/error_monitoring.dart';
+import 'core/services/push_notifications_service.dart';
+import 'features/notificaciones/services/local_notifications_service.dart';
 
 /// Entry point para Android en modo PRODUCCIÓN
 void main() async {
@@ -31,6 +33,18 @@ void main() async {
 
   // Inicializar Dependency Injection (GetIt + Injectable)
   await configureDependencies();
+
+  // Notificaciones locales (crea los canales Android que usan también los push)
+  try {
+    final LocalNotificationsService notificationsService = getIt<LocalNotificationsService>();
+    await notificationsService.initialize();
+    await notificationsService.solicitarPermisos();
+  } catch (e) {
+    debugPrint('❌ Error al inicializar notificaciones: $e');
+  }
+
+  // Notificaciones push (FCM)
+  await getIt<PushNotificationsService>().inicializar();
 
   // Ejecutar app
   // Monitor de errores: solo activo si se compila con --dart-define=SENTRY_DSN=...

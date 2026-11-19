@@ -52,6 +52,14 @@ export 'src/datasources/usuarios/entities/usuario_entity.dart';
 export 'src/datasources/usuarios/usuarios_contract.dart';
 export 'src/datasources/usuarios/usuarios_factory.dart' show UsuarioDataSourceFactory;
 
+// Cuentas de usuario (altas, claves, estado) vía Edge Function `admin-users`
+export 'src/datasources/cuentas_usuario/cuentas_usuario_contract.dart';
+export 'src/datasources/cuentas_usuario/cuentas_usuario_factory.dart' show CuentasUsuarioDataSourceFactory;
+
+// Dispositivos para notificaciones push (token FCM por usuario)
+export 'src/datasources/dispositivos_push/dispositivos_push_contract.dart';
+export 'src/datasources/dispositivos_push/dispositivos_push_factory.dart' show DispositivosPushDataSourceFactory;
+
 // TPersonal (tabla legacy de personal)
 export 'src/datasources/tpersonal/entities/tpersonal_entity.dart';
 export 'src/datasources/tpersonal/tpersonal_contract.dart';
@@ -489,6 +497,12 @@ export 'src/datasources/evaluaciones_desempeno/evaluaciones_desempeno_factory.da
 export 'src/datasources/inicio_turno/entities/inicio_turno_entity.dart';
 export 'src/datasources/inicio_turno/inicio_turno_contract.dart';
 export 'src/datasources/inicio_turno/inicio_turno_factory.dart' show InicioTurnoDataSourceFactory;
+
+// ✅ PERSONAL - Solicitudes de vestuario y tallas (tablas `solicitudes_vestuario`, `tallas_personal`)
+export 'src/datasources/solicitudes_vestuario/entities/solicitud_vestuario_entity.dart';
+export 'src/datasources/solicitudes_vestuario/solicitudes_vestuario_contract.dart';
+export 'src/datasources/solicitudes_vestuario/solicitudes_vestuario_factory.dart'
+    show SolicitudesVestuarioDataSourceFactory;
 
 // Utils - Utilidades públicas
 export 'src/utils/exceptions/datasource_exception.dart';

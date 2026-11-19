@@ -52,6 +52,7 @@ import '../../features/alertas_turno/domain/repositories/alertas_turno_repositor
 import '../../features/alertas_turno/presentation/cubit/alertas_turno_cubit.dart';
 import '../../features/perfil/data/repositories/ajustes_dispositivo_repository_impl.dart';
 import '../../features/perfil/domain/repositories/ajustes_dispositivo_repository.dart';
+import '../services/push_notifications_service.dart';
 import '../services/app_lock_service.dart';
 import '../services/preferencias_dispositivo_service.dart';
 import '../../features/partes_diarios/data/repositories/parte_diario_pdf_repository_impl.dart';
@@ -100,9 +101,14 @@ Future<void> configureDependencies() async {
 
   // ===== AUTH =====
 
-  // Repository
+  // Notificaciones push (FCM): se desactiva sola si falta la config de Firebase
+  getIt.registerLazySingleton<PushNotificationsService>(
+    () => PushNotificationsService(local: getIt<LocalNotificationsService>()),
+  );
+
+  // Repository (antes de cerrar sesión, el móvil deja de recibir los push del usuario)
   getIt.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(),
+    () => AuthRepositoryImpl(alCerrarSesion: () => getIt<PushNotificationsService>().desactivar()),
   );
 
   // BLoC (Singleton para mantener el estado global de autenticación)
@@ -192,11 +198,7 @@ Future<void> configureDependencies() async {
 
   // BLoC (Factory para crear nueva instancia en cada página)
   getIt.registerFactory<IncidenciasBloc>(
-    () => IncidenciasBloc(
-      getIt<IncidenciasRepository>(),
-      getIt<NotificacionesRepository>(),
-      getIt<AuthBloc>(),
-    ),
+    () => IncidenciasBloc(getIt<IncidenciasRepository>()),
   );
 
   // ===== CHECKLIST VEHÍCULO =====

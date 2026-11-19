@@ -10,6 +10,7 @@ import '../../../features/notificaciones/presentation/bloc/notificaciones_state.
 import '../../../features/notificaciones/presentation/widgets/notificacion_badge.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_icons.dart';
+import '../../utils/rol_label.dart';
 import '../dialogs/logout_flow.dart';
 
 /// Layout principal de AmbuTrack Mobile
@@ -135,7 +136,7 @@ class MainLayout extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(user.email),
-                    if (user.rol != null) ...[
+                    if (rolLabel(user.rol) != null) ...[
                       const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -147,7 +148,7 @@ class MainLayout extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          user.rol!.toUpperCase(),
+                          rolLabel(user.rol)!.toUpperCase(),
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,

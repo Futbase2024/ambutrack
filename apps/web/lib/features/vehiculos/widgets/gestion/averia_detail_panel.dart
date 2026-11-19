@@ -15,6 +15,7 @@ class AveriaDetailPanel extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onCrearOrden,
+    required this.onReenviarAviso,
     this.ordenesRefresh = 0,
     super.key,
   });
@@ -26,6 +27,9 @@ class AveriaDetailPanel extends StatelessWidget {
 
   /// Crea una orden de reparación a partir de la avería
   final VoidCallback onCrearOrden;
+
+  /// Vuelve a avisar (notificación + push) a los gestores de flota
+  final VoidCallback onReenviarAviso;
 
   /// Cambia para recargar la pestaña de órdenes vinculadas
   final int ordenesRefresh;
@@ -72,6 +76,12 @@ class AveriaDetailPanel extends StatelessWidget {
             color: AppColors.secondary,
             onPressed: onCrearOrden,
           ),
+        FlotaPanelButton(
+          icon: Icons.notifications_active_outlined,
+          label: 'Avisar',
+          color: AppColors.warning,
+          onPressed: onReenviarAviso,
+        ),
         FlotaPanelButton.edit(onPressed: onEdit),
         FlotaPanelButton.delete(onPressed: onDelete),
       ],

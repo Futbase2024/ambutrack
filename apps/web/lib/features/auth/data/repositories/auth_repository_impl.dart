@@ -1,3 +1,5 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart'
+    show CuentasUsuarioDataSource, CuentasUsuarioDataSourceFactory;
 import 'package:ambutrack_web/core/services/auth_service.dart';
 import 'package:ambutrack_web/features/auth/data/mappers/user_mapper.dart';
 import 'package:ambutrack_web/features/auth/domain/entities/user_entity.dart';
@@ -14,6 +16,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   final AuthService _authService;
+  final CuentasUsuarioDataSource _cuentas = CuentasUsuarioDataSourceFactory.createSupabase();
   SupabaseClient get _supabase => Supabase.instance.client;
 
   UserEntity? _cachedUser;
@@ -252,5 +255,17 @@ class AuthRepositoryImpl implements AuthRepository {
     if (result.isFailure) {
       throw result.error ?? Exception('Error desconocido al restablecer contraseña');
     }
+  }
+
+  @override
+  Future<bool> debeCambiarClave() async {
+    debugPrint('📦 AuthRepository: Comprobando si la clave es provisional');
+    return _cuentas.debeCambiarClave();
+  }
+
+  @override
+  Future<void> cambiarMiClave(String nuevaClave) async {
+    debugPrint('📦 AuthRepository: Cambiando la clave propia');
+    return _cuentas.cambiarMiClave(nuevaClave);
   }
 }

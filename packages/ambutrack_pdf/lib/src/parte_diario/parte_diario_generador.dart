@@ -38,6 +38,7 @@ class ParteDiarioGenerador {
     required String personalNombre,
     required DateTime dia,
     String? empresaId,
+    String? soloInicioId,
   }) async {
     final DateTime desde = DateTime(dia.year, dia.month, dia.day);
     final DateTime hasta = desde.add(const Duration(days: 1));
@@ -72,6 +73,7 @@ class ParteDiarioGenerador {
           .toList(),
       incidencias: extra[1]! as List<IncidenciaVehiculoEntity>,
       nombresCentros: extra[3]! as Map<String, String>,
+      soloInicioId: soloInicioId,
     );
   }
 

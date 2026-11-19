@@ -1,8 +1,11 @@
 import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+import 'package:ambutrack_web/core/di/locator.dart';
+import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/confirmation_dialog.dart';
 import 'package:ambutrack_web/core/widgets/dialogs/result_dialog.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/taller/presentation/bloc/taller_bloc.dart';
+import 'package:ambutrack_web/features/vehiculos/domain/repositories/incidencia_vehiculo_repository.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/incidencia_vehiculo/incidencia_vehiculo_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/incidencia_vehiculo/incidencia_vehiculo_event.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/incidencia_vehiculo/incidencia_vehiculo_state.dart';
@@ -127,6 +130,48 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
     }
     setState(() => _ordenesRefresh++);
     _bloc.add(IncidenciaVehiculoEvent.updateIncidencia(averiaTrasCrearOrden(incidencia, orden)));
+  }
+
+  /// Vuelve a enviar el aviso de la avería (notificación + push) a los gestores de flota
+  Future<void> _reenviarAviso(IncidenciaVehiculoEntity incidencia) async {
+    final bool? confirmed = await showSimpleConfirmationDialog(
+      context: context,
+      title: 'Reenviar aviso',
+      message: 'Se volverá a notificar la avería "${incidencia.titulo}" a los gestores de flota '
+          '(también en el móvil).\n\n¿Quieres reenviar el aviso?',
+      confirmText: 'Reenviar',
+      icon: Icons.notifications_active_outlined,
+      iconColor: AppColors.warning,
+      confirmButtonColor: AppColors.warning,
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    try {
+      final int avisados = await getIt<IncidenciaVehiculoRepository>().reenviarAviso(incidencia.id);
+      if (!mounted) {
+        return;
+      }
+      await showResultDialog(
+        context: context,
+        title: avisados > 0 ? 'Aviso reenviado' : 'Nadie a quien avisar',
+        message: avisados > 0
+            ? 'Se ha avisado a $avisados ${avisados == 1 ? 'gestor' : 'gestores'} de flota.'
+            : 'No hay otros gestores de flota activos a los que enviar el aviso.',
+        type: avisados > 0 ? ResultType.success : ResultType.warning,
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      await showResultDialog(
+        context: context,
+        title: 'No se pudo reenviar el aviso',
+        message: 'Ha ocurrido un error al reenviar el aviso de la avería.',
+        details: e.toString(),
+        type: ResultType.error,
+      );
+    }
   }
 
   Future<void> _confirmDelete(IncidenciaVehiculoEntity incidencia, Map<String, VehiculoEntity> vehiculos) async {
@@ -265,6 +310,7 @@ class _AveriaGestionViewState extends State<AveriaGestionView> {
             onEdit: () => _openForm(selected),
             onDelete: () => _confirmDelete(selected!, vehiculos),
             onCrearOrden: () => _crearOrden(selected!),
+            onReenviarAviso: () => _reenviarAviso(selected!),
             ordenesRefresh: _ordenesRefresh,
           ),
           statusBar: GestionStatusBar(

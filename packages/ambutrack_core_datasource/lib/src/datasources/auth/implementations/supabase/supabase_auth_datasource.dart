@@ -22,7 +22,7 @@ class SupabaseAuthDataSource implements AuthDataSource {
       throw Exception('Error al iniciar sesión');
     }
 
-    return _mapSupabaseUserToEntity(response.user!);
+    return _buildUserEntity(response.user!);
   }
 
   @override
@@ -60,14 +60,14 @@ class SupabaseAuthDataSource implements AuthDataSource {
   Future<UserEntity?> getCurrentUser() async {
     final user = _client.auth.currentUser;
     if (user == null) return null;
-    return _mapSupabaseUserToEntity(user);
+    return _buildUserEntity(user);
   }
 
   @override
   Stream<UserEntity?> get authStateChanges {
-    return _client.auth.onAuthStateChange.map((event) {
+    return _client.auth.onAuthStateChange.asyncMap((event) async {
       final user = event.session?.user;
-      return user != null ? _mapSupabaseUserToEntity(user) : null;
+      return user != null ? _buildUserEntity(user) : null;
     });
   }
 
@@ -92,7 +92,7 @@ class SupabaseAuthDataSource implements AuthDataSource {
       throw Exception('Error al registrar usuario');
     }
 
-    return _mapSupabaseUserToEntity(response.user!);
+    return _buildUserEntity(response.user!);
   }
 
   @override
@@ -121,22 +121,58 @@ class SupabaseAuthDataSource implements AuthDataSource {
     );
   }
 
+  /// Construye el UserEntity completando nombre, foto y rol con la tabla `usuarios`
+  Future<UserEntity> _buildUserEntity(User user) async {
+    Map<String, dynamic>? perfil;
+    try {
+      perfil = await _client
+          .from('usuarios')
+          .select('nombre, apellidos, rol, foto_url')
+          .eq('id', user.id)
+          .maybeSingle();
+    } catch (_) {
+      perfil = null;
+    }
+    return _mapSupabaseUserToEntity(user, perfil);
+  }
+
   /// Convierte un User de Supabase a UserEntity
-  UserEntity _mapSupabaseUserToEntity(User user) {
+  UserEntity _mapSupabaseUserToEntity(User user, Map<String, dynamic>? perfil) {
     final metadata = user.userMetadata ?? <String, dynamic>{};
+    final String? rol = _texto(perfil?['rol']);
 
     return UserEntity(
       id: user.id,
       email: user.email ?? '',
-      displayName: metadata['display_name'] as String?,
-      photoUrl: metadata['photo_url'] as String?,
+      displayName: _nombreCompleto(perfil, metadata),
+      photoUrl: _texto(perfil?['foto_url']) ?? _texto(metadata['photo_url']),
       phoneNumber: user.phone,
       isEmailVerified: user.emailConfirmedAt != null,
       createdAt: DateTime.parse(user.createdAt),
       updatedAt: DateTime.now(),
       metadata: metadata.isNotEmpty ? metadata : null,
-      roles: const <String>[],
+      roles: rol != null ? <String>[rol] : const <String>[],
       isActive: true,
     );
+  }
+
+  /// Nombre completo: tabla `usuarios` → metadatos (display_name, full_name, nombre + apellidos)
+  static String? _nombreCompleto(Map<String, dynamic>? perfil, Map<String, dynamic> metadata) {
+    final String? desdeTabla = _unir(perfil?['nombre'], perfil?['apellidos']);
+    return desdeTabla ??
+        _texto(metadata['display_name']) ??
+        _texto(metadata['full_name']) ??
+        _unir(metadata['nombre'], metadata['apellidos']);
+  }
+
+  static String? _unir(Object? nombre, Object? apellidos) {
+    final String completo = <String?>[_texto(nombre), _texto(apellidos)].whereType<String>().join(' ');
+    return completo.isEmpty ? null : completo;
+  }
+
+  static String? _texto(Object? valor) {
+    if (valor is! String) return null;
+    final String limpio = valor.trim();
+    return limpio.isEmpty ? null : limpio;
   }
 }

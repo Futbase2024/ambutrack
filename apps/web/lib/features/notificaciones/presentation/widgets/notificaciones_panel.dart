@@ -299,6 +299,7 @@ class _NotificacionesContent extends StatelessWidget {
           context.go('/servicios/planificar');
           break;
         case NotificacionTipo.incidenciaVehiculoReportada:
+        case NotificacionTipo.incidenciaVehiculoActualizada:
           // Navegar a historial de averías/incidencias
           context.go('/flota/historial-averias');
           break;

@@ -1,4 +1,4 @@
-package com.ambutrack.ambutrack_mobile
+package com.emertrack.app
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

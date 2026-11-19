@@ -9,6 +9,7 @@ import 'package:ambutrack_web/features/usuarios/presentation/bloc/usuarios_bloc.
 import 'package:ambutrack_web/features/usuarios/presentation/bloc/usuarios_event.dart';
 import 'package:ambutrack_web/features/usuarios/presentation/bloc/usuarios_state.dart';
 import 'package:ambutrack_web/features/usuarios/presentation/widgets/form/password_form_field.dart';
+import 'package:ambutrack_web/features/usuarios/presentation/widgets/form/tipo_clave_selector.dart';
 import 'package:ambutrack_web/features/usuarios/presentation/widgets/form/usuario_form_data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -141,19 +142,12 @@ class _UsuarioResetPasswordDialogState extends State<UsuarioResetPasswordDialog>
           const GestionFormSection(title: 'Nueva contraseña'),
           GestionFormRow(
             label: 'Tipo de clave',
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: SegmentedButton<bool>(
-                segments: const <ButtonSegment<bool>>[
-                  ButtonSegment<bool>(value: true, label: Text('PIN app móvil (6 dígitos)'), icon: Icon(Icons.phone_android)),
-                  ButtonSegment<bool>(value: false, label: Text('Contraseña web'), icon: Icon(Icons.computer)),
-                ],
-                selected: <bool>{_pinMovil},
-                onSelectionChanged: (Set<bool> v) {
-                  _pinMovil = v.first;
-                  _generatePassword();
-                },
-              ),
+            child: TipoClaveSelector(
+              pinMovil: _pinMovil,
+              onChanged: (bool v) {
+                _pinMovil = v;
+                _generatePassword();
+              },
             ),
           ),
           GestionFormRow(
@@ -176,8 +170,8 @@ class _UsuarioResetPasswordDialogState extends State<UsuarioResetPasswordDialog>
             ),
           ),
           const GestionFormNote(
-            text: 'Se genera automáticamente. Cópiala y compártela con el usuario: '
-                'deberá usarla en su próximo inicio de sesión.',
+            text: 'Clave provisional generada automáticamente. Cópiala y compártela con el usuario: '
+                'al iniciar sesión se le pedirá que la cambie por una propia.',
             icon: Icons.warning_amber,
             color: AppColors.warning,
           ),

@@ -11,6 +11,7 @@ import 'package:ambutrack_web/features/alertas_caducidad/presentation/widgets/al
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_event.dart';
 import 'package:ambutrack_web/features/auth/presentation/bloc/auth_state.dart';
+import 'package:ambutrack_web/features/auth/presentation/widgets/cambio_clave_obligatorio_gate.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_bloc.dart';
 import 'package:ambutrack_web/features/vehiculos/presentation/bloc/stock_equipamiento/stock_equipamiento_event.dart';
 import 'package:flutter/material.dart';
@@ -74,8 +75,9 @@ class App extends StatelessWidget {
                   darkTheme: AppTheme.darkTheme,
 
                   // Builder para mostrar el diálogo de alertas críticas
+                  // + cambio obligatorio de la clave provisional por encima de todo
                   builder: (BuildContext context, Widget? child) {
-                    return _AlertasDialogListener(child: child!);
+                    return CambioClaveObligatorioGate(child: _AlertasDialogListener(child: child!));
                   },
 
                   // Configuración del router

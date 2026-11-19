@@ -7,6 +7,7 @@ import 'app/app.dart';
 import 'app/flavors.dart';
 import 'core/config/supabase_config.dart';
 import 'core/di/injection.dart';
+import 'core/services/push_notifications_service.dart';
 import 'features/notificaciones/services/local_notifications_service.dart';
 import 'core/monitoring/error_monitoring.dart';
 
@@ -44,6 +45,9 @@ void main() async {
   } catch (e) {
     debugPrint('❌ Error al inicializar notificaciones: $e');
   }
+
+  // Notificaciones push (FCM)
+  await getIt<PushNotificationsService>().inicializar();
 
   // Ejecutar app
   // Monitor de errores: solo activo si se compila con --dart-define=SENTRY_DSN=...

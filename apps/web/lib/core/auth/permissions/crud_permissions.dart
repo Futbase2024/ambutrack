@@ -90,6 +90,7 @@ class CrudPermissions {
       AppModule.personal: true,
       AppModule.vehiculos: false,
       AppModule.servicios: false,
+      AppModule.usuariosRoles: true, // Altas de personal operativo (Edge Function valida)
     },
 
     UserRole.jefeTrafic: <AppModule, bool>{
@@ -158,21 +159,21 @@ class CrudPermissions {
       AppModule.personal: true,
       AppModule.vehiculos: false,
       AppModule.servicios: false,
-      AppModule.usuariosRoles: false,
+      AppModule.usuariosRoles: true,
     },
 
     UserRole.jefeTrafic: <AppModule, bool>{
       AppModule.personal: true, // Para planificación
       AppModule.vehiculos: true,
       AppModule.servicios: true,
-      AppModule.usuariosRoles: false,
+      AppModule.usuariosRoles: true, // Solo consulta
     },
 
     UserRole.coordinador: <AppModule, bool>{
       AppModule.personal: true,
       AppModule.vehiculos: true,
       AppModule.servicios: true,
-      AppModule.usuariosRoles: false,
+      AppModule.usuariosRoles: true, // Solo consulta
     },
 
     UserRole.administrativo: <AppModule, bool>{
@@ -235,7 +236,7 @@ class CrudPermissions {
       AppModule.personal: true,
       AppModule.vehiculos: false,
       AppModule.servicios: false,
-      AppModule.usuariosRoles: false,
+      AppModule.usuariosRoles: true,
     },
 
     UserRole.jefeTrafic: <AppModule, bool>{

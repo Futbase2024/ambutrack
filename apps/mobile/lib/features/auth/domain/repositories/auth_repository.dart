@@ -21,4 +21,10 @@ abstract class AuthRepository {
 
   /// Busca el email de un usuario por su DNI
   Future<String?> getEmailByDni(String dni);
+
+  /// true si la clave actual es provisional (alta o restablecimiento) y hay que cambiarla
+  Future<bool> debeCambiarClave();
+
+  /// Cambia la clave del usuario autenticado y quita la marca de provisional
+  Future<void> cambiarMiClave(String nuevaClave);
 }

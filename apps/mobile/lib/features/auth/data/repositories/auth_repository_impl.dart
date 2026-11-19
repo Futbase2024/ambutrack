@@ -7,9 +7,16 @@ import '../../domain/repositories/auth_repository.dart';
 ///
 /// Actúa como pass-through directo al datasource sin conversiones.
 class AuthRepositoryImpl implements AuthRepository {
-  AuthRepositoryImpl() : _dataSource = AuthDataSourceFactory.createSupabase();
+  AuthRepositoryImpl({Future<void> Function()? alCerrarSesion})
+      : _dataSource = AuthDataSourceFactory.createSupabase(),
+        _cuentas = CuentasUsuarioDataSourceFactory.createSupabase(),
+        _alCerrarSesion = alCerrarSesion;
 
   final AuthDataSource _dataSource;
+  final CuentasUsuarioDataSource _cuentas;
+
+  /// Se ejecuta con la sesión todavía abierta (p.ej. dar de baja el token push)
+  final Future<void> Function()? _alCerrarSesion;
 
   @override
   Future<UserEntity> signInWithEmailAndPassword({
@@ -26,6 +33,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> signOut() async {
     debugPrint('📦 [Repository] Solicitando logout...');
+    await _alCerrarSesion?.call();
     return await _dataSource.signOut();
   }
 
@@ -44,5 +52,17 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<String?> getEmailByDni(String dni) async {
     debugPrint('📦 [Repository] Buscando email por DNI...');
     return await _dataSource.getEmailByDni(dni);
+  }
+
+  @override
+  Future<bool> debeCambiarClave() async {
+    debugPrint('📦 [Repository] Comprobando si la clave es provisional...');
+    return await _cuentas.debeCambiarClave();
+  }
+
+  @override
+  Future<void> cambiarMiClave(String nuevaClave) async {
+    debugPrint('📦 [Repository] Cambiando la clave propia...');
+    return await _cuentas.cambiarMiClave(nuevaClave);
   }
 }

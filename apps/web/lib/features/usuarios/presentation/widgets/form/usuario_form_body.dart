@@ -1,5 +1,7 @@
+import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:ambutrack_web/features/usuarios/presentation/widgets/form/password_form_field.dart';
+import 'package:ambutrack_web/features/usuarios/presentation/widgets/form/tipo_clave_selector.dart';
 import 'package:ambutrack_web/features/usuarios/presentation/widgets/form/usuario_form_data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +14,7 @@ class UsuarioFormBody extends StatelessWidget {
     required this.roles,
     required this.empresas,
     required this.isLoadingRoles,
+    required this.puedeElegirEmpresa,
     required this.onGeneratePassword,
     required this.onChanged,
     super.key,
@@ -22,6 +25,9 @@ class UsuarioFormBody extends StatelessWidget {
   final List<Map<String, dynamic>> roles;
   final List<Map<String, dynamic>> empresas;
   final bool isLoadingRoles;
+
+  /// false = jefe de personal: el usuario queda en su empresa (lo fija el servidor)
+  final bool puedeElegirEmpresa;
   final VoidCallback onGeneratePassword;
 
   /// Notifica cambios para que el diálogo se reconstruya
@@ -89,22 +95,32 @@ class UsuarioFormBody extends StatelessWidget {
             ),
           ],
         ),
-        if (!isEditing)
+        if (!isEditing) ...<Widget>[
+          GestionFormRow(
+            label: 'Tipo de clave',
+            child: TipoClaveSelector(
+              pinMovil: data.pinMovil,
+              onChanged: (bool v) {
+                data.pinMovil = v;
+                onGeneratePassword();
+              },
+            ),
+          ),
           GestionFormColumns(
             children: <Widget>[
               GestionFormRow(
-                label: 'Contraseña',
+                label: 'Clave provisional',
                 required: true,
                 child: PasswordFormField(
                   controller: data.password,
-                  hint: 'Mínimo 6 caracteres',
-                  validator: UsuarioFormValidators.password,
+                  hint: data.pinMovil ? '6 dígitos' : 'Mínimo 8 caracteres',
+                  validator: data.pinMovil ? UsuarioFormValidators.pin : UsuarioFormValidators.password,
                   visible: data.passwordVisible,
                   onVisibleChanged: (bool v) => _set(() => data.passwordVisible = v),
                   actions: <PasswordFieldAction>[
                     PasswordFieldAction(
                       icon: Icons.refresh,
-                      tooltip: 'Generar contraseña',
+                      tooltip: 'Generar clave',
                       onPressed: onGeneratePassword,
                     ),
                   ],
@@ -113,6 +129,13 @@ class UsuarioFormBody extends StatelessWidget {
               const SizedBox.shrink(),
             ],
           ),
+          const GestionFormNote(
+            text: 'Es una clave provisional: compártela con el usuario. '
+                'En su primer inicio de sesión se le pedirá que la cambie por una propia.',
+            icon: Icons.lock_clock_outlined,
+            color: AppColors.warning,
+          ),
+        ],
         const GestionFormSection(title: 'Permisos'),
         GestionFormColumns(
           children: <Widget>[
@@ -123,7 +146,9 @@ class UsuarioFormBody extends StatelessWidget {
             ),
             GestionFormRow(
               label: 'Empresa',
-              child: _EmpresaField(data: data, empresas: empresas, onChanged: onChanged),
+              child: puedeElegirEmpresa
+                  ? _EmpresaField(data: data, empresas: empresas, onChanged: onChanged)
+                  : const GestionFormReadOnly(value: 'Tu empresa (se asigna automáticamente)'),
             ),
           ],
         ),

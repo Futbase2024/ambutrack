@@ -91,10 +91,11 @@ extension EstadoIncidenciaExtension on EstadoIncidencia {
     switch (this) {
       case EstadoIncidencia.reportada:
         return 'reportada';
+      // Valores admitidos por el CHECK de incidencias_vehiculos.estado
       case EstadoIncidencia.enRevision:
-        return 'en_revision';
+        return 'enRevision';
       case EstadoIncidencia.enReparacion:
-        return 'en_reparacion';
+        return 'enReparacion';
       case EstadoIncidencia.resuelta:
         return 'resuelta';
       case EstadoIncidencia.cerrada:
@@ -106,8 +107,10 @@ extension EstadoIncidenciaExtension on EstadoIncidencia {
     switch (value) {
       case 'reportada':
         return EstadoIncidencia.reportada;
+      case 'enRevision':
       case 'en_revision':
         return EstadoIncidencia.enRevision;
+      case 'enReparacion':
       case 'en_reparacion':
         return EstadoIncidencia.enReparacion;
       case 'resuelta':

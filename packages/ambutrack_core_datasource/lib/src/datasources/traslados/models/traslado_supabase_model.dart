@@ -19,6 +19,16 @@ DateTime? _parseAsUtc(String? dateStr) {
   return DateTime.parse('${dateStr}Z');
 }
 
+/// Horas de los estados del traslado (fecha_enviado, fecha_en_origen, ...).
+/// La app las guarda como hora LOCAL (`DateTime.now().toIso8601String()`) en
+/// columnas `timestamp without time zone`, así que se leen como hora local.
+/// Leerlas como UTC las desplazaba (p. ej. 1 h en invierno en España).
+DateTime? _parseHoraLocal(String? dateStr) {
+  if (dateStr == null) return null;
+  final DateTime d = DateTime.parse(dateStr);
+  return d.isUtc ? d.toLocal() : d;
+}
+
 /// Modelo de datos para Traslados desde/hacia Supabase
 /// DTO con serialización JSON automática
 @JsonSerializable(explicitToJson: true)
@@ -388,25 +398,25 @@ class TrasladoSupabaseModel {
       duracionEstimadaMinutos: duracionEstimadaMinutos,
       duracionRealMinutos: duracionRealMinutos,
       prioridad: prioridad ?? 5,
-      fechaEnviado: _parseAsUtc(fechaEnviado),
-      fechaRecibidoConductor: _parseAsUtc(fechaRecibidoConductor),
-      fechaEnOrigen: _parseAsUtc(fechaEnOrigen),
+      fechaEnviado: _parseHoraLocal(fechaEnviado),
+      fechaRecibidoConductor: _parseHoraLocal(fechaRecibidoConductor),
+      fechaEnOrigen: _parseHoraLocal(fechaEnOrigen),
       ubicacionEnOrigen: ubicacionEnOrigen,
-      fechaSaliendoOrigen: _parseAsUtc(fechaSaliendoOrigen),
+      fechaSaliendoOrigen: _parseHoraLocal(fechaSaliendoOrigen),
       ubicacionSaliendoOrigen: ubicacionSaliendoOrigen,
-      fechaEnTransito: _parseAsUtc(fechaEnTransito),
+      fechaEnTransito: _parseHoraLocal(fechaEnTransito),
       ubicacionEnTransito: ubicacionEnTransito,
-      fechaEnDestino: _parseAsUtc(fechaEnDestino),
+      fechaEnDestino: _parseHoraLocal(fechaEnDestino),
       ubicacionEnDestino: ubicacionEnDestino,
-      fechaFinalizado: _parseAsUtc(fechaFinalizado),
+      fechaFinalizado: _parseHoraLocal(fechaFinalizado),
       ubicacionFinalizado: ubicacionFinalizado,
-      fechaCancelado: _parseAsUtc(fechaCancelado),
-      fechaSuspendido: _parseAsUtc(fechaSuspendido),
-      fechaNoRealizado: _parseAsUtc(fechaNoRealizado),
+      fechaCancelado: _parseHoraLocal(fechaCancelado),
+      fechaSuspendido: _parseHoraLocal(fechaSuspendido),
+      fechaNoRealizado: _parseHoraLocal(fechaNoRealizado),
       idUsuarioAsignacion: idUsuarioAsignacion,
-      fechaAsignacion: _parseAsUtc(fechaAsignacion),
+      fechaAsignacion: _parseHoraLocal(fechaAsignacion),
       idUsuarioEnvio: idUsuarioEnvio,
-      fechaEnvio: _parseAsUtc(fechaEnvio),
+      fechaEnvio: _parseHoraLocal(fechaEnvio),
       idUsuarioCancelacion: idUsuarioCancelacion,
       createdAt: _parseAsUtc(createdAt),
       updatedAt: _parseAsUtc(updatedAt),

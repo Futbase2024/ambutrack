@@ -63,6 +63,7 @@ List<ParteDiarioData> _construir({
   required List<InicioTurnoEntity> inicios,
   required List<RegistroHorarioEntity> fichajes,
   required List<TrasladoEntity> traslados,
+  String? soloInicioId,
 }) {
   return ParteDiarioBuilder.construirDia(
     personalId: _yo,
@@ -72,6 +73,7 @@ List<ParteDiarioData> _construir({
     inicios: inicios,
     fichajes: fichajes,
     traslados: traslados,
+    soloInicioId: soloInicioId,
   );
 }
 
@@ -110,7 +112,7 @@ void main() {
       expect(p.otrasIncidencias.single, 'OXÍGENO: Bala baja');
     });
 
-    test('dos inicios de turno en el día generan dos partes', () {
+    test('dos inicios con distinta ambulancia generan dos partes', () {
       final List<ParteDiarioData> partes = _construir(
         inicios: <InicioTurnoEntity>[_inicio('2', 'v-2', 15), _inicio('1', 'v-1', 7)],
         fichajes: <RegistroHorarioEntity>[
@@ -133,6 +135,35 @@ void main() {
       expect(partes[1].horaEntrada, '15:00');
       expect(partes[1].servicios, hasLength(2));
       expect(partes[1].kmSalida, isEmpty);
+    });
+
+    test('inicios seguidos con la misma ambulancia se juntan en un parte', () {
+      final List<ParteDiarioData> partes = _construir(
+        inicios: <InicioTurnoEntity>[_inicio('1', 'v-1', 7), _inicio('2', 'v-1', 8, kmFinal: 1250)],
+        fichajes: <RegistroHorarioEntity>[_fichaje('e-1', 'entrada', 7, 0)],
+        traslados: <TrasladoEntity>[
+          _traslado('t1', EstadoTraslado.finalizado, 6, conductor: _yo),
+          _traslado('t2', EstadoTraslado.finalizado, 10, conductor: _yo),
+        ],
+      );
+
+      expect(partes, hasLength(1));
+      expect(partes.single.servicios, hasLength(2));
+      expect(partes.single.kmEntrada, '1000');
+      expect(partes.single.kmSalida, '1250');
+      expect(partes.single.kmRecorridos, '250');
+    });
+
+    test('soloInicioId devuelve solo el parte de ese inicio', () {
+      final List<ParteDiarioData> partes = _construir(
+        inicios: <InicioTurnoEntity>[_inicio('1', 'v-1', 7), _inicio('2', 'v-2', 15)],
+        fichajes: const <RegistroHorarioEntity>[],
+        traslados: <TrasladoEntity>[_traslado('t2', EstadoTraslado.finalizado, 17, conductor: _yo)],
+        soloInicioId: '2',
+      );
+
+      expect(partes, hasLength(1));
+      expect(partes.single.servicios, hasLength(1));
     });
 
     test('sin inicio de turno: un parte sin revisión de vehículo', () {

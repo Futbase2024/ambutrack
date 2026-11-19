@@ -3,6 +3,7 @@ import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/widgets/gestion/gestion_layout.dart';
 import 'package:ambutrack_web/features/personal/presentation/widgets/gestion/vestuario/vestuario_gestion_columns.dart';
 import 'package:ambutrack_web/features/personal/presentation/widgets/gestion/vestuario/vestuario_related_tabs.dart';
+import 'package:ambutrack_web/features/stock_vestuario/presentation/widgets/tallas/tallas_personal_tab.dart';
 import 'package:flutter/material.dart';
 
 /// Ficha lateral de la asignación de vestuario seleccionada
@@ -49,6 +50,10 @@ class VestuarioDetailPanel extends StatelessWidget {
         GestionDetailTab(
           label: 'Trabajador',
           child: VestuarioTrabajadorTab(items: delTrabajador, selectedId: v.id),
+        ),
+        GestionDetailTab(
+          label: 'Tallas',
+          child: TallasPersonalTab(personalId: v.personalId, trabajador: nombre(v.personalId)),
         ),
       ],
       actions: <Widget>[

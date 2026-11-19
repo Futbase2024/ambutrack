@@ -10,9 +10,11 @@ import '../core/config/router_config.dart';
 import '../core/di/injection.dart';
 import '../core/services/app_lock_service.dart';
 import '../core/services/gps_tracking_service.dart';
+import '../core/services/push_notifications_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/app_lock/app_lock_gate.dart';
 import '../core/widgets/app_lock/oferta_biometria.dart';
+import '../core/widgets/cambio_clave/cambio_clave_obligatorio_gate.dart';
 import '../features/alertas_turno/presentation/cubit/alertas_turno_cubit.dart';
 import '../features/auth/presentation/bloc/auth_bloc.dart';
 import '../features/auth/presentation/bloc/auth_event.dart';
@@ -43,6 +45,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   late final GpsTrackingService _gpsService;
   final AppLockService _appLock = getIt<AppLockService>();
   final AlertasTurnoCubit _alertasTurno = getIt<AlertasTurnoCubit>();
+  final PushNotificationsService _push = getIt<PushNotificationsService>();
   bool _isNotificacionesBlocInitialized = false;
   bool _sesionBloqueable = false;
   bool _loginEnCurso = false;
@@ -79,6 +82,12 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     _notificationsService.onShowInAppNotification = _mostrarNotificacionInApp;
     debugPrint('✅ [App] Callback configurado');
 
+    // Push tocado (app en segundo plano o cerrada) → pantalla del aviso
+    _push.onAbrirNotificacion = _abrirNotificacionPush;
+    // Notificación local tocada (push con la app abierta en Android) → misma pantalla
+    _notificationsService.onNotificationTap =
+        (String id, NotificacionTipo tipo, String? _) => _abrirNotificacionPush(id, tipo);
+
     // Escuchar cambios de autenticación para inicializar NotificacionesBloc
     _authBloc.stream.listen(_onAuthStateChanged);
 
@@ -88,6 +97,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     if (currentState is AuthAuthenticated) {
       _actualizarBloqueo(currentState);
       _actualizarAlertas(currentState);
+      _actualizarPush(currentState);
       debugPrint('🔔 [App] Usuario YA autenticado, inicializando NotificacionesBloc...');
       _initializeNotificacionesBloc();
     }
@@ -98,6 +108,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     _gpsService.setAutenticado(value: state is AuthAuthenticated);
     _actualizarBloqueo(state);
     _actualizarAlertas(state);
+    _actualizarPush(state);
     debugPrint('🔔 [App] Estado de AuthBloc cambiado: ${state.runtimeType}');
 
     if (!_isNotificacionesBlocInitialized && state is AuthAuthenticated) {
@@ -116,6 +127,23 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     } else if (state is AuthUnauthenticated) {
       _alertasTurno.limpiar();
     }
+  }
+
+  /// Push: registra el móvil al entrar; al salir, el próximo login lo reasigna
+  void _actualizarPush(AuthState state) {
+    if (state is AuthAuthenticated) {
+      unawaited(_push.activarParaUsuarioActual());
+    } else if (state is AuthUnauthenticated) {
+      _push.marcarSesionCerrada();
+    }
+  }
+
+  /// Abre la pantalla del aviso push tocado y lo marca como leído
+  void _abrirNotificacionPush(String? notificacionId, NotificacionTipo tipo) {
+    if (notificacionId != null) {
+      _notificacionesBloc?.add(NotificacionesEvent.marcarComoLeida(notificacionId));
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _router.push(_rutaNotificacion(tipo)));
   }
 
   /// Bloqueo por inactividad: activo solo con sesión iniciada
@@ -177,6 +205,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     } else if (isInForeground) {
       _appLock.volverAPrimerPlano();
       _actualizarAlertas(_authBloc.state);
+      unawaited(_push.reafirmarRegistro());
     }
 
     // GPS: "inactive" (diálogos del sistema, p.ej. permisos) cuenta como primer plano
@@ -230,9 +259,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
             );
 
             // Navegar según el tipo de notificación
-            final rutaDestino = notificacion.tipo == NotificacionTipo.alertaCaducidad
-                ? '/caducidades'
-                : '/servicios';
+            final rutaDestino = _rutaNotificacion(notificacion.tipo);
 
             debugPrint('📍 [App] Ruta destino: $rutaDestino');
 
@@ -258,6 +285,25 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       );
     } else {
       debugPrint('❌ [App] No se puede mostrar diálogo: contexto no disponible');
+    }
+  }
+
+  /// Pantalla a la que lleva el botón "Ver" del diálogo in-app
+  String _rutaNotificacion(NotificacionTipo tipo) {
+    switch (tipo) {
+      case NotificacionTipo.alertaCaducidad:
+        return '/vehiculo/caducidades';
+      case NotificacionTipo.inicioTurnoPendiente:
+      case NotificacionTipo.inicioTurnoAprobado:
+      case NotificacionTipo.inicioTurnoRechazado:
+        return '/registro-horario';
+      case NotificacionTipo.vestuarioSolicitado:
+      case NotificacionTipo.vestuarioAprobado:
+      case NotificacionTipo.vestuarioRechazado:
+      case NotificacionTipo.vestuarioEntregado:
+        return '/vestuario';
+      default:
+        return '/servicios';
     }
   }
 
@@ -300,8 +346,11 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         // Router con GoRouter y protección de rutas
         routerConfig: _router,
 
-        // Bloqueo por inactividad (huella / PIN) sobre toda la app
-        builder: (BuildContext context, Widget? child) => AppLockGate(child: child ?? const SizedBox.shrink()),
+        // Bloqueo por inactividad (huella / PIN) sobre toda la app y, debajo,
+        // cambio obligatorio del PIN provisional
+        builder: (BuildContext context, Widget? child) => AppLockGate(
+          child: CambioClaveObligatorioGate(child: child ?? const SizedBox.shrink()),
+        ),
       ),
     );
   }

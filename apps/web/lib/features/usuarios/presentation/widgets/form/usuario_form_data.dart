@@ -28,6 +28,9 @@ class UsuarioFormData {
   bool activo;
   bool passwordVisible = false;
 
+  /// Tipo de clave provisional: true = PIN de 6 dígitos (app móvil), false = contraseña web
+  bool pinMovil = true;
+
   String get displayName => '${nombre.text.trim()} ${apellidos.text.trim()}';
   String? get telefonoValue => telefono.text.trim().isEmpty ? null : telefono.text.trim();
 
@@ -88,8 +91,16 @@ class UsuarioFormValidators {
     if (value == null || value.isEmpty) {
       return 'La contraseña es obligatoria';
     }
-    if (value.length < 6) {
-      return 'La contraseña debe tener al menos 6 caracteres';
+    if (value.length < 8) {
+      return 'La contraseña debe tener al menos 8 caracteres';
+    }
+    return null;
+  }
+
+  /// PIN de la app móvil: exactamente 6 dígitos
+  static String? pin(String? value) {
+    if (value == null || !RegExp(r'^\d{6}$').hasMatch(value)) {
+      return 'El PIN debe tener exactamente 6 dígitos';
     }
     return null;
   }
