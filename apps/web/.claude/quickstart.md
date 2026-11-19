@@ -1,6 +1,6 @@
-# ⚡ Quickstart - Guía Rápida
+# ⚡ Quickstart - AmbuTrack Web
 
-> Content Engine App - Comandos y referencias rápidas
+> **Guía rápida para el desarrollo de AmbuTrack Web**
 
 ---
 
@@ -29,13 +29,14 @@ dart fix --apply && dart analyze && flutter test --coverage
 
 ```bash
 # Ejecutar en DEV
-flutter run -t lib/main_dev.dart --dart-define-from-file=.env.dev
+flutter run --flavor dev -t lib/main_dev.dart
 
 # Ejecutar en PROD
-flutter run -t lib/main_prod.dart --dart-define-from-file=.env.prod
+flutter run --flavor prod -t lib/main.dart
 
-# Ejecutar en Chrome (web)
-flutter run -d chrome -t lib/main_dev.dart --dart-define-from-file=.env.dev
+# Ejecutar scripts
+./scripts/run_dev.sh
+./scripts/run_prod.sh
 ```
 
 ### Code Generation
@@ -63,42 +64,19 @@ flutter test --coverage
 # Generar reporte HTML de coverage
 genhtml coverage/lcov.info -o coverage/html
 open coverage/html/index.html
-
-# Test específico
-flutter test test/unit/presentation/features/ideas/bloc/ideas_bloc_test.dart
-
-# Tests con output verbose
-flutter test --reporter expanded
 ```
 
 ### Análisis y Linting
 
 ```bash
-# Analizar código
-dart analyze
+# Analizar código (OBLIGATORIO → 0 warnings)
+flutter analyze
 
 # Aplicar fixes automáticos
 dart fix --apply
 
 # Formatear código
 dart format lib/ test/
-
-# Verificar formato
-dart format --output=none --set-exit-if-changed lib/
-```
-
-### FVM (Flutter Version Manager)
-
-```bash
-# Verificar versión actual
-fvm flutter --version
-
-# Usar versión del proyecto
-fvm use
-
-# Ejecutar comando con FVM
-fvm flutter run
-fvm dart analyze
 ```
 
 ---
@@ -106,56 +84,65 @@ fvm dart analyze
 ## 📁 Estructura de Feature
 
 ```
-lib/presentation/features/{feature_name}/
-├── bloc/
-│   ├── {feature}_bloc.dart
-│   ├── {feature}_event.dart      # Freezed
-│   └── {feature}_state.dart      # Freezed
-├── page/
-│   └── {feature}_page.dart
-├── widgets/
-│   ├── {feature}_loaded_view.dart    # ✅ Widget separado
-│   ├── {feature}_empty_view.dart     # ✅ Widget separado
-│   └── {feature}_card.dart
-└── routes/
-    └── {feature}_route.dart      # GoRouteData
+lib/features/{feature_name}/
+├── domain/
+│   └── {feature}_repository.dart
+└── presentation/
+    ├── bloc/
+    │   ├── {feature}_bloc.dart
+    │   ├── {feature}_event.dart      # Freezed
+    │   └── {feature}_state.dart      # Freezed
+    ├── pages/
+    │   └── {feature}_page.dart
+    └── widgets/
+        ├── {feature}_loaded_view.dart    # ✅ Widget separado
+        ├── {feature}_empty_view.dart     # ✅ Widget separado
+        └── {feature}_card.dart
 ```
 
 ---
 
-## 🎨 Widgets Cupertino Comunes
+## 🎨 Widgets Material 3 Comunes
 
 ```dart
-// Navigation
-CupertinoNavigationBar
-CupertinoTabScaffold
-CupertinoTabBar
-CupertinoPageScaffold
+// Layout
+Scaffold
+AppBar
+Drawer
+NavigationBar
 
 // Inputs
-CupertinoTextField
-CupertinoSearchTextField
-CupertinoButton
-CupertinoSwitch
-CupertinoSlider
-CupertinoSegmentedControl
-CupertinoPicker
-CupertinoDatePicker
+TextField
+TextFormField
+DropdownButton
+Checkbox
+Radio
+Switch
+Slider
+
+// Buttons
+FilledButton
+TextButton
+OutlinedButton
+IconButton
 
 // Feedback
-CupertinoActivityIndicator
-CupertinoAlertDialog
-CupertinoActionSheet
-CupertinoContextMenu
+CircularProgressIndicator
+LinearProgressIndicator
+SnackBar
+Dialog
+AlertDialog
 
 // Containers
-CupertinoListSection
-CupertinoListTile
-CupertinoFormSection
-CupertinoFormRow
+Card
+ListTile
+DataTable
+ExpansionTile
+Chip
+Badge
 
 // Refresh
-CupertinoSliverRefreshControl
+RefreshIndicator
 CustomScrollView + Slivers
 ```
 
@@ -163,24 +150,21 @@ CustomScrollView + Slivers
 
 ## 📝 Snippets Rápidos
 
-### Nuevo Modelo Freezed
+### Nuevo Repository Pass-Through
 
 ```dart
-import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
+import 'package:injectable/injectable.dart';
 
-part '{name}_model.freezed.dart';
-part '{name}_model.g.dart';
+@LazySingleton(as: VehiculoRepository)
+class VehiculoRepositoryImpl implements VehiculoRepository {
+  VehiculoRepositoryImpl() : _dataSource = VehiculoDataSourceFactory.createSupabase();
+  final VehiculoDataSource _dataSource;
 
-@freezed
-class {Name}Model with _${Name}Model {
-  const factory {Name}Model({
-    required String id,
-    // campos...
-    @JsonKey(name: 'created_at') required DateTime createdAt,
-  }) = _{Name}Model;
-
-  factory {Name}Model.fromJson(Map<String, dynamic> json) =>
-      _${Name}ModelFromJson(json);
+  @override
+  Future<List<VehiculoEntity>> getAll() async {
+    return await _dataSource.getAll();  // ✅ Pass-through directo
+  }
 }
 ```
 
@@ -196,6 +180,9 @@ class {Name}Event with _${Name}Event {
   const factory {Name}Event.started() = _Started;
   const factory {Name}Event.loadRequested() = _LoadRequested;
   const factory {Name}Event.refreshRequested() = _RefreshRequested;
+  const factory {Name}Event.createRequested({Name}Entity item) = _CreateRequested;
+  const factory {Name}Event.updateRequested({Name}Entity item) = _UpdateRequested;
+  const factory {Name}Event.deleteRequested(String id) = _DeleteRequested;
 }
 ```
 
@@ -209,36 +196,11 @@ part '{name}_state.freezed.dart';
 @freezed
 class {Name}State with _${Name}State {
   const factory {Name}State.initial() = _Initial;
-  const factory {Name}State.loading() = _Loading;
-  const factory {Name}State.loaded({required List<{Name}Model> items}) = _Loaded;
-  const factory {Name}State.error({required String message}) = _Error;
-}
-```
-
-### Nueva Ruta GoRouteData
-
-```dart
-import 'package:flutter/cupertino.dart';
-import 'package:go_router/go_router.dart';
-
-class {Name}Route extends GoRouteData {
-  static const routeName = '/{name}';
-  static const routePath = '{name}';
-
-  static GoRoute goRoute({List<RouteBase> routes = const []}) {
-    return GoRoute(
-      name: routeName,
-      path: routePath,
-      builder: (context, state) => const {Name}Page(),
-      routes: routes,
-    );
-  }
-
-  static Future<void> pushNamed(BuildContext context) =>
-      context.pushNamed(routeName);
-
-  static void goNamed(BuildContext context) =>
-      context.goNamed(routeName);
+  const factory {Name}State.loading({
+    @Default('Cargando...') String message,
+  }) = _Loading;
+  const factory {Name}State.loaded(List<{Name}Entity> items) = _Loaded;
+  const factory {Name}State.error(String message) = _Error;
 }
 ```
 
@@ -252,11 +214,14 @@ class {Name}LoadedView extends StatelessWidget {
     required this.items,
   });
 
-  final List<{Name}Model> items;
+  final List<{Name}Entity> items;
 
   @override
   Widget build(BuildContext context) {
-    // UI aquí
+    return ListView.builder(
+      itemCount: items.length,
+      itemBuilder: (context, index) => {Name}Card(item: items[index]),
+    );
   }
 }
 
@@ -268,16 +233,27 @@ Widget _buildLoadedView() {
 
 ---
 
-## 🗄️ Supabase MCP
+## 🗄️ Supabase
+
+### Acceso via getIt (SIEMPRE)
+
+```dart
+// ✅ CORRECTO
+final vehiculosDS = getIt<VehiculosDataSource>();
+final vehiculos = await vehiculosDS.getAll();
+
+// ❌ INCORRECTO
+final client = Supabase.instance.client;
+final data = await client.from('vehiculos').select();
+```
+
+### MCP Disponible
 
 El agente `supabase_specialist.md` tiene acceso al MCP de Supabase para:
-
 - Consultar schemas
 - Ejecutar queries
 - Crear migraciones
 - Verificar RLS policies
-
-Ver `agents/supabase_specialist.md` para detalles.
 
 ---
 
@@ -285,7 +261,7 @@ Ver `agents/supabase_specialist.md` para detalles.
 
 **ANTES de comenzar cualquier tarea no trivial, SIEMPRE:**
 
-1. Crear plan en `.claude/plans/{feature}_plan.md`
+1. Crear plan en `docs/plans/{feature}_plan.md`
 2. Documentar fases, archivos a crear/modificar
 3. Listar agentes involucrados
 4. Definir comandos de validación
@@ -302,27 +278,26 @@ Ver `agents/supabase_specialist.md` para detalles.
 
 ### Nueva Feature
 ```
-□ CREAR PLAN en .claude/plans/{feature}_plan.md
-□ Crear modelo Freezed
-□ Crear contrato repository (domain/)
-□ Crear implementación repository (data/)
+□ CREAR PLAN en docs/plans/{feature}_plan.md
+□ Crear/verificar Entity en ambutrack_core_datasource
+□ Crear Repository pass-through
 □ Crear BLoC + Events + States
-□ Crear Page (Cupertino)
+□ Crear Page (Material 3 + SafeArea)
 □ Crear Widgets separados (NO métodos _buildX)
-□ Crear Route (GoRouteData)
 □ Registrar en DI
 □ Añadir al router
 □ build_runner
 □ dart fix --apply
-□ Tests 85%+
+□ flutter analyze → 0 warnings
 ```
 
 ### Nuevo Widget
 ```
 □ Crear como clase StatelessWidget
-□ Usar solo Cupertino widgets
+□ Usar Material 3 widgets
+□ AppColors para colores
 □ Parámetros en constructor
-□ Widget test
+□ SafeArea si es página principal
 □ dart fix --apply
 ```
 
@@ -332,10 +307,26 @@ Ver `agents/supabase_specialist.md` para detalles.
 
 | Recurso | Ubicación |
 |---------|-----------|
-| Prompt maestro | `.claude/CLAUDE.md` |
-| Orquestador | `.claude/orchestrator.md` |
-| Feature Generator | `.claude/agents/feature_generator.md` |
-| Apple Design | `.claude/agents/apple_design.md` |
-| UI/UX Designer | `.claude/agents/uiux_designer.md` |
-| Supabase Specialist | `.claude/agents/supabase_specialist.md` |
-| QA Validation | `.claude/agents/qa_validation.md` |
+| Prompt maestro | `CLAUDE.md` |
+| Orquestador | `.claude/ORCHESTRATOR.md` |
+| Convenciones | `.claude/memory/CONVENTIONS.md` |
+| Design System | `.claude/design/DESIGN_SYSTEM.md` |
+| Project Context | `.claude/design/PROJECT_CONTEXT.md` |
+| AmbuTrack Datasource | `packages/ambutrack_core_datasource/` |
+
+---
+
+## 🎨 Reglas Críticas de AmbuTrack
+
+1. **Material Design 3** - NO Cupertino
+2. **AppColors** - NO hardcoded colors
+3. **SafeArea** - OBLIGATORIO en todas las páginas
+4. **Repository pass-through** - SIN conversiones Entity↔Entity
+5. **flutter analyze** - 0 warnings OBLIGATORIO
+6. **Supabase** - NO Firebase
+7. **Widgets como clases** - NO métodos `_buildXxx()`
+8. **Diálogos profesionales** - NO SnackBar para notificaciones importantes
+
+---
+
+**Última actualización:** 2025-02-09

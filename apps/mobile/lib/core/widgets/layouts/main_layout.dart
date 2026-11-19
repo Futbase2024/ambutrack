@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../features/alertas_turno/presentation/widgets/alertas_turno_badge.dart';
 import '../../../features/auth/presentation/bloc/auth_bloc.dart';
-import '../../../features/auth/presentation/bloc/auth_event.dart';
 import '../../../features/auth/presentation/bloc/auth_state.dart';
+import '../../../features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
+import '../../../features/notificaciones/presentation/bloc/notificaciones_state.dart';
+import '../../../features/notificaciones/presentation/widgets/notificacion_badge.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_icons.dart';
+import '../../utils/rol_label.dart';
+import '../dialogs/logout_flow.dart';
 
 /// Layout principal de AmbuTrack Mobile
 ///
@@ -26,47 +32,23 @@ class MainLayout extends StatelessWidget {
     debugPrint('📍 [MainLayout] Obteniendo título para: $currentLocation');
     switch (currentLocation) {
       case '/':
-        return 'AmbuTrack';
+        return 'EmerTrack';
       case '/registro-horario':
         return 'Registro Horario';
-      case '/checklist-ambulancia':
-        return 'Checklist Ambulancia';
+      // Checklist Ambulancia se accede desde Mi Vehículo
       case '/partes-diarios':
-        return 'Partes Diarios';
+        return 'Parte diario';
       case '/incidencias':
         return 'Incidencias';
       case '/perfil':
         return 'Mi Perfil';
+      case '/notificaciones':
+        return 'Notificaciones';
       default:
-        return 'AmbuTrack';
+        return 'EmerTrack';
     }
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Cerrar Sesión'),
-        content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              context.read<AuthBloc>().add(const AuthSignOutRequested());
-            },
-            child: const Text(
-              'Cerrar Sesión',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,11 +58,31 @@ class MainLayout extends StatelessWidget {
       appBar: AppBar(
         title: Text(_getPageTitle()),
         actions: <Widget>[
+          // Caducidades pendientes (oculto si todo está en orden)
+          const AlertasTurnoBadge(),
+          // Badge de notificaciones
+          // Nota: Usamos BlocProvider.value para compartir la instancia creada en app.dart
+          // que ya está inicializada después de la autenticación.
+          BlocProvider.value(
+            value: context.read<NotificacionesBloc>(),
+            child: BlocBuilder<NotificacionesBloc, NotificacionesState>(
+              builder: (context, state) {
+                final conteoNoLeidas = state.maybeWhen(
+                  loaded: (_, conteo, __) => conteo,
+                  orElse: () => 0,
+                );
+                return NotificacionBadge(
+                  conteoNoLeidas: conteoNoLeidas,
+                  onTap: () => context.push('/notificaciones'),
+                );
+              },
+            ),
+          ),
           // Botón de logout rápido
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(AppIcons.logout),
             tooltip: 'Cerrar Sesión',
-            onPressed: () => _showLogoutDialog(context),
+            onPressed: () => iniciarLogout(context),
           ),
         ],
       ),
@@ -134,7 +136,7 @@ class MainLayout extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(user.email),
-                    if (user.rol != null) ...[
+                    if (rolLabel(user.rol) != null) ...[
                       const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -146,7 +148,7 @@ class MainLayout extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          user.rol!.toUpperCase(),
+                          rolLabel(user.rol)!.toUpperCase(),
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -161,43 +163,37 @@ class MainLayout extends StatelessWidget {
               // Navegación
               _buildDrawerItem(
                 context,
-                icon: Icons.dashboard,
+                icon: AppIcons.dashboard,
                 title: 'Dashboard',
                 route: '/',
                 isSelected: currentLocation == '/',
               ),
               _buildDrawerItem(
                 context,
-                icon: Icons.schedule,
+                icon: AppIcons.schedule,
                 title: 'Registro Horario',
                 route: '/registro-horario',
                 isSelected: currentLocation == '/registro-horario',
               ),
+              // Checklist Ambulancia ahora está dentro de "Mi Vehículo"
               _buildDrawerItem(
                 context,
-                icon: Icons.checklist,
-                title: 'Checklist Ambulancia',
-                route: '/checklist-ambulancia',
-                isSelected: currentLocation == '/checklist-ambulancia',
-              ),
-              _buildDrawerItem(
-                context,
-                icon: Icons.assignment,
-                title: 'Partes Diarios',
+                icon: AppIcons.assignment,
+                title: 'Parte diario',
                 route: '/partes-diarios',
                 isSelected: currentLocation == '/partes-diarios',
               ),
               _buildDrawerItem(
                 context,
-                icon: Icons.warning_amber,
-                title: 'Incidencias',
-                route: '/incidencias',
-                isSelected: currentLocation == '/incidencias',
+                icon: AppIcons.warningAmber,
+                title: 'Reportar incidencia',
+                route: '/vehiculo/reportar-incidencia',
+                isSelected: currentLocation == '/vehiculo/reportar-incidencia',
               ),
               const Divider(),
               _buildDrawerItem(
                 context,
-                icon: Icons.person,
+                icon: AppIcons.person,
                 title: 'Mi Perfil',
                 route: '/perfil',
                 isSelected: currentLocation == '/perfil',
@@ -206,14 +202,14 @@ class MainLayout extends StatelessWidget {
 
               // Logout
               ListTile(
-                leading: const Icon(Icons.logout, color: AppColors.error),
+                leading: const Icon(AppIcons.logout, color: AppColors.error),
                 title: const Text(
                   'Cerrar Sesión',
                   style: TextStyle(color: AppColors.error),
                 ),
                 onTap: () {
                   Navigator.pop(context); // Cerrar drawer
-                  _showLogoutDialog(context);
+                  iniciarLogout(context);
                 },
               ),
             ],

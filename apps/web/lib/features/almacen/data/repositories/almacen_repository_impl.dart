@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart' hide MovimientoStockEntity, StockDataSource;
 import 'package:ambutrack_web/features/almacen/domain/repositories/almacen_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
@@ -108,57 +108,5 @@ class AlmacenRepositoryImpl implements AlmacenRepository {
       debugPrint('📦 AlmacenRepository: ❌ Error al obtener proveedores activos: $e');
       rethrow;
     }
-  }
-
-  // ============================================
-  // STOCK DE ALMACÉN
-  // ============================================
-
-  @override
-  Future<List<StockAlmacenEntity>> getAllStock() async {
-    // TODO(lokisoft1): StockAlmacenEntity no existe en core, usar StockEntity
-    throw UnimplementedError('Usar StockEntity en lugar de StockAlmacenEntity');
-  }
-
-  @override
-  Future<List<StockAlmacenEntity>> getStockByProducto(String productoId) async {
-    // TODO(lokisoft1): StockAlmacenEntity no existe en core, usar StockEntity
-    throw UnimplementedError('Usar StockEntity en lugar de StockAlmacenEntity');
-  }
-
-  @override
-  Future<StockAlmacenEntity?> getStockByLote(String productoId, String lote) async {
-    // TODO(lokisoft1): StockAlmacenEntity no existe en core, usar StockEntity
-    throw UnimplementedError('Usar StockEntity en lugar de StockAlmacenEntity');
-  }
-
-  @override
-  Future<List<StockAlmacenEntity>> getStockBajo() async {
-    // TODO(lokisoft1): StockAlmacenEntity no existe en core, usar StockEntity
-    throw UnimplementedError('Usar StockEntity en lugar de StockAlmacenEntity');
-  }
-
-  @override
-  Future<List<StockAlmacenEntity>> getStockProximoACaducar({int dias = 30}) async {
-    // TODO(lokisoft1): StockAlmacenEntity no existe en core, usar StockEntity
-    throw UnimplementedError('Usar StockEntity en lugar de StockAlmacenEntity');
-  }
-
-  @override
-  Future<StockAlmacenEntity> updateStock(StockAlmacenEntity stock) async {
-    // TODO(lokisoft1): StockAlmacenEntity no existe en core, usar StockEntity
-    throw UnimplementedError('Usar StockEntity en lugar de StockAlmacenEntity');
-  }
-
-  @override
-  Future<void> reservarStock(String productoId, int cantidad, {String? lote}) async {
-    // TODO(lokisoft1): StockAlmacenEntity no existe en core, usar StockEntity
-    throw UnimplementedError('Usar StockEntity en lugar de StockAlmacenEntity');
-  }
-
-  @override
-  Future<void> liberarStockReservado(String productoId, int cantidad, {String? lote}) async {
-    // TODO(lokisoft1): StockAlmacenEntity no existe en core, usar StockEntity
-    throw UnimplementedError('Usar StockEntity en lugar de StockAlmacenEntity');
   }
 }

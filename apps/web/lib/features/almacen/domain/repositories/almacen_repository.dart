@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart' hide MovimientoStockEntity, StockDataSource;
 
 /// Repositorio para operaciones del Sistema de Almacén General
 ///
@@ -15,17 +15,4 @@ abstract class AlmacenRepository {
   Future<void> deleteProveedor(String id);
   Future<List<ProveedorEntity>> searchProveedores(String query);
   Future<List<ProveedorEntity>> getProveedoresActivos();
-
-  // ============================================
-  // STOCK DE ALMACÉN
-  // ============================================
-
-  Future<List<StockAlmacenEntity>> getAllStock();
-  Future<List<StockAlmacenEntity>> getStockByProducto(String productoId);
-  Future<StockAlmacenEntity?> getStockByLote(String productoId, String lote);
-  Future<List<StockAlmacenEntity>> getStockBajo();
-  Future<List<StockAlmacenEntity>> getStockProximoACaducar({int dias = 30});
-  Future<StockAlmacenEntity> updateStock(StockAlmacenEntity stock);
-  Future<void> reservarStock(String productoId, int cantidad, {String? lote});
-  Future<void> liberarStockReservado(String productoId, int cantidad, {String? lote});
 }

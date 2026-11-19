@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:equatable/equatable.dart';
 
 /// Estados del BLoC de Dotaciones
@@ -37,15 +37,4 @@ class DotacionesError extends DotacionesState {
 
   @override
   List<Object?> get props => <Object?>[message];
-}
-
-/// Estado de operación exitosa (crear, actualizar, eliminar)
-class DotacionOperationSuccess extends DotacionesState {
-  const DotacionOperationSuccess(this.message, this.dotaciones);
-
-  final String message;
-  final List<DotacionEntity> dotaciones;
-
-  @override
-  List<Object?> get props => <Object?>[message, dotaciones];
 }

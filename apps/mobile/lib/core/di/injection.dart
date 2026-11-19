@@ -1,16 +1,62 @@
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/registro_horario/data/repositories/registro_horario_repository_impl.dart';
 import '../../features/registro_horario/domain/repositories/registro_horario_repository.dart';
+import '../../features/registro_horario/data/repositories/turno_actual_repository_impl.dart';
+import '../../features/registro_horario/domain/repositories/turno_actual_repository.dart';
 import '../../features/registro_horario/presentation/bloc/registro_horario_bloc.dart';
 import '../../features/servicios/data/repositories/traslados_repository_impl.dart';
 import '../../features/servicios/domain/repositories/traslados_repository.dart';
 import '../../features/servicios/presentation/bloc/traslados_bloc.dart';
+import '../../features/tramites/data/repositories/ausencias_repository_impl.dart';
+import '../../features/tramites/data/repositories/tipos_ausencia_repository_impl.dart';
+import '../../features/tramites/data/repositories/vacaciones_repository_impl.dart';
+import '../../features/tramites/domain/repositories/ausencias_repository.dart';
+import '../../features/tramites/domain/repositories/tipos_ausencia_repository.dart';
+import '../../features/tramites/domain/repositories/vacaciones_repository.dart';
+import '../../features/tramites/presentation/bloc/ausencias_bloc.dart';
+import '../../features/tramites/presentation/bloc/vacaciones_bloc.dart';
+import '../../features/vehiculo/data/repositories/incidencias_repository_impl.dart';
+import '../../features/vehiculo/domain/repositories/incidencias_repository.dart';
+import '../../features/vehiculo/presentation/bloc/incidencias/incidencias_bloc.dart';
+import '../../features/vehiculo/data/repositories/checklist_vehiculo_repository_impl.dart';
+import '../../features/vehiculo/domain/repositories/checklist_vehiculo_repository.dart';
+import '../../features/vehiculo/presentation/bloc/checklist/checklist_bloc.dart'
+    as vehiculo_checklist;
+import '../../features/vehiculo/presentation/bloc/vehiculo_asignado/vehiculo_asignado_bloc.dart';
+import '../../features/vehiculo/data/repositories/stock_repository_impl.dart';
+import '../../features/vehiculo/domain/repositories/stock_repository.dart';
+import '../../features/vehiculo/presentation/bloc/caducidades/caducidades_bloc.dart'
+    as vehiculo_caducidades;
+import '../../features/caducidades/data/repositories/caducidades_repository_impl.dart';
+import '../../features/caducidades/domain/repositories/caducidades_repository.dart';
+import '../../features/caducidades/presentation/bloc/caducidades_bloc.dart';
+import '../../features/checklist_ambulancia/data/repositories/checklist_repository_impl.dart';
+import '../../features/checklist_ambulancia/domain/repositories/checklist_repository.dart';
+import '../../features/checklist_ambulancia/presentation/bloc/checklist_bloc.dart';
+import '../../features/equipamiento/data/repositories/equipamiento_repository_impl.dart';
+import '../../features/equipamiento/domain/repositories/equipamiento_repository.dart';
+import '../../features/equipamiento/presentation/bloc/equipamiento_bloc.dart';
+import '../../features/notificaciones/data/repositories/notificaciones_repository_impl.dart';
+import '../../features/notificaciones/domain/repositories/notificaciones_repository.dart';
+import '../../features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
+import '../../features/notificaciones/services/local_notifications_service.dart';
+import '../../features/alertas_turno/data/repositories/alertas_turno_repository_impl.dart';
+import '../../features/alertas_turno/domain/repositories/alertas_turno_repository.dart';
+import '../../features/alertas_turno/presentation/cubit/alertas_turno_cubit.dart';
+import '../../features/perfil/data/repositories/ajustes_dispositivo_repository_impl.dart';
+import '../../features/perfil/domain/repositories/ajustes_dispositivo_repository.dart';
+import '../services/push_notifications_service.dart';
+import '../services/app_lock_service.dart';
+import '../services/preferencias_dispositivo_service.dart';
+import '../../features/partes_diarios/data/repositories/parte_diario_pdf_repository_impl.dart';
+import '../../features/partes_diarios/domain/repositories/parte_diario_pdf_repository.dart';
 
 /// Localizador de servicios global usando GetIt
 final GetIt getIt = GetIt.instance;
@@ -26,23 +72,50 @@ Future<void> configureDependencies() async {
     () => Supabase.instance.client,
   );
 
+  // Preferencias del dispositivo (modo personal/compartido, DNI recordado...)
+  final PreferenciasDispositivoService preferencias = PreferenciasDispositivoService();
+  await preferencias.init();
+  getIt.registerSingleton<PreferenciasDispositivoService>(preferencias);
+
+  // Bloqueo por inactividad (huella / PIN)
+  getIt.registerLazySingleton<AppLockService>(
+    () => AppLockService(getIt<PreferenciasDispositivoService>()),
+  );
+
+  getIt.registerLazySingleton<AjustesDispositivoRepository>(
+    () => AjustesDispositivoRepositoryImpl(),
+  );
+
+  // Caducidades del técnico y del vehículo en turno (indicador global)
+  getIt.registerLazySingleton<AlertasTurnoRepository>(
+    () => AlertasTurnoRepositoryImpl(),
+  );
+  getIt.registerLazySingleton<AlertasTurnoCubit>(
+    () => AlertasTurnoCubit(getIt<AlertasTurnoRepository>()),
+  );
+
   // DataSources
-  getIt.registerLazySingleton<PersonalDataSource>(
-    () => PersonalDataSourceFactory.createSupabase(),
+  getIt.registerLazySingleton<TPersonalDataSource>(
+    () => TPersonalDataSourceFactory.createSupabase(),
   );
 
   // ===== AUTH =====
 
-  // Repository
+  // Notificaciones push (FCM): se desactiva sola si falta la config de Firebase
+  getIt.registerLazySingleton<PushNotificationsService>(
+    () => PushNotificationsService(local: getIt<LocalNotificationsService>()),
+  );
+
+  // Repository (antes de cerrar sesión, el móvil deja de recibir los push del usuario)
   getIt.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(),
+    () => AuthRepositoryImpl(alCerrarSesion: () => getIt<PushNotificationsService>().desactivar()),
   );
 
   // BLoC (Singleton para mantener el estado global de autenticación)
   getIt.registerLazySingleton<AuthBloc>(
     () => AuthBloc(
       authRepository: getIt<AuthRepository>(),
-      personalDataSource: getIt<PersonalDataSource>(),
+      tpersonalDataSource: getIt<TPersonalDataSource>(),
     ),
   );
 
@@ -53,12 +126,22 @@ Future<void> configureDependencies() async {
     () => RegistroHorarioRepositoryImpl(),
   );
 
-  // BLoC (Factory para crear nueva instancia en cada página)
-  getIt.registerFactory<RegistroHorarioBloc>(
+  getIt.registerLazySingleton<TurnoActualRepository>(
+    () => TurnoActualRepositoryImpl(),
+  );
+
+  // BLoC (Singleton para mantener el estado del turno globalmente)
+  getIt.registerLazySingleton<RegistroHorarioBloc>(
     () => RegistroHorarioBloc(
       registroHorarioRepository: getIt<RegistroHorarioRepository>(),
+      turnoActualRepository: getIt<TurnoActualRepository>(),
       authBloc: getIt<AuthBloc>(),
     ),
+  );
+
+  // ===== PARTE DIARIO (PDF) =====
+  getIt.registerLazySingleton<ParteDiarioPdfRepository>(
+    () => ParteDiarioPdfRepositoryImpl(),
   );
 
   // ===== SERVICIOS/TRASLADOS =====
@@ -71,5 +154,155 @@ Future<void> configureDependencies() async {
   // BLoC (Factory para crear nueva instancia en cada página)
   getIt.registerFactory<TrasladosBloc>(
     () => TrasladosBloc(getIt<TrasladosRepository>()),
+  );
+
+  // ===== TRÁMITES =====
+
+  // Repositories (el datasource se crea internamente usando el factory del core package)
+  getIt.registerLazySingleton<VacacionesRepository>(
+    () => VacacionesRepositoryImpl(),
+  );
+
+  getIt.registerLazySingleton<AusenciasRepository>(
+    () => AusenciasRepositoryImpl(),
+  );
+
+  getIt.registerLazySingleton<TiposAusenciaRepository>(
+    () => TiposAusenciaRepositoryImpl(),
+  );
+
+  // BLoCs (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<VacacionesBloc>(
+    () => VacacionesBloc(
+      getIt<VacacionesRepository>(),
+      getIt<NotificacionesRepository>(),
+      getIt<AuthBloc>(),
+    ),
+  );
+
+  getIt.registerFactory<AusenciasBloc>(
+    () => AusenciasBloc(
+      getIt<AusenciasRepository>(),
+      getIt<TiposAusenciaRepository>(),
+      getIt<NotificacionesRepository>(),
+      getIt<AuthBloc>(),
+    ),
+  );
+
+  // ===== INCIDENCIAS VEHÍCULO =====
+
+  // Repository
+  getIt.registerLazySingleton<IncidenciasRepository>(
+    () => IncidenciasRepositoryImpl(),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<IncidenciasBloc>(
+    () => IncidenciasBloc(getIt<IncidenciasRepository>()),
+  );
+
+  // ===== CHECKLIST VEHÍCULO =====
+
+  // Repository
+  getIt.registerLazySingleton<ChecklistVehiculoRepository>(
+    () => ChecklistVehiculoRepositoryImpl(),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<vehiculo_checklist.ChecklistBloc>(
+    () => vehiculo_checklist.ChecklistBloc(
+      getIt<ChecklistVehiculoRepository>(),
+      getIt<AuthBloc>(),
+    ),
+  );
+
+  // ===== VEHÍCULO ASIGNADO =====
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<VehiculoAsignadoBloc>(
+    () {
+      final authBloc = getIt<AuthBloc>();
+      final authState = authBloc.state;
+      // Usar Personal ID (necesario para buscar turnos y vehículos asignados)
+      // Si no hay personal, usar user.id como fallback
+      final userId = authState is AuthAuthenticated
+          ? (authState.personal?.id ?? authState.user.id)
+          : '';
+      return VehiculoAsignadoBloc(userId: userId);
+    },
+  );
+
+  // ===== EQUIPAMIENTO (dotación del vehículo por plantilla) =====
+
+  // Repository
+  getIt.registerLazySingleton<EquipamientoRepository>(
+    () => EquipamientoRepositoryImpl(),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<EquipamientoBloc>(
+    () => EquipamientoBloc(getIt<EquipamientoRepository>()),
+  );
+
+  // ===== STOCK Y CADUCIDADES =====
+
+  // Repository
+  getIt.registerLazySingleton<StockRepository>(
+    () => StockRepositoryImpl(),
+  );
+
+  // BLoC antiguo de caducidades (vehiculo feature)
+  getIt.registerFactory<vehiculo_caducidades.CaducidadesBloc>(
+    () => vehiculo_caducidades.CaducidadesBloc(
+      stockRepository: getIt<StockRepository>(),
+    ),
+  );
+
+  // ===== CADUCIDADES (Nueva feature) =====
+
+  // Repository
+  getIt.registerLazySingleton<CaducidadesRepository>(
+    () => CaducidadesRepositoryImpl(),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<CaducidadesBloc>(
+    () => CaducidadesBloc(
+      repository: getIt<CaducidadesRepository>(),
+    ),
+  );
+
+  // ===== CHECKLIST AMBULANCIA =====
+
+  // Repository
+  getIt.registerLazySingleton<ChecklistRepository>(
+    () => ChecklistRepositoryImpl(),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  getIt.registerFactory<ChecklistBloc>(
+    () => ChecklistBloc(repository: getIt<ChecklistRepository>()),
+  );
+
+  // ===== NOTIFICACIONES =====
+
+  // Servicio de notificaciones locales (Singleton)
+  getIt.registerLazySingleton<LocalNotificationsService>(
+    () => LocalNotificationsService(),
+  );
+
+  // Repository
+  getIt.registerLazySingleton<NotificacionesRepository>(
+    () => NotificacionesRepositoryImpl(authBloc: getIt<AuthBloc>()),
+  );
+
+  // BLoC (Factory para crear nueva instancia en cada página)
+  // Esto es necesario porque el BLoC necesita el usuario autenticado
+  // para configurar los streams Realtime correctamente
+  getIt.registerFactory<NotificacionesBloc>(
+    () => NotificacionesBloc(
+      repository: getIt<NotificacionesRepository>(),
+      localNotificationsService: getIt<LocalNotificationsService>(),
+    ),
   );
 }

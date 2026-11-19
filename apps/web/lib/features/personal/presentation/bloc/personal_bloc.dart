@@ -1,3 +1,7 @@
+import 'package:ambutrack_web/core/auth/enums/app_module.dart';
+import 'package:ambutrack_web/core/auth/enums/user_role.dart';
+import 'package:ambutrack_web/core/auth/permissions/crud_permissions.dart';
+import 'package:ambutrack_web/core/auth/services/role_service.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
 import 'package:ambutrack_web/features/personal/domain/repositories/personal_repository.dart';
 import 'package:ambutrack_web/features/personal/presentation/bloc/personal_event.dart';
@@ -7,9 +11,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 
 /// BLoC para gestionar el estado de personal
+///
+/// ⚠️ PERMISOS CRUD:
+/// - Admin: CRUD completo
+/// - Jefe Personal: Create, Read, Update (NO Delete)
+/// - Jefe Tráfico, Coordinador, Administrativo: Solo Read
+/// - Conductor/Sanitario: Read/Update solo sus propios datos
+/// - Operador: Solo Read
 @injectable
 class PersonalBloc extends Bloc<PersonalEvent, PersonalState> {
-  PersonalBloc(this._personalRepository) : super(const PersonalInitial()) {
+  PersonalBloc(this._personalRepository, this._roleService)
+      : super(const PersonalInitial()) {
     on<PersonalLoadRequested>(_onLoadRequested);
     on<PersonalRefreshRequested>(_onRefreshRequested);
     on<PersonalCreateRequested>(_onCreateRequested);
@@ -18,6 +30,7 @@ class PersonalBloc extends Bloc<PersonalEvent, PersonalState> {
   }
 
   final PersonalRepository _personalRepository;
+  final RoleService _roleService;
 
   Future<void> _onLoadRequested(
     PersonalLoadRequested event,
@@ -70,6 +83,17 @@ class PersonalBloc extends Bloc<PersonalEvent, PersonalState> {
     Emitter<PersonalState> emit,
   ) async {
     try {
+      // ✅ VALIDAR PERMISOS: Solo Admin y Jefe Personal pueden crear
+      final UserRole role = await _roleService.getCurrentUserRole();
+      if (!CrudPermissions.canCreate(role, AppModule.personal)) {
+        debugPrint('🚫 PersonalBloc: Usuario sin permisos para crear personal');
+        emit(const PersonalError(
+          message: 'No tienes permisos para crear personal.\n'
+              'Solo usuarios con rol Administrador o Jefe de Personal pueden crear.',
+        ));
+        return;
+      }
+
       final DateTime startTime = DateTime.now();
       debugPrint('⏱️ PersonalBloc: Iniciando creación de personal...');
 
@@ -102,6 +126,17 @@ class PersonalBloc extends Bloc<PersonalEvent, PersonalState> {
     Emitter<PersonalState> emit,
   ) async {
     try {
+      // ✅ VALIDAR PERMISOS: Admin, Jefe Personal, Conductor/Sanitario (sus datos)
+      final UserRole role = await _roleService.getCurrentUserRole();
+      if (!CrudPermissions.canUpdate(role, AppModule.personal)) {
+        debugPrint('🚫 PersonalBloc: Usuario sin permisos para actualizar personal');
+        emit(const PersonalError(
+          message: 'No tienes permisos para actualizar personal.\n'
+              'Solo usuarios autorizados pueden editar datos de personal.',
+        ));
+        return;
+      }
+
       final DateTime startTime = DateTime.now();
       debugPrint('⏱️ PersonalBloc: Iniciando actualización de personal...');
 
@@ -137,6 +172,17 @@ class PersonalBloc extends Bloc<PersonalEvent, PersonalState> {
     // El loading se maneja en la UI con un diálogo
 
     try {
+      // ✅ VALIDAR PERMISOS: Solo Admin puede eliminar personal
+      final UserRole role = await _roleService.getCurrentUserRole();
+      if (!CrudPermissions.canDelete(role, AppModule.personal)) {
+        debugPrint('🚫 PersonalBloc: Usuario sin permisos para eliminar personal');
+        emit(const PersonalError(
+          message: 'No tienes permisos para eliminar personal.\n'
+              'Solo usuarios con rol Administrador pueden eliminar personal.',
+        ));
+        return;
+      }
+
       final DateTime startTime = DateTime.now();
       debugPrint('⏱️ PersonalBloc: Iniciando eliminación de personal...');
 

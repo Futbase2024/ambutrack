@@ -1,11 +1,11 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'trafico_diario_event.freezed.dart';
 
 /// Eventos del BLoC de Tráfico Diario (Planificación de Traslados)
 @freezed
-class TraficoDiarioEvent with _$TraficoDiarioEvent {
+sealed class TraficoDiarioEvent with _$TraficoDiarioEvent {
   /// Evento inicial - prepara el estado
   const factory TraficoDiarioEvent.started() = _Started;
 
@@ -17,6 +17,9 @@ class TraficoDiarioEvent with _$TraficoDiarioEvent {
 
   /// Solicita refresco de traslados
   const factory TraficoDiarioEvent.refreshRequested() = _RefreshRequested;
+
+  /// Genera traslados automáticamente para los próximos 14 días
+  const factory TraficoDiarioEvent.generarTrasladosRequested() = _GenerarTrasladosRequested;
 
   /// Asigna un conductor, vehículo y matrícula a un traslado individual
   const factory TraficoDiarioEvent.asignarConductorRequested({

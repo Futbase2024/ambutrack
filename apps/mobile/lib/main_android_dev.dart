@@ -7,6 +7,9 @@ import 'app/app.dart';
 import 'app/flavors.dart';
 import 'core/config/supabase_config.dart';
 import 'core/di/injection.dart';
+import 'core/services/push_notifications_service.dart';
+import 'features/notificaciones/services/local_notifications_service.dart';
+import 'core/monitoring/error_monitoring.dart';
 
 /// Entry point para Android en modo DESARROLLO
 void main() async {
@@ -25,12 +28,28 @@ void main() async {
   // Inicializar Supabase
   await Supabase.initialize(
     url: SupabaseConfig.devUrl,
-    anonKey: SupabaseConfig.devAnonKey,
+    publishableKey: SupabaseConfig.devAnonKey,
   );
 
   // Inicializar Dependency Injection (GetIt + Injectable)
   await configureDependencies();
 
+  // Inicializar servicio de notificaciones locales
+  try {
+    final notificationsService = getIt<LocalNotificationsService>();
+    await notificationsService.initialize();
+
+    // Solicitar permisos de notificaciones
+    final permisosOtorgados = await notificationsService.solicitarPermisos();
+    debugPrint('🔔 Permisos de notificaciones: ${permisosOtorgados ? "✅ Otorgados" : "❌ Denegados"}');
+  } catch (e) {
+    debugPrint('❌ Error al inicializar notificaciones: $e');
+  }
+
+  // Notificaciones push (FCM)
+  await getIt<PushNotificationsService>().inicializar();
+
   // Ejecutar app
-  runApp(const App());
+  // Monitor de errores: solo activo si se compila con --dart-define=SENTRY_DSN=...
+  await ErrorMonitoring.run(environment: 'development', appRunner: () => runApp(const App()));
 }

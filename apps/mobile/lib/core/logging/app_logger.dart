@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../monitoring/error_monitoring.dart';
 
 /// Sistema de logging centralizado y estructurado
 ///
@@ -84,10 +85,10 @@ class AppLogger {
       debugPrint('  └─ Stack:\n${stackTrace.toString().split('\n').take(5).join('\n')}');
     }
 
-    // TODO: Enviar a servicio de crash reporting (Sentry, Firebase Crashlytics)
-    // if (kReleaseMode) {
-    //   _reportToCrashService(message, error, stackTrace);
-    // }
+    // Crash reporting (Sentry): solo si la app se compiló con SENTRY_DSN
+    if (error != null) {
+      ErrorMonitoring.capture(error, stackTrace, message: message);
+    }
   }
 
   /// Registra el inicio de una operación importante

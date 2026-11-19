@@ -1,194 +1,362 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../domain/repositories/registro_horario_repository.dart';
+import '../../domain/models/datos_inicio_turno.dart';
+import '../../domain/repositories/turno_actual_repository.dart';
+import '../../domain/services/registrador_inicio_turno.dart';
+import '../../domain/services/registro_horario_builder.dart';
+import '../../domain/services/turno_app_factory.dart';
 import 'registro_horario_event.dart';
 import 'registro_horario_state.dart';
 
 /// BLoC que maneja el estado de registros horarios
 ///
-/// Gestiona los fichajes de entrada/salida con geolocalización.
+/// Gestiona los fichajes de entrada/salida con geolocalización y la
+/// resolución del turno en curso (cuadrante o creado desde la app).
 class RegistroHorarioBloc
     extends Bloc<RegistroHorarioEvent, RegistroHorarioState> {
   RegistroHorarioBloc({
     required RegistroHorarioRepository registroHorarioRepository,
+    required TurnoActualRepository turnoActualRepository,
     required AuthBloc authBloc,
-  })  : _registroHorarioRepository = registroHorarioRepository,
+  })  : _registroRepository = registroHorarioRepository,
+        _turnoRepository = turnoActualRepository,
         _authBloc = authBloc,
         super(const RegistroHorarioInitial()) {
-    // Registrar handlers de eventos
     on<CargarRegistrosHorario>(_onCargarRegistrosHorario);
     on<FicharEntrada>(_onFicharEntrada);
+    on<FicharEntradaSinVehiculo>(_onFicharEntradaSinVehiculo);
     on<FicharSalida>(_onFicharSalida);
     on<RefrescarHistorial>(_onRefrescarHistorial);
+    on<ObtenerContextoTurno>(_onObtenerContextoTurno);
+    on<CambiarVehiculo>(_onCambiarVehiculo);
   }
 
-  final RegistroHorarioRepository _registroHorarioRepository;
+  final RegistroHorarioRepository _registroRepository;
+  final TurnoActualRepository _turnoRepository;
   final AuthBloc _authBloc;
-  final Uuid _uuid = const Uuid();
 
-  /// Obtiene el ID del personal autenticado
-  String? get _personalId {
-    final authState = _authBloc.state;
-    if (authState is AuthAuthenticated) {
-      return authState.personal?.id;
-    }
-    return null;
+  static const String _sinFichaPersonal =
+      'Tu usuario no tiene ficha de personal asociada. Contacta con administración para poder fichar.';
+
+  /// Personal autenticado
+  TPersonalEntity? get _personal {
+    final AuthState authState = _authBloc.state;
+    return authState is AuthAuthenticated ? authState.personal : null;
   }
 
-  /// Handler para cargar registros horarios
   Future<void> _onCargarRegistrosHorario(
     CargarRegistrosHorario event,
     Emitter<RegistroHorarioState> emit,
   ) async {
-    try {
-      debugPrint('🕐 [RegistroHorarioBloc] Cargando registros...');
-
-      final personalId = _personalId;
-      if (personalId == null) {
-        debugPrint('❌ [RegistroHorarioBloc] No hay personal autenticado');
-        emit(const RegistroHorarioError('No hay sesión activa'));
-        return;
-      }
-
-      // Obtener el último registro para determinar el estado actual
-      final ultimoRegistro =
-          await _registroHorarioRepository.obtenerUltimo(personalId);
-
-      // Determinar estado actual basado en el último fichaje
-      final estadoActual = _determinarEstadoActual(ultimoRegistro);
-
-      // Obtener historial (últimos 10 registros)
-      final historial = await _registroHorarioRepository.obtenerPorPersonal(
-        personalId,
-        limit: 10,
-      );
-
-      debugPrint('✅ [RegistroHorarioBloc] Registros cargados: ${historial.length}');
-      debugPrint('📍 [RegistroHorarioBloc] Estado actual: $estadoActual');
-
-      emit(RegistroHorarioLoaded(
-        ultimoRegistro: ultimoRegistro,
-        historial: historial,
-        estadoActual: estadoActual,
-      ));
-    } catch (e) {
-      debugPrint('❌ [RegistroHorarioBloc] Error al cargar registros: $e');
-      emit(RegistroHorarioError('Error al cargar registros: $e'));
-    }
+    // El contexto completo incluye registros + turno
+    add(const ObtenerContextoTurno());
   }
 
-  /// Handler para fichar entrada
+  /// Inicio de turno: resuelve el turno (cuadrante o app) y ficha entrada
   Future<void> _onFicharEntrada(
     FicharEntrada event,
     Emitter<RegistroHorarioState> emit,
   ) async {
+    final TPersonalEntity? personal = _personal;
+    if (personal == null) {
+      emit(const RegistroHorarioError(_sinFichaPersonal));
+      return;
+    }
+
     try {
-      debugPrint('🕐 [RegistroHorarioBloc] Fichando entrada...');
       emit(const RegistroHorarioFichando());
+      final InicioTurnoSeleccion seleccion = event.seleccion;
+      final TurnoEntity turno = await _resolverTurno(personal, seleccion);
+      debugPrint('🕐 [RegistroHorarioBloc] Turno resuelto: ${turno.id} '
+          '(${turno.origen.name}) vehículo ${seleccion.vehiculo.matricula}');
 
-      final personalId = _personalId;
-      if (personalId == null) {
-        debugPrint('❌ [RegistroHorarioBloc] No hay personal autenticado');
-        emit(const RegistroHorarioError('No hay sesión activa'));
-        return;
-      }
-
-      // Crear registro de entrada
-      final registro = RegistroHorarioEntity(
-        id: _uuid.v4(),
-        personalId: personalId,
+      final RegistroHorarioEntity entrada = await _registroRepository.crear(RegistroHorarioBuilder.nuevo(
+        personalId: personal.id,
         tipo: 'entrada',
-        fechaHora: DateTime.now(),
+        latitud: event.latitud,
+        longitud: event.longitud,
+        precisionGps: event.precisionGps,
+        vehiculo: seleccion.vehiculo,
+        notas: event.observaciones,
+      ));
+
+      final DatosInicioTurno? datos = seleccion.datos;
+      final String avisoInicio = datos == null
+          ? ''
+          : await RegistradorInicioTurno(_turnoRepository).registrar(
+              personal: personal,
+              turno: turno,
+              vehiculo: seleccion.vehiculo,
+              registroEntradaId: entrada.id,
+              datos: datos,
+              latitud: event.latitud,
+              longitud: event.longitud,
+            );
+      final String aviso = turno.pendienteValidacion
+          ? '\n\nTu turno se ha creado desde la app y queda pendiente de validar por coordinación.'
+          : '';
+      emit(RegistroHorarioSuccess(
+        'Turno iniciado con el vehículo ${seleccion.vehiculo.matricula}.$aviso$avisoInicio',
+      ));
+      add(const ObtenerContextoTurno());
+    } catch (e) {
+      debugPrint('❌ [RegistroHorarioBloc] Error al iniciar turno: $e');
+      emit(RegistroHorarioError('Error al iniciar turno: $e'));
+    }
+  }
+
+  /// Fichaje simple para puestos sin vehículo (jefaturas, administración, coordinación)
+  Future<void> _onFicharEntradaSinVehiculo(
+    FicharEntradaSinVehiculo event,
+    Emitter<RegistroHorarioState> emit,
+  ) async {
+    final TPersonalEntity? personal = _personal;
+    if (personal == null) {
+      emit(const RegistroHorarioError(_sinFichaPersonal));
+      return;
+    }
+
+    try {
+      emit(const RegistroHorarioFichando());
+      await _registroRepository.crear(RegistroHorarioBuilder.nuevo(
+        personalId: personal.id,
+        tipo: 'entrada',
         latitud: event.latitud,
         longitud: event.longitud,
         precisionGps: event.precisionGps,
         notas: event.observaciones,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      await _registroHorarioRepository.crear(registro);
-
-      debugPrint('✅ [RegistroHorarioBloc] Entrada fichada exitosamente');
-
-      // Emitir success temporal
-      emit(const RegistroHorarioSuccess('Entrada fichada correctamente'));
-
-      // Recargar datos
-      add(const CargarRegistrosHorario());
+      ));
+      emit(const RegistroHorarioSuccess('Entrada fichada correctamente.'));
+      add(const ObtenerContextoTurno());
     } catch (e) {
-      debugPrint('❌ [RegistroHorarioBloc] Error al fichar entrada: $e');
+      debugPrint('❌ [RegistroHorarioBloc] Error al fichar entrada sin vehículo: $e');
       emit(RegistroHorarioError('Error al fichar entrada: $e'));
     }
   }
 
-  /// Handler para fichar salida
+  /// Devuelve el turno del cuadrante (actualizando vehículo si cambia)
+  /// o crea uno nuevo desde la app pendiente de validar.
+  Future<TurnoEntity> _resolverTurno(
+    TPersonalEntity personal,
+    InicioTurnoSeleccion seleccion,
+  ) async {
+    final TurnoEntity? existente = seleccion.turno;
+    if (existente != null) {
+      if (existente.idVehiculo == seleccion.vehiculo.id) {
+        return existente;
+      }
+      return _turnoRepository.actualizarTurno(
+        existente.copyWith(idVehiculo: seleccion.vehiculo.id),
+      );
+    }
+
+    final PlantillaTurnoEntity? plantilla = seleccion.plantilla;
+    if (plantilla == null) {
+      throw StateError('Selecciona el tipo de turno');
+    }
+    return _turnoRepository.crearTurno(
+      TurnoAppFactory.desdePlantilla(personal, plantilla, seleccion.vehiculo.id),
+    );
+  }
+
   Future<void> _onFicharSalida(
     FicharSalida event,
     Emitter<RegistroHorarioState> emit,
   ) async {
+    final TPersonalEntity? personal = _personal;
+    if (personal == null) {
+      emit(const RegistroHorarioError(_sinFichaPersonal));
+      return;
+    }
+
+    final RegistroHorarioState previo = state;
+    final DateTime? inicioJornada =
+        previo is RegistroHorarioLoadedWithContext ? previo.entradaJornada?.fechaHora : null;
+
     try {
-      debugPrint('🕐 [RegistroHorarioBloc] Fichando salida...');
       emit(const RegistroHorarioFichando());
+      // El vehículo sale de la última entrada: si se ficha la salida con
+      // horas extra fuera del turno, el turno vigente ya no se encuentra.
+      final RegistroHorarioEntity? entrada = await _registroRepository.obtenerUltimo(personal.id);
+      final bool hayEntrada = entrada?.tipo.toLowerCase() == 'entrada';
+      final VehiculoEntity? vehiculoTurno =
+          hayEntrada && entrada?.vehiculoId != null ? null : await _vehiculoDelTurno(personal.id);
 
-      final personalId = _personalId;
-      if (personalId == null) {
-        debugPrint('❌ [RegistroHorarioBloc] No hay personal autenticado');
-        emit(const RegistroHorarioError('No hay sesión activa'));
-        return;
-      }
-
-      // Crear registro de salida
-      final registro = RegistroHorarioEntity(
-        id: _uuid.v4(),
-        personalId: personalId,
+      await _registroRepository.crear(RegistroHorarioBuilder.nuevo(
+        personalId: personal.id,
         tipo: 'salida',
-        fechaHora: DateTime.now(),
         latitud: event.latitud,
         longitud: event.longitud,
         precisionGps: event.precisionGps,
+        vehiculo: vehiculoTurno,
+        vehiculoId: hayEntrada ? entrada?.vehiculoId : null,
+        vehiculoMatricula: hayEntrada ? entrada?.vehiculoMatricula : null,
         notas: event.observaciones,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      await _registroHorarioRepository.crear(registro);
-
-      debugPrint('✅ [RegistroHorarioBloc] Salida fichada exitosamente');
-
-      // Emitir success temporal
-      emit(const RegistroHorarioSuccess('Salida fichada correctamente'));
-
-      // Recargar datos
-      add(const CargarRegistrosHorario());
+      ));
+      final DateTime? inicio = inicioJornada ?? (hayEntrada ? entrada?.fechaHora : null);
+      emit(RegistroHorarioSuccess(
+        inicio != null
+            ? 'Jornada finalizada. Tiempo trabajado: ${RegistroHorarioBuilder.duracion(DateTime.now().difference(inicio))}.'
+            : 'Salida fichada correctamente',
+      ));
+      add(const ObtenerContextoTurno());
     } catch (e) {
       debugPrint('❌ [RegistroHorarioBloc] Error al fichar salida: $e');
       emit(RegistroHorarioError('Error al fichar salida: $e'));
     }
   }
 
-  /// Handler para refrescar historial
   Future<void> _onRefrescarHistorial(
     RefrescarHistorial event,
     Emitter<RegistroHorarioState> emit,
   ) async {
-    // Simplemente recarga los datos
-    add(const CargarRegistrosHorario());
+    add(const ObtenerContextoTurno());
   }
 
-  /// Determina el estado actual basado en el último fichaje
-  EstadoFichaje _determinarEstadoActual(RegistroHorarioEntity? ultimoRegistro) {
-    if (ultimoRegistro == null) {
-      return EstadoFichaje.fuera;
+  /// Cambio de vehículo en turno: salida con el actual, actualiza el
+  /// turno y entrada con el nuevo.
+  Future<void> _onCambiarVehiculo(
+    CambiarVehiculo event,
+    Emitter<RegistroHorarioState> emit,
+  ) async {
+    final TPersonalEntity? personal = _personal;
+    if (personal == null) {
+      emit(const RegistroHorarioError(_sinFichaPersonal));
+      return;
     }
 
-    return ultimoRegistro.tipo.toLowerCase() == 'entrada'
+    try {
+      emit(const RegistroHorarioFichando());
+      final TurnoEntity? turno = await _turnoRepository.obtenerTurnoVigente(personal.id);
+      final VehiculoEntity? actual = await _vehiculoPorId(turno?.idVehiculo);
+      final VehiculoEntity? nuevo = await _vehiculoPorId(event.nuevoVehiculoId);
+      final String notas = event.observaciones ?? 'Cambio de vehículo';
+
+      await _registroRepository.crear(RegistroHorarioBuilder.nuevo(
+        personalId: personal.id,
+        tipo: 'salida',
+        latitud: event.latitud,
+        longitud: event.longitud,
+        precisionGps: event.precisionGps,
+        vehiculo: actual,
+        notas: notas,
+      ));
+
+      if (turno != null) {
+        await _turnoRepository.actualizarTurno(
+          turno.copyWith(idVehiculo: event.nuevoVehiculoId),
+        );
+      }
+
+      await _registroRepository.crear(RegistroHorarioBuilder.nuevo(
+        personalId: personal.id,
+        tipo: 'entrada',
+        latitud: event.latitud,
+        longitud: event.longitud,
+        precisionGps: event.precisionGps,
+        vehiculo: nuevo,
+        notas: notas,
+      ));
+
+      emit(RegistroHorarioSuccess(
+        'Vehículo cambiado: ${actual?.matricula ?? 'N/A'} → ${nuevo?.matricula ?? 'N/A'}',
+      ));
+      add(const ObtenerContextoTurno());
+    } catch (e) {
+      debugPrint('❌ [RegistroHorarioBloc] Error al cambiar vehículo: $e');
+      emit(RegistroHorarioError('Error al cambiar vehículo: $e'));
+    }
+  }
+
+  /// Carga registros + vehículo, compañero y próximo turno
+  Future<void> _onObtenerContextoTurno(
+    ObtenerContextoTurno event,
+    Emitter<RegistroHorarioState> emit,
+  ) async {
+    final TPersonalEntity? personal = _personal;
+    if (personal == null) {
+      emit(const RegistroHorarioError(_sinFichaPersonal));
+      return;
+    }
+
+    try {
+      final RegistroHorarioEntity? ultimo = await _registroRepository.obtenerUltimo(personal.id);
+      final List<RegistroHorarioEntity> historial =
+          await _registroRepository.obtenerPorPersonal(personal.id, limit: 10);
+      final VehiculoEntity? vehiculo = await _vehiculoDelTurno(personal.id);
+
+      emit(RegistroHorarioLoadedWithContext(
+        ultimoRegistro: ultimo,
+        historial: historial,
+        estadoActual: _estadoActual(ultimo),
+        vehiculo: vehiculo,
+        companero: await _companero(vehiculo, personal.id),
+        proximoTurno: await _proximoTurno(personal.id),
+      ));
+    } catch (e) {
+      debugPrint('❌ [RegistroHorarioBloc] Error al obtener contexto: $e');
+      emit(RegistroHorarioError('Error al obtener contexto: $e'));
+    }
+  }
+
+  EstadoFichaje _estadoActual(RegistroHorarioEntity? ultimo) {
+    return ultimo?.tipo.toLowerCase() == 'entrada'
         ? EstadoFichaje.dentro
         : EstadoFichaje.fuera;
+  }
+
+  /// Vehículo del turno vigente (null si no hay turno o vehículo)
+  Future<VehiculoEntity?> _vehiculoDelTurno(String personalId) async {
+    try {
+      final TurnoEntity? turno = await _turnoRepository.obtenerTurnoVigente(personalId);
+      return await _vehiculoPorId(turno?.idVehiculo);
+    } catch (e) {
+      debugPrint('⚠️ [RegistroHorarioBloc] Sin vehículo de turno: $e');
+      return null;
+    }
+  }
+
+  Future<VehiculoEntity?> _vehiculoPorId(String? id) async {
+    if (id == null || id.isEmpty) {
+      return null;
+    }
+    return _turnoRepository.obtenerVehiculo(id);
+  }
+
+  Future<PersonalContexto?> _companero(VehiculoEntity? vehiculo, String personalId) async {
+    if (vehiculo == null) {
+      return null;
+    }
+    try {
+      final List<TurnoEntity> companeros = await _turnoRepository.obtenerCompaneros(
+        idVehiculo: vehiculo.id,
+        idPersonalExcluido: personalId,
+      );
+      if (companeros.isEmpty) {
+        return null;
+      }
+      final TurnoEntity c = companeros.first;
+      return PersonalContexto(id: c.idPersonal, nombre: c.nombrePersonal, categoria: c.categoriaPersonal);
+    } catch (e) {
+      debugPrint('⚠️ [RegistroHorarioBloc] No se pudo obtener compañero: $e');
+      return null;
+    }
+  }
+
+  Future<TurnoContexto?> _proximoTurno(String personalId) async {
+    try {
+      final TurnoEntity? turno = await _turnoRepository.obtenerProximoTurno(personalId);
+      return turno == null
+          ? null
+          : TurnoContexto(fecha: turno.inicioReal, turno: turno.tipoTurno.nombre);
+    } catch (e) {
+      debugPrint('⚠️ [RegistroHorarioBloc] No se pudo obtener próximo turno: $e');
+      return null;
+    }
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import '../bloc/traslados_bloc.dart';
 import '../bloc/traslados_state.dart';
 import 'traslado_card.dart';
@@ -67,9 +67,11 @@ class TrasladoCardContainer extends StatelessWidget {
           // Comparar usando Equatable
           final cambio = previousTraslado != currentTraslado;
           if (cambio) {
+            final estadoAnterior = EstadoTraslado.fromValue(previousTraslado.estado);
+            final estadoActual = EstadoTraslado.fromValue(currentTraslado.estado);
             debugPrint('🔄 [CardContainer] Traslado $trasladoId cambió - reconstruyendo');
-            debugPrint('   - Estado anterior: ${previousTraslado.estado.label}');
-            debugPrint('   - Estado actual: ${currentTraslado.estado.label}');
+            debugPrint('   - Estado anterior: ${estadoAnterior?.label ?? previousTraslado.estado}');
+            debugPrint('   - Estado actual: ${estadoActual?.label ?? currentTraslado.estado}');
           }
           return cambio;
         }

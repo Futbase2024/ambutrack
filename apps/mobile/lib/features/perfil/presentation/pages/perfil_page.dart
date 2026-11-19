@@ -1,42 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/rol_label.dart';
+import '../../../../core/widgets/dialogs/logout_flow.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../widgets/ajustes_dispositivo_card.dart';
 
 /// Página de Perfil de Usuario
 ///
 /// Muestra información del usuario autenticado y opciones de configuración.
 class PerfilPage extends StatelessWidget {
   const PerfilPage({super.key});
-
-  void _showLogoutConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Cerrar Sesión'),
-        content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              context.read<AuthBloc>().add(const AuthSignOutRequested());
-            },
-            child: const Text(
-              'Cerrar Sesión',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +78,7 @@ class PerfilPage extends StatelessWidget {
                           color: AppColors.textSecondaryLight,
                         ),
                       ),
-                      if (user.rol != null) ...[
+                      if (rolLabel(user.rol) != null) ...[
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -113,7 +90,7 @@ class PerfilPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            user.rol!.toUpperCase(),
+                            rolLabel(user.rol)!.toUpperCase(),
                             style: const TextStyle(
                               color: AppColors.primary,
                               fontSize: 12,
@@ -155,12 +132,12 @@ class PerfilPage extends StatelessWidget {
                             value: user.nombreCompleto!,
                           ),
                         ],
-                        if (user.rol != null) ...[
+                        if (rolLabel(user.rol) != null) ...[
                           const SizedBox(height: 12),
                           _buildInfoRow(
                             icon: Icons.badge,
                             label: 'Rol',
-                            value: user.rol!,
+                            value: rolLabel(user.rol)!,
                           ),
                         ],
                         const SizedBox(height: 12),
@@ -182,29 +159,27 @@ class PerfilPage extends StatelessWidget {
                       _buildOption(
                         icon: Icons.schedule,
                         title: 'Mis Horarios',
-                        onTap: () {
-                          // TODO: Ver horarios
-                        },
+                        onTap: () => context.push('/registro-horario'),
                       ),
                       const Divider(height: 1),
                       _buildOption(
                         icon: Icons.history,
                         title: 'Historial de Servicios',
-                        onTap: () {
-                          // TODO: Ver historial
-                        },
+                        onTap: () => context.push('/servicios/historico'),
                       ),
                       const Divider(height: 1),
                       _buildOption(
-                        icon: Icons.settings,
-                        title: 'Configuración',
-                        onTap: () {
-                          // TODO: Abrir configuración
-                        },
+                        icon: Icons.assignment_outlined,
+                        title: 'Parte diario',
+                        onTap: () => context.push('/partes-diarios'),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(height: 16),
+
+                // Seguridad y dispositivo
+                const AjustesDispositivoCard(),
                 const SizedBox(height: 16),
 
                 // Cerrar sesión
@@ -213,7 +188,7 @@ class PerfilPage extends StatelessWidget {
                     icon: Icons.logout,
                     title: 'Cerrar Sesión',
                     textColor: AppColors.error,
-                    onTap: () => _showLogoutConfirmation(context),
+                    onTap: () => iniciarLogout(context),
                   ),
                 ),
               ],

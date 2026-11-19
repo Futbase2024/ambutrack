@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
 import 'package:equatable/equatable.dart';
 
@@ -8,6 +8,7 @@ class PersonalConTurnosEntity extends Equatable {
   const PersonalConTurnosEntity({
     required this.personal,
     required this.turnos,
+    this.fichajes = const <RegistroHorarioEntity>[],
   });
 
   /// Información del personal
@@ -15,6 +16,9 @@ class PersonalConTurnosEntity extends Equatable {
 
   /// Lista de turnos asignados a este personal
   final List<TurnoEntity> turnos;
+
+  /// Fichajes (entrada/salida) del personal en el rango del cuadrante
+  final List<RegistroHorarioEntity> fichajes;
 
   /// Obtiene turnos para una fecha específica
   List<TurnoEntity> getTurnosParaFecha(DateTime fecha) {
@@ -47,16 +51,18 @@ class PersonalConTurnosEntity extends Equatable {
   int get totalTurnos => turnos.length;
 
   @override
-  List<Object?> get props => <Object?>[personal, turnos];
+  List<Object?> get props => <Object?>[personal, turnos, fichajes];
 
   /// Copia con modificaciones
   PersonalConTurnosEntity copyWith({
     PersonalEntity? personal,
     List<TurnoEntity>? turnos,
+    List<RegistroHorarioEntity>? fichajes,
   }) {
     return PersonalConTurnosEntity(
       personal: personal ?? this.personal,
       turnos: turnos ?? this.turnos,
+      fichajes: fichajes ?? this.fichajes,
     );
   }
 }

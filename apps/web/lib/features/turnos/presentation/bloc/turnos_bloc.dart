@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/turnos/domain/entities/validation_result_entity.dart';
 import 'package:ambutrack_web/features/turnos/domain/repositories/turnos_repository.dart';
 import 'package:ambutrack_web/features/turnos/domain/services/turno_validation_service.dart';
@@ -21,6 +21,7 @@ class TurnosBloc extends Bloc<TurnosEvent, TurnosState> {
     on<TurnoCreateRequested>(_onCreateRequested);
     on<TurnoUpdateRequested>(_onUpdateRequested);
     on<TurnoDeleteRequested>(_onDeleteRequested);
+    on<TurnoValidarRequested>(_onValidarRequested);
     on<TurnosCheckConflictsRequested>(_onCheckConflictsRequested);
   }
 
@@ -169,6 +170,20 @@ class TurnosBloc extends Bloc<TurnosEvent, TurnosState> {
     } catch (e) {
       debugPrint('❌ TurnosBloc: Error al eliminar turno: $e');
       emit(TurnosError('Error al eliminar turno: $e'));
+    }
+  }
+
+  Future<void> _onValidarRequested(
+    TurnoValidarRequested event,
+    Emitter<TurnosState> emit,
+  ) async {
+    try {
+      debugPrint('🚀 TurnosBloc: Validando turno ${event.id}');
+      final TurnoEntity turno = await _repository.validar(event.id);
+      emit(TurnoUpdated(turno));
+    } catch (e) {
+      debugPrint('❌ TurnosBloc: Error al validar turno: $e');
+      emit(TurnosError('Error al validar turno: $e'));
     }
   }
 

@@ -3,10 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../auth/presentation/bloc/auth_state.dart' show AuthAuthenticated;
+import '../../../auth/presentation/bloc/auth_state.dart' show AuthAuthenticated, AuthState;
 import '../../data/repositories/traslados_repository_impl.dart';
 import '../bloc/traslados_bloc.dart';
 import '../bloc/traslados_event.dart';
@@ -20,20 +20,8 @@ class ServiciosHistoricoPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) {
-        final repository = TrasladosRepositoryImpl();
-        final bloc = TrasladosBloc(repository);
-
-        // Obtener ID del conductor desde AuthBloc
-        final authState = context.read<AuthBloc>().state;
-        if (authState is AuthAuthenticated && authState.personal != null) {
-          final idConductor = authState.personal!.id;
-          // Cargar traslados históricos (sin realtime)
-          bloc.add(IniciarStreamEventos(idConductor));
-        }
-
-        return bloc;
-      },
+      // El histórico se carga por rango de fechas desde la página (incluye finalizados)
+      create: (context) => TrasladosBloc(TrasladosRepositoryImpl()),
       child: const _ServiciosHistoricoPageContent(),
     );
   }
@@ -60,6 +48,30 @@ class _ServiciosHistoricoPageContentState
     final ahora = DateTime.now();
     _fechaFin = DateTime(ahora.year, ahora.month, ahora.day);
     _fechaInicio = _fechaFin!.subtract(const Duration(days: 30));
+    _recargar();
+  }
+
+  /// Pide al servidor los traslados del conductor en el rango elegido
+  void _recargar() {
+    final AuthState authState = context.read<AuthBloc>().state;
+    final String? idConductor = authState is AuthAuthenticated ? authState.personal?.id : null;
+    final DateTime? desde = _fechaInicio;
+    final DateTime? hasta = _fechaFin;
+    if (idConductor == null || desde == null || hasta == null) {
+      return;
+    }
+    context.read<TrasladosBloc>().add(
+          CargarHistoricoTraslados(idConductor: idConductor, desde: desde, hasta: hasta),
+        );
+  }
+
+  /// Cambia el rango de fechas y recarga
+  void _cambiarRango({DateTime? desde, DateTime? hasta}) {
+    setState(() {
+      _fechaInicio = desde ?? _fechaInicio;
+      _fechaFin = hasta ?? _fechaFin;
+    });
+    _recargar();
   }
 
   @override
@@ -103,9 +115,7 @@ class _ServiciosHistoricoPageContentState
 
                     return RefreshIndicator(
                       onRefresh: () async {
-                        context
-                            .read<TrasladosBloc>()
-                            .add(const RefrescarTraslados());
+                        _recargar();
                         await Future.delayed(const Duration(seconds: 1));
                       },
                       child: ListView.builder(
@@ -208,9 +218,7 @@ class _ServiciosHistoricoPageContentState
 
               // Botón de actualizar
               IconButton(
-                onPressed: () {
-                  context.read<TrasladosBloc>().add(const RefrescarTraslados());
-                },
+                onPressed: _recargar,
                 icon: const Icon(Icons.refresh),
                 tooltip: 'Actualizar',
               ),
@@ -230,11 +238,7 @@ class _ServiciosHistoricoPageContentState
                   context: context,
                   label: 'Desde',
                   fecha: _fechaInicio,
-                  onChanged: (fecha) {
-                    setState(() {
-                      _fechaInicio = fecha;
-                    });
-                  },
+                  onChanged: (fecha) => _cambiarRango(desde: fecha),
                 ),
               ),
               const SizedBox(width: 12),
@@ -245,11 +249,7 @@ class _ServiciosHistoricoPageContentState
                   context: context,
                   label: 'Hasta',
                   fecha: _fechaFin,
-                  onChanged: (fecha) {
-                    setState(() {
-                      _fechaFin = fecha;
-                    });
-                  },
+                  onChanged: (fecha) => _cambiarRango(hasta: fecha),
                 ),
               ),
             ],
@@ -264,30 +264,26 @@ class _ServiciosHistoricoPageContentState
                 label: 'Últimos 7 días',
                 onTap: () {
                   final ahora = DateTime.now();
-                  setState(() {
-                    _fechaFin = DateTime(ahora.year, ahora.month, ahora.day);
-                    _fechaInicio = _fechaFin!.subtract(const Duration(days: 7));
-                  });
+                  final DateTime hoy = DateTime(ahora.year, ahora.month, ahora.day);
+                  _cambiarRango(desde: hoy.subtract(const Duration(days: 7)), hasta: hoy);
                 },
               ),
               _buildQuickFilterChip(
                 label: 'Últimos 30 días',
                 onTap: () {
                   final ahora = DateTime.now();
-                  setState(() {
-                    _fechaFin = DateTime(ahora.year, ahora.month, ahora.day);
-                    _fechaInicio = _fechaFin!.subtract(const Duration(days: 30));
-                  });
+                  final DateTime hoy = DateTime(ahora.year, ahora.month, ahora.day);
+                  _cambiarRango(desde: hoy.subtract(const Duration(days: 30)), hasta: hoy);
                 },
               ),
               _buildQuickFilterChip(
                 label: 'Último mes',
                 onTap: () {
                   final ahora = DateTime.now();
-                  setState(() {
-                    _fechaFin = DateTime(ahora.year, ahora.month, ahora.day);
-                    _fechaInicio = DateTime(ahora.year, ahora.month - 1, ahora.day);
-                  });
+                  _cambiarRango(
+                    desde: DateTime(ahora.year, ahora.month - 1, ahora.day),
+                    hasta: DateTime(ahora.year, ahora.month, ahora.day),
+                  );
                 },
               ),
             ],
@@ -513,10 +509,11 @@ class _ServiciosHistoricoPageContentState
     // 1. Filtrar por rango de fechas
     if (_fechaInicio != null && _fechaFin != null) {
       trasladosFiltrados = trasladosFiltrados.where((t) {
+        if (t.fecha == null) return false;
         final fechaTraslado = DateTime(
-          t.fecha.year,
-          t.fecha.month,
-          t.fecha.day,
+          t.fecha!.year,
+          t.fecha!.month,
+          t.fecha!.day,
         );
         final inicio = DateTime(
           _fechaInicio!.year,
@@ -539,18 +536,27 @@ class _ServiciosHistoricoPageContentState
     // 2. Aplicar filtro por estado si está seleccionado
     if (_filtroEstado != null) {
       trasladosFiltrados = trasladosFiltrados
-          .where((t) => t.estado == _filtroEstado)
+          .where((t) {
+            final estadoActual = EstadoTraslado.fromValue(t.estado);
+            return estadoActual == _filtroEstado;
+          })
           .toList();
     }
 
     // 3. Ordenar por fecha + hora (descendente: más reciente primero)
     trasladosFiltrados.sort((a, b) {
       // Primero comparar por fecha
-      final dateCompare = b.fecha.compareTo(a.fecha);
+      if (a.fecha == null && b.fecha == null) return 0;
+      if (a.fecha == null) return 1;
+      if (b.fecha == null) return -1;
+      final dateCompare = b.fecha!.compareTo(a.fecha!);
       if (dateCompare != 0) return dateCompare;
 
       // Si la fecha es igual, comparar por hora
-      return b.horaProgramada.compareTo(a.horaProgramada);
+      if (a.horaProgramada == null && b.horaProgramada == null) return 0;
+      if (a.horaProgramada == null) return 1;
+      if (b.horaProgramada == null) return -1;
+      return b.horaProgramada!.compareTo(a.horaProgramada!);
     });
 
     return trasladosFiltrados;

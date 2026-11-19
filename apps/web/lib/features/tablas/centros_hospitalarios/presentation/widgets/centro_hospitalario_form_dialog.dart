@@ -1,19 +1,18 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'dart:async';
+
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
+import 'package:ambutrack_web/core/widgets/handlers/crud_operation_handler.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/tablas/centros_hospitalarios/presentation/bloc/centro_hospitalario_bloc.dart';
 import 'package:ambutrack_web/features/tablas/centros_hospitalarios/presentation/bloc/centro_hospitalario_event.dart';
 import 'package:ambutrack_web/features/tablas/centros_hospitalarios/presentation/bloc/centro_hospitalario_state.dart';
+import 'package:ambutrack_web/features/tablas/centros_hospitalarios/presentation/widgets/form/centro_hospitalario_form_body.dart';
 import 'package:ambutrack_web/features/tablas/localidades/domain/repositories/localidad_repository.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:uuid/uuid.dart';
 
 /// Diálogo para crear/editar centros hospitalarios
@@ -43,13 +42,14 @@ class _CentroHospitalarioFormDialogState extends State<CentroHospitalarioFormDia
   String? _tipoCentro;
   bool _activo = true;
   bool _isLoadingData = false;
+  bool _isSaving = false;
   bool get _isEditing => widget.centro != null;
 
   // Tipos de centro disponibles
-  final List<AppDropdownItem<String>> _tiposCentro = <AppDropdownItem<String>>[
-    const AppDropdownItem<String>(value: 'HOSPITAL', label: 'HOSPITAL'),
-    const AppDropdownItem<String>(value: 'CENTRO SALUD', label: 'CENTRO SALUD'),
-    const AppDropdownItem<String>(value: 'CLÍNICA', label: 'CLÍNICA'),
+  static const List<GestionOption<String>> _tiposCentro = <GestionOption<String>>[
+    GestionOption<String>('HOSPITAL', 'HOSPITAL'),
+    GestionOption<String>('CENTRO SALUD', 'CENTRO SALUD'),
+    GestionOption<String>('CLÍNICA', 'CLÍNICA'),
   ];
 
   @override
@@ -67,7 +67,7 @@ class _CentroHospitalarioFormDialogState extends State<CentroHospitalarioFormDia
     // Validar que el tipo de centro existe en la lista de opciones
     if (c?.tipoCentro != null) {
       final bool existeEnLista = _tiposCentro.any(
-        (AppDropdownItem<String> item) => item.value == c!.tipoCentro,
+        (GestionOption<String> item) => item.value == c!.tipoCentro,
       );
       _tipoCentro = existeEnLista ? c!.tipoCentro : null;
 
@@ -158,7 +158,7 @@ class _CentroHospitalarioFormDialogState extends State<CentroHospitalarioFormDia
   }
 
   void _onSave() {
-    if (!_formKey.currentState!.validate()) {
+    if (_isLoadingData || !_formKey.currentState!.validate()) {
       return;
     }
 
@@ -179,6 +179,19 @@ class _CentroHospitalarioFormDialogState extends State<CentroHospitalarioFormDia
       updatedAt: DateTime.now(),
     );
 
+    setState(() => _isSaving = true);
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext _) => AppLoadingOverlay(
+          message: _isEditing ? 'Actualizando centro hospitalario...' : 'Creando centro hospitalario...',
+          color: _isEditing ? AppColors.secondary : AppColors.primary,
+          icon: _isEditing ? Icons.edit : Icons.add_circle_outline,
+        ),
+      ),
+    );
+
     if (_isEditing) {
       debugPrint('🔄 Actualizando centro hospitalario: ${centro.nombre}');
       context.read<CentroHospitalarioBloc>().add(
@@ -192,267 +205,81 @@ class _CentroHospitalarioFormDialogState extends State<CentroHospitalarioFormDia
     }
   }
 
+  void _onBlocState(BuildContext context, CentroHospitalarioState state) {
+    if (!_isSaving) {
+      return;
+    }
+    if (state is CentroHospitalarioLoaded) {
+      debugPrint('✅ CentroHospitalarioFormDialog: Centro guardado exitosamente, cerrando diálogo');
+      CrudOperationHandler.handleSuccess(
+        context: context,
+        isSaving: _isSaving,
+        isEditing: _isEditing,
+        entityName: 'Centro Hospitalario',
+        onClose: _resetSaving,
+      );
+    } else if (state is CentroHospitalarioError) {
+      debugPrint('❌ CentroHospitalarioFormDialog: Error al guardar centro - ${state.message}');
+      CrudOperationHandler.handleError(
+        context: context,
+        isSaving: _isSaving,
+        isEditing: _isEditing,
+        entityName: 'Centro Hospitalario',
+        errorMessage: state.message,
+        onClose: _resetSaving,
+      );
+    }
+  }
+
+  void _resetSaving() {
+    if (mounted) {
+      setState(() => _isSaving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<CentroHospitalarioBloc, CentroHospitalarioState>(
-      listener: (BuildContext context, CentroHospitalarioState state) {
-        if (state is CentroHospitalarioLoaded) {
-          debugPrint('✅ CentroHospitalarioFormDialog: Centro guardado exitosamente, cerrando diálogo');
-
-          Navigator.of(context).pop(); // Cierra el formulario
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(_isEditing ? '✅ Centro hospitalario actualizado exitosamente' : '✅ Centro hospitalario creado exitosamente'),
-              backgroundColor: AppColors.success,
-              duration: const Duration(seconds: 3),
+    return BlocListener<CentroHospitalarioBloc, CentroHospitalarioState>(
+      listener: _onBlocState,
+      child: GestionFormDialog(
+        title: _isEditing ? 'Editar Centro Hospitalario' : 'Nuevo Centro Hospitalario',
+        subtitle: _isEditing ? widget.centro!.nombre : null,
+        icon: Icons.local_hospital_outlined,
+        formKey: _formKey,
+        isEditing: _isEditing,
+        isSaving: _isSaving,
+        onSave: _onSave,
+        children: <Widget>[
+          if (_isLoadingData)
+            const Center(
+              child: AppLoadingIndicator(
+                message: 'Cargando datos...',
+                size: 100,
+              ),
+            )
+          else
+            CentroHospitalarioFormBody(
+              nombreController: _nombreController,
+              direccionController: _direccionController,
+              telefonoController: _telefonoController,
+              emailController: _emailController,
+              tiposCentro: _tiposCentro,
+              tipoCentro: _tipoCentro,
+              provincias: _provincias,
+              provinciaId: _provinciaId,
+              localidades: _localidadesFiltradas,
+              localidadId: _localidadId,
+              activo: _activo,
+              onTipoCentroChanged: (String? value) => setState(() => _tipoCentro = value),
+              onProvinciaChanged: (String? value) {
+                setState(() => _provinciaId = value);
+                _filtrarLocalidadesPorProvincia(value);
+              },
+              onLocalidadChanged: (String? value) => setState(() => _localidadId = value),
+              onActivoChanged: (bool value) => setState(() => _activo = value),
             ),
-          );
-        } else if (state is CentroHospitalarioError) {
-          debugPrint('❌ CentroHospitalarioFormDialog: Error al guardar centro - ${state.message}');
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('❌ Error: ${state.message}'),
-              backgroundColor: AppColors.error,
-              duration: const Duration(seconds: 5),
-            ),
-          );
-        }
-      },
-      builder: (BuildContext context, CentroHospitalarioState state) {
-        final bool isSaving = state is CentroHospitalarioLoading && !_isLoadingData;
-
-        return AppDialog(
-          title: _isEditing ? 'Editar Centro Hospitalario' : 'Nuevo Centro Hospitalario',
-          icon: _isEditing ? Icons.edit : Icons.add,
-          type: _isEditing ? AppDialogType.edit : AppDialogType.create,
-          content: _isLoadingData
-              ? const Center(
-                  child: AppLoadingIndicator(
-                    message: 'Cargando datos...',
-                    size: 100,
-                  ),
-                )
-              : isSaving
-                  ? const Center(
-                      child: AppLoadingIndicator(
-                        message: 'Guardando...',
-                        size: 100,
-                      ),
-                    )
-                  : Form(
-                    key: _formKey,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          // Nombre
-                          TextFormField(
-                            controller: _nombreController,
-                            textInputAction: TextInputAction.next,
-                            inputFormatters: <TextInputFormatter>[
-                              UpperCaseTextFormatter(),
-                            ],
-                            decoration: InputDecoration(
-                              labelText: 'Nombre',
-                              hintText: 'Ingrese el nombre del centro',
-                              border: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppSizes.radiusMedium),
-                              ),
-                              prefixIcon: const Icon(Icons.local_hospital),
-                            ),
-                            validator: (String? value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'El nombre es requerido';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: AppSizes.spacing),
-
-                          // Tipo de Centro
-                          AppDropdown<String>(
-                            value: _tipoCentro,
-                            label: 'Tipo de Centro',
-                            hint: 'Seleccione el tipo',
-                            prefixIcon: Icons.category,
-                            items: _tiposCentro,
-                            onChanged: (String? value) {
-                              setState(() => _tipoCentro = value);
-                            },
-                          ),
-                          const SizedBox(height: AppSizes.spacing),
-
-                          // Dirección
-                          TextFormField(
-                            controller: _direccionController,
-                            textInputAction: TextInputAction.newline,
-                            decoration: InputDecoration(
-                              labelText: 'Dirección',
-                              hintText: 'Ingrese la dirección completa',
-                              border: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppSizes.radiusMedium),
-                              ),
-                              prefixIcon: const Icon(Icons.location_on),
-                            ),
-                            maxLines: 2,
-                          ),
-                          const SizedBox(height: AppSizes.spacing),
-
-                          // Provincia
-                          AppDropdown<String>(
-                            value: _provinciaId,
-                            label: 'Provincia',
-                            hint: 'Seleccione la provincia',
-                            prefixIcon: Icons.map,
-                            items: _provincias
-                                .map(
-                                  (ProvinciaEntity p) => AppDropdownItem<String>(
-                                    value: p.id,
-                                    label: p.nombre,
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (String? value) {
-                              setState(() {
-                                _provinciaId = value;
-                                _filtrarLocalidadesPorProvincia(value);
-                              });
-                            },
-                          ),
-                          const SizedBox(height: AppSizes.spacing),
-
-                          // Localidad (filtrada por provincia)
-                          AppDropdown<String>(
-                            value: _localidadId,
-                            label: 'Localidad / Población',
-                            hint: _provinciaId == null
-                                ? 'Primero seleccione una provincia'
-                                : 'Seleccione la localidad',
-                            prefixIcon: Icons.location_city,
-                            enabled: _provinciaId != null,
-                            items: _localidadesFiltradas
-                                .map(
-                                  (LocalidadEntity l) => AppDropdownItem<String>(
-                                    value: l.id,
-                                    label: l.nombre,
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (String? value) {
-                              setState(() => _localidadId = value);
-                            },
-                          ),
-                          const SizedBox(height: AppSizes.spacing),
-
-                          // Teléfono
-                          TextFormField(
-                            controller: _telefonoController,
-                            textInputAction: TextInputAction.next,
-                            decoration: InputDecoration(
-                              labelText: 'Teléfono',
-                              hintText: 'Ingrese el teléfono',
-                              border: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppSizes.radiusMedium),
-                              ),
-                              prefixIcon: const Icon(Icons.phone),
-                            ),
-                            keyboardType: TextInputType.phone,
-                          ),
-                          const SizedBox(height: AppSizes.spacing),
-
-                          // Email
-                          TextFormField(
-                            controller: _emailController,
-                            textInputAction: TextInputAction.done,
-                            decoration: InputDecoration(
-                              labelText: 'Email',
-                              hintText: 'Ingrese el email',
-                              border: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppSizes.radiusMedium),
-                              ),
-                              prefixIcon: const Icon(Icons.email),
-                            ),
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (String? value) {
-                              if (value != null &&
-                                  value.trim().isNotEmpty &&
-                                  !value.contains('@')) {
-                                return 'Email inválido';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: AppSizes.spacing),
-
-                          // Estado (Activo/Inactivo)
-                          Row(
-                            children: <Widget>[
-                              Text(
-                                'Estado:',
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.textPrimaryLight,
-                                ),
-                              ),
-                              const SizedBox(width: AppSizes.spacing),
-                              Switch(
-                                value: _activo,
-                                onChanged: (bool value) {
-                                  setState(() => _activo = value);
-                                },
-                                activeTrackColor: AppColors.success,
-                              ),
-                              const SizedBox(width: AppSizes.spacingSmall),
-                              Text(
-                                _activo ? 'Activo' : 'Inactivo',
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  color: _activo ? AppColors.success : AppColors.error,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-          actions: <Widget>[
-            AppButton(
-              onPressed: (isSaving || _isLoadingData) ? null : () => Navigator.of(context).pop(),
-              label: 'Cancelar',
-              variant: AppButtonVariant.text,
-            ),
-            AppButton(
-              onPressed: (_isLoadingData || isSaving) ? null : _onSave,
-              label: _isEditing ? 'Actualizar' : 'Crear',
-              icon: _isEditing ? Icons.check : Icons.save,
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-/// Formatter que convierte el texto a mayúsculas automáticamente
-class UpperCaseTextFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    return TextEditingValue(
-      text: newValue.text.toUpperCase(),
-      selection: newValue.selection,
+        ],
+      ),
     );
   }
 }

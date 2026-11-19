@@ -20,6 +20,8 @@ import 'package:google_fonts/google_fonts.dart';
 ///   },
 /// );
 /// ```
+///
+/// Para una confirmación simple sin doble validación, usar [showSimpleConfirmationDialog]
 Future<bool?> showConfirmationDialog({
   required BuildContext context,
   required String title,
@@ -97,6 +99,189 @@ Color confirmButtonColor = AppColors.error,
 
   debugPrint('🔚 SEGUNDO diálogo cerrado con resultado: $finalConfirmation');
   return finalConfirmation;
+}
+
+/// Diálogo de confirmación simple (sin doble validación)
+///
+/// Ideal para acciones menos críticas como eliminar notificaciones, marcar como leída, etc.
+///
+/// Uso típico:
+/// ```dart
+/// final bool? confirmed = await showSimpleConfirmationDialog(
+///   context: context,
+///   title: 'Eliminar notificación',
+///   message: '¿Estás seguro de que deseas eliminar esta notificación?',
+///   confirmText: 'Eliminar',
+///   icon: Icons.delete_outline,
+///   iconColor: AppColors.error,
+/// );
+/// ```
+Future<bool?> showSimpleConfirmationDialog({
+  required BuildContext context,
+  required String title,
+  required String message,
+  String confirmText = 'Confirmar',
+  String cancelText = 'Cancelar',
+  IconData icon = Icons.warning_rounded,
+  Color iconColor = AppColors.error,
+  Color confirmButtonColor = AppColors.error,
+}) async {
+  debugPrint('🚨 showSimpleConfirmationDialog: Mostrando diálogo simple...');
+  debugPrint('   Title: $title');
+
+  if (!context.mounted) {
+    return false;
+  }
+
+  return showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    useRootNavigator: false,
+    builder: (BuildContext dialogContext) => _SimpleConfirmationDialog(
+      title: title,
+      message: message,
+      confirmText: confirmText,
+      cancelText: cancelText,
+      icon: icon,
+      iconColor: iconColor,
+      confirmButtonColor: confirmButtonColor,
+    ),
+  );
+}
+
+/// Widget de diálogo simple para confirmación
+class _SimpleConfirmationDialog extends StatelessWidget {
+  const _SimpleConfirmationDialog({
+    required this.title,
+    required this.message,
+    required this.confirmText,
+    required this.cancelText,
+    required this.icon,
+    required this.iconColor,
+    required this.confirmButtonColor,
+  });
+
+  final String title;
+  final String message;
+  final String confirmText;
+  final String cancelText;
+  final IconData icon;
+  final Color iconColor;
+  final Color confirmButtonColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+      ),
+      elevation: 24,
+      child: Container(
+        width: 420,
+        constraints: const BoxConstraints(maxWidth: 420),
+        padding: const EdgeInsets.all(AppSizes.paddingXl),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // Icono
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: iconColor,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: AppSizes.spacing),
+
+            // Título
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimaryLight,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSizes.paddingMedium),
+
+            // Mensaje
+            Text(
+              message,
+              style: GoogleFonts.inter(
+                fontSize: AppSizes.fontMedium,
+                color: AppColors.textSecondaryLight,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSizes.spacingXl),
+
+            // Botones
+            Row(
+              children: <Widget>[
+                // Botón Cancelar
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppColors.gray300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                      ),
+                    ),
+                    child: Text(
+                      cancelText,
+                      style: GoogleFonts.inter(
+                        fontSize: AppSizes.fontMedium,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSizes.paddingMedium),
+
+                // Botón Confirmar
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: confirmButtonColor,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                      ),
+                    ),
+                    child: Text(
+                      confirmText,
+                      style: GoogleFonts.inter(
+                        fontSize: AppSizes.fontMedium,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ConfirmationDialog extends StatefulWidget {

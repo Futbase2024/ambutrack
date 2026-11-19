@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:equatable/equatable.dart';
 
 /// Eventos del BLoC de Turnos
@@ -56,6 +56,16 @@ class TurnoUpdateRequested extends TurnosEvent {
 
   @override
   List<Object?> get props => <Object?>[turno];
+}
+
+/// Solicita validar un turno creado desde la app
+class TurnoValidarRequested extends TurnosEvent {
+  const TurnoValidarRequested(this.id);
+
+  final String id;
+
+  @override
+  List<Object?> get props => <Object?>[id];
 }
 
 /// Solicita la eliminación de un turno

@@ -1,309 +1,180 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/loading/app_skeleton.dart';
+import '../../../../core/widgets/menu/app_menu.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../registro_horario/presentation/bloc/registro_horario_bloc.dart';
+import '../../../registro_horario/presentation/bloc/registro_horario_event.dart';
+import '../../../registro_horario/presentation/bloc/registro_horario_state.dart';
+import '../widgets/alertas_caducidad_section.dart';
+import '../widgets/home_menu.dart';
+import '../widgets/home_proximo_servicio.dart';
+import '../widgets/home_turno_resumen.dart';
+import '../widgets/home_user_header.dart';
 
 /// Página Home de AmbuTrack Mobile
 ///
 /// Dashboard principal para personal de campo.
-class HomeAndroidPage extends StatelessWidget {
+class HomeAndroidPage extends StatefulWidget {
   const HomeAndroidPage({super.key});
+
+  @override
+  State<HomeAndroidPage> createState() => _HomeAndroidPageState();
+}
+
+class _HomeAndroidPageState extends State<HomeAndroidPage> with WidgetsBindingObserver {
+  /// Se incrementa en cada refresco para recargar los servicios
+  int _refreshCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _cargarEstadoTurno();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('🏠 [HomeAndroidPage] App resumed, recargando datos...');
+      _refrescar();
+    }
+  }
+
+  void _cargarEstadoTurno() {
+    debugPrint('🏠 [HomeAndroidPage] Cargando estado del turno...');
+    context.read<RegistroHorarioBloc>().add(const ObtenerContextoTurno());
+  }
+
+  void _refrescar() {
+    _cargarEstadoTurno();
+    if (mounted) {
+      setState(() => _refreshCount++);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-        child: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            // Mostrar loading si está verificando
-            if (state is AuthInitial || state is AuthLoading) {
-              return const Center(
-                child: CircularProgressIndicator(),
+      child: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, authState) {
+          if (authState is AuthInitial || authState is AuthLoading) {
+            return const _HomeSkeleton();
+          }
+
+          if (authState is! AuthAuthenticated) {
+            return const Center(child: Text('No autenticado'));
+          }
+
+          return BlocBuilder<RegistroHorarioBloc, RegistroHorarioState>(
+            builder: (context, registroState) {
+              return RefreshIndicator(
+                onRefresh: () async {
+                  debugPrint('🏠 [HomeAndroidPage] Pull-to-refresh activado');
+                  _refrescar();
+                  await Future<void>.delayed(const Duration(milliseconds: 500));
+                },
+                color: AppColors.primary,
+                child: _HomeContenido(
+                  authState: authState,
+                  turno: _DatosTurno.desde(registroState),
+                  refreshCount: _refreshCount,
+                ),
               );
-            }
+            },
+          );
+        },
+      ),
+    );
+  }
+}
 
-            // Si no está autenticado
-            if (state is! AuthAuthenticated) {
-              return const Center(
-                child: Text('No autenticado'),
-              );
-            }
+/// Datos del turno extraídos del estado del RegistroHorarioBloc
+class _DatosTurno {
+  const _DatosTurno({required this.activo, this.entrada, this.matricula});
 
-            final user = state.user;
-            final personal = state.personal;
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Tarjeta del usuario
-                  _buildUserCard(user, personal),
-
-                  const SizedBox(height: 24),
-
-                  // Título de sección
-                  Text(
-                    'Funcionalidades',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[800],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Cuadrícula de botones de funcionalidades
-                  _buildFunctionalityGrid(context),
-
-                  const SizedBox(height: 24),
-                ],
-              ),
-            );
-          },
-        ),
+  factory _DatosTurno.desde(RegistroHorarioState state) {
+    final (EstadoFichaje? estado, RegistroHorarioEntity? ultimo, String? matricula) = switch (state) {
+      RegistroHorarioLoadedWithContext() => (state.estadoActual, state.ultimoRegistro, state.vehiculo?.matricula),
+      RegistroHorarioLoaded() => (state.estadoActual, state.ultimoRegistro, null),
+      _ => (null, null, null),
+    };
+    final bool activo = estado == EstadoFichaje.dentro;
+    return _DatosTurno(
+      activo: activo,
+      entrada: activo && ultimo?.tipo == 'entrada' ? ultimo?.fechaHora : null,
+      matricula: matricula,
     );
   }
 
-  /// Cuadrícula de funcionalidades principales
-  Widget _buildFunctionalityGrid(BuildContext context) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.1,
-      children: [
-        _buildFunctionalityCard(
-          context: context,
-          emoji: '⏰',
-          title: 'Registro Horario',
-          onTap: () {
-            context.push('/registro-horario');
-          },
-        ),
-        _buildFunctionalityCard(
-          context: context,
-          emoji: '🚑',
-          title: 'Servicios',
-          onTap: () {
-            context.push('/servicios');
-          },
-        ),
-        _buildFunctionalityCard(
-          context: context,
-          emoji: '📄',
-          title: 'Trámites',
-          onTap: () {
-            // TODO: Navegar a trámites
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Trámites - Próximamente'),
-                duration: Duration(seconds: 2),
-              ),
-            );
-          },
-        ),
-        _buildFunctionalityCard(
-          context: context,
-          emoji: '➕',
-          title: 'Más',
-          onTap: () {
-            // TODO: Mostrar más opciones
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Más funciones - Próximamente'),
-                duration: Duration(seconds: 2),
-              ),
-            );
-          },
-        ),
+  final bool activo;
+  final DateTime? entrada;
+  final String? matricula;
+}
+
+/// Contenido desplazable de la home
+class _HomeContenido extends StatelessWidget {
+  const _HomeContenido({required this.authState, required this.turno, required this.refreshCount});
+
+  final AuthAuthenticated authState;
+  final _DatosTurno turno;
+  final int refreshCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final String idConductor = authState.personal?.id ?? authState.user.id;
+
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      children: <Widget>[
+        HomeUserHeader(user: authState.user, personal: authState.personal, turnoActivo: turno.activo),
+        const SizedBox(height: 16),
+        // Alertas de caducidad: no ocupa espacio, abre un diálogo si hay avisos
+        const AlertasCaducidadHomeSection(),
+        if (turno.activo) ...<Widget>[
+          HomeTurnoResumen(entrada: turno.entrada, matricula: turno.matricula),
+          const SizedBox(height: 28),
+          const AppMenuSeccion('Próximo servicio'),
+          HomeProximoServicio(key: ValueKey<int>(refreshCount), idConductor: idConductor),
+        ],
+        const SizedBox(height: 28),
+        HomeMenu(turnoActivo: turno.activo),
       ],
     );
   }
+}
 
-  /// Tarjeta individual de funcionalidad
-  Widget _buildFunctionalityCard({
-    required BuildContext context,
-    required String emoji,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      elevation: 2,
-      color: Colors.grey[100],
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            children: [
-              // Icono - 80% del espacio
-              Expanded(
-                flex: 80,
-                child: Center(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      // El icono ocupará el 70% del espacio disponible
-                      final iconSize = constraints.maxHeight * 0.7;
-                      return FittedBox(
-                        fit: BoxFit.contain,
-                        child: Text(
-                          emoji,
-                          style: TextStyle(
-                            fontSize: iconSize,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
+/// Esqueleto de la home mientras se verifica la sesión
+class _HomeSkeleton extends StatelessWidget {
+  const _HomeSkeleton();
 
-              // Título - 20% del espacio
-              Expanded(
-                flex: 20,
-                child: Center(
-                  child: Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[800],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      children: const <Widget>[
+        AppSkeleton(height: 140, radius: 20),
+        SizedBox(height: 28),
+        AppSkeleton(width: 110, height: 12),
+        SizedBox(height: 10),
+        AppSkeleton(height: 150, radius: 16),
+        SizedBox(height: 28),
+        AppSkeleton(width: 90, height: 12),
+        SizedBox(height: 10),
+        AppSkeleton(height: 220, radius: 16),
+      ],
     );
-  }
-
-  /// Tarjeta con información del usuario
-  Widget _buildUserCard(user, personal) {
-    // Usar datos de tpersonal si están disponibles, sino usar datos de auth
-    final nombreCompleto = personal?.nombreCompleto ?? user.nombreCompleto ?? 'Usuario';
-    final categoria = personal?.categoria;
-    final dni = personal?.dni;
-
-    return Card(
-      elevation: 1,
-      color: Colors.grey[100],
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            // Avatar
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              child: Text(
-                nombreCompleto.isNotEmpty
-                    ? nombreCompleto[0].toUpperCase()
-                    : 'U',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-
-            // Información
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Nombre completo
-                  Text(
-                    nombreCompleto,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                      letterSpacing: -0.2,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Categoría/DNI
-                  if (categoria != null || dni != null)
-                    Text(
-                      [
-                        if (categoria != null) _getCategoriaDisplay(categoria),
-                        if (dni != null) 'DNI: $dni',
-                      ].join(' • '),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w400,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    )
-                  else
-                    Text(
-                      _getRolDisplay(user.rol),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w400,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Formatea la categoría del personal para mostrar de forma legible
-  String _getCategoriaDisplay(String? categoria) {
-    if (categoria == null || categoria.isEmpty) {
-      return 'Sin categoría';
-    }
-    return categoria;
-  }
-
-  /// Formatea el rol del usuario para mostrar de forma legible
-  String _getRolDisplay(String? rol) {
-    if (rol == null || rol.isEmpty) {
-      return 'Sin puesto asignado';
-    }
-
-    switch (rol.toLowerCase()) {
-      case 'tecnico':
-      case 'tes':
-        return 'Técnico en Emergencias Sanitarias';
-      case 'conductor':
-        return 'Conductor de Ambulancia';
-      case 'admin':
-      case 'administrador':
-        return 'Administrador';
-      case 'enfermero':
-        return 'Enfermero/a';
-      case 'medico':
-        return 'Médico/a';
-      default:
-        return rol;
-    }
   }
 }

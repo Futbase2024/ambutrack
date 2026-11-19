@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/configuracion_validacion_entity.dart';
 import 'package:ambutrack_web/features/turnos/domain/entities/validation_result_entity.dart';
 
@@ -74,9 +74,9 @@ abstract class TurnoValidationService {
     required int diasDescansoSemanal,
   });
 
-  /// Valida cruce con ausencias registradas
+  /// Valida cruce con ausencias y vacaciones aprobadas del personal.
   ///
-  // TODO(dev): Integrar con módulo de ausencias cuando esté disponible
+  /// Devuelve un error crítico si el turno cae en uno de esos periodos.
   Future<ValidationResult> validateCruceConAusencias({
     required TurnoEntity turnoNuevo,
     required String idPersonal,

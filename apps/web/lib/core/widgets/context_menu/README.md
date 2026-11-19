@@ -191,9 +191,6 @@ El sistema está optimizado para aplicaciones Flutter Web:
 
 ## 📝 Ejemplos Completos
 
-Ver ejemplos de implementación en:
-- `lib/core/widgets/context_menu/context_menu_example.dart`
-
 ### Ejemplo Simple
 
 ```dart

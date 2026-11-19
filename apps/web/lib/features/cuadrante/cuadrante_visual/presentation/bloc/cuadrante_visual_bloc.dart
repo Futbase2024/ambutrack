@@ -1,6 +1,7 @@
-import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/cuadrante/asignaciones/domain/repositories/asignacion_vehiculo_turno_repository.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/domain/entities/cuadrante_slot_entity.dart';
+import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/domain/services/cuadrante_slot_asignacion_mapper.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/presentation/bloc/cuadrante_visual_event.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/presentation/bloc/cuadrante_visual_state.dart';
 import 'package:ambutrack_web/features/cuadrante/dotaciones/domain/repositories/dotaciones_repository.dart';
@@ -77,43 +78,24 @@ class CuadranteVisualBloc
       debugPrint(
           '📦 CuadranteVisualBloc: ${vehiculosActivos.length} vehículos activos');
 
-      // Crear slots vacíos basados en dotaciones
-      final List<CuadranteSlotEntity> slots = <CuadranteSlotEntity>[];
-
-      for (final DotacionEntity dotacion in dotacionesActivas) {
-        final int numUnidades = dotacion.cantidadUnidades;
-
-        // Crear un slot por cada unidad de la dotación
-        for (int i = 1; i <= numUnidades; i++) {
-          // Buscar si ya existe asignación para este slot
-          final List<AsignacionVehiculoTurnoEntity> asignacionExistente = asignaciones.where((AsignacionVehiculoTurnoEntity a) {
-            // TODO(lokisoft1): Necesitamos agregar campo numeroUnidad a AsignacionVehiculoTurnoEntity
-            // Por ahora asumimos que cada asignación es para una unidad
-            return a.dotacionId == dotacion.id;
-          }).toList();
-
-          // Si hay asignaciones, tomar la primera disponible para este numeroUnidad
-          final AsignacionVehiculoTurnoEntity? asignacion = asignacionExistente.isNotEmpty &&
-                  asignacionExistente.length >= i
-              ? asignacionExistente[i - 1]
-              : null;
-
-          slots.add(
-            CuadranteSlotEntity(
-              dotacionId: dotacion.id,
-              fecha: event.fecha,
-              numeroUnidad: i,
-              asignacionId: asignacion?.id,
-              vehiculoId: asignacion?.vehiculoId,
-              // TODO(lokisoft1): Agregar campos de personal cuando estén disponibles
-              // personalId: asignacion?.personalId,
-              // personalNombre: asignacion?.personalNombre,
-              // rolPersonal: asignacion?.rolPersonal,
-              // vehiculoMatricula: asignacion?.vehiculoMatricula,
-            ),
-          );
-        }
-      }
+      // Crear slots basados en dotaciones (unidad y personal vienen de metadata)
+      final Map<String, String> matriculas = <String, String>{
+        for (final VehiculoEntity v in vehiculos) v.id: v.matricula,
+      };
+      final Map<String, String> nombres = <String, String>{
+        for (final PersonalEntity p in personal) p.id: p.nombreCompleto,
+      };
+      final List<CuadranteSlotEntity> slots = <CuadranteSlotEntity>[
+        for (final DotacionEntity dotacion in dotacionesActivas)
+          ...CuadranteSlotAsignacionMapper.construirSlots(
+            dotacionId: dotacion.id,
+            cantidadUnidades: dotacion.cantidadUnidades,
+            fecha: event.fecha,
+            asignaciones: asignaciones,
+            matriculasPorVehiculo: matriculas,
+            nombresPorPersonal: nombres,
+          ),
+      ];
 
       debugPrint('✅ CuadranteVisualBloc: ${slots.length} slots creados');
 
@@ -309,7 +291,8 @@ class CuadranteVisualBloc
             fecha: slot.fecha,
             vehiculoId: slot.vehiculoId!,
             dotacionId: slot.dotacionId,
-            // TODO(lokisoft1): Agregar campos de personal cuando estén disponibles
+            observaciones: slot.notas,
+            metadata: CuadranteSlotAsignacionMapper.metadataDesdeSlot(slot),
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
           );

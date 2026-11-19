@@ -1,7 +1,8 @@
-import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
 import 'package:ambutrack_web/core/theme/app_sizes.dart';
+import 'package:ambutrack_web/core/widgets/gestion_frame/gestion_frame.dart';
 import 'package:ambutrack_web/core/widgets/loading/app_loading_indicator.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/domain/entities/cuadrante_slot_entity.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/domain/entities/personal_drag_data.dart';
@@ -10,6 +11,7 @@ import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/presentation/b
 import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/presentation/bloc/cuadrante_visual_event.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/presentation/bloc/cuadrante_visual_state.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/presentation/widgets/cuadrante_slot_widget.dart';
+import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/presentation/widgets/cuadrante_visual_bars.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/presentation/widgets/draggable_personal_card.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_visual/presentation/widgets/draggable_vehiculo_card.dart';
 import 'package:ambutrack_web/features/personal/domain/entities/personal_entity.dart';
@@ -27,7 +29,10 @@ class CuadranteVisualPage extends StatelessWidget {
       child: BlocProvider<CuadranteVisualBloc>(
         create: (BuildContext _) => getIt<CuadranteVisualBloc>()
           ..add(CuadranteLoadRequested(DateTime.now())),
-        child: const _CuadranteVisualView(),
+        child: const Scaffold(
+          backgroundColor: AppColors.backgroundLight,
+          body: _CuadranteVisualView(),
+        ),
       ),
     );
   }
@@ -68,11 +73,11 @@ class _CuadranteVisualViewState extends State<_CuadranteVisualView> {
       child: BlocBuilder<CuadranteVisualBloc, CuadranteVisualState>(
         builder: (BuildContext context, CuadranteVisualState state) {
           if (state is CuadranteVisualLoading) {
-            return const _LoadingView();
+            return const GestionFrame(content: _LoadingView());
           }
 
           if (state is CuadranteVisualError) {
-            return _ErrorView(message: state.message);
+            return GestionFrame(content: _ErrorView(message: state.message));
           }
 
           if (state is CuadranteVisualLoaded) {
@@ -87,163 +92,34 @@ class _CuadranteVisualViewState extends State<_CuadranteVisualView> {
 
   Widget _buildLoadedView(
       BuildContext context, CuadranteVisualLoaded state) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        // Header: Título, fecha, y acciones
-        _buildHeader(context, state),
-        const SizedBox(height: AppSizes.spacing),
-
-        // Layout principal: 3 columnas (Personal | Cuadrante | Vehículos)
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              // Columna izquierda: Personal disponible
-              _buildPersonalPanel(state),
-
-              const SizedBox(width: AppSizes.spacing),
-
-              // Columna central: Cuadrante (slots)
-              Expanded(
-                child: _buildCuadrantePanel(context, state),
-              ),
-
-              const SizedBox(width: AppSizes.spacing),
-
-              // Columna derecha: Vehículos disponibles
-              _buildVehiculosPanel(state),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, CuadranteVisualLoaded state) {
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.padding),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        border: Border.all(color: AppColors.gray200),
+    return GestionFrame(
+      toolbar: CuadranteVisualToolbar(
+        state: state,
+        selectedDate: _selectedDate,
+        onDatePicked: (DateTime picked) {
+          setState(() => _selectedDate = picked);
+          context.read<CuadranteVisualBloc>().add(CuadranteLoadRequested(picked));
+        },
       ),
-      child: Row(
+      statusBar: CuadranteVisualStatusBar(state: state),
+      // Layout principal: 3 columnas (Personal | Cuadrante | Vehículos)
+      content: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          // Título
+          // Columna izquierda: Personal disponible
+          _buildPersonalPanel(state),
+
+          const SizedBox(width: AppSizes.spacingSmall),
+
+          // Columna central: Cuadrante (slots)
           Expanded(
-            child: Text(
-              'Cuadrante Visual',
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimaryLight,
-              ),
-            ),
-          ),
-
-          // Selector de fecha
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: () async {
-              final DateTime? picked = await showDatePicker(
-                context: context,
-                initialDate: _selectedDate,
-                firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                lastDate: DateTime.now().add(const Duration(days: 365)),
-              );
-
-              if (picked != null && picked != _selectedDate) {
-                setState(() => _selectedDate = picked);
-                if (context.mounted) {
-                  context
-                      .read<CuadranteVisualBloc>()
-                      .add(CuadranteLoadRequested(picked));
-                }
-              }
-            },
-          ),
-          const SizedBox(width: AppSizes.spacingSmall),
-
-          Text(
-            '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textPrimaryLight,
-            ),
-          ),
-
-          const SizedBox(width: AppSizes.spacing),
-
-          // Indicador de cambios sin guardar
-          if (state.hasUnsavedChanges)
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 6,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha:  0.1),
-                borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                border: Border.all(color: AppColors.warning),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  const Icon(
-                    Icons.warning_outlined,
-                    size: 16,
-                    color: AppColors.warning,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Cambios sin guardar',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.warning,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          const SizedBox(width: AppSizes.spacing),
-
-          // Botón Limpiar
-          OutlinedButton.icon(
-            onPressed: () {
-              context
-                  .read<CuadranteVisualBloc>()
-                  .add(const CuadranteClearRequested());
-            },
-            icon: const Icon(Icons.clear_all, size: 18),
-            label: const Text('Limpiar'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.error,
-              side: const BorderSide(color: AppColors.error),
-            ),
+            child: _buildCuadrantePanel(context, state),
           ),
 
           const SizedBox(width: AppSizes.spacingSmall),
 
-          // Botón Guardar
-          ElevatedButton.icon(
-            onPressed: state.hasUnsavedChanges
-                ? () {
-                    context
-                        .read<CuadranteVisualBloc>()
-                        .add(const CuadranteSaveRequested());
-                  }
-                : null,
-            icon: const Icon(Icons.save, size: 18),
-            label: const Text('Guardar'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-            ),
-          ),
+          // Columna derecha: Vehículos disponibles
+          _buildVehiculosPanel(state),
         ],
       ),
     );
@@ -474,18 +350,9 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.spacingMassive),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.radius),
-        border: Border.all(color: AppColors.gray200),
-      ),
-      constraints: const BoxConstraints(minHeight: 400),
-      child: const Center(
-        child: AppLoadingIndicator(
-          message: 'Cargando cuadrante...',
-        ),
+    return const Center(
+      child: AppLoadingIndicator(
+        message: 'Cargando cuadrante...',
       ),
     );
   }
@@ -499,13 +366,7 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingXl),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.radius),
-        border: Border.all(color: AppColors.error),
-      ),
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[

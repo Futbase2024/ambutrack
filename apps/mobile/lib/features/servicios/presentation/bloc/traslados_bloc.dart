@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import '../../../../core/logging/app_logger.dart';
 import '../../../../core/realtime/connection_manager.dart';
 import '../../domain/repositories/traslados_repository.dart';
@@ -16,6 +16,7 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
   TrasladosBloc(this._repository) : super(const TrasladosInitial()) {
     on<CargarTrasladosActivos>(_onCargarTrasladosActivos);
     on<CargarTraslado>(_onCargarTraslado);
+    on<CargarHistoricoTraslados>(_onCargarHistoricoTraslados);
     on<CambiarEstadoTraslado>(_onCambiarEstadoTraslado);
     on<IniciarStreamTrasladosActivos>(_onIniciarStreamTrasladosActivos);
     on<TrasladosStreamActualizado>(_onTrasladosStreamActualizado);
@@ -72,6 +73,25 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
     }
   }
 
+  /// Histórico: todos los traslados del conductor en el rango (incluye finalizados)
+  Future<void> _onCargarHistoricoTraslados(
+    CargarHistoricoTraslados event,
+    Emitter<TrasladosState> emit,
+  ) async {
+    try {
+      emit(const TrasladosLoading());
+      final List<TrasladoEntity> traslados = await _repository.getByRangoFechas(
+        fechaInicio: event.desde,
+        fechaFin: event.hasta,
+        idConductor: event.idConductor,
+      );
+      emit(TrasladosLoaded(traslados: traslados));
+    } catch (e, stackTrace) {
+      AppLogger.failOperation('Cargar histórico de traslados', e, stackTrace, tag: _tag);
+      emit(TrasladosError('Error al cargar el histórico: $e'));
+    }
+  }
+
   /// Carga un traslado específico y su paciente asociado
   Future<void> _onCargarTraslado(
     CargarTraslado event,
@@ -84,18 +104,22 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
 
       // Cargar paciente completo
       PacienteEntity? paciente;
-      try {
-        debugPrint('👤 [TrasladosBloc] Cargando paciente: ${traslado.idPaciente}');
-        paciente = await _pacienteDataSource.getById(traslado.idPaciente);
-        debugPrint('✅ [TrasladosBloc] Paciente cargado: ${paciente.nombreCompleto}');
-      } catch (e) {
-        debugPrint('⚠️  [TrasladosBloc] No se pudo cargar paciente: $e');
-        // Continuamos sin el paciente completo
+      if (traslado.idPaciente != null) {
+        try {
+          debugPrint('👤 [TrasladosBloc] Cargando paciente: ${traslado.idPaciente}');
+          paciente = await _pacienteDataSource.getById(traslado.idPaciente!);
+          debugPrint('✅ [TrasladosBloc] Paciente cargado: ${paciente.nombreCompleto}');
+        } catch (e) {
+          debugPrint('⚠️  [TrasladosBloc] No se pudo cargar paciente: $e');
+          // Continuamos sin el paciente completo
+        }
       }
 
       if (state is TrasladosLoaded) {
         final currentState = state as TrasladosLoaded;
+        final bool enLista = currentState.traslados.any((TrasladoEntity t) => t.id == traslado.id);
         emit(currentState.copyWith(
+          traslados: enLista ? null : <TrasladoEntity>[...currentState.traslados, traslado],
           trasladoSeleccionado: traslado,
           pacienteSeleccionado: paciente,
         ));
@@ -128,7 +152,7 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
 
       // Obtener traslado actual para guardar el estado anterior
       final trasladoActual = await _repository.getById(event.idTraslado);
-      final estadoAnterior = trasladoActual.estado;
+      final estadoAnterior = EstadoTraslado.fromValue(trasladoActual.estado) ?? EstadoTraslado.pendiente;
 
       // Emitir estado de carga
       emit(CambiandoEstadoTraslado(
@@ -219,21 +243,48 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
     Emitter<TrasladosState> emit,
   ) async {
     try {
-      debugPrint('🔄 [TrasladosBloc] Actualizando desde stream');
+      debugPrint('🔄 [TrasladosBloc] Actualizando desde stream - ${event.traslados.length} traslados');
 
       if (state is TrasladosLoaded) {
         final currentState = state as TrasladosLoaded;
 
+        // Los streams de Supabase NO traen los pacientes embebidos, así que necesitamos
+        // recargar cada traslado individualmente para obtener los datos completos
+        // Solo recargamos los traslados que no tengan paciente para optimizar
+        final trasladosConPacientes = <TrasladoEntity>[];
+        int recargados = 0;
+
+        for (final traslado in event.traslados) {
+          // Verificar si el traslado ya tiene paciente embebido
+          if (traslado.paciente != null) {
+            trasladosConPacientes.add(traslado);
+          } else {
+            try {
+              debugPrint('📥 [TrasladosBloc] Recargando traslado ${traslado.id} (sin paciente)');
+              // Recargar traslado completo con paciente embebido usando getById (que tiene JOINs)
+              final trasladoCompleto = await _repository.getById(traslado.id);
+              trasladosConPacientes.add(trasladoCompleto);
+              recargados++;
+            } catch (e) {
+              debugPrint('⚠️ [TrasladosBloc] Error recargando traslado ${traslado.id}: $e');
+              // Si falla, usar el traslado del stream (sin paciente)
+              trasladosConPacientes.add(traslado);
+            }
+          }
+        }
+
+        debugPrint('✅ [TrasladosBloc] $recargados traslados recargados con pacientes de ${event.traslados.length} totales');
+
         // Mantener el traslado seleccionado actualizado si existe
         final trasladoSeleccionado = currentState.trasladoSeleccionado != null
-            ? event.traslados.firstWhere(
+            ? trasladosConPacientes.firstWhere(
                 (t) => t.id == currentState.trasladoSeleccionado!.id,
                 orElse: () => currentState.trasladoSeleccionado!,
               )
             : null;
 
         emit(currentState.copyWith(
-          traslados: event.traslados,
+          traslados: trasladosConPacientes,
           trasladoSeleccionado: trasladoSeleccionado,
         ));
       } else {
@@ -345,19 +396,23 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
       await _trasladosStreamSubscription?.cancel();
       await _eventosStreamSubscription?.cancel();
 
-      // Cargar traslados iniciales
-      emit(const TrasladosLoading());
+      // Cargar traslados iniciales. En el detalle, CargarTraslado corre a la vez:
+      // si ya cargó el traslado seleccionado no se debe pisar (spinner infinito)
+      if (state is! TrasladosLoaded) {
+        emit(const TrasladosLoading());
+      }
       final traslados = await _repository.getActivosByIdConductor(event.idConductor);
-      emit(TrasladosLoaded(traslados: traslados));
+      final TrasladosState actual = state;
+      emit(actual is TrasladosLoaded ? actual.copyWith(traslados: traslados) : TrasladosLoaded(traslados: traslados));
 
       AppLogger.info(
         '${traslados.length} traslados cargados inicialmente',
         tag: _tag,
       );
 
-      // Suscribirse a eventos Realtime
+      // Suscribirse a eventos Realtime pasando el ID del conductor
       _eventosStreamSubscription = _repository
-          .streamEventosConductor()
+          .streamEventosConductor(event.idConductor)
           .listen(
             (evento) {
               AppLogger.debug(
@@ -442,6 +497,7 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
             const estadosInvalidos = [
               // Estados avanzados (en progreso)
               EstadoTraslado.recibido,
+              EstadoTraslado.recibidoConductor,
               EstadoTraslado.enOrigen,
               EstadoTraslado.saliendoOrigen,
               EstadoTraslado.enTransito,
@@ -452,9 +508,10 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
               EstadoTraslado.noRealizado,
             ];
 
-            if (estadosInvalidos.contains(traslado.estado)) {
+            final estadoActual = EstadoTraslado.fromValue(traslado.estado);
+            if (estadoActual != null && estadosInvalidos.contains(estadoActual)) {
               debugPrint(
-                '⚠️ [TrasladosBloc] ADVERTENCIA: Traslado reasignado con estado inválido "${traslado.estado.value}"',
+                '⚠️ [TrasladosBloc] ADVERTENCIA: Traslado reasignado con estado inválido "${estadoActual.value}"',
               );
               debugPrint('   Este traslado debería haber sido reseteado a "asignado" por el backend');
               debugPrint('   Ignorando este traslado hasta que el backend lo corrija');
@@ -592,6 +649,14 @@ class TrasladosBloc extends Bloc<TrasladosEvent, TrasladosState> {
 
             emit(currentState.copyWith(traslados: nuevosTraslados));
           }
+          break;
+
+        // Eventos que no requieren acción especial (solo logueo)
+        case EventoTrasladoType.cancelled:
+        case EventoTrasladoType.started:
+        case EventoTrasladoType.completed:
+        case EventoTrasladoType.inTransit:
+          debugPrint('ℹ️  [TrasladosBloc] Evento ${evento.eventType.label} recibido (sin acción específica)');
           break;
       }
     } catch (e, stackTrace) {

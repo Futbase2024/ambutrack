@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Eventos del BLoC de traslados
 abstract class TrasladosEvent extends Equatable {
@@ -119,4 +119,20 @@ class EventoTrasladoRecibido extends TrasladosEvent {
 
   @override
   List<Object?> get props => [evento, idConductor];
+}
+
+/// Carga el histórico del conductor en un rango de fechas (todos los estados)
+class CargarHistoricoTraslados extends TrasladosEvent {
+  const CargarHistoricoTraslados({
+    required this.idConductor,
+    required this.desde,
+    required this.hasta,
+  });
+
+  final String idConductor;
+  final DateTime desde;
+  final DateTime hasta;
+
+  @override
+  List<Object?> get props => <Object?>[idConductor, desde, hasta];
 }

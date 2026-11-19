@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:equatable/equatable.dart';
 
 /// Estados para el BLoC de registro horario
@@ -103,4 +103,29 @@ class RegistroHorarioProcessing extends RegistroHorarioState {
 
   @override
   List<Object?> get props => <Object?>[previousState];
+}
+
+/// Estado para vista de fichajes globales (todos los personal)
+/// Se usa en la página de fichajes con visualización de mapas GPS
+class RegistroHorarioFichajesLoaded extends RegistroHorarioState {
+  const RegistroHorarioFichajesLoaded({
+    required this.registros,
+    this.estadisticas,
+  });
+
+  final List<RegistroHorarioEntity> registros;
+  final Map<String, dynamic>? estadisticas;
+
+  @override
+  List<Object?> get props => <Object?>[registros, estadisticas];
+
+  RegistroHorarioFichajesLoaded copyWith({
+    List<RegistroHorarioEntity>? registros,
+    Map<String, dynamic>? estadisticas,
+  }) {
+    return RegistroHorarioFichajesLoaded(
+      registros: registros ?? this.registros,
+      estadisticas: estadisticas ?? this.estadisticas,
+    );
+  }
 }

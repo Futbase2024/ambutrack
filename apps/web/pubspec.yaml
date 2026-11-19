@@ -16,46 +16,62 @@ dependencies:
     sdk: flutter
 
   # Supabase (reemplaza Firebase)
-  supabase_flutter: ^2.8.3
+  supabase_flutter: ^2.18.3
 
   # State Management
-  bloc: ^9.0.1
+  bloc: ^9.2.1
   flutter_bloc: ^9.1.1
-  equatable: ^2.0.5
+  bloc_concurrency: ^0.3.0
+  equatable: ^2.1.0
   dartz: ^0.10.1
 
   # UI/Design
-  flutter_svg: ^2.0.10+1
-  google_fonts: ^6.2.1
+  flutter_svg: ^2.4.0
+  google_fonts: ^6.3.3
 
   # DI and Routing
-  get_it: ^7.7.0
-  injectable: ^2.4.4
-  go_router: ^14.2.7
+  get_it: ^9.3.0
+  injectable: ^3.0.0
+  go_router: ^14.8.1
 
   # Serialization
-  freezed_annotation: ^2.4.4
-  json_annotation: ^4.9.0
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
 
   # Network
   internet_connection_checker: ^3.0.1
+  http: ^1.6.0
 
   # Utilities
-  uuid: ^4.5.1
-  intl: ^0.20.2
-  file_picker: ^8.1.4
-  table_calendar: ^3.1.2
-  shared_preferences: ^2.3.3
+  uuid: ^4.6.0
+  intl: ^0.20.3
+  file_picker: ^8.3.7
+  table_calendar: ^3.3.0
+  shared_preferences: ^2.5.6
+
+  # PDF
+  pdf: ^3.12.0
+  printing: ^5.14.3
+
+  # Maps (para visualización de fichajes con GPS)
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
 
   # Core Datasource (paquete local del proyecto)
   # ===== CORE SHARED PACKAGE (Monorepo) =====
-  ambutrack_core:
-    path: ../../packages/ambutrack_core
+  # ambutrack_core:  # ← DEPRECADO: Migrado a ambutrack_core_datasource
+  #   path: ../../packages/ambutrack_core
+  ambutrack_core_datasource:
+    path: ../../packages/ambutrack_core_datasource
+  ambutrack_pdf:
+    path: ../../packages/ambutrack_pdf
 
   # # Internacionalización (comentado temporalmente por conflicto con DS)
   # easy_localization: ^3.0.8
 
-
+  nested: ^1.0.0
+  excel: ^4.0.6
+  sentry_flutter: ^10.5.0
 
 dev_dependencies:
   flutter_test:
@@ -63,14 +79,16 @@ dev_dependencies:
   integration_test:
     sdk: flutter
 
-  bloc_test: ^10.0.0
-  build_runner: ^2.4.13
+  # TODO: Descomentar cuando se resuelva conflicto con freezed
+  # bloc_test: ^10.0.0
+  build_runner: ^2.16.1
   flutter_flavorizr: ^2.2.3
   flutter_lints: ^5.0.0
-  freezed: ^2.5.7
-  injectable_generator: ^2.6.2
-  json_serializable: ^6.8.0
-  mocktail: ^1.0.4
+  freezed: ^4.0.3
+  injectable_generator: ^3.1.3
+  json_serializable: ^6.15.2
+  # TODO: Descomentar cuando se resuelva conflicto con freezed
+  # mocktail: ^1.0.4
 
 flutter:
   uses-material-design: true

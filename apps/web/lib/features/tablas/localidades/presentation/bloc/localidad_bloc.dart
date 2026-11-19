@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/tablas/localidades/domain/repositories/localidad_repository.dart';
 import 'package:ambutrack_web/features/tablas/localidades/presentation/bloc/localidad_event.dart';
 import 'package:ambutrack_web/features/tablas/localidades/presentation/bloc/localidad_state.dart';

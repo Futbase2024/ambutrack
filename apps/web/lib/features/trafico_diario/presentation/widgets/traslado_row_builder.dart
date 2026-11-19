@@ -1,16 +1,14 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
+import 'package:ambutrack_web/core/theme/app_text_styles.dart';
 import 'package:ambutrack_web/core/widgets/context_menu/custom_context_menu.dart';
 import 'package:ambutrack_web/features/servicios/servicios/domain/entities/servicio_entity.dart';
-import 'package:ambutrack_web/features/servicios/servicios/presentation/widgets/resizable_data_table.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-/// Builder para construir filas de traslados en la tabla
-///
-/// Separado para reducir complejidad y líneas del componente principal
+/// Acciones de un traslado en la planificación: menú contextual (clic
+/// derecho) y diálogo de detalles
 class TrasladoRowBuilder {
   const TrasladoRowBuilder({
     required this.serviciosPorTraslado,
@@ -18,7 +16,6 @@ class TrasladoRowBuilder {
     required this.personalPorId,
     required this.localidadesPorNombreHospital,
     required this.trasladosSeleccionados,
-    required this.onSelectionChanged,
     required this.context,
     this.onDesasignarConductor,
     this.onDesasignarConductorMasivoRequested,
@@ -35,7 +32,6 @@ class TrasladoRowBuilder {
   final Map<String, String> personalPorId;
   final Map<String, String> localidadesPorNombreHospital;
   final Set<String> trasladosSeleccionados;
-  final ValueChanged<Set<String>> onSelectionChanged;
   final BuildContext context;
 
   /// Callback para desasignar conductor de un traslado individual
@@ -68,217 +64,18 @@ class TrasladoRowBuilder {
   /// Recibe el ID del traslado y el nombre del paciente para mostrar contexto
   final void Function(String idTraslado, String pacienteNombre)? onVerHistorial;
 
-  /// Construye una fila de datos para un traslado
-  DataTableRow buildRow(TrasladoEntity traslado) {
+  /// Opciones del menú contextual (clic derecho) de un traslado
+  List<ContextMenuOption> contextMenuOptions(TrasladoEntity traslado) {
     final ServicioEntity? servicio = serviciosPorTraslado[traslado.id];
-
-    // Usar paciente del servicio (traslado no tiene paciente directo)
-    final PacienteEntity? paciente = servicio?.paciente;
-
-    final String tipoTraslado = traslado.tipoTraslado.toUpperCase();
-    // Formatear hora a HH:mm (quitar segundos si vienen en formato HH:mm:ss)
-    final String horaProgramada = _formatearHora(traslado.horaProgramada);
-
-    final String estatus = _getEstatusTexto(traslado.estado);
-    final Color estatusColor = _getEstatusColor(traslado);
-
-    final String pacienteNombre = paciente != null
-        ? '${paciente.nombre} ${paciente.primerApellido}${paciente.segundoApellido != null ? ' ${paciente.segundoApellido}' : ''}'
-        : '';
-
-    final String domicilioOrigen = traslado.tipoOrigen == 'domicilio_paciente'
-        ? (paciente?.domicilioDireccion ?? '')
-        : 'HOSPITAL';
-
-    final String domicilioDestino = traslado.tipoDestino == 'domicilio_paciente'
-        ? (paciente?.domicilioDireccion ?? '')
-        : 'HOSPITAL';
-
-    String localidadOrigen = '';
-    if (traslado.tipoOrigen == 'domicilio_paciente') {
-      localidadOrigen = paciente?.localidadId != null
-          ? (localidadesPorId[paciente!.localidadId!] ?? '')
-          : '';
-    } else if (traslado.origen != null && traslado.origen!.isNotEmpty) {
-      localidadOrigen = localidadesPorNombreHospital[traslado.origen!] ?? '';
-    }
-
-    String localidadDestino = '';
-    if (traslado.tipoDestino == 'domicilio_paciente') {
-      localidadDestino = paciente?.localidadId != null
-          ? (localidadesPorId[paciente!.localidadId!] ?? '')
-          : '';
-    } else if (traslado.destino != null && traslado.destino!.isNotEmpty) {
-      localidadDestino = localidadesPorNombreHospital[traslado.destino!] ?? '';
-    }
-
-    final String nombreOrigen = traslado.tipoOrigen == 'centro_hospitalario' &&
-            traslado.origen != null &&
-            traslado.origen!.isNotEmpty
-        ? traslado.origen!
-        : 'DOMICILIO';
-
-    final String nombreDestino = traslado.tipoDestino == 'centro_hospitalario' &&
-            traslado.destino != null &&
-            traslado.destino!.isNotEmpty
-        ? traslado.destino!
-        : 'DOMICILIO';
-
-    // Usar motivo traslado del servicio (traslado solo tiene idMotivoTraslado)
-    final String terapia = servicio?.motivoTraslado?.nombre ?? '';
-    final String conductor = traslado.idConductor != null
-        ? (personalPorId[traslado.idConductor!] ?? traslado.conductorNombre ?? '')
-        : '';
-    final String matricula = traslado.matriculaVehiculo ?? '';
-
-    // Construir las celdas de la fila
-    final List<DataTableCell> cells = <DataTableCell>[
-        DataTableCell(
-          child: Checkbox(
-            value: trasladosSeleccionados.contains(traslado.id),
-            onChanged: (bool? value) {
-              final Set<String> newSelection = Set<String>.from(trasladosSeleccionados);
-              if (value == true) {
-                newSelection.add(traslado.id);
-              } else {
-                newSelection.remove(traslado.id);
-              }
-              onSelectionChanged(newSelection);
-            },
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-          ),
-          alignment: Alignment.center,
-        ),
-        DataTableCell(
-          child: Tooltip(
-            message: tipoTraslado,
-            child: Container(
-              width: 28,
-              height: 22,
-              decoration: BoxDecoration(
-                color: tipoTraslado == 'IDA'
-                    ? AppColors.success.withValues(alpha: 0.15)
-                    : AppColors.error.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: tipoTraslado == 'IDA'
-                      ? AppColors.success.withValues(alpha: 0.4)
-                      : AppColors.error.withValues(alpha: 0.4),
-                ),
-              ),
-              child: Icon(
-                tipoTraslado == 'IDA' ? Icons.arrow_forward_rounded : Icons.arrow_back_rounded,
-                size: 18,
-                color: tipoTraslado == 'IDA' ? AppColors.success : AppColors.error,
-              ),
-            ),
-          ),
-          alignment: Alignment.center,
-        ),
-        DataTableCell(child: _buildHoraCell(horaProgramada), alignment: Alignment.center),
-        DataTableCell(child: _buildCellText(pacienteNombre, false, 11)),
-        DataTableCell(child: _buildCellText(domicilioOrigen, false, 11)),
-        DataTableCell(child: _buildCellText(localidadOrigen, false, 11)),
-        DataTableCell(child: _buildCellText(nombreOrigen, false, 11)),
-        DataTableCell(child: _buildCellText(domicilioDestino, false, 11)),
-        DataTableCell(child: _buildCellText(localidadDestino, false, 11)),
-        DataTableCell(child: _buildCellText(nombreDestino, false, 11)),
-        DataTableCell(child: _buildCellText(terapia, false, 11)),
-        DataTableCell(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: estatusColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              estatus,
-              style: GoogleFonts.inter(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                color: estatusColor,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          alignment: Alignment.center,
-        ),
-        DataTableCell(child: _buildCellText(conductor, true, 11), alignment: Alignment.center),
-        DataTableCell(child: _buildCellText(matricula, true, 11), alignment: Alignment.center),
-        ..._buildHorasCronologicas(traslado),
-        ..._buildCheckboxesRequisitos(traslado),
-    ];
-
-    // Verificar si esta fila está seleccionada
-    final bool estaSeleccionado = trasladosSeleccionados.contains(traslado.id);
-
-    // Envolver la fila completa con menú contextual
-    return DataTableRow(
-      cells: cells.asMap().entries.map((MapEntry<int, DataTableCell> entry) {
-        final int index = entry.key;
-        final DataTableCell cell = entry.value;
-
-        // No envolver el checkbox con menú contextual
-        if (index == 0) {
-          return cell;
-        }
-
-        return DataTableCell(
-          child: CustomContextMenu(
-            menuOptions: _buildContextMenuOptions(traslado, servicio),
-            child: cell.child,
-          ),
-          alignment: cell.alignment,
-        );
-      }).toList(),
-      // Color de fondo azul claro cuando está seleccionado
-      backgroundColor: estaSeleccionado
-          ? AppColors.primary.withValues(alpha: 0.15)
-          : null,
-      isSelected: estaSeleccionado,
-      // Selección con Shift para múltiple, clic normal para única
-      onTap: () {
-        // Verificar si Shift está presionado para selección múltiple
-        final bool shiftPressed = HardwareKeyboard.instance.logicalKeysPressed
-            .any((LogicalKeyboardKey key) =>
-                key == LogicalKeyboardKey.shiftLeft ||
-                key == LogicalKeyboardKey.shiftRight);
-
-        if (shiftPressed) {
-          // Shift + clic: añadir/quitar de la selección múltiple
-          final Set<String> newSelection = Set<String>.from(trasladosSeleccionados);
-          if (estaSeleccionado) {
-            newSelection.remove(traslado.id);
-          } else {
-            newSelection.add(traslado.id);
-          }
-          onSelectionChanged(newSelection);
-        } else {
-          // Clic normal: seleccionar solo esta fila (o deseleccionar si ya está sola)
-          if (estaSeleccionado && trasladosSeleccionados.length == 1) {
-            // Si solo está esta seleccionada, deseleccionarla
-            onSelectionChanged(<String>{});
-          } else {
-            // Seleccionar solo esta fila
-            onSelectionChanged(<String>{traslado.id});
-          }
-        }
-      },
-    );
-  }
-
-  /// Construye las opciones del menú contextual para un traslado
-  List<ContextMenuOption> _buildContextMenuOptions(TrasladoEntity traslado, ServicioEntity? servicio) {
     final bool tieneServicio = servicio != null;
-    final bool tieneHoraProgramada = traslado.horaProgramada.isNotEmpty;
-    final bool estaPendiente = traslado.estado == EstadoTraslado.pendiente;
+    final bool tieneHoraProgramada = traslado.horaProgramada != null;
+    final EstadoTraslado? estadoEnum = EstadoTraslado.fromValue(traslado.estado);
+    final bool estaPendiente = estadoEnum == EstadoTraslado.pendiente;
     // Un traslado tiene conductor asignado si idConductor no es null
     // Esto cubre estados: asignado, enviado, recibido_conductor, en_origen, etc.
     final bool tieneConductorAsignado = traslado.idConductor != null;
     // Un traslado finalizado no puede ser desasignado
-    final bool estaFinalizado = traslado.estado == EstadoTraslado.finalizado;
+    final bool estaFinalizado = estadoEnum == EstadoTraslado.finalizado;
 
     return <ContextMenuOption>[
       ContextMenuOption(
@@ -286,7 +83,7 @@ class TrasladoRowBuilder {
         emoji: '📋',
         onTap: () {
           debugPrint('📋 Ver detalles de traslado: ${traslado.id}');
-          _mostrarDetallesServicio(traslado, servicio);
+          mostrarDetalles(traslado);
         },
       ),
       if (tieneServicio)
@@ -349,7 +146,8 @@ class TrasladoRowBuilder {
               }
             } else {
               debugPrint('🚗 Asignar conductor a traslado: ${traslado.id}');
-              debugPrint('   - Estado actual: ${traslado.estado.name}');
+              final String estadoLabel = EstadoTraslado.fromValue(traslado.estado)?.label ?? traslado.estado ?? 'Desconocido';
+              debugPrint('   - Estado actual: $estadoLabel');
               _solicitarAsignacionConductor(traslado, servicio);
             }
           },
@@ -366,13 +164,8 @@ class TrasladoRowBuilder {
             final String pacienteNombreLocal = pacienteLocal != null
                 ? '${pacienteLocal.nombre} ${pacienteLocal.primerApellido}'
                 : '';
-            if (onModificarHora != null) {
-              // Parsear horaProgramada (String) a TimeOfDay para el callback
-              final List<String> horaParts = traslado.horaProgramada.split(':');
-              final int hora = int.tryParse(horaParts.isNotEmpty ? horaParts[0] : '0') ?? 0;
-              final int minuto = int.tryParse(horaParts.length > 1 ? horaParts[1] : '0') ?? 0;
-              final DateTime horaComoDateTime = DateTime(2000, 1, 1, hora, minuto);
-              onModificarHora!(traslado.id, horaComoDateTime, pacienteNombreLocal);
+            if (onModificarHora != null && traslado.horaProgramada != null) {
+              onModificarHora!(traslado.id, traslado.horaProgramada!, pacienteNombreLocal);
             }
           },
         ),
@@ -393,13 +186,8 @@ class TrasladoRowBuilder {
             final String destino = traslado.tipoDestino == 'centro_hospitalario'
                 ? (traslado.destino ?? 'Hospital')
                 : 'Domicilio';
-            if (onCancelarTraslado != null) {
-              // Parsear horaProgramada (String) a DateTime? para el callback
-              final List<String> horaPartsCancelar = traslado.horaProgramada.split(':');
-              final int horaCancelar = int.tryParse(horaPartsCancelar.isNotEmpty ? horaPartsCancelar[0] : '0') ?? 0;
-              final int minutoCancelar = int.tryParse(horaPartsCancelar.length > 1 ? horaPartsCancelar[1] : '0') ?? 0;
-              final DateTime horaComoDateTimeCancelar = DateTime(2000, 1, 1, horaCancelar, minutoCancelar);
-              onCancelarTraslado!(traslado.id, pacienteNombreLocal, horaComoDateTimeCancelar, origen, destino);
+            if (onCancelarTraslado != null && traslado.horaProgramada != null) {
+              onCancelarTraslado!(traslado.id, pacienteNombreLocal, traslado.horaProgramada!, origen, destino);
             }
           },
         ),
@@ -423,12 +211,18 @@ class TrasladoRowBuilder {
   }
 
   /// Muestra un dialog con los detalles completos del traslado (diseño profesional con secciones)
-  void _mostrarDetallesServicio(TrasladoEntity traslado, ServicioEntity? servicio) {
-    final String tipoTraslado = traslado.tipoTraslado.toUpperCase();
+  void mostrarDetalles(TrasladoEntity traslado) {
+    final ServicioEntity? servicio = serviciosPorTraslado[traslado.id];
+    final String tipoTraslado = (traslado.tipoTraslado ?? 'SIN TIPO').toUpperCase();
     final bool esIda = tipoTraslado == 'IDA';
-    final String horaProgramada = traslado.horaProgramada;
-    final String fechaTraslado = DateFormat('EEEE, d MMMM yyyy', 'es_ES').format(traslado.fecha);
-    final String estado = traslado.estado.name;
+    final String horaProgramada = traslado.horaProgramada != null
+        ? DateFormat('HH:mm').format(traslado.horaProgramada!)
+        : 'Sin hora';
+    final String fechaTraslado = traslado.fecha != null
+        ? DateFormat('EEEE, d MMMM yyyy', 'es_ES').format(traslado.fecha!)
+        : 'Sin fecha';
+    final EstadoTraslado? estadoEnum = EstadoTraslado.fromValue(traslado.estado);
+    final String estado = estadoEnum?.label ?? traslado.estado ?? 'Desconocido';
 
     // Recursos asignados
     final String conductor = traslado.idConductor != null
@@ -535,7 +329,7 @@ class TrasladoRowBuilder {
                                 child: _buildSeccion(
                                   titulo: 'SERVICIO',
                                   icono: Icons.medical_services,
-                                  color: const Color(0xFF7C3AED),
+                                  color: AppColors.formacion,
                                   child: _buildServicioSection(
                                     motivoTraslado, tipoRecurrencia, tipoAmbulancia, prioridad,
                                     fechaInicioServicio, fechaFinServicio, horaRecogida, horaVuelta,
@@ -694,7 +488,7 @@ class TrasladoRowBuilder {
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    Text('TRASLADO DE $tipoTraslado', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimaryLight)),
+                    Text('TRASLADO DE $tipoTraslado', style: AppTextStyles.h6),
                     if (codigo != null && codigo.isNotEmpty) ...<Widget>[
                       const SizedBox(width: 8),
                       Container(
@@ -710,7 +504,7 @@ class TrasladoRowBuilder {
                   children: <Widget>[
                     Icon(Icons.calendar_today, size: 12, color: colorTipo),
                     const SizedBox(width: 4),
-                    Text(fechaTraslado.toUpperCase(), style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textPrimaryLight)),
+                    Text(fechaTraslado.toUpperCase(), style: AppTextStyles.badgeDark),
                     const SizedBox(width: 12),
                     Icon(Icons.access_time_filled, size: 12, color: colorTipo),
                     const SizedBox(width: 4),
@@ -823,8 +617,8 @@ class TrasladoRowBuilder {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(nombre.toUpperCase(), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimaryLight)),
-                  Text(documento, style: GoogleFonts.inter(fontSize: 10, color: AppColors.textSecondaryLight)),
+                  Text(nombre.toUpperCase(), style: AppTextStyles.tableHeader),
+                  Text(documento, style: AppTextStyles.tableCellSmall),
                 ],
               ),
             ),
@@ -866,8 +660,8 @@ class TrasladoRowBuilder {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(label, style: GoogleFonts.inter(fontSize: 8, color: AppColors.textSecondaryLight)),
-                Text(valor, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(label, style: AppTextStyles.tableCellSmall.copyWith(fontSize: 8)),
+                Text(valor, style: AppTextStyles.tableCellSmall.copyWith(fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -915,9 +709,9 @@ class TrasladoRowBuilder {
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text(tipoOrigen, style: GoogleFonts.inter(fontSize: 8, color: AppColors.textSecondaryLight)),
+                Text(tipoOrigen, style: AppTextStyles.tableCellSmall.copyWith(fontSize: 8)),
                 const SizedBox(height: 2),
-                Text(origenDetalle.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight), maxLines: 2),
+                Text(origenDetalle.toUpperCase(), style: AppTextStyles.tableCellSmall.copyWith(fontWeight: FontWeight.w600), maxLines: 2),
                 if (ubicacionOrigen != '-') ...<Widget>[
                   const SizedBox(height: 2),
                   Row(
@@ -969,9 +763,9 @@ class TrasladoRowBuilder {
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text(tipoDestino, style: GoogleFonts.inter(fontSize: 8, color: AppColors.textSecondaryLight)),
+                Text(tipoDestino, style: AppTextStyles.tableCellSmall.copyWith(fontSize: 8)),
                 const SizedBox(height: 2),
-                Text(destinoDetalle.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textPrimaryLight), maxLines: 2),
+                Text(destinoDetalle.toUpperCase(), style: AppTextStyles.tableCellSmall.copyWith(fontWeight: FontWeight.w600), maxLines: 2),
                 if (ubicacionDestino != '-') ...<Widget>[
                   const SizedBox(height: 2),
                   Row(
@@ -1039,7 +833,7 @@ class TrasladoRowBuilder {
         const SizedBox(height: 6),
         _buildRecursoItem(Icons.medical_services_outlined, 'Enfermero', enfermero, AppColors.info),
         const SizedBox(height: 6),
-        _buildRecursoItem(Icons.local_hospital_outlined, 'Médico', medico, const Color(0xFF7C3AED)),
+        _buildRecursoItem(Icons.local_hospital_outlined, 'Médico', medico, AppColors.formacion),
       ],
     );
   }
@@ -1243,9 +1037,15 @@ class TrasladoRowBuilder {
 
   /// Sección de auditoría
   Widget _buildAuditoriaSection(TrasladoEntity traslado, ServicioEntity? servicio) {
-    final String createdAt = DateFormat('dd/MM/yyyy HH:mm').format(traslado.createdAt);
-    final String updatedAt = DateFormat('dd/MM/yyyy HH:mm').format(traslado.updatedAt);
-    final String fechaAsignacion = traslado.fechaAsignacion != null ? DateFormat('dd/MM/yyyy HH:mm').format(traslado.fechaAsignacion!) : '-';
+    final String createdAt = traslado.createdAt != null
+        ? DateFormat('dd/MM/yyyy HH:mm').format(traslado.createdAt!)
+        : '-';
+    final String updatedAt = traslado.updatedAt != null
+        ? DateFormat('dd/MM/yyyy HH:mm').format(traslado.updatedAt!)
+        : '-';
+    final String fechaAsignacion = traslado.fechaAsignacion != null
+        ? DateFormat('dd/MM/yyyy HH:mm').format(traslado.fechaAsignacion!)
+        : '-';
 
     return Row(
       children: <Widget>[
@@ -1395,190 +1195,6 @@ class TrasladoRowBuilder {
 
     if (onAsignarConductorRequested != null) {
       onAsignarConductorRequested!(traslado.id, pacienteNombre);
-    }
-  }
-
-  List<DataTableCell> _buildHorasCronologicas(TrasladoEntity traslado) {
-    return <DataTableCell>[
-      DataTableCell(
-        child: _buildHoraCronologicaCell(
-          traslado.fechaEnviado != null ? DateFormat('HH:mm').format(traslado.fechaEnviado!) : '',
-        ),
-        alignment: Alignment.center,
-      ),
-      DataTableCell(
-        child: _buildHoraCronologicaCell(
-          traslado.fechaRecibidoConductor != null ? DateFormat('HH:mm').format(traslado.fechaRecibidoConductor!) : '',
-        ),
-        alignment: Alignment.center,
-      ),
-      DataTableCell(
-        child: _buildHoraCronologicaCell(
-          traslado.fechaEnOrigen != null ? DateFormat('HH:mm').format(traslado.fechaEnOrigen!) : '',
-        ),
-        alignment: Alignment.center,
-      ),
-      DataTableCell(
-        child: _buildHoraCronologicaCell(
-          traslado.fechaSaliendoOrigen != null ? DateFormat('HH:mm').format(traslado.fechaSaliendoOrigen!) : '',
-        ),
-        alignment: Alignment.center,
-      ),
-      DataTableCell(
-        child: _buildHoraCronologicaCell(
-          traslado.fechaEnDestino != null ? DateFormat('HH:mm').format(traslado.fechaEnDestino!) : '',
-        ),
-        alignment: Alignment.center,
-      ),
-      DataTableCell(
-        child: _buildHoraCronologicaCell(
-          traslado.fechaFinalizado != null ? DateFormat('HH:mm').format(traslado.fechaFinalizado!) : '',
-        ),
-        alignment: Alignment.center,
-      ),
-    ];
-  }
-
-  /// Construye la celda de hora cronológica con estilo destacado (negrita y más grande)
-  Widget _buildHoraCronologicaCell(String hora) {
-    if (hora.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Text(
-      hora,
-      style: GoogleFonts.inter(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textPrimaryLight,
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  List<DataTableCell> _buildCheckboxesRequisitos(TrasladoEntity traslado) {
-    return <DataTableCell>[
-      // SIC = Solo Silla de Ruedas
-      DataTableCell(
-        child: _buildCheckboxCell(traslado.requiereSillaRuedas),
-        alignment: Alignment.center,
-      ),
-      // CA = Solo Camilla
-      DataTableCell(child: _buildCheckboxCell(traslado.requiereCamilla), alignment: Alignment.center),
-      // Ayu = Ayuda
-      DataTableCell(child: _buildCheckboxCell(traslado.requiereAyuda), alignment: Alignment.center),
-      // Ac = Acompañante
-      DataTableCell(child: _buildCheckboxCell(traslado.requiereAcompanante), alignment: Alignment.center),
-    ];
-  }
-
-  Widget _buildCellText(String text, bool negrita, double tamTexto) {
-    return Text(
-      text.toUpperCase(),
-      style: GoogleFonts.inter(
-        fontSize: tamTexto,
-        fontWeight: negrita ? FontWeight.w600 : FontWeight.normal,
-        color: AppColors.textPrimaryLight,
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildCheckboxCell(bool value) {
-    return Icon(
-      value ? Icons.check_box : Icons.check_box_outline_blank,
-      size: 16,
-      color: value ? AppColors.success : AppColors.gray400,
-    );
-  }
-
-  Color _getEstatusColor(TrasladoEntity traslado) {
-    switch (traslado.estado) {
-      // Rojo: Estados finales negativos
-      case EstadoTraslado.cancelado:
-      case EstadoTraslado.noRealizado:
-      case EstadoTraslado.finalizado:
-        return AppColors.error;
-      // Azul: Pendiente
-      case EstadoTraslado.pendiente:
-        return AppColors.info;
-      // Verde: Todos los demás estados activos
-      case EstadoTraslado.asignado:
-      case EstadoTraslado.enviado:
-      case EstadoTraslado.recibido:
-      case EstadoTraslado.enOrigen:
-      case EstadoTraslado.saliendoOrigen:
-      case EstadoTraslado.enTransito:
-      case EstadoTraslado.enDestino:
-        return AppColors.success;
-    }
-  }
-
-  /// Obtiene el texto de visualización para el estado del traslado
-  /// Usa el label del enum pero cambia "SALIENDO" por "EN RUTA"
-  String _getEstatusTexto(EstadoTraslado estado) {
-    // Caso especial: mostrar "EN RUTA" en lugar de "SALIENDO"
-    if (estado == EstadoTraslado.saliendoOrigen) {
-      return 'EN RUTA';
-    }
-    // Para el resto, usar el label del enum
-    return estado.label;
-  }
-
-  /// Construye la celda de hora programada con estilo destacado
-  Widget _buildHoraCell(String hora) {
-    return Text(
-      hora,
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
-        color: AppColors.primary,
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  /// Formatea la hora a formato HH:mm (quita los segundos si vienen en formato HH:mm:ss)
-  String _formatearHora(String hora) {
-    if (hora.isEmpty) {
-      return '';
-    }
-    // Si viene en formato HH:mm:ss, extraer solo HH:mm
-    final List<String> partes = hora.split(':');
-    if (partes.length >= 2) {
-      return '${partes[0]}:${partes[1]}';
-    }
-    return hora;
-  }
-
-  /// Obtiene el valor de una columna para filtrado
-  String obtenerValorColumna(TrasladoEntity traslado, String columna) {
-    final ServicioEntity? servicio = serviciosPorTraslado[traslado.id];
-    // Usar paciente del servicio
-    final PacienteEntity? paciente = servicio?.paciente;
-
-    switch (columna) {
-      case 'tipoTraslado':
-        return traslado.tipoTraslado.toUpperCase();
-      case 'paciente':
-        return paciente != null
-            ? '${paciente.nombre} ${paciente.primerApellido}'
-            : '';
-      case 'terapia':
-        // Usar motivo traslado del servicio
-        return servicio?.motivoTraslado?.nombre ?? '';
-      case 'estatus':
-        return traslado.estado.name;
-      case 'conductor':
-        return traslado.idConductor != null
-            ? (personalPorId[traslado.idConductor!] ?? traslado.conductorNombre ?? '')
-            : '';
-      case 'matricula':
-        return traslado.matriculaVehiculo ?? '';
-      default:
-        return '';
     }
   }
 }

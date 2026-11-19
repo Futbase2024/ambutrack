@@ -1,14 +1,13 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/theme/app_colors.dart';
-import 'package:ambutrack_web/core/theme/app_sizes.dart';
-import 'package:ambutrack_web/core/widgets/buttons/app_button.dart';
-import 'package:ambutrack_web/core/widgets/dialogs/app_dialog.dart';
-import 'package:ambutrack_web/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:ambutrack_web/core/widgets/gestion/form/gestion_form.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
-/// Formulario para crear/editar asignaciones de vehículos a turnos
+/// Formulario para crear/editar asignaciones de vehículos a turnos.
+///
+/// Devuelve la entidad con `Navigator.pop(entity)`; la vista lanza el evento.
 class AsignacionFormDialog extends StatefulWidget {
   const AsignacionFormDialog({
     super.key,
@@ -33,13 +32,15 @@ class _AsignacionFormDialogState extends State<AsignacionFormDialog> {
   DateTime _selectedFecha = DateTime.now();
   String _selectedEstado = 'planificada';
 
-  final List<String> _estados = <String>[
-    'planificada',
-    'confirmada',
-    'en_curso',
-    'finalizada',
-    'cancelada',
+  static const List<GestionOption<String>> _estados = <GestionOption<String>>[
+    GestionOption<String>('planificada', 'Planificada', color: AppColors.info),
+    GestionOption<String>('confirmada', 'Confirmada', color: AppColors.success),
+    GestionOption<String>('en_curso', 'En curso', color: AppColors.warning),
+    GestionOption<String>('finalizada', 'Finalizada', color: AppColors.textSecondaryLight),
+    GestionOption<String>('cancelada', 'Cancelada', color: AppColors.error),
   ];
+
+  bool get _isEditing => widget.asignacion != null;
 
   @override
   void initState() {
@@ -67,232 +68,107 @@ class _AsignacionFormDialogState extends State<AsignacionFormDialog> {
     super.dispose();
   }
 
+  static String? _requerido(String? value) =>
+      (value == null || value.isEmpty) ? 'Este campo es requerido' : null;
+
   @override
   Widget build(BuildContext context) {
-    final bool isEditing = widget.asignacion != null;
-
-    return AppDialog(
-      title: isEditing ? 'Editar Asignación' : 'Nueva Asignación',
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              _buildDateField(),
-              const SizedBox(height: AppSizes.spacing),
-              _buildTextField(
+    return GestionFormDialog(
+      title: _isEditing ? 'Editar asignación' : 'Nueva asignación',
+      subtitle: _isEditing ? DateFormat('dd/MM/yyyy').format(widget.asignacion!.fecha) : null,
+      icon: Icons.assignment_ind_outlined,
+      formKey: _formKey,
+      isEditing: _isEditing,
+      saveLabel: _isEditing ? 'Actualizar' : 'Crear',
+      onSave: _onSave,
+      children: <Widget>[
+        const GestionFormSection(title: 'Asignación', first: true),
+        GestionFormColumns(
+          children: <Widget>[
+            GestionFormRow(
+              label: 'Fecha',
+              required: true,
+              child: GestionDateField(
+                value: _selectedFecha,
+                required: true,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2030),
+                onChanged: (DateTime? picked) {
+                  if (picked != null && picked != _selectedFecha) {
+                    setState(() => _selectedFecha = picked);
+                  }
+                },
+              ),
+            ),
+            GestionFormRow(
+              label: 'Estado',
+              child: GestionDropdownField<String>(
+                value: _selectedEstado,
+                options: _estados,
+                onChanged: (String? value) {
+                  if (value != null) {
+                    setState(() => _selectedEstado = value);
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+        GestionFormColumns(
+          children: <Widget>[
+            GestionFormRow(
+              label: 'Vehículo ID',
+              required: true,
+              child: GestionTextField(
                 controller: _vehiculoIdController,
-                label: 'Vehículo ID',
                 hint: 'ID del vehículo',
-                icon: Icons.directions_car,
-                required: true,
+                validator: _requerido,
               ),
-              const SizedBox(height: AppSizes.spacing),
-              _buildTextField(
+            ),
+            GestionFormRow(
+              label: 'Dotación ID',
+              required: true,
+              child: GestionTextField(
                 controller: _dotacionIdController,
-                label: 'Dotación ID',
                 hint: 'ID de la dotación',
-                icon: Icons.assignment,
-                required: true,
+                validator: _requerido,
               ),
-              const SizedBox(height: AppSizes.spacing),
-              _buildTextField(
-                controller: _plantillaTurnoIdController,
-                label: 'Plantilla Turno ID',
-                hint: 'ID de la plantilla de turno (opcional)',
-                icon: Icons.access_time,
-              ),
-              const SizedBox(height: AppSizes.spacing),
-              _buildTextField(
-                controller: _hospitalIdController,
-                label: 'Hospital ID',
-                hint: 'ID del hospital (opcional)',
-                icon: Icons.local_hospital,
-              ),
-              const SizedBox(height: AppSizes.spacing),
-              _buildTextField(
-                controller: _baseIdController,
-                label: 'Base ID',
-                hint: 'ID de la base (opcional)',
-                icon: Icons.home_work,
-              ),
-              const SizedBox(height: AppSizes.spacing),
-              _buildEstadoDropdown(),
-              const SizedBox(height: AppSizes.spacing),
-              _buildTextField(
-                controller: _observacionesController,
-                label: 'Observaciones',
-                hint: 'Observaciones adicionales',
-                icon: Icons.notes,
-                maxLines: 3,
-              ),
-            ],
+            ),
+          ],
+        ),
+        const GestionFormSection(title: 'Referencias opcionales'),
+        GestionFormColumns(
+          children: <Widget>[
+            GestionFormRow(
+              label: 'Plantilla ID',
+              child: GestionTextField(controller: _plantillaTurnoIdController, hint: 'Opcional'),
+            ),
+            GestionFormRow(
+              label: 'Hospital ID',
+              child: GestionTextField(controller: _hospitalIdController, hint: 'Opcional'),
+            ),
+          ],
+        ),
+        GestionFormColumns(
+          children: <Widget>[
+            GestionFormRow(
+              label: 'Base ID',
+              child: GestionTextField(controller: _baseIdController, hint: 'Opcional'),
+            ),
+            const SizedBox.shrink(),
+          ],
+        ),
+        GestionFormRow(
+          label: 'Observaciones',
+          multiline: true,
+          child: GestionTextField(
+            controller: _observacionesController,
+            hint: 'Observaciones adicionales',
+            maxLines: 3,
           ),
-        ),
-      ),
-      actions: <Widget>[
-        AppButton(
-          onPressed: () => Navigator.of(context).pop(),
-          label: 'Cancelar',
-          variant: AppButtonVariant.text,
-        ),
-        AppButton(
-          onPressed: _onSave,
-          label: isEditing ? 'Actualizar' : 'Crear',
         ),
       ],
     );
-  }
-
-  Widget _buildDateField() {
-    return InkWell(
-      onTap: () => _selectDate(context),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: 'Fecha',
-          prefixIcon: const Icon(Icons.calendar_today, color: AppColors.primary),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-          ),
-        ),
-        child: Text(
-          _formatDate(_selectedFecha),
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: AppColors.textPrimaryLight,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    bool required = false,
-    int maxLines = 1,
-  }) {
-    return TextFormField(
-      controller: controller,
-      maxLines: maxLines,
-      textInputAction: maxLines == 1 ? TextInputAction.next : TextInputAction.newline,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Icon(icon, color: AppColors.primary),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        ),
-      ),
-      validator: required
-          ? (String? value) {
-              if (value == null || value.isEmpty) {
-                return 'Este campo es requerido';
-              }
-              return null;
-            }
-          : null,
-    );
-  }
-
-  Widget _buildEstadoDropdown() {
-    return AppDropdown<String>(
-      value: _selectedEstado,
-      label: 'Estado',
-      hint: 'Selecciona el estado',
-      prefixIcon: Icons.info_outline,
-      items: _estados.map((String estado) {
-        return AppDropdownItem<String>(
-          value: estado,
-          label: _getEstadoLabel(estado),
-          icon: _getEstadoIcon(estado),
-          iconColor: _getEstadoColor(estado),
-        );
-      }).toList(),
-      onChanged: (String? value) {
-        if (value != null) {
-          setState(() {
-            _selectedEstado = value;
-          });
-        }
-      },
-    );
-  }
-
-  String _getEstadoLabel(String estado) {
-    switch (estado) {
-      case 'planificada':
-        return 'Planificada';
-      case 'confirmada':
-        return 'Confirmada';
-      case 'en_curso':
-        return 'En Curso';
-      case 'finalizada':
-        return 'Finalizada';
-      case 'cancelada':
-        return 'Cancelada';
-      default:
-        return estado;
-    }
-  }
-
-  IconData _getEstadoIcon(String estado) {
-    switch (estado) {
-      case 'planificada':
-        return Icons.event_note;
-      case 'confirmada':
-        return Icons.check_circle_outline;
-      case 'en_curso':
-        return Icons.play_circle_outline;
-      case 'finalizada':
-        return Icons.done_all;
-      case 'cancelada':
-        return Icons.cancel_outlined;
-      default:
-        return Icons.help_outline;
-    }
-  }
-
-  Color _getEstadoColor(String estado) {
-    switch (estado) {
-      case 'planificada':
-        return AppColors.info;
-      case 'confirmada':
-        return AppColors.success;
-      case 'en_curso':
-        return AppColors.warning;
-      case 'finalizada':
-        return AppColors.textSecondaryLight;
-      case 'cancelada':
-        return AppColors.error;
-      default:
-        return AppColors.textSecondaryLight;
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/'
-        '${date.month.toString().padLeft(2, '0')}/'
-        '${date.year}';
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedFecha,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-    );
-
-    if (picked != null && picked != _selectedFecha) {
-      setState(() {
-        _selectedFecha = picked;
-      });
-    }
   }
 
   void _onSave() {
@@ -302,8 +178,7 @@ class _AsignacionFormDialogState extends State<AsignacionFormDialog> {
 
     final bool isEditing = widget.asignacion != null;
 
-    final AsignacionVehiculoTurnoEntity asignacion =
-        AsignacionVehiculoTurnoEntity(
+    final AsignacionVehiculoTurnoEntity asignacion = AsignacionVehiculoTurnoEntity(
       id: isEditing ? widget.asignacion!.id : const Uuid().v4(),
       fecha: _selectedFecha,
       vehiculoId: _vehiculoIdController.text.trim(),
@@ -311,21 +186,17 @@ class _AsignacionFormDialogState extends State<AsignacionFormDialog> {
       plantillaTurnoId: _plantillaTurnoIdController.text.trim().isEmpty
           ? null
           : _plantillaTurnoIdController.text.trim(),
-      hospitalId: _hospitalIdController.text.trim().isEmpty
-          ? null
-          : _hospitalIdController.text.trim(),
-      baseId: _baseIdController.text.trim().isEmpty
-          ? null
-          : _baseIdController.text.trim(),
+      hospitalId: _hospitalIdController.text.trim().isEmpty ? null : _hospitalIdController.text.trim(),
+      baseId: _baseIdController.text.trim().isEmpty ? null : _baseIdController.text.trim(),
       estado: _selectedEstado,
       observaciones: _observacionesController.text.trim().isEmpty
           ? null
           : _observacionesController.text.trim(),
-      createdAt:
-          isEditing ? widget.asignacion!.createdAt : DateTime.now(),
+      createdAt: isEditing ? widget.asignacion!.createdAt : DateTime.now(),
       updatedAt: DateTime.now(),
     );
 
+    debugPrint('💾 AsignacionFormDialog: devolviendo asignación ${asignacion.id}');
     Navigator.of(context).pop(asignacion);
   }
 }

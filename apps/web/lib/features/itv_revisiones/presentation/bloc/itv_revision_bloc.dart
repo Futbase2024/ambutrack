@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/itv_revisiones/domain/repositories/itv_revision_repository.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/bloc/itv_revision_event.dart';
 import 'package:ambutrack_web/features/itv_revisiones/presentation/bloc/itv_revision_state.dart';

@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:equatable/equatable.dart';
 
 /// Estados del BLoC de Ausencias
@@ -41,6 +41,25 @@ class AusenciasLoaded extends AusenciasState {
       tiposAusencia: tiposAusencia ?? this.tiposAusencia,
     );
   }
+}
+
+/// Ausencia eliminada y confirmada por el servidor (lista ya recargada).
+///
+/// Hereda de [AusenciasLoaded] para que la UI siga mostrando los datos.
+class AusenciaDeleted extends AusenciasLoaded {
+  AusenciaDeleted({
+    required super.ausencias,
+    required super.tiposAusencia,
+    required this.deletedId,
+  }) : timestamp = DateTime.now().microsecondsSinceEpoch;
+
+  final String deletedId;
+
+  /// Garantiza que cada borrado emita un estado distinto
+  final int timestamp;
+
+  @override
+  List<Object?> get props => <Object?>[ausencias, tiposAusencia, deletedId, timestamp];
 }
 
 /// Estado de error

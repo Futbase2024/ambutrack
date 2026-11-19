@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart' hide PersonalEntity;
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/domain/entities/cuadrante_filter.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/domain/entities/personal_con_turnos_entity.dart';
 import 'package:ambutrack_web/features/cuadrante/cuadrante_module/domain/repositories/cuadrante_repository.dart';
@@ -11,10 +11,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 @LazySingleton(as: CuadranteRepository)
 class CuadranteRepositoryImpl implements CuadranteRepository {
   CuadranteRepositoryImpl(this._supabase)
-      : _turnosDataSource = TurnoDataSourceFactory.createSupabase();
+      : _turnosDataSource = TurnoDataSourceFactory.createSupabase(),
+        _fichajesDataSource = RegistroHorarioDataSourceFactory.createSupabase();
 
   final SupabaseClient _supabase;
   final TurnoDataSource _turnosDataSource;
+  final RegistroHorarioDataSource _fichajesDataSource;
 
   @override
   Future<List<PersonalConTurnosEntity>> getCuadrante(CuadranteFilter filter) async {
@@ -25,7 +27,9 @@ class CuadranteRepositoryImpl implements CuadranteRepository {
       debugPrint('   Rango: ${filter.fechaInicio} - ${filter.fechaFin}');
 
       // Construir query de personal con filtros
-      PostgrestFilterBuilder<dynamic> query = _supabase.from('tpersonal').select();
+      PostgrestFilterBuilder<dynamic> query = _supabase
+          .from('tpersonal')
+          .select('*, tcategorias(categoria)');
 
       // IMPORTANTE: Solo personal activo
       query = query.eq('activo', true);
@@ -41,11 +45,18 @@ class CuadranteRepositoryImpl implements CuadranteRepository {
 
       debugPrint('✅ Personal obtenido: ${responseList.length}');
 
-      // Convertir a entidades
-      final List<PersonalEntity> personalList = <PersonalEntity>[
-        for (final dynamic item in responseList)
-          PersonalEntity.fromMap(item as Map<String, dynamic>),
-      ];
+      // Convertir a entidades extrayendo categoría del JOIN
+      final List<PersonalEntity> personalList = responseList.cast<Map<String, dynamic>>().map((Map<String, dynamic> itemMap) {
+        final dynamic categoriaData = itemMap['tcategorias'];
+        String? categoriaNombre;
+        if (categoriaData is Map && categoriaData.isNotEmpty) {
+          categoriaNombre = categoriaData['categoria']?.toString();
+        }
+        final Map<String, dynamic> itemWithCategoria = Map<String, dynamic>.from(itemMap)
+          ..['categoria'] = categoriaNombre
+          ..remove('tcategorias');
+        return PersonalEntity.fromMap(itemWithCategoria);
+      }).toList();
 
       // Obtener turnos para el rango de fechas
       List<TurnoEntity> turnosList = <TurnoEntity>[];
@@ -58,7 +69,9 @@ class CuadranteRepositoryImpl implements CuadranteRepository {
 
       debugPrint('✅ Turnos obtenidos: ${turnosList.length}');
 
-      // Combinar personal con sus turnos
+      final List<RegistroHorarioEntity> fichajesList = await _getFichajes(filter);
+
+      // Combinar personal con sus turnos y fichajes
       final List<PersonalConTurnosEntity> cuadrante = personalList.map((PersonalEntity persona) {
         final List<TurnoEntity> turnosPersona = turnosList
             .where((TurnoEntity turno) => turno.idPersonal == persona.id)
@@ -67,6 +80,7 @@ class CuadranteRepositoryImpl implements CuadranteRepository {
         return PersonalConTurnosEntity(
           personal: persona,
           turnos: turnosPersona,
+          fichajes: fichajesList.where((RegistroHorarioEntity f) => f.personalId == persona.id).toList(),
         );
       }).toList();
 
@@ -84,6 +98,25 @@ class CuadranteRepositoryImpl implements CuadranteRepository {
       debugPrint('❌ Error al obtener cuadrante: $e');
       debugPrint('❌ StackTrace: $stackTrace');
       rethrow;
+    }
+  }
+
+  /// Fichajes del rango (+1 día por los turnos que cruzan medianoche).
+  /// Si fallan no se bloquea el cuadrante: solo no se ve la jornada real.
+  Future<List<RegistroHorarioEntity>> _getFichajes(CuadranteFilter filter) async {
+    if (filter.fechaInicio == null || filter.fechaFin == null) {
+      return <RegistroHorarioEntity>[];
+    }
+    try {
+      final List<RegistroHorarioEntity> fichajes = await _fichajesDataSource.getByDateRange(
+        filter.fechaInicio!.subtract(const Duration(days: 1)),
+        filter.fechaFin!.add(const Duration(days: 1)),
+      );
+      debugPrint('✅ Fichajes obtenidos: ${fichajes.length}');
+      return fichajes;
+    } catch (e) {
+      debugPrint('⚠️ CuadranteRepository: No se pudieron cargar fichajes: $e');
+      return <RegistroHorarioEntity>[];
     }
   }
 

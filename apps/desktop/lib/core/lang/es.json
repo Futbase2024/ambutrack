@@ -1,0 +1,51 @@
+{
+  "common": {
+    "guardar": "Guardar",
+    "cancelar": "Cancelar",
+    "eliminar": "Eliminar",
+    "editar": "Editar",
+    "agregar": "Agregar",
+    "buscar": "Buscar",
+    "filtros": "Filtros",
+    "reintentar": "Reintentar",
+    "aceptar": "Aceptar"
+  },
+  "vehiculos": {
+    "titulo": "Gestión de Vehículos",
+    "subtitulo": "Administra tu flota de ambulancias y vehículos de emergencia",
+    "agregar": "+ Nuevo Vehículo",
+    "lista_titulo": "Lista de Vehículos",
+    "stats": {
+      "total": "Total Vehículos",
+      "disponibles": "Disponibles",
+      "en_servicio": "En Servicio",
+      "mantenimiento": "Mantenimiento"
+    },
+    "estados": {
+      "disponible": "Disponible",
+      "mantenimiento": "Mantenimiento",
+      "reparacion": "En Reparación",
+      "baja": "Baja"
+    },
+    "mensajes": {
+      "error_carga": "Error al cargar vehículos",
+      "lista_vacia": "No hay vehículos registrados",
+      "lista_vacia_descripcion": "Agrega tu primer vehículo para comenzar"
+    },
+    "form": {
+      "matricula_label": "Matrícula",
+      "matricula_hint": "Ej: ABC-1234",
+      "marca_label": "Marca",
+      "marca_hint": "Ej: Mercedes-Benz",
+      "modelo_label": "Modelo",
+      "modelo_hint": "Ej: Sprinter",
+      "tipo_label": "Tipo de Vehículo",
+      "tipo_hint": "Selecciona el tipo",
+      "estado_label": "Estado",
+      "km_label": "Kilómetros Actuales",
+      "km_hint": "Ej: 50000",
+      "ubicacion_label": "Ubicación Actual",
+      "ubicacion_hint": "Ej: Base Central"
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/core/di/locator.config.dart';
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
@@ -32,6 +32,22 @@ abstract class RegisterModule {
   /// Registro de LocalidadDataSource usando factory
   @lazySingleton
   LocalidadDataSource get localidadDataSource => LocalidadDataSourceFactory.createSupabase();
+
+  /// Registro de UsuarioDataSource usando factory
+  @lazySingleton
+  UsuarioDataSource get usuarioDataSource => UsuarioDataSourceFactory.createSupabase();
+
+  /// Registro de TrasladoDataSource usando factory
+  @lazySingleton
+  TrasladoDataSource get trasladoDataSource => TrasladoDataSourceFactory.createSupabase();
+
+  /// Registro de TPersonalDataSource usando factory
+  @lazySingleton
+  TPersonalDataSource get tpersonalDataSource => TPersonalDataSourceFactory.createSupabase();
+
+  /// Registro de VehiculoDataSource usando factory
+  @lazySingleton
+  VehiculoDataSource get vehiculoDataSource => VehiculoDataSourceFactory.createSupabase();
 }
 
 /// Configuración de la inyección de dependencias

@@ -27,7 +27,9 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
 
-    // 🚀 Autologin automático solo en DEV
+    // 🚀 Autologin automático desactivado para evitar re-login después de logout
+    // Si necesitas autologin en DEV, descomenta el siguiente código:
+    /*
     if (F.appFlavor == Flavor.dev) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -42,6 +44,7 @@ class _LoginPageState extends State<LoginPage> {
         }
       });
     }
+    */
   }
 
   @override
@@ -53,13 +56,37 @@ class _LoginPageState extends State<LoginPage> {
 
   void _handleLogin() {
     if (_formKey.currentState!.validate()) {
-      context.read<AuthBloc>().add(
-            AuthLoginRequested(
-              email: _emailController.text.trim(),
-              password: _passwordController.text,
-            ),
-          );
+      final String identifier = _emailController.text.trim();
+
+      // Detectar si es DNI (solo dígitos y opcionalmente una letra al final) o Email
+      final bool isDni = _isDniFormat(identifier);
+
+      if (isDni) {
+        debugPrint('🔐 LoginPage: Login con DNI detectado');
+        context.read<AuthBloc>().add(
+              AuthDniLoginRequested(
+                dni: identifier,
+                password: _passwordController.text,
+              ),
+            );
+      } else {
+        debugPrint('🔐 LoginPage: Login con Email detectado');
+        context.read<AuthBloc>().add(
+              AuthLoginRequested(
+                email: identifier,
+                password: _passwordController.text,
+              ),
+            );
+      }
     }
+  }
+
+  /// Verifica si el identificador tiene formato de DNI español
+  /// Acepta: 12345678A, 12345678 (sin letra), etc.
+  bool _isDniFormat(String text) {
+    // DNI español: 8 dígitos + opcionalmente 1 letra
+    final RegExp dniRegex = RegExp(r'^\d{8}[A-Za-z]?$');
+    return dniRegex.hasMatch(text);
   }
 
   @override
@@ -152,28 +179,12 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildHeader() {
     return Column(
       children: <Widget>[
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.local_hospital,
-            size: 64,
-            color: AppColors.primary,
-          ),
+        Image.asset(
+          'lib/core/assets/logo_emertrack.png',
+          width: 150,
+          height: 150,
         ),
         const SizedBox(height: 16),
-        Text(
-          'AmbuTrack',
-          style: GoogleFonts.inter(
-            fontSize: 32,
-            fontWeight: FontWeight.w800,
-            color: AppColors.primary,
-          ),
-        ),
-        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
@@ -214,21 +225,25 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildEmailField() {
     return TextFormField(
       controller: _emailController,
-      keyboardType: TextInputType.emailAddress,
+      keyboardType: TextInputType.text,
       decoration: InputDecoration(
-        labelText: 'Correo electrónico',
-        hintText: 'usuario@ejemplo.com',
-        prefixIcon: const Icon(Icons.email_outlined),
+        labelText: 'DNI o Correo electrónico',
+        hintText: '12345678A o usuario@ejemplo.com',
+        prefixIcon: const Icon(Icons.person_outline),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),
       ),
       validator: (String? value) {
         if (value == null || value.isEmpty) {
-          return 'Por favor ingresa tu correo';
+          return 'Por favor ingresa tu DNI o correo';
         }
-        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-          return 'Correo electrónico inválido';
+        // Validar que sea DNI o Email válido
+        final bool isDni = _isDniFormat(value);
+        final bool isEmail = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value);
+
+        if (!isDni && !isEmail) {
+          return 'Ingresa un DNI o correo electrónico válido';
         }
         return null;
       },

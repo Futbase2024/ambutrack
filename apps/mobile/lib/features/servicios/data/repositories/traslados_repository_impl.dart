@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import '../../domain/repositories/traslados_repository.dart';
 
 /// Implementación del repositorio de traslados
@@ -97,13 +97,13 @@ class TrasladosRepositoryImpl implements TrasladosRepository {
   @override
   Stream<TrasladoEntity> watchById(String id) {
     debugPrint('📡 [TrasladosRepository] Iniciando stream del traslado');
-    return _dataSource.watchById(id);
+    return _dataSource.watchById(id).where((t) => t != null).cast<TrasladoEntity>();
   }
 
   @override
-  Stream<TrasladoEventoEntity> streamEventosConductor() {
-    debugPrint('🔔 [TrasladosRepository] Iniciando stream de eventos de traslados');
-    return _dataSource.streamEventosConductor();
+  Stream<TrasladoEventoEntity> streamEventosConductor([String? idConductor]) {
+    debugPrint('🔔 [TrasladosRepository] Iniciando stream de eventos de traslados${idConductor != null ? " para conductor: $idConductor" : ""}');
+    return _dataSource.streamEventosConductor(idConductor);
   }
 
   @override

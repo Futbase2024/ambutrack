@@ -1,3 +1,7 @@
+import 'package:ambutrack_web/core/auth/enums/app_module.dart';
+import 'package:ambutrack_web/core/auth/enums/user_role.dart';
+import 'package:ambutrack_web/core/auth/permissions/crud_permissions.dart';
+import 'package:ambutrack_web/core/auth/services/role_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
@@ -8,16 +12,22 @@ import 'servicios_event.dart';
 import 'servicios_state.dart';
 
 /// BLoC para gestión de servicios
+///
+/// ⚠️ PERMISOS CRUD:
+/// - Admin: CRUD completo
+/// - Jefe Tráfico: CRUD completo
+/// - Coordinador: Read, Update (solo estado/incidencias)
+/// - Conductor/Sanitario: Read, Update (solo servicios asignados)
+/// - Otros roles: Solo Read
 @injectable
 class ServiciosBloc extends Bloc<ServiciosEvent, ServiciosState> {
-  ServiciosBloc({
-    required ServicioRepository repository,
-  })  : _repository = repository,
-        super(const ServiciosState.initial()) {
+  ServiciosBloc(this._repository, this._roleService)
+      : super(const ServiciosState.initial()) {
     on<ServiciosEvent>(_onEvent);
   }
 
   final ServicioRepository _repository;
+  final RoleService _roleService;
 
   Future<void> _onEvent(ServiciosEvent event, Emitter<ServiciosState> emit) async {
     await event.when(
@@ -285,6 +295,17 @@ class ServiciosBloc extends Bloc<ServiciosEvent, ServiciosState> {
     debugPrint('🎯 ServiciosBloc: Actualizando estado de $id a $estado');
 
     try {
+      // ✅ VALIDAR PERMISOS: Admin, Jefe Tráfico, Coordinador, Conductor, Sanitario
+      final UserRole role = await _roleService.getCurrentUserRole();
+      if (!CrudPermissions.canUpdate(role, AppModule.servicios)) {
+        debugPrint('🚫 ServiciosBloc: Usuario sin permisos para actualizar servicios');
+        emit(const ServiciosState.error(
+          message: 'No tienes permisos para actualizar servicios.\n'
+              'Solo usuarios autorizados pueden modificar el estado de servicios.',
+        ));
+        return;
+      }
+
       // Si el estado es SUSPENDIDO o FINALIZADO, eliminar traslados futuros
       if (estado.toUpperCase() == 'SUSPENDIDO') {
         debugPrint('⏸️ ServiciosBloc: Suspendiendo servicio (elimina traslados futuros)...');
@@ -330,6 +351,17 @@ class ServiciosBloc extends Bloc<ServiciosEvent, ServiciosState> {
     debugPrint('🗑️ ServiciosBloc: ELIMINACIÓN PERMANENTE del servicio $id');
 
     try {
+      // ✅ VALIDAR PERMISOS: Solo Admin y Jefe Tráfico pueden eliminar servicios
+      final UserRole role = await _roleService.getCurrentUserRole();
+      if (!CrudPermissions.canDelete(role, AppModule.servicios)) {
+        debugPrint('🚫 ServiciosBloc: Usuario sin permisos para eliminar servicios');
+        emit(const ServiciosState.error(
+          message: 'No tienes permisos para eliminar servicios.\n'
+              'Solo usuarios con rol Administrador o Jefe de Tráfico pueden eliminar servicios.',
+        ));
+        return;
+      }
+
       // Usar hardDelete para eliminación en cascada:
       // - Servicio
       // - Servicio recurrente (si existe)

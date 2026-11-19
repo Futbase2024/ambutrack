@@ -1,0 +1,271 @@
+import 'package:json_annotation/json_annotation.dart';
+
+import '../entities/stock_vehiculo_entity.dart';
+
+part 'stock_vehiculo_supabase_model.g.dart';
+
+/// Modelo Supabase para stock de vehículo
+///
+/// Incluye campos de la vista v_stock_vehiculo_estado
+@JsonSerializable(explicitToJson: true)
+class StockVehiculoSupabaseModel {
+  /// Identificador único
+  final String id;
+
+  /// ID del vehículo
+  @JsonKey(name: 'vehiculo_id')
+  final String vehiculoId;
+
+  /// ID del producto
+  @JsonKey(name: 'producto_id')
+  final String productoId;
+
+  /// Cantidad actual
+  @JsonKey(name: 'cantidad_actual')
+  final int cantidadActual;
+
+  /// Cantidad mínima (de la vista)
+  @JsonKey(name: 'cantidad_minima')
+  final int? cantidadMinima;
+
+  /// Fecha de caducidad
+  @JsonKey(name: 'fecha_caducidad')
+  final DateTime? fechaCaducidad;
+
+  /// Lote
+  final String? lote;
+
+  /// Ubicación
+  final String? ubicacion;
+
+  /// Observaciones
+  final String? observaciones;
+
+  /// Fecha de actualización
+  @JsonKey(name: 'updated_at')
+  final DateTime updatedAt;
+
+  /// ID del usuario que actualizó
+  @JsonKey(name: 'updated_by')
+  final String? updatedBy;
+
+  // Campos de la vista
+
+  /// Matrícula del vehículo
+  final String? matricula;
+
+  /// Tipo de vehículo
+  @JsonKey(name: 'tipo_vehiculo')
+  final String? tipoVehiculo;
+
+  /// Nombre del producto
+  @JsonKey(name: 'producto_nombre')
+  final String? productoNombre;
+
+  /// Nombre comercial
+  @JsonKey(name: 'nombre_comercial')
+  final String? nombreComercial;
+
+  /// Código de categoría
+  @JsonKey(name: 'categoria_codigo')
+  final String? categoriaCodigo;
+
+  /// Nombre de categoría
+  @JsonKey(name: 'categoria_nombre')
+  final String? categoriaNombre;
+
+  /// Estado del stock
+  @JsonKey(name: 'estado_stock')
+  final String? estadoStock;
+
+  /// Estado de caducidad
+  @JsonKey(name: 'estado_caducidad')
+  final String? estadoCaducidad;
+
+  // Campos de plantillas de equipamiento (migraciones 038/039)
+
+  @JsonKey(name: 'plantilla_item_id')
+  final String? plantillaItemId;
+
+  @JsonKey(defaultValue: 'manual')
+  final String origen;
+
+  @JsonKey(defaultValue: false)
+  final bool excluido;
+
+  @JsonKey(name: 'documento_path')
+  final String? documentoPath;
+
+  @JsonKey(name: 'documento_nombre')
+  final String? documentoNombre;
+
+  @JsonKey(name: 'plantilla_id')
+  final String? plantillaId;
+
+  @JsonKey(name: 'plantilla_nombre')
+  final String? plantillaNombre;
+
+  @JsonKey(name: 'tipo_item')
+  final String? tipoItem;
+
+  @JsonKey(defaultValue: false)
+  final bool obligatorio;
+
+  @JsonKey(name: 'requiere_caducidad', defaultValue: false)
+  final bool requiereCaducidad;
+
+  @JsonKey(name: 'requiere_adjunto', defaultValue: false)
+  final bool requiereAdjunto;
+
+  final String? seccion;
+
+  @JsonKey(name: 'seccion_orden')
+  final int? seccionOrden;
+
+  final int? orden;
+
+  @JsonKey(name: 'estado_dotacion')
+  final String? estadoDotacion;
+
+  const StockVehiculoSupabaseModel({
+    required this.id,
+    required this.vehiculoId,
+    required this.productoId,
+    required this.cantidadActual,
+    this.cantidadMinima,
+    this.fechaCaducidad,
+    this.lote,
+    this.ubicacion,
+    this.observaciones,
+    required this.updatedAt,
+    this.updatedBy,
+    this.matricula,
+    this.tipoVehiculo,
+    this.productoNombre,
+    this.nombreComercial,
+    this.categoriaCodigo,
+    this.categoriaNombre,
+    this.estadoStock,
+    this.estadoCaducidad,
+    this.plantillaItemId,
+    this.origen = 'manual',
+    this.excluido = false,
+    this.documentoPath,
+    this.documentoNombre,
+    this.plantillaId,
+    this.plantillaNombre,
+    this.tipoItem,
+    this.obligatorio = false,
+    this.requiereCaducidad = false,
+    this.requiereAdjunto = false,
+    this.seccion,
+    this.seccionOrden,
+    this.orden,
+    this.estadoDotacion,
+  });
+
+  /// Crea una instancia desde JSON de Supabase
+  factory StockVehiculoSupabaseModel.fromJson(Map<String, dynamic> json) =>
+      _$StockVehiculoSupabaseModelFromJson(json);
+
+  /// Convierte a JSON para Supabase
+  Map<String, dynamic> toJson() => _$StockVehiculoSupabaseModelToJson(this);
+
+  /// Convierte a JSON para actualizar en Supabase
+  /// Solo incluye campos que existen en la tabla stock_vehiculo
+  /// Excluye campos calculados/de vista como cantidad_minima, matricula, etc.
+  Map<String, dynamic> toJsonForUpdate() {
+    return {
+      'id': id,
+      'vehiculo_id': vehiculoId,
+      'producto_id': productoId,
+      'cantidad_actual': cantidadActual,
+      if (fechaCaducidad != null) 'fecha_caducidad': fechaCaducidad!.toIso8601String(),
+      'lote': lote,
+      'ubicacion': ubicacion,
+      'observaciones': observaciones,
+      'updated_at': updatedAt.toIso8601String(),
+      if (updatedBy != null) 'updated_by': updatedBy,
+    };
+  }
+
+  /// Convierte el modelo a entidad de dominio
+  StockVehiculoEntity toEntity() {
+    return StockVehiculoEntity(
+      id: id,
+      vehiculoId: vehiculoId,
+      productoId: productoId,
+      cantidadActual: cantidadActual,
+      cantidadMinima: cantidadMinima,
+      fechaCaducidad: fechaCaducidad,
+      lote: lote,
+      ubicacion: ubicacion,
+      observaciones: observaciones,
+      updatedAt: updatedAt,
+      updatedBy: updatedBy,
+      matricula: matricula,
+      tipoVehiculo: tipoVehiculo,
+      productoNombre: productoNombre,
+      nombreComercial: nombreComercial,
+      categoriaCodigo: categoriaCodigo,
+      categoriaNombre: categoriaNombre,
+      estadoStock: estadoStock,
+      estadoCaducidad: estadoCaducidad,
+      plantillaItemId: plantillaItemId,
+      origen: origen,
+      excluido: excluido,
+      documentoPath: documentoPath,
+      documentoNombre: documentoNombre,
+      plantillaId: plantillaId,
+      plantillaNombre: plantillaNombre,
+      tipoItem: tipoItem,
+      obligatorio: obligatorio,
+      requiereCaducidad: requiereCaducidad,
+      requiereAdjunto: requiereAdjunto,
+      seccion: seccion,
+      seccionOrden: seccionOrden,
+      orden: orden,
+      estadoDotacion: estadoDotacion,
+    );
+  }
+
+  /// Crea un modelo desde una entidad de dominio
+  factory StockVehiculoSupabaseModel.fromEntity(StockVehiculoEntity entity) {
+    return StockVehiculoSupabaseModel(
+      id: entity.id,
+      vehiculoId: entity.vehiculoId,
+      productoId: entity.productoId,
+      cantidadActual: entity.cantidadActual,
+      cantidadMinima: entity.cantidadMinima,
+      fechaCaducidad: entity.fechaCaducidad,
+      lote: entity.lote,
+      ubicacion: entity.ubicacion,
+      observaciones: entity.observaciones,
+      updatedAt: entity.updatedAt,
+      updatedBy: entity.updatedBy,
+      matricula: entity.matricula,
+      tipoVehiculo: entity.tipoVehiculo,
+      productoNombre: entity.productoNombre,
+      nombreComercial: entity.nombreComercial,
+      categoriaCodigo: entity.categoriaCodigo,
+      categoriaNombre: entity.categoriaNombre,
+      estadoStock: entity.estadoStock,
+      estadoCaducidad: entity.estadoCaducidad,
+      plantillaItemId: entity.plantillaItemId,
+      origen: entity.origen,
+      excluido: entity.excluido,
+      documentoPath: entity.documentoPath,
+      documentoNombre: entity.documentoNombre,
+      plantillaId: entity.plantillaId,
+      plantillaNombre: entity.plantillaNombre,
+      tipoItem: entity.tipoItem,
+      obligatorio: entity.obligatorio,
+      requiereCaducidad: entity.requiereCaducidad,
+      requiereAdjunto: entity.requiereAdjunto,
+      seccion: entity.seccion,
+      seccionOrden: entity.seccionOrden,
+      orden: entity.orden,
+      estadoDotacion: entity.estadoDotacion,
+    );
+  }
+}

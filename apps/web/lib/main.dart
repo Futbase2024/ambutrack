@@ -1,5 +1,6 @@
 import 'package:ambutrack_web/app/app.dart';
 import 'package:ambutrack_web/app/flavors.dart';
+import 'package:ambutrack_web/core/monitoring/error_monitoring.dart';
 import 'package:ambutrack_web/core/providers/app_providers.dart';
 import 'package:ambutrack_web/core/supabase/supabase_options.dart';
 import 'package:flutter/material.dart';
@@ -16,10 +17,11 @@ void main() async {
   // Inicializar Supabase
   await Supabase.initialize(
     url: SupabaseOptions.prod.url,
-    anonKey: SupabaseOptions.prod.anonKey,
+    publishableKey: SupabaseOptions.prod.anonKey,
   );
 
   await initializeDependencies();
 
-  runApp(const App());
+  // Monitor de errores: solo activo si se compila con --dart-define=SENTRY_DSN=...
+  await ErrorMonitoring.run(environment: 'production', appRunner: () => runApp(const App()));
 }

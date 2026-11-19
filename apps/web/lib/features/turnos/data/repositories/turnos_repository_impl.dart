@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/turnos/domain/repositories/turnos_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
@@ -118,5 +118,11 @@ class TurnosRepositoryImpl implements TurnosRepository {
       debugPrint('📦 TurnosRepository: ❌ Error: $e');
       rethrow;
     }
+  }
+
+  @override
+  Future<TurnoEntity> validar(String id) async {
+    debugPrint('📦 TurnosRepository: Validando turno $id...');
+    return _dataSource.validar(id);
   }
 }

@@ -56,3 +56,9 @@ app.*.map.json
 *.tmp
 *.temp
 assets.tmp.zip
+
+# Cloudflare Wrangler cache
+.wrangler/
+
+# FVM Version Cache
+.fvm/

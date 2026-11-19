@@ -1,0 +1,40 @@
+name: ambutrack_core_datasource
+description: Core datasource infrastructure for enterprise Flutter applications
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase
+  cloud_firestore: ^6.10.2
+  firebase_core: ^4.15.2
+
+  # Supabase
+  supabase_flutter: ^2.18.3
+
+  # REST
+  dio: ^5.11.1
+  retrofit: ^4.10.0
+
+  # Utils
+  equatable: ^2.1.0
+  json_annotation: ^4.12.0
+  freezed_annotation: ^3.1.0
+  collection: ^1.19.1
+  injectable: ^3.0.0
+  uuid: ^4.6.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.16.2
+  json_serializable: ^6.15.2
+  freezed: ^4.0.3
+  mockito: ^5.8.1
+  fake_cloud_firestore: ^4.4.0

@@ -13,11 +13,11 @@ class F {
   static String get title {
     switch (appFlavor) {
       case Flavor.dev:
-        return 'AmbuTrack Mobile DEV';
+        return 'EmerTrack DEV';
       case Flavor.prod:
-        return 'AmbuTrack Mobile';
+        return 'EmerTrack';
       default:
-        return 'AmbuTrack Mobile';
+        return 'EmerTrack';
     }
   }
 

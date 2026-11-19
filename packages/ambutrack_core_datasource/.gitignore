@@ -1,0 +1,6 @@
+
+# Artefactos de tests
+build/
+
+# FVM Version Cache
+.fvm/

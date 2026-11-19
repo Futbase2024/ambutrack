@@ -1,11 +1,11 @@
 {
-    "name": "ambutrack_web",
-    "short_name": "ambutrack_web",
+    "name": "EmerTrack",
+    "short_name": "EmerTrack",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#00304D",
+    "theme_color": "#00304D",
+    "description": "Sistema de Gestión Integral de Ambulancias",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

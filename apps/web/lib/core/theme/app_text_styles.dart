@@ -162,6 +162,47 @@ class AppTextStyles {
   );
 
   // ============================================================================
+  // TABLAS ESTÁNDAR (Estilo específico de diseño unificado)
+  // ============================================================================
+
+  /// Standard Table Header - Encabezado de tabla estándar
+  /// Estilo: 14px, bold (600), color #333333
+  /// Uso: AppStandardTable
+  static final TextStyle standardTableHeader = _baseInter.copyWith(
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    color: AppColors.tableHeaderText,
+    height: 1.4,
+  );
+
+  /// Standard Table Cell - Celda de tabla estándar
+  /// Estilo: 14px, regular (400), color #666666
+  /// Uso: AppStandardTable
+  static final TextStyle standardTableCell = _baseInter.copyWith(
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: AppColors.tableCellText,
+    height: 1.4,
+  );
+
+  /// Standard Table Cell Bold - Celda de tabla estándar en negrita
+  /// Estilo: 14px, bold (600), color #666666
+  /// Uso: AppStandardTable para celdas destacadas
+  static final TextStyle standardTableCellBold = standardTableCell.copyWith(
+    fontWeight: FontWeight.w600,
+  );
+
+  /// Standard Table Cell Small - Celda de tabla estándar pequeña
+  /// Estilo: 12px, regular (400), color #666666
+  /// Uso: AppStandardTable para metadatos
+  static final TextStyle standardTableCellSmall = _baseInter.copyWith(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: AppColors.tableCellText,
+    height: 1.3,
+  );
+
+  // ============================================================================
   // BADGES / CHIPS / ESTADOS
   // ============================================================================
 

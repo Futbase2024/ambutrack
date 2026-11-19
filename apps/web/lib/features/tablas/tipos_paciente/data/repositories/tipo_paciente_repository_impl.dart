@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/tablas/tipos_paciente/domain/repositories/tipo_paciente_repository.dart';
 import 'package:injectable/injectable.dart';
 

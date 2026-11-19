@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:ambutrack_web/features/vehiculos/domain/repositories/vehiculo_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
@@ -54,6 +54,11 @@ class VehiculoRepositoryImpl implements VehiculoRepository {
   @override
   Future<void> delete(String id) async {
     await _dataSource.delete(id);
+  }
+
+  @override
+  Future<void> setSillaElectrica(List<String> vehiculoIds, {required bool tiene}) async {
+    await _dataSource.setSillaElectrica(vehiculoIds, tiene: tiene);
   }
 
   @override

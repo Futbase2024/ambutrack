@@ -12,6 +12,10 @@ class UserEntity extends Equatable {
     required this.createdAt,
     this.lastLoginAt,
     this.empresaId,
+    this.empresaNombre,
+    this.rol,
+    this.activo,
+    this.dni,
   });
 
   final String uid;
@@ -26,6 +30,18 @@ class UserEntity extends Equatable {
   /// ID de la empresa a la que pertenece el usuario
   final String? empresaId;
 
+  /// Nombre de la empresa a la que pertenece el usuario
+  final String? empresaNombre;
+
+  /// Rol del usuario (admin, coordinador, conductor, sanitario, usuario)
+  final String? rol;
+
+  /// Indica si el usuario está activo
+  final bool? activo;
+
+  /// DNI del usuario (para login alternativo)
+  final String? dni;
+
   @override
   List<Object?> get props => <Object?>[
         uid,
@@ -37,5 +53,9 @@ class UserEntity extends Equatable {
         createdAt,
         lastLoginAt,
         empresaId,
+        empresaNombre,
+        rol,
+        activo,
+        dni,
       ];
 }

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AmbuTrack Expanded Icon Library</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .icon-card:hover .copy-btn {
+            opacity: 1;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(19, 127, 236, 0.2);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(19, 127, 236, 0.4);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<header class="sticky top-0 z-50 border-b border-primary/10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-icons-round text-white">emergency</span>
+</div>
+<div>
+<h1 class="text-xl font-extrabold tracking-tight">AmbuTrack <span class="text-primary">Icon Library</span></h1>
+<p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Design System v1.5 • Expanded</p>
+</div>
+</div>
+<div class="flex-1 max-w-xl mx-12 hidden md:block">
+<div class="relative">
+<span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="w-full bg-primary/5 border border-primary/20 rounded-lg py-2 pl-10 pr-4 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-500 text-sm" placeholder="Search icon sets..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+<span class="material-icons-round text-sm">download</span>
+                Export Assets
+            </button>
+</div>
+</div>
+</header>
+<div class="max-w-[1600px] mx-auto flex">
+<aside class="w-64 sticky top-16 h-[calc(100vh-64px)] p-6 border-r border-primary/10 hidden lg:block overflow-y-auto custom-scrollbar">
+<nav class="space-y-8">
+<div>
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Core Sets</h3>
+<ul class="space-y-1">
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/5 text-slate-400 hover:text-slate-200 transition-all" href="#fleet"><span class="material-icons-round text-sm">local_shipping</span> Fleet</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/5 text-slate-400 hover:text-slate-200 transition-all" href="#medical"><span class="material-icons-round text-sm">medical_services</span> Medical</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/5 text-slate-400 hover:text-slate-200 transition-all" href="#logistics"><span class="material-icons-round text-sm">assignment</span> Logistics</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/5 text-slate-400 hover:text-slate-200 transition-all" href="#actions"><span class="material-icons-round text-sm">bolt</span> Actions</a></li>
+</ul>
+</div>
+<div>
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Expanded Sets</h3>
+<ul class="space-y-1">
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary font-semibold transition-all" href="#personnel"><span class="material-icons-round text-sm">groups</span> Personnel &amp; Gear</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/5 text-slate-400 hover:text-slate-200 transition-all" href="#adv-logistics"><span class="material-icons-round text-sm">layers</span> Advanced Logistics</a></li>
+<li><a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/5 text-slate-400 hover:text-slate-200 transition-all" href="#facilities"><span class="material-icons-round text-sm">domain</span> Facilities &amp; Safety</a></li>
+</ul>
+</div>
+<div>
+<h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Guidelines</h3>
+<div class="p-4 rounded-xl bg-primary/5 border border-primary/10 space-y-3">
+<div class="flex items-start gap-3">
+<div class="w-2 h-2 rounded-full bg-primary mt-1.5"></div>
+<p class="text-xs text-slate-400 leading-relaxed"><strong class="text-slate-200">Active:</strong> Brand Blue (#137fec)</p>
+</div>
+<div class="flex items-start gap-3">
+<div class="w-2 h-2 rounded-full bg-primary/40 mt-1.5"></div>
+<p class="text-xs text-slate-400 leading-relaxed"><strong class="text-slate-200">Hover:</strong> Lighter Blue (40% Alpha)</p>
+</div>
+<div class="flex items-start gap-3">
+<div class="w-2 h-2 rounded-full bg-slate-600 mt-1.5"></div>
+<p class="text-xs text-slate-400 leading-relaxed"><strong class="text-slate-200">Disabled:</strong> Slate Gray (30% Alpha)</p>
+</div>
+</div>
+</div>
+</nav>
+</aside>
+<main class="flex-1 p-8 overflow-hidden">
+<section class="mb-16" id="personnel">
+<div class="flex items-end justify-between mb-8 border-b border-primary/10 pb-4">
+<div>
+<h2 class="text-2xl font-bold mb-1">Personnel &amp; Gear</h2>
+<p class="text-slate-500 text-sm">Tracking staff uniforms, identification, and temporal compliance.</p>
+</div>
+<span class="text-xs font-mono text-primary bg-primary/10 px-3 py-1 rounded-full">3 Components</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+<div class="icon-card bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-primary/10 p-5 rounded-xl transition-all hover:border-primary/40 group">
+<div class="flex justify-between items-start mb-4">
+<span class="text-sm font-bold tracking-tight">Uniform / Clothing</span>
+<button class="copy-btn opacity-0 transition-opacity bg-primary/10 text-primary p-1.5 rounded-lg hover:bg-primary/20">
+<span class="material-icons-round text-sm">content_copy</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 bg-slate-100 dark:bg-background-dark/50 rounded-lg">
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary text-3xl">checkroom</span>
+<span class="text-[9px] uppercase font-bold text-primary/60">Active</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary/50 text-3xl">checkroom</span>
+<span class="text-[9px] uppercase font-bold text-slate-500">Hover</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-slate-600/30 text-3xl">checkroom</span>
+<span class="text-[9px] uppercase font-bold text-slate-600">Disabled</span>
+</div>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<code class="text-[10px] font-mono text-slate-500">at-gear-uniform</code>
+<div class="flex gap-1">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<div class="w-3 h-3 rounded-full bg-primary/40"></div>
+<div class="w-3 h-3 rounded-full bg-slate-600"></div>
+</div>
+</div>
+</div>
+<div class="icon-card bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-primary/10 p-5 rounded-xl transition-all hover:border-primary/40 group">
+<div class="flex justify-between items-start mb-4">
+<span class="text-sm font-bold tracking-tight">ID Card</span>
+<button class="copy-btn opacity-0 transition-opacity bg-primary/10 text-primary p-1.5 rounded-lg hover:bg-primary/20">
+<span class="material-icons-round text-sm">content_copy</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 bg-slate-100 dark:bg-background-dark/50 rounded-lg">
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary text-3xl">badge</span>
+<span class="text-[9px] uppercase font-bold text-primary/60">Active</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary/50 text-3xl">badge</span>
+<span class="text-[9px] uppercase font-bold text-slate-500">Hover</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-slate-600/30 text-3xl">badge</span>
+<span class="text-[9px] uppercase font-bold text-slate-600">Disabled</span>
+</div>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<code class="text-[10px] font-mono text-slate-500">at-gear-id</code>
+<div class="flex gap-1">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<div class="w-3 h-3 rounded-full bg-primary/40"></div>
+<div class="w-3 h-3 rounded-full bg-slate-600"></div>
+</div>
+</div>
+</div>
+<div class="icon-card bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-primary/10 p-5 rounded-xl transition-all hover:border-primary/40 group">
+<div class="flex justify-between items-start mb-4">
+<span class="text-sm font-bold tracking-tight">Clock / Time-log</span>
+<button class="copy-btn opacity-0 transition-opacity bg-primary/10 text-primary p-1.5 rounded-lg hover:bg-primary/20">
+<span class="material-icons-round text-sm">content_copy</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 bg-slate-100 dark:bg-background-dark/50 rounded-lg">
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary text-3xl">history_toggle_off</span>
+<span class="text-[9px] uppercase font-bold text-primary/60">Active</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary/50 text-3xl">history_toggle_off</span>
+<span class="text-[9px] uppercase font-bold text-slate-500">Hover</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-slate-600/30 text-3xl">history_toggle_off</span>
+<span class="text-[9px] uppercase font-bold text-slate-600">Disabled</span>
+</div>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<code class="text-[10px] font-mono text-slate-500">at-gear-log</code>
+<div class="flex gap-1">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<div class="w-3 h-3 rounded-full bg-primary/40"></div>
+<div class="w-3 h-3 rounded-full bg-slate-600"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="mb-16" id="adv-logistics">
+<div class="flex items-end justify-between mb-8 border-b border-primary/10 pb-4">
+<div>
+<h2 class="text-2xl font-bold mb-1">Advanced Logistics</h2>
+<p class="text-slate-500 text-sm">Specialized fleet types, documentation trees, and pathfinding.</p>
+</div>
+<span class="text-xs font-mono text-primary bg-primary/10 px-3 py-1 rounded-full">4 Components</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+<div class="icon-card bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-primary/10 p-5 rounded-xl transition-all hover:border-primary/40 group">
+<div class="flex justify-between items-start mb-4">
+<span class="text-sm font-bold tracking-tight">Van / Furgon</span>
+<button class="copy-btn opacity-0 transition-opacity bg-primary/10 text-primary p-1.5 rounded-lg hover:bg-primary/20">
+<span class="material-icons-round text-sm">content_copy</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 bg-slate-100 dark:bg-background-dark/50 rounded-lg">
+<div class="flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-primary text-3xl">airport_shuttle</span>
+<span class="text-[9px] uppercase font-bold text-primary/60">Active</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-primary/50 text-3xl">airport_shuttle</span>
+<span class="text-[9px] uppercase font-bold text-slate-500">Hover</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-slate-600/30 text-3xl">airport_shuttle</span>
+<span class="text-[9px] uppercase font-bold text-slate-600">Disabled</span>
+</div>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<code class="text-[10px] font-mono text-slate-500">at-log-furgon</code>
+<div class="flex gap-1">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<div class="w-3 h-3 rounded-full bg-primary/40"></div>
+<div class="w-3 h-3 rounded-full bg-slate-600"></div>
+</div>
+</div>
+</div>
+<div class="icon-card bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-primary/10 p-5 rounded-xl transition-all hover:border-primary/40 group">
+<div class="flex justify-between items-start mb-4">
+<span class="text-sm font-bold tracking-tight">Stacked Documents</span>
+<button class="copy-btn opacity-0 transition-opacity bg-primary/10 text-primary p-1.5 rounded-lg hover:bg-primary/20">
+<span class="material-icons-round text-sm">content_copy</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 bg-slate-100 dark:bg-background-dark/50 rounded-lg">
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary text-3xl">library_books</span>
+<span class="text-[9px] uppercase font-bold text-primary/60">Active</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary/50 text-3xl">library_books</span>
+<span class="text-[9px] uppercase font-bold text-slate-500">Hover</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-slate-600/30 text-3xl">library_books</span>
+<span class="text-[9px] uppercase font-bold text-slate-600">Disabled</span>
+</div>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<code class="text-[10px] font-mono text-slate-500">at-log-docs</code>
+<div class="flex gap-1">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<div class="w-3 h-3 rounded-full bg-primary/40"></div>
+<div class="w-3 h-3 rounded-full bg-slate-600"></div>
+</div>
+</div>
+</div>
+<div class="icon-card bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-primary/10 p-5 rounded-xl transition-all hover:border-primary/40 group">
+<div class="flex justify-between items-start mb-4">
+<span class="text-sm font-bold tracking-tight">Curved Path</span>
+<button class="copy-btn opacity-0 transition-opacity bg-primary/10 text-primary p-1.5 rounded-lg hover:bg-primary/20">
+<span class="material-icons-round text-sm">content_copy</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 bg-slate-100 dark:bg-background-dark/50 rounded-lg">
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary text-3xl">route</span>
+<span class="text-[9px] uppercase font-bold text-primary/60">Active</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary/50 text-3xl">route</span>
+<span class="text-[9px] uppercase font-bold text-slate-500">Hover</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-slate-600/30 text-3xl">route</span>
+<span class="text-[9px] uppercase font-bold text-slate-600">Disabled</span>
+</div>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<code class="text-[10px] font-mono text-slate-500">at-log-route</code>
+<div class="flex gap-1">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<div class="w-3 h-3 rounded-full bg-primary/40"></div>
+<div class="w-3 h-3 rounded-full bg-slate-600"></div>
+</div>
+</div>
+</div>
+<div class="icon-card bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-primary/10 p-5 rounded-xl transition-all hover:border-primary/40 group">
+<div class="flex justify-between items-start mb-4">
+<span class="text-sm font-bold tracking-tight">Folder</span>
+<button class="copy-btn opacity-0 transition-opacity bg-primary/10 text-primary p-1.5 rounded-lg hover:bg-primary/20">
+<span class="material-icons-round text-sm">content_copy</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 bg-slate-100 dark:bg-background-dark/50 rounded-lg">
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary text-3xl">folder_open</span>
+<span class="text-[9px] uppercase font-bold text-primary/60">Active</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary/50 text-3xl">folder_open</span>
+<span class="text-[9px] uppercase font-bold text-slate-500">Hover</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-slate-600/30 text-3xl">folder_open</span>
+<span class="text-[9px] uppercase font-bold text-slate-600">Disabled</span>
+</div>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<code class="text-[10px] font-mono text-slate-500">at-log-folder</code>
+<div class="flex gap-1">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<div class="w-3 h-3 rounded-full bg-primary/40"></div>
+<div class="w-3 h-3 rounded-full bg-slate-600"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="mb-16" id="facilities">
+<div class="flex items-end justify-between mb-8 border-b border-primary/10 pb-4">
+<div>
+<h2 class="text-2xl font-bold mb-1">Facilities &amp; Safety</h2>
+<p class="text-slate-500 text-sm">Base operations, warehouse management, and emergency alerts.</p>
+</div>
+<span class="text-xs font-mono text-primary bg-primary/10 px-3 py-1 rounded-full">3 Components</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+<div class="icon-card bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-primary/10 p-5 rounded-xl transition-all hover:border-primary/40 group">
+<div class="flex justify-between items-start mb-4">
+<span class="text-sm font-bold tracking-tight">Warehouse / Building</span>
+<button class="copy-btn opacity-0 transition-opacity bg-primary/10 text-primary p-1.5 rounded-lg hover:bg-primary/20">
+<span class="material-icons-round text-sm">content_copy</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 bg-slate-100 dark:bg-background-dark/50 rounded-lg">
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary text-3xl">warehouse</span>
+<span class="text-[9px] uppercase font-bold text-primary/60">Active</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary/50 text-3xl">warehouse</span>
+<span class="text-[9px] uppercase font-bold text-slate-500">Hover</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-slate-600/30 text-3xl">warehouse</span>
+<span class="text-[9px] uppercase font-bold text-slate-600">Disabled</span>
+</div>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<code class="text-[10px] font-mono text-slate-500">at-fac-base</code>
+<div class="flex gap-1">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<div class="w-3 h-3 rounded-full bg-primary/40"></div>
+<div class="w-3 h-3 rounded-full bg-slate-600"></div>
+</div>
+</div>
+</div>
+<div class="icon-card bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-primary/10 p-5 rounded-xl transition-all hover:border-primary/40 group">
+<div class="flex justify-between items-start mb-4">
+<span class="text-sm font-bold tracking-tight">Safety Vest</span>
+<button class="copy-btn opacity-0 transition-opacity bg-primary/10 text-primary p-1.5 rounded-lg hover:bg-primary/20">
+<span class="material-icons-round text-sm">content_copy</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 bg-slate-100 dark:bg-background-dark/50 rounded-lg">
+<div class="flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-primary text-3xl">safety_check</span>
+<span class="text-[9px] uppercase font-bold text-primary/60">Active</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-primary/50 text-3xl">safety_check</span>
+<span class="text-[9px] uppercase font-bold text-slate-500">Hover</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-slate-600/30 text-3xl">safety_check</span>
+<span class="text-[9px] uppercase font-bold text-slate-600">Disabled</span>
+</div>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<code class="text-[10px] font-mono text-slate-500">at-fac-safety</code>
+<div class="flex gap-1">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<div class="w-3 h-3 rounded-full bg-primary/40"></div>
+<div class="w-3 h-3 rounded-full bg-slate-600"></div>
+</div>
+</div>
+</div>
+<div class="icon-card bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-primary/10 p-5 rounded-xl transition-all hover:border-primary/40 group">
+<div class="flex justify-between items-start mb-4">
+<span class="text-sm font-bold tracking-tight">Alarm / Siren</span>
+<button class="copy-btn opacity-0 transition-opacity bg-primary/10 text-primary p-1.5 rounded-lg hover:bg-primary/20">
+<span class="material-icons-round text-sm">content_copy</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 bg-slate-100 dark:bg-background-dark/50 rounded-lg">
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary text-3xl">notifications_active</span>
+<span class="text-[9px] uppercase font-bold text-primary/60">Active</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-primary/50 text-3xl">notifications_active</span>
+<span class="text-[9px] uppercase font-bold text-slate-500">Hover</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-icons-round text-slate-600/30 text-3xl">notifications_active</span>
+<span class="text-[9px] uppercase font-bold text-slate-600">Disabled</span>
+</div>
+</div>
+<div class="mt-4 flex items-center justify-between">
+<code class="text-[10px] font-mono text-slate-500">at-fac-alarm</code>
+<div class="flex gap-1">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<div class="w-3 h-3 rounded-full bg-primary/40"></div>
+<div class="w-3 h-3 rounded-full bg-slate-600"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+<footer class="border-t border-primary/10 py-12 bg-background-light dark:bg-background-dark/50">
+<div class="max-w-[1600px] mx-auto px-8 grid grid-cols-1 md:grid-cols-3 gap-12">
+<div>
+<h4 class="text-sm font-bold mb-4 flex items-center gap-2">
+<span class="material-icons-round text-primary text-base">palette</span>
+                Color Tokens
+            </h4>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border border-primary/5">
+<span class="text-xs font-medium">Brand Active</span>
+<div class="flex items-center gap-2">
+<code class="text-[10px] text-slate-500">#137fec</code>
+<div class="w-4 h-4 rounded bg-primary"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border border-primary/5">
+<span class="text-xs font-medium">Hover Feedback</span>
+<div class="flex items-center gap-2">
+<code class="text-[10px] text-slate-500">#137fec66</code>
+<div class="w-4 h-4 rounded bg-primary/40"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border border-primary/5">
+<span class="text-xs font-medium">Disabled State</span>
+<div class="flex items-center gap-2">
+<code class="text-[10px] text-slate-500">#4755694D</code>
+<div class="w-4 h-4 rounded bg-slate-600/30"></div>
+</div>
+</div>
+</div>
+</div>
+<div>
+<h4 class="text-sm font-bold mb-4 flex items-center gap-2">
+<span class="material-icons-round text-primary text-base">straighten</span>
+                Icon Standards
+            </h4>
+<div class="space-y-2 text-xs text-slate-500">
+<p>• Grid: 24px Responsive Viewbox</p>
+<p>• Weight: 400 (Regular) for system UI</p>
+<p>• Variants: Outline style for secondary actions</p>
+<p>• States: Inherit current text color by default</p>
+</div>
+</div>
+<div>
+<h4 class="text-sm font-bold mb-4 flex items-center gap-2">
+<span class="material-icons-round text-primary text-base">verified</span>
+                Asset Usage
+            </h4>
+<p class="text-xs text-slate-500 leading-relaxed">
+                The AmbuTrack Expanded Library is designed for high-density dispatch and management interfaces. Use Material Symbols for complex iconography and Material Icons Round for standard UI controls.
+            </p>
+</div>
+</div>
+</footer>
+
+</body></html>

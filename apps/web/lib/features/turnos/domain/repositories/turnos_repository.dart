@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Repositorio para gestión de turnos del personal
 abstract class TurnosRepository {
@@ -22,6 +22,9 @@ abstract class TurnosRepository {
 
   /// Elimina un turno
   Future<void> delete(String id);
+
+  /// Valida un turno creado desde la app (pendiente de validar)
+  Future<TurnoEntity> validar(String id);
 
   /// Verifica si hay conflictos de turnos
   ///

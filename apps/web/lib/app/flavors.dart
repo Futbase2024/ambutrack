@@ -11,9 +11,9 @@ class F {
   static String get title {
     switch (appFlavor) {
       case Flavor.dev:
-        return 'ambutrack-web Dev';
+        return 'EmerTrack DEV';
       case Flavor.prod:
-        return 'ambutrack-web';
+        return 'EmerTrack';
     }
   }
 

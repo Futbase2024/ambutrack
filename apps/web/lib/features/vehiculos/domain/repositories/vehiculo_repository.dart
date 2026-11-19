@@ -1,4 +1,4 @@
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 
 /// Repositorio abstracto de vehículos
 abstract class VehiculoRepository {
@@ -32,4 +32,7 @@ abstract class VehiculoRepository {
 
   /// Buscar vehículos por matrícula
   Future<List<VehiculoEntity>> searchByMatricula(String matricula);
+
+  /// Marcar o quitar la silla eléctrica (modifica el stock del vehículo)
+  Future<void> setSillaElectrica(List<String> vehiculoIds, {required bool tiene});
 }

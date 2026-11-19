@@ -1,7 +1,7 @@
 import 'dart:async';
 
 // Imports del core datasource (sistema nuevo de almacén - importación directa)
-import 'package:ambutrack_core/ambutrack_core.dart';
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart' hide MovimientoStockEntity, StockDataSource, StockDataSourceFactory;
 import 'package:ambutrack_web/features/almacen/domain/repositories/mantenimiento_electromedicina_repository.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/mantenimiento_electromedicina/mantenimiento_electromedicina_event.dart';
 import 'package:ambutrack_web/features/almacen/presentation/bloc/mantenimiento_electromedicina/mantenimiento_electromedicina_state.dart';
