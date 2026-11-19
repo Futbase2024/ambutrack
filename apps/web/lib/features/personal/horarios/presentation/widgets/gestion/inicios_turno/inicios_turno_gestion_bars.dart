@@ -11,6 +11,8 @@ class IniciosTurnoGestionToolbar extends StatelessWidget {
     required this.onFoto,
     required this.onRefresh,
     required this.onPrint,
+    required this.onParteDiario,
+    required this.onPartesDelDia,
     super.key,
   });
 
@@ -22,6 +24,10 @@ class IniciosTurnoGestionToolbar extends StatelessWidget {
   final VoidCallback? onFoto;
   final VoidCallback onRefresh;
   final VoidCallback? onPrint;
+
+  /// null = sin selección
+  final VoidCallback? onParteDiario;
+  final VoidCallback? onPartesDelDia;
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +57,20 @@ class IniciosTurnoGestionToolbar extends StatelessWidget {
             label: 'Foto km',
             tooltip: 'Ver la foto del cuentakilómetros del inicio seleccionado',
             onPressed: onFoto,
+          ),
+        ],
+        <GestionToolbarAction>[
+          GestionToolbarAction(
+            icon: Icons.picture_as_pdf_outlined,
+            label: 'Parte diario',
+            tooltip: 'Imprimir el parte diario (PDF) de la persona seleccionada en ese día',
+            onPressed: onParteDiario,
+          ),
+          GestionToolbarAction(
+            icon: Icons.library_books_outlined,
+            label: 'Partes del día',
+            tooltip: 'Imprimir los partes diarios de todas las personas que iniciaron turno ese día',
+            onPressed: onPartesDelDia,
           ),
         ],
         <GestionToolbarAction>[

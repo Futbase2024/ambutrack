@@ -41,6 +41,10 @@ class InicioTurnoSupabaseModel {
       motivoRechazo: json['motivo_rechazo'] as String?,
       modoDispositivo: json['modo_dispositivo'] as String?,
       createdAt: _date(json['created_at']),
+      kmFinal: _int(json['km_final']),
+      fotoKmFinalUrl: json['foto_km_final_url'] as String?,
+      numerosP10: json['numeros_p10'] as String?,
+      finTurnoAt: _date(json['fin_turno_at']),
     );
   }
 

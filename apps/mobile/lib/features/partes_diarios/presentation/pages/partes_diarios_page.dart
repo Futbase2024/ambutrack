@@ -1,3 +1,4 @@
+import 'package:ambutrack_core_datasource/ambutrack_core_datasource.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import '../../../registro_horario/domain/repositories/registro_horario_repositor
 import '../../../servicios/domain/repositories/traslados_repository.dart';
 import '../cubit/parte_diario_cubit.dart';
 import '../widgets/parte_diario_widgets.dart';
+import '../widgets/parte_pdf_boton.dart';
 
 /// Parte diario: resumen de la jornada del trabajador (fichajes, servicios
 /// realizados y km) para el día elegido.
@@ -19,7 +21,8 @@ class PartesDiariosPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AuthState auth = context.read<AuthBloc>().state;
-    final String? personalId = auth is AuthAuthenticated ? auth.personal?.id : null;
+    final TPersonalEntity? personal = auth is AuthAuthenticated ? auth.personal : null;
+    final String? personalId = personal?.id;
 
     return Scaffold(
       backgroundColor: AppColors.gray50,
@@ -44,7 +47,7 @@ class PartesDiariosPage extends StatelessWidget {
                   registroRepository: getIt<RegistroHorarioRepository>(),
                   personalId: personalId,
                 )..cargar(),
-                child: const _ParteDiarioView(),
+                child: _ParteDiarioView(personal: personal!),
               ),
       ),
     );
@@ -52,7 +55,9 @@ class PartesDiariosPage extends StatelessWidget {
 }
 
 class _ParteDiarioView extends StatelessWidget {
-  const _ParteDiarioView();
+  const _ParteDiarioView({required this.personal});
+
+  final TPersonalEntity personal;
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +84,13 @@ class _ParteDiarioView extends StatelessWidget {
                     child: ListView(
                       padding: const EdgeInsets.all(16),
                       children: <Widget>[
+                        PartePdfBoton(
+                          personalId: personal.id,
+                          personalNombre: personal.nombreCompleto,
+                          dia: state.dia,
+                          empresaId: personal.empresaId,
+                        ),
+                        const SizedBox(height: 16),
                         ParteResumenCard(resumen: state.resumen),
                         const SizedBox(height: 16),
                         ParteFichajesSection(fichajes: state.fichajes),

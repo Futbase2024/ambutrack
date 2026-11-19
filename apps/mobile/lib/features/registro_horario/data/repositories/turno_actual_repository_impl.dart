@@ -133,4 +133,24 @@ class TurnoActualRepositoryImpl implements TurnoActualRepository {
     debugPrint('📦 [TurnoActualRepository] Registrando inicio de turno');
     return _inicioDataSource.create(inicio);
   }
+
+  @override
+  Future<InicioTurnoEntity?> obtenerInicioAbierto(String idPersonal) async {
+    debugPrint('📦 [TurnoActualRepository] Inicio de turno abierto de $idPersonal');
+    return _inicioDataSource.getAbiertoPorPersonal(idPersonal);
+  }
+
+  @override
+  Future<void> registrarFinTurno({
+    required String idInicioTurno,
+    required int kmFinal,
+    String? numerosP10,
+  }) async {
+    debugPrint('📦 [TurnoActualRepository] Registrando fin de turno ($kmFinal km)');
+    return _inicioDataSource.registrarFinTurno(
+      inicioTurnoId: idInicioTurno,
+      kmFinal: kmFinal,
+      numerosP10: numerosP10,
+    );
+  }
 }

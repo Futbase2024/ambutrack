@@ -181,4 +181,63 @@ class SupabaseInicioTurnoDataSource implements InicioTurnoDataSource {
       throw Exception('Error al validar el inicio de turno: $e');
     }
   }
+
+  @override
+  Future<List<InicioTurnoEntity>> getByPersonal({
+    required String personalId,
+    required DateTime desde,
+    required DateTime hasta,
+  }) async {
+    try {
+      final List<Map<String, dynamic>> response = await _supabase
+          .from(_tabla)
+          .select()
+          .eq('personal_id', personalId)
+          .gte('created_at', desde.toUtc().toIso8601String())
+          .lt('created_at', hasta.toUtc().toIso8601String())
+          .order('created_at');
+      return response.map(InicioTurnoSupabaseModel.fromJson).toList();
+    } catch (e) {
+      throw Exception('Error al obtener los inicios de turno del trabajador: $e');
+    }
+  }
+
+  @override
+  Future<InicioTurnoEntity?> getAbiertoPorPersonal(String personalId) async {
+    try {
+      final Map<String, dynamic>? response = await _supabase
+          .from(_tabla)
+          .select()
+          .eq('personal_id', personalId)
+          .isFilter('fin_turno_at', null)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return response == null ? null : InicioTurnoSupabaseModel.fromJson(response);
+    } catch (e) {
+      throw Exception('Error al obtener el turno abierto: $e');
+    }
+  }
+
+  @override
+  Future<void> registrarFinTurno({
+    required String inicioTurnoId,
+    required int kmFinal,
+    String? fotoKmFinalUrl,
+    String? numerosP10,
+  }) async {
+    try {
+      await _supabase.rpc<dynamic>(
+        'fn_registrar_fin_turno',
+        params: <String, dynamic>{
+          'p_inicio_id': inicioTurnoId,
+          'p_km_final': kmFinal,
+          'p_foto_km_final_url': fotoKmFinalUrl,
+          'p_numeros_p10': numerosP10,
+        },
+      );
+    } catch (e) {
+      throw Exception('Error al registrar el fin de turno: $e');
+    }
+  }
 }

@@ -54,6 +54,8 @@ import '../../features/perfil/data/repositories/ajustes_dispositivo_repository_i
 import '../../features/perfil/domain/repositories/ajustes_dispositivo_repository.dart';
 import '../services/app_lock_service.dart';
 import '../services/preferencias_dispositivo_service.dart';
+import '../../features/partes_diarios/data/repositories/parte_diario_pdf_repository_impl.dart';
+import '../../features/partes_diarios/domain/repositories/parte_diario_pdf_repository.dart';
 
 /// Localizador de servicios global usando GetIt
 final GetIt getIt = GetIt.instance;
@@ -129,6 +131,11 @@ Future<void> configureDependencies() async {
       turnoActualRepository: getIt<TurnoActualRepository>(),
       authBloc: getIt<AuthBloc>(),
     ),
+  );
+
+  // ===== PARTE DIARIO (PDF) =====
+  getIt.registerLazySingleton<ParteDiarioPdfRepository>(
+    () => ParteDiarioPdfRepositoryImpl(),
   );
 
   // ===== SERVICIOS/TRASLADOS =====

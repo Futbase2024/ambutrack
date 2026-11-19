@@ -24,6 +24,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ambutrack_pdf:
+    dependency: "direct main"
+    description:
+      path: "../../packages/ambutrack_pdf"
+      relative: true
+    source: path
+    version: "0.1.0"
   analyzer:
     dependency: transitive
     description:

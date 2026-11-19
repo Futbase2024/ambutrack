@@ -37,4 +37,24 @@ abstract class InicioTurnoDataSource {
     required bool aprobado,
     String? motivoRechazo,
   });
+
+  /// Inicios de turno de una persona en un rango (más antiguos primero)
+  Future<List<InicioTurnoEntity>> getByPersonal({
+    required String personalId,
+    required DateTime desde,
+    required DateTime hasta,
+  });
+
+  /// Último inicio de turno de la persona que aún no tiene fin de turno
+  Future<InicioTurnoEntity?> getAbiertoPorPersonal(String personalId);
+
+  /// Cierra el turno: km final (obligatorio) y P-10 entregados (opcional)
+  ///
+  /// RPC `fn_registrar_fin_turno`: valida que el registro sea del usuario y km final ≥ inicial.
+  Future<void> registrarFinTurno({
+    required String inicioTurnoId,
+    required int kmFinal,
+    String? fotoKmFinalUrl,
+    String? numerosP10,
+  });
 }

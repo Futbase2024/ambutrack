@@ -123,6 +123,10 @@ class InicioTurnoEntity extends Equatable {
     this.motivoRechazo,
     this.modoDispositivo,
     this.createdAt,
+    this.kmFinal,
+    this.fotoKmFinalUrl,
+    this.numerosP10,
+    this.finTurnoAt,
   });
 
   final String id;
@@ -154,6 +158,21 @@ class InicioTurnoEntity extends Equatable {
   final String? motivoRechazo;
   final String? modoDispositivo;
   final DateTime? createdAt;
+
+  /// Km del vehículo al cerrar el turno (null si aún no se ha cerrado)
+  final int? kmFinal;
+  final String? fotoKmFinalUrl;
+
+  /// Números de justificantes P-10 entregados (opcional)
+  final String? numerosP10;
+  final DateTime? finTurnoAt;
+
+  /// Km recorridos en el turno (null si falta algún km)
+  int? get kmRecorridos {
+    final int? ini = kmInicial;
+    final int? fin = kmFinal;
+    return ini == null || fin == null ? null : fin - ini;
+  }
 
   /// Todos los puntos del checklist correctos
   bool get checklistOk => checklistItems.every((ChecklistInicioItem i) => i.correcto);
@@ -189,6 +208,10 @@ class InicioTurnoEntity extends Equatable {
         motivoRechazo,
         modoDispositivo,
         createdAt,
+        kmFinal,
+        fotoKmFinalUrl,
+        numerosP10,
+        finTurnoAt,
       ];
 }
 

@@ -6,12 +6,16 @@ import 'package:intl/intl.dart';
 import '../../../../../core/di/injection.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../servicios/domain/repositories/traslados_repository.dart';
+import '../../../domain/repositories/turno_actual_repository.dart';
 import '../../cubit/finalizar_jornada_cubit.dart';
+import 'fin_turno_campos.dart';
 
 /// Confirmación de fin de jornada con resumen y comprobación de traslados.
 ///
 /// - Traslados iniciados (en origen/tránsito/destino) → no deja finalizar
 /// - Traslados de hoy sin iniciar → avisa pero deja finalizar
+/// - Si hay inicio de turno abierto pide km final (obligatorio) y P-10 (opcional)
+///   y los guarda antes de devolver true.
 /// Devuelve true si el trabajador confirma.
 Future<bool> showFinalizarJornadaDialog(
   BuildContext context, {
@@ -23,25 +27,63 @@ Future<bool> showFinalizarJornadaDialog(
     context: context,
     barrierDismissible: false,
     builder: (_) => BlocProvider<FinalizarJornadaCubit>(
-      create: (_) => FinalizarJornadaCubit(getIt<TrasladosRepository>())..cargar(idPersonal),
+      create: (_) => FinalizarJornadaCubit(getIt<TrasladosRepository>(), getIt<TurnoActualRepository>())
+        ..cargar(idPersonal),
       child: FinalizarJornadaDialog(entrada: entrada, matricula: matricula),
     ),
   );
   return confirmado ?? false;
 }
 
-class FinalizarJornadaDialog extends StatelessWidget {
+class FinalizarJornadaDialog extends StatefulWidget {
   const FinalizarJornadaDialog({this.entrada, this.matricula, super.key});
 
   final DateTime? entrada;
   final String? matricula;
 
   @override
+  State<FinalizarJornadaDialog> createState() => _FinalizarJornadaDialogState();
+}
+
+class _FinalizarJornadaDialogState extends State<FinalizarJornadaDialog> {
+  final TextEditingController _km = TextEditingController();
+  final TextEditingController _p10 = TextEditingController();
+  String? _errorKm;
+
+  @override
+  void dispose() {
+    _km.dispose();
+    _p10.dispose();
+    super.dispose();
+  }
+
+  Future<void> _finalizar() async {
+    final FinalizarJornadaCubit cubit = context.read<FinalizarJornadaCubit>();
+    final int? kmInicial = cubit.state.inicioAbierto?.kmInicial;
+    final int? km = int.tryParse(_km.text.trim());
+    if (cubit.state.pideKmFinal) {
+      final String? error = km == null
+          ? 'Indica los km finales del vehículo'
+          : kmInicial != null && km < kmInicial
+              ? 'No puede ser menor que los km iniciales ($kmInicial)'
+              : null;
+      setState(() => _errorKm = error);
+      if (error != null) {
+        return;
+      }
+    }
+    final bool ok = await cubit.confirmar(kmFinal: km, numerosP10: _p10.text.trim());
+    if (ok && mounted) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: BlocBuilder<FinalizarJornadaCubit, FinalizarJornadaState>(
             builder: (BuildContext context, FinalizarJornadaState state) {
@@ -55,7 +97,7 @@ class FinalizarJornadaDialog extends StatelessWidget {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.gray900),
                   ),
                   const SizedBox(height: 16),
-                  _Resumen(entrada: entrada, matricula: matricula),
+                  _Resumen(entrada: widget.entrada, matricula: widget.matricula),
                   if (state.cargando)
                     const Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())
                   else ...<Widget>[
@@ -73,9 +115,20 @@ class FinalizarJornadaDialog extends StatelessWidget {
                         texto: 'Tienes servicios de hoy asignados sin realizar. '
                             'Coordinación tendrá que reasignarlos.',
                       ),
+                    if (state.pideKmFinal && !state.bloqueado)
+                      FinTurnoCampos(
+                        kmController: _km,
+                        p10Controller: _p10,
+                        kmInicial: state.inicioAbierto?.kmInicial,
+                        errorKm: _errorKm ?? state.error,
+                      ),
                   ],
                   const SizedBox(height: 24),
-                  _Botones(puedeFinalizar: !state.cargando && !state.bloqueado),
+                  _Botones(
+                    puedeFinalizar: !state.cargando && !state.bloqueado && !state.guardando,
+                    guardando: state.guardando,
+                    onFinalizar: _finalizar,
+                  ),
                 ],
               );
             },
@@ -187,9 +240,11 @@ class _AvisoTraslados extends StatelessWidget {
 }
 
 class _Botones extends StatelessWidget {
-  const _Botones({required this.puedeFinalizar});
+  const _Botones({required this.puedeFinalizar, required this.guardando, required this.onFinalizar});
 
   final bool puedeFinalizar;
+  final bool guardando;
+  final VoidCallback onFinalizar;
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +252,7 @@ class _Botones extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: guardando ? null : () => Navigator.of(context).pop(false),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -208,13 +263,19 @@ class _Botones extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: FilledButton(
-            onPressed: puedeFinalizar ? () => Navigator.of(context).pop(true) : null,
+            onPressed: puedeFinalizar ? onFinalizar : null,
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.error,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Finalizar'),
+            child: guardando
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Text('Finalizar'),
           ),
         ),
       ],

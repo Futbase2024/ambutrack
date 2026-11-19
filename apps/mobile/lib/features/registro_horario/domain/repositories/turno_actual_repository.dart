@@ -57,4 +57,14 @@ abstract class TurnoActualRepository {
 
   /// Registra los datos de la entrada en turno
   Future<InicioTurnoEntity> registrarInicioTurno(InicioTurnoEntity inicio);
+
+  /// Último inicio de turno del trabajador aún sin cerrar (o null)
+  Future<InicioTurnoEntity?> obtenerInicioAbierto(String idPersonal);
+
+  /// Cierra el turno: km final (obligatorio) y P-10 entregados (opcional)
+  Future<void> registrarFinTurno({
+    required String idInicioTurno,
+    required int kmFinal,
+    String? numerosP10,
+  });
 }

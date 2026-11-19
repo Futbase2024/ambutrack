@@ -8,6 +8,7 @@ import 'package:ambutrack_web/features/personal/horarios/presentation/widgets/ge
 import 'package:ambutrack_web/features/personal/horarios/presentation/widgets/gestion/inicios_turno/inicios_turno_gestion_bars.dart';
 import 'package:ambutrack_web/features/personal/horarios/presentation/widgets/gestion/inicios_turno/inicios_turno_gestion_columns.dart';
 import 'package:ambutrack_web/features/personal/horarios/presentation/widgets/gestion/inicios_turno/inicios_turno_grid_content.dart';
+import 'package:ambutrack_web/features/personal/horarios/presentation/widgets/gestion/inicios_turno/inicios_turno_parte_diario.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -21,7 +22,7 @@ class IniciosTurnoGestionView extends StatefulWidget {
 }
 
 class _IniciosTurnoGestionViewState extends State<IniciosTurnoGestionView>
-    with IniciosTurnoAcciones<IniciosTurnoGestionView> {
+    with IniciosTurnoAcciones<IniciosTurnoGestionView>, IniciosTurnoParteDiario<IniciosTurnoGestionView> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   GestionColumnFilters _colFilters = const GestionColumnFilters();
@@ -115,6 +116,8 @@ class _IniciosTurnoGestionViewState extends State<IniciosTurnoGestionView>
             onFoto: tieneFoto ? () => verFotoKm(selected!) : null,
             onRefresh: _refresh,
             onPrint: visibles.isEmpty ? null : () => imprimirIniciosTurno(visibles),
+            onParteDiario: selected == null ? null : () => imprimirParteDiario(selected),
+            onPartesDelDia: selected == null ? null : () => imprimirPartesDelDia(selected, todos),
           ),
           filterBar: IniciosTurnoGestionFilters(
             searchController: _searchController,
